@@ -1,0 +1,242 @@
+{
+  "frontier": "r2c-world-projection",
+  "id": "GATE-NET-R2C-WORLD-STATE-26_2-001",
+  "methods": [
+    {
+      "query": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData#<clinit>()",
+      "var_id": "VAR-NET-R2C-WORLD-0192"
+    },
+    {
+      "query": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData#ClientboundLevelChunkPacketData(final LevelChunk levelChunk)",
+      "var_id": "VAR-NET-R2C-WORLD-0193"
+    },
+    {
+      "query": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData#write(final RegistryFriendlyByteBuf output)",
+      "var_id": "VAR-NET-R2C-WORLD-0195"
+    },
+    {
+      "query": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#<clinit>()",
+      "var_id": "VAR-NET-R2C-WORLD-0384"
+    },
+    {
+      "query": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#ClientboundLightUpdatePacketData(final ChunkPos chunkPos , final LevelLightEngine lightEngine , final @ Nullable BitSet skyChangedLightSectionFilter , final @ Nullable BitSet blockChangedLightSectionFilter)",
+      "var_id": "VAR-NET-R2C-WORLD-0385"
+    },
+    {
+      "query": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#prepareSectionData(final ChunkPos pos , final LevelLightEngine lightEngine , final LightLayer layer , final int sectionIndex , final BitSet mask , final BitSet emptyMask , final List < byte [ ] > updates)",
+      "var_id": "VAR-NET-R2C-WORLD-0388"
+    },
+    {
+      "query": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#write(final FriendlyByteBuf output)",
+      "var_id": "VAR-NET-R2C-WORLD-0387"
+    },
+    {
+      "query": "net.minecraft.util.SimpleBitStorage#SimpleBitStorage(final int bits , final int size , final long @ Nullable [ ] data)",
+      "var_id": "VAR-NET-R2C-WORLD-0206"
+    },
+    {
+      "query": "net.minecraft.util.SimpleBitStorage#getRaw()",
+      "var_id": "VAR-NET-R2C-WORLD-0211"
+    },
+    {
+      "query": "net.minecraft.util.SimpleBitStorage#set(final int index , final int value)",
+      "var_id": "VAR-NET-R2C-WORLD-0209"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Configuration#Global(int bitsInMemory , int bitsInStorage)",
+      "var_id": "VAR-NET-R2C-WORLD-0221"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Configuration#Simple(Palette . Factory factory , int bits)",
+      "var_id": "VAR-NET-R2C-WORLD-0222"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#DataLayer(final byte [ ] data)",
+      "var_id": "VAR-NET-R2C-WORLD-0398"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#DataLayer(final int defaultValue)",
+      "var_id": "VAR-NET-R2C-WORLD-0397"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#copy()",
+      "var_id": "VAR-NET-R2C-WORLD-0409"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#get(final int x , final int y , final int z)",
+      "var_id": "VAR-NET-R2C-WORLD-0399"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#getByteIndex(final int position)",
+      "var_id": "VAR-NET-R2C-WORLD-0405"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#getData()",
+      "var_id": "VAR-NET-R2C-WORLD-0408"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#getIndex(final int x , final int y , final int z)",
+      "var_id": "VAR-NET-R2C-WORLD-0401"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#getNibbleIndex(final int index)",
+      "var_id": "VAR-NET-R2C-WORLD-0404"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#isEmpty()",
+      "var_id": "VAR-NET-R2C-WORLD-0414"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#packFilled(final int value)",
+      "var_id": "VAR-NET-R2C-WORLD-0407"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.DataLayer#set(final int x , final int y , final int z , final int val)",
+      "var_id": "VAR-NET-R2C-WORLD-0400"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.GlobalPalette#idFor(final T value , final PaletteResize < T > resizeHandler)",
+      "var_id": "VAR-NET-R2C-WORLD-0224"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.GlobalPalette#valueFor(final int index)",
+      "var_id": "VAR-NET-R2C-WORLD-0226"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.GlobalPalette#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "var_id": "VAR-NET-R2C-WORLD-0228"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.LevelChunkSection#write(final FriendlyByteBuf buffer)",
+      "var_id": "VAR-NET-R2C-WORLD-0265"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.LinearPalette#idFor(final T value , final PaletteResize < T > resizeHandler)",
+      "var_id": "VAR-NET-R2C-WORLD-0274"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.LinearPalette#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "var_id": "VAR-NET-R2C-WORLD-0278"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.PalettedContainer#write(final FriendlyByteBuf buffer)",
+      "var_id": "VAR-NET-R2C-WORLD-0311"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.PalettedContainer$Data#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "var_id": "VAR-NET-R2C-WORLD-0324"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.PalettedContainerFactory#create(final RegistryAccess registries)",
+      "var_id": "VAR-NET-R2C-WORLD-0326"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.PalettedContainerFactory#createForBiomes()",
+      "var_id": "VAR-NET-R2C-WORLD-0328"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.SingleValuePalette#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "var_id": "VAR-NET-R2C-WORLD-0335"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Strategy#<clinit>()",
+      "var_id": "VAR-NET-R2C-WORLD-0339"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Strategy#Strategy(final IdMap < T > globalMap , final int bitsPerAxis)",
+      "var_id": "VAR-NET-R2C-WORLD-0340"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Strategy#createForBiomes(final IdMap < T > registry)",
+      "var_id": "VAR-NET-R2C-WORLD-0342"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Strategy#getConfigurationForPaletteSize(final int paletteSize)",
+      "var_id": "VAR-NET-R2C-WORLD-0348"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Strategy#getIndex(final int x , final int y , final int z)",
+      "var_id": "VAR-NET-R2C-WORLD-0344"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.Strategy#minimumBitsRequiredForDistinctValues(final int count)",
+      "var_id": "VAR-NET-R2C-WORLD-0349"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.storage.SerializableChunkData#parse(final LevelHeightAccessor levelHeight , final PalettedContainerFactory containerFactory , final CompoundTag chunkData)",
+      "var_id": "VAR-NET-R2C-WORLD-0371"
+    },
+    {
+      "query": "net.minecraft.world.level.chunk.storage.SerializableChunkData#read(final ServerLevel level , final PoiManager poiManager , final RegionStorageInfo regionInfo , final ChunkPos pos)",
+      "var_id": "VAR-NET-R2C-WORLD-0372"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap#<clinit>()",
+      "var_id": "VAR-NET-R2C-WORLD-0350"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap#Heightmap(final ChunkAccess chunk , final Heightmap . Types heightmapType)",
+      "var_id": "VAR-NET-R2C-WORLD-0351"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap#getFirstAvailable(final int index)",
+      "var_id": "VAR-NET-R2C-WORLD-0356"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap#getIndex(final int x , final int z)",
+      "var_id": "VAR-NET-R2C-WORLD-0360"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap#getRawData()",
+      "var_id": "VAR-NET-R2C-WORLD-0359"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap#primeHeightmaps(final ChunkAccess chunk , final Set < Heightmap . Types > types)",
+      "var_id": "VAR-NET-R2C-WORLD-0352"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap#setHeight(final int x , final int z , final int height)",
+      "var_id": "VAR-NET-R2C-WORLD-0357"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap$Types#<clinit>()",
+      "var_id": "VAR-NET-R2C-WORLD-0362"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap$Types#isOpaque()",
+      "var_id": "VAR-NET-R2C-WORLD-0367"
+    },
+    {
+      "query": "net.minecraft.world.level.levelgen.Heightmap$Types#sendToClient()",
+      "var_id": "VAR-NET-R2C-WORLD-0365"
+    },
+    {
+      "query": "net.minecraft.world.level.lighting.LayerLightSectionStorage#getDataLayerData(final long sectionNode)",
+      "var_id": "VAR-NET-R2C-WORLD-0460"
+    },
+    {
+      "query": "net.minecraft.world.level.lighting.LevelLightEngine#getLayerListener(final LightLayer layer)",
+      "var_id": "VAR-NET-R2C-WORLD-0490"
+    },
+    {
+      "query": "net.minecraft.world.level.lighting.LevelLightEngine#getLightSectionCount()",
+      "var_id": "VAR-NET-R2C-WORLD-0497"
+    },
+    {
+      "query": "net.minecraft.world.level.lighting.LevelLightEngine#getMaxLightSection()",
+      "var_id": "VAR-NET-R2C-WORLD-0499"
+    },
+    {
+      "query": "net.minecraft.world.level.lighting.LevelLightEngine#getMinLightSection()",
+      "var_id": "VAR-NET-R2C-WORLD-0498"
+    },
+    {
+      "query": "net.minecraft.world.level.lighting.LightEngine#getDataLayerData(final SectionPos pos)",
+      "var_id": "VAR-NET-R2C-WORLD-0527"
+    }
+  ],
+  "minimum_status": "VAR_REVIEWED",
+  "require_hazards_reviewed": true,
+  "require_semantic_rules": true,
+  "schema": 1
+}

@@ -1,0 +1,31 @@
+{
+  "classifications": [
+    "CODEC_SERIALIZATION",
+    "PERSISTENCE"
+  ],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [
+    "CODEC",
+    "PERSISTENCE",
+    "REGISTRY"
+  ],
+  "id": "VAR-NET-R2C-WORLD-0371",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-LIGHT-PERSISTED-IMPORT"
+  ],
+  "source": {
+    "body_sha256": "737bccafb64564b6c09bd71f52725d21bb0bf14baf8cd6d493c60bbb31e13cc5",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "c5dee329bfd27847d011dadea605d70b09b755f5ff011def42915538981f38b2",
+    "signature": "parse(final LevelHeightAccessor levelHeight , final PalettedContainerFactory containerFactory , final CompoundTag chunkData)",
+    "type": "net.minecraft.world.level.chunk.storage.SerializableChunkData"
+  },
+  "status": "VAR_REVIEWED"
+}

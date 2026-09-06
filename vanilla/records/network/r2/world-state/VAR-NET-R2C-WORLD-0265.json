@@ -1,0 +1,24 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [],
+  "id": "VAR-NET-R2C-WORLD-0265",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-BIOME-SECTION-PLACEMENT"
+  ],
+  "source": {
+    "body_sha256": "451dff81278c796e0ca79c34ac092c77ade4d27322f9cea711a06dc4a3ba5dec",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "dab9ea0c6510645a3cd4674c62dbd15e82cda246795a310b1006368c7c5aa888",
+    "signature": "write(final FriendlyByteBuf buffer)",
+    "type": "net.minecraft.world.level.chunk.LevelChunkSection"
+  },
+  "status": "VAR_REVIEWED"
+}

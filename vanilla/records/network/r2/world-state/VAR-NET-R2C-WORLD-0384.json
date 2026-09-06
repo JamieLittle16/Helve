@@ -1,0 +1,27 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [
+    "CLIENT_OBSERVABLE",
+    "CODEC"
+  ],
+  "id": "VAR-NET-R2C-WORLD-0384",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-LIGHT-WIRE"
+  ],
+  "source": {
+    "body_sha256": "81629ab94c5b2dfe9ea610e7e85a1b2281e5526f40b214172c4f6a41f8b7a06a",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "1c5d49d08a2ed9a10187741b8d3aa9f8bc39c99689b05dd0ecb911571160fbdc",
+    "signature": "<clinit>()",
+    "type": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData"
+  },
+  "status": "VAR_REVIEWED"
+}

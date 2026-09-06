@@ -1,0 +1,30 @@
+{
+  "classifications": [
+    "PERSISTENCE",
+    "SCHEDULED_TICK"
+  ],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [
+    "PERSISTENCE",
+    "SCHEDULED_TICK"
+  ],
+  "id": "VAR-NET-R2C-WORLD-0372",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-LIGHT-RECONSTRUCTION"
+  ],
+  "source": {
+    "body_sha256": "4d6bc275f248356b2bbf019039c713409720515a4518a127799f4b0db176b088",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "fd5e2c60db8b1a6c63d2c5a99187748e9c6b4e6af006c8582243837d467e8801",
+    "signature": "read(final ServerLevel level , final PoiManager poiManager , final RegionStorageInfo regionInfo , final ChunkPos pos)",
+    "type": "net.minecraft.world.level.chunk.storage.SerializableChunkData"
+  },
+  "status": "VAR_REVIEWED"
+}

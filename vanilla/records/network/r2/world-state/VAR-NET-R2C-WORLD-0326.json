@@ -1,0 +1,26 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [
+    "REGISTRY"
+  ],
+  "id": "VAR-NET-R2C-WORLD-0326",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-BIOME-REGISTRY-FACTORY"
+  ],
+  "source": {
+    "body_sha256": "fae7ad93397fd5e676ab6e09e1dddf38beaf7461daf4054ae79f98b066b028f7",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "1efb11814c897ae03062c5e146b5ea9c9430932e7b185edfb6ba22713502d4ec",
+    "signature": "create(final RegistryAccess registries)",
+    "type": "net.minecraft.world.level.chunk.PalettedContainerFactory"
+  },
+  "status": "VAR_REVIEWED"
+}

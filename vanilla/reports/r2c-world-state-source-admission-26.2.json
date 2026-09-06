@@ -1,0 +1,913 @@
+{
+  "admitted": true,
+  "closure_diagnostics": {
+    "note": "Closure diagnostics are review leads. Admission applies only to explicitly required methods.",
+    "review_status": {
+      "UNSEEN": 848
+    },
+    "unresolved_call_sites": 2376
+  },
+  "failures": [],
+  "frontier": {
+    "config_path": "vanilla/frontiers/r2c-world-projection.json",
+    "config_sha256": "4ec543e3ff49b60e8f4a9b9d4e70d1c79312127e95e90e86beb77c66106453a9",
+    "name": "r2c-world-projection",
+    "reachable_methods": 848,
+    "root_methods": 554
+  },
+  "gate_id": "GATE-NET-R2C-WORLD-STATE-26_2-001",
+  "gate_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/gate.json",
+  "gate_sha256": "9efcf08fb7c6dd1f3a3aeee4864de3d0f69b0d98b25a98aec5aed7d15c079feb",
+  "materialization_id": "MATERIALIZE-NET-R2C-WORLD-STATE-26_2-001",
+  "materialization_manifest_sha256": "aab2a967f8f35450021562743abf07507af2a11b9c5ed50cf9e98168456f3f09",
+  "minimum_status": "VAR_REVIEWED",
+  "required_methods": [
+    {
+      "body_sha256": "74af630105f99dced67a0fd8c5931774ee242ca55f164df28823df2266aee39d",
+      "normalized_sha256": "9e37c64c1c3d2808534ffa4213d7493b12c94dd5cc7ec8c0009de1f98c8538e9",
+      "observed_hazards": [
+        "CLIENT_OBSERVABLE",
+        "CODEC"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0192.json",
+      "record_sha256": "ab66f9f73199e331bb6a458d110e4b4d0f5a776448b4b443bf164e49b42fadd8",
+      "reviewed_hazards": [
+        "CLIENT_OBSERVABLE",
+        "CODEC"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-WIRE"
+      ],
+      "source": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData#<clinit>()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0192"
+    },
+    {
+      "body_sha256": "13049e75cfa067bb9eb7c772a701297da596eec751aad7df0474de7ef3c64fd0",
+      "normalized_sha256": "e01f1271286e4c1aa239fde50c6bc336de87213d275efd96072704129017ec07",
+      "observed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0193.json",
+      "record_sha256": "7e2b9b7434015123cee6b94a138d434c229a8dbed2ac7666a85f7daa50d1c05d",
+      "reviewed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-WIRE"
+      ],
+      "source": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData#ClientboundLevelChunkPacketData(final LevelChunk levelChunk)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0193"
+    },
+    {
+      "body_sha256": "4aef2d360efc79fc6e9f95f40ba0ec9a7565093131fd35c248dc85f4d4a72e04",
+      "normalized_sha256": "9a3449a39a3400cc52df81ad9ec228312e764353ad01dcd5e6f0a79640d09092",
+      "observed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0195.json",
+      "record_sha256": "bce492083eb788baa41ea05afedd5a0170d423271b24ba2b25d7d94edd27dd2f",
+      "reviewed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-WIRE"
+      ],
+      "source": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData#write(final RegistryFriendlyByteBuf output)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0195"
+    },
+    {
+      "body_sha256": "81629ab94c5b2dfe9ea610e7e85a1b2281e5526f40b214172c4f6a41f8b7a06a",
+      "normalized_sha256": "1c5d49d08a2ed9a10187741b8d3aa9f8bc39c99689b05dd0ecb911571160fbdc",
+      "observed_hazards": [
+        "CLIENT_OBSERVABLE",
+        "CODEC"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0384.json",
+      "record_sha256": "d6ab46d709e061ad1a8d40cd65012f4b4d59c7064be902e6b736c2e88094d801",
+      "reviewed_hazards": [
+        "CLIENT_OBSERVABLE",
+        "CODEC"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-WIRE"
+      ],
+      "source": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#<clinit>()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0384"
+    },
+    {
+      "body_sha256": "59cab246caf00ab7cae4e12c334f4bc9dfa17de5284f3617167516bc18208b51",
+      "normalized_sha256": "dd250970c4d579e36cc1d6a1551b86b2a47e34d75d44112296f37c9dfb07e249",
+      "observed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0385.json",
+      "record_sha256": "6553665de508ba61de0e2ca623ed61d3f247522db028bbe49a3015b836ea4a07",
+      "reviewed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LATTICE",
+        "SEM-NET-R2C-WORLD-LIGHT-MASK-CLASSIFICATION"
+      ],
+      "source": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#ClientboundLightUpdatePacketData(final ChunkPos chunkPos , final LevelLightEngine lightEngine , final @ Nullable BitSet skyChangedLightSectionFilter , final @ Nullable BitSet blockChangedLightSectionFilter)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0385"
+    },
+    {
+      "body_sha256": "81b84d2c2f709f2f352033dae11cc52c96ad8ac2009c9052029e753b0b292332",
+      "normalized_sha256": "8593a1ce7af05f4271a38ba3a5aef26b81d98a26ea90dcb1fdc548a6e48a3a37",
+      "observed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0388.json",
+      "record_sha256": "c5138e99783cbbbcf0ba56b673a3b5478348915c53c382c99a0621778d364a31",
+      "reviewed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LATTICE",
+        "SEM-NET-R2C-WORLD-LIGHT-MASK-CLASSIFICATION"
+      ],
+      "source": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#prepareSectionData(final ChunkPos pos , final LevelLightEngine lightEngine , final LightLayer layer , final int sectionIndex , final BitSet mask , final BitSet emptyMask , final List < byte [ ] > updates)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0388"
+    },
+    {
+      "body_sha256": "c985bb5295297713783384a51c5a6c5f79516253f3b7a58365d9ece933416285",
+      "normalized_sha256": "424bb896fc934a59a3e73ad88382f0b3168dd170771b08ded1c2f8a1f1f9ce71",
+      "observed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0387.json",
+      "record_sha256": "52dbe127a79a099296fbbdb613fdac9f06740e88c43e78fdfb8c0f3a95985830",
+      "reviewed_hazards": [
+        "CLIENT_OBSERVABLE"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-WIRE"
+      ],
+      "source": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#write(final FriendlyByteBuf output)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0387"
+    },
+    {
+      "body_sha256": "d3e89bb2796db1b0c3145a3e7496094406c3d00efd3813246e37e2e42caaf6bd",
+      "normalized_sha256": "33dad4991e519f9ad9608c899f58e713fe8058ae0d9e919e89b2d4d16ab94293",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0206.json",
+      "record_sha256": "7f4ae80787b9e1065809ff4f84c600059bfe4b4ab0040be7bfb726d693682da6",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PACKED-STORAGE"
+      ],
+      "source": "net.minecraft.util.SimpleBitStorage#SimpleBitStorage(final int bits , final int size , final long @ Nullable [ ] data)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0206"
+    },
+    {
+      "body_sha256": "ebeba318c95fa4858a6d135cfcbd405ea0707f1da087ec11e4172d22575affa8",
+      "normalized_sha256": "03b15c06a2bf6be0b090421647d30b21c42c4cb508466bbf21675e42aeacfe65",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0211.json",
+      "record_sha256": "5fa611209922ad13b609b0b7f394489c5b19681d8ed96a9874a7f08796d40119",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PACKED-STORAGE"
+      ],
+      "source": "net.minecraft.util.SimpleBitStorage#getRaw()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0211"
+    },
+    {
+      "body_sha256": "5bea43aa35fe844cefb5a170995a3693e18efdcefec6d724f06d524dda4a9643",
+      "normalized_sha256": "40d5a6bf2cac74a1f32075724d10945b76b19ac8ced5dec1203a37fd0350b179",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0209.json",
+      "record_sha256": "a1f3e41d34912e9e0bc2c71d00c5851c1a1089b4cb5a6992b7093bd5f4331cf4",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PACKED-STORAGE"
+      ],
+      "source": "net.minecraft.util.SimpleBitStorage#set(final int index , final int value)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0209"
+    },
+    {
+      "body_sha256": "bb557594796a3cb276bd638195e0d8c9b2e47eea835ba859d8cc3f13a0895909",
+      "normalized_sha256": "26ba24eab2aeb468b811096219537410daf3cf4e7b536a3766618b4f38b307d5",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0221.json",
+      "record_sha256": "87479d508c09c1e41e751f2c6f96a9eb84b9b6e686b80b7a5708efc6a6222875",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-MODES"
+      ],
+      "source": "net.minecraft.world.level.chunk.Configuration#Global(int bitsInMemory , int bitsInStorage)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0221"
+    },
+    {
+      "body_sha256": "4df649000e8ce5b04fe6d26c9a5b8a1bdb2c2ad0ec64a2c6425a72763e84db41",
+      "normalized_sha256": "748d53f0afa290a3c1b47b9ecc2df1fabc17bebe630495e2e6fa37696308e66c",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0222.json",
+      "record_sha256": "8fec518db04281fc28e833112f476bdead60b5a32dbaa78c1c12b745ad358434",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-MODES"
+      ],
+      "source": "net.minecraft.world.level.chunk.Configuration#Simple(Palette . Factory factory , int bits)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0222"
+    },
+    {
+      "body_sha256": "693ef141ba511926c983b78d64666779bb9826476d8efff19e422bad9707e522",
+      "normalized_sha256": "41b9be76675350c220be867554f4b05a06fb3b9d440e4baf8c87d5cd72d271ac",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0398.json",
+      "record_sha256": "2fa42a5116d4bf5be3af354e99823dcc8bb141ec5dc21737278a5530b678e606",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-DATALAYER",
+        "SEM-NET-R2C-WORLD-LIGHT-PERSISTED-IMPORT"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#DataLayer(final byte [ ] data)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0398"
+    },
+    {
+      "body_sha256": "6df4a2dba3061c3f723fcf69ea790adf96354e7c63a965f3164dc54e60f4e7d3",
+      "normalized_sha256": "ba2234a2a004fe68b907a944b1062ff040b9eab68ad7dc0b30f1f41e80059d6d",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0397.json",
+      "record_sha256": "044d23e7714e56f025a570a8fddc07a13336c0c8c544666288b7bc400477071d",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-HOMOGENEOUS-LAYER"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#DataLayer(final int defaultValue)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0397"
+    },
+    {
+      "body_sha256": "4f969192f110821b276181bbcd349a9ee1063d2cd51dadcc512a645fecc12679",
+      "normalized_sha256": "eabb13b610446ff926db2672d77eeea0d6e55cf46ab36d41be9d243f7612910a",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0409.json",
+      "record_sha256": "60649b0d03878619a4d897c090e4b3b4bad7f4d556b7f2122102c153a8047762",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-HOMOGENEOUS-LAYER",
+        "SEM-NET-R2C-WORLD-LIGHT-MASK-CLASSIFICATION"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#copy()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0409"
+    },
+    {
+      "body_sha256": "786788adc3278de0e4b76b67544b944a6a1d2c1538f3470e0e65cf521ceed4bd",
+      "normalized_sha256": "67d806d747afb809d09856aa85c57388b2e68c50014bf4c5cd89f5cba60fc6a5",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0399.json",
+      "record_sha256": "21e7416ee5ddd8df122c069cd0f1158a4ab0304d529c83963a9eca58ece06ec5",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-DATALAYER"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#get(final int x , final int y , final int z)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0399"
+    },
+    {
+      "body_sha256": "a00bdf6e90ef016016d12b06761028a58f556bb3238014b5cda400130176fc1e",
+      "normalized_sha256": "cbb49fe5e30ea48149161d9a80f749d0529f208ffd51be5badd278866c368945",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0405.json",
+      "record_sha256": "79f8592db251ba695983df8a5187a82d6334672f49c603cbb3f5a70dd1c69e1a",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-DATALAYER"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#getByteIndex(final int position)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0405"
+    },
+    {
+      "body_sha256": "e9a94c573d45fc92785684cfb6083f06edf8634c7d010efe82a665128168cb59",
+      "normalized_sha256": "23315ffb1894965c7899802f29b5dff02564de90725c659d5dcf64d608260069",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0408.json",
+      "record_sha256": "c39f2820d3fca2fadf22838d9616aa6f28e61216f9575126aeaedfe580caed1e",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-HOMOGENEOUS-LAYER",
+        "SEM-NET-R2C-WORLD-LIGHT-MASK-CLASSIFICATION"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#getData()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0408"
+    },
+    {
+      "body_sha256": "bb8f26ab1327e60c32bdf0a90d93b258c1d088c2437e317402a232b631e7a7bb",
+      "normalized_sha256": "98d30ca29c9e05b3afd6986782bf584603b0f66b2181e763adf2b78d1245e89c",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0401.json",
+      "record_sha256": "461ff5b6bce03cfd6d9a60ea6a2ee0da218a7749df1a418ffe240b76c67dbb1d",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-DATALAYER"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#getIndex(final int x , final int y , final int z)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0401"
+    },
+    {
+      "body_sha256": "6803a9b8f22b05f506846af781d5214178a64416eb2ceb185ddc72251abb7538",
+      "normalized_sha256": "f9adfc5e5959baea1b6d3791d66fc645f337aa6cfd436bee913b52b8c77e05a4",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0404.json",
+      "record_sha256": "b667e59b385507bec054b5cc960307f8a5c1277600343c4810334f235e116133",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-DATALAYER"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#getNibbleIndex(final int index)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0404"
+    },
+    {
+      "body_sha256": "dfb3d39d7c023e67fbfd5ca910b156b562ae2dafebab7180c1e9942b624c3c8b",
+      "normalized_sha256": "c97bffd5eafa777ff470c18d7eabf6270c9d783a903e5289ca4104956dcdf89f",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0414.json",
+      "record_sha256": "f61b4dcc13a9b93e3087a6626c3fb5ae108a136413dcee5fe3e2233603717a59",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-HOMOGENEOUS-LAYER",
+        "SEM-NET-R2C-WORLD-LIGHT-MASK-CLASSIFICATION"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#isEmpty()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0414"
+    },
+    {
+      "body_sha256": "ff01f1e53a1ccf525372a6ee9dc5d09cd4737c8b6eb82db57e4b86237f663237",
+      "normalized_sha256": "d274f62b8ca2874fd25d463e506467cd3f764c65b6410f44cde77d4e1084b3b2",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0407.json",
+      "record_sha256": "5ccebf9af934e8bcc39548970d11c8084e5d7960b43ecb79e79906f45b0b7386",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-HOMOGENEOUS-LAYER"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#packFilled(final int value)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0407"
+    },
+    {
+      "body_sha256": "4572e99ba31b8e0fdb712222b2ec1787cc848f4470d50dbf16c24d02a9e04db4",
+      "normalized_sha256": "31687460d2f5be7bbf37acec979c9ae4873912874d5136d7c4baff946387ea1e",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0400.json",
+      "record_sha256": "843d486d2e26210257007195888495a317006a8a0d072684b0457af0ce002394",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-DATALAYER"
+      ],
+      "source": "net.minecraft.world.level.chunk.DataLayer#set(final int x , final int y , final int z , final int val)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0400"
+    },
+    {
+      "body_sha256": "a9bc3420c85822d189c60f47ce7a667e49a755948924d69dbc3090bd6a21334d",
+      "normalized_sha256": "63e9e3d235487297bdad01e2062cb0155a1304620b9e10dda56d7d93221f4a8d",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0224.json",
+      "record_sha256": "496fc9d1f9d5c895b065476654e4d75722f6c1aef5436fadeda8b5155cafdbc9",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.GlobalPalette#idFor(final T value , final PaletteResize < T > resizeHandler)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0224"
+    },
+    {
+      "body_sha256": "6a4e6ff14ac53ed9348c0589e16995486b67c023a4a5d6b42c294261c317ac07",
+      "normalized_sha256": "da682476e0498b87636045026cdc1a6c0cd67455f4d81418b4ea8f148cddabf7",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0226.json",
+      "record_sha256": "31a8f86a93cad16d0d4fadb4f1864155f291189c3db1db7f88e71d78293c5b5c",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.GlobalPalette#valueFor(final int index)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0226"
+    },
+    {
+      "body_sha256": "f44598b6f64a3e1ff38d05c3eb80eea453f4d2b468b198876e1fdc1debdfa8d9",
+      "normalized_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0228.json",
+      "record_sha256": "86d8ff8d76ddaddfb2b369cbc486d4572908fa1899832d3d257a6847a9e14c19",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.GlobalPalette#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0228"
+    },
+    {
+      "body_sha256": "451dff81278c796e0ca79c34ac092c77ade4d27322f9cea711a06dc4a3ba5dec",
+      "normalized_sha256": "dab9ea0c6510645a3cd4674c62dbd15e82cda246795a310b1006368c7c5aa888",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0265.json",
+      "record_sha256": "93df4f213f5f599e82a18e6ff73c0a7456fe56173f00ed851ed3cdf2d5d1b0f9",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-SECTION-PLACEMENT"
+      ],
+      "source": "net.minecraft.world.level.chunk.LevelChunkSection#write(final FriendlyByteBuf buffer)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0265"
+    },
+    {
+      "body_sha256": "a9176b02fdfdb12fdd2131c83f66ac4f3cb156b52240548cfe8f1982f0249f48",
+      "normalized_sha256": "ae037168970e73c424c0a0b97e0b296d9fafa5a460102939b25e0cec04ff5c66",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0274.json",
+      "record_sha256": "0e492fcfd89e055cc94e50dc01b4796824533c21810c83bcb1d82d6004e8e8fc",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.LinearPalette#idFor(final T value , final PaletteResize < T > resizeHandler)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0274"
+    },
+    {
+      "body_sha256": "86e8dc7c78cac0a5783795363258d582fb5c93e298103b5e6dc0f823ebbbd1d2",
+      "normalized_sha256": "8b5d5c270820ef2c815ae64e5dab1fd6d778d781852721d356de1c38f6a57872",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0278.json",
+      "record_sha256": "55e3e6b8ca4c2b6d241884f5d89ab23f460d03969b0c27b683ffb5e675e0ef3d",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.LinearPalette#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0278"
+    },
+    {
+      "body_sha256": "1fbf8680d579ab62121515ba40f31fc35bc2b3c4eccc6978ffd27663cb527e9c",
+      "normalized_sha256": "e9bae7ba6cb0ed89a455477f1b2410916c9d8b8d179f1c9e90d0c94c2697f590",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0311.json",
+      "record_sha256": "e73f50056b507616e9063d0133e7c47f2bf5ae3629a24ad2d289921944de92c6",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-CONTAINER-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.PalettedContainer#write(final FriendlyByteBuf buffer)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0311"
+    },
+    {
+      "body_sha256": "d1576e1c11a8aace32db4c64746dcdb8d66293d92cd874538167a446cdf5b0e9",
+      "normalized_sha256": "e17de75745d50643b41d73eb91c27758fa07fc6f601bcc5b8cc6a60e5c2bd0d7",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0324.json",
+      "record_sha256": "db4ba091353f285e07576c2af78cb57ba982e76d776d8e86672b5c90cadb558f",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-CONTAINER-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.PalettedContainer$Data#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0324"
+    },
+    {
+      "body_sha256": "fae7ad93397fd5e676ab6e09e1dddf38beaf7461daf4054ae79f98b066b028f7",
+      "normalized_sha256": "1efb11814c897ae03062c5e146b5ea9c9430932e7b185edfb6ba22713502d4ec",
+      "observed_hazards": [
+        "REGISTRY"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0326.json",
+      "record_sha256": "b416d1a0849921fcfd26df3a334fcca8667534cca023aa5b80f659ac6e5054af",
+      "reviewed_hazards": [
+        "REGISTRY"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-REGISTRY-FACTORY"
+      ],
+      "source": "net.minecraft.world.level.chunk.PalettedContainerFactory#create(final RegistryAccess registries)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0326"
+    },
+    {
+      "body_sha256": "e6ce838436f70df58a63009c18bfe8722a8bf3504120df8e9232603f3f262d70",
+      "normalized_sha256": "fa0fc0649bff2d9aaf347abfa7ecfe6769d597b35bf865662e884437fcc511d6",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0328.json",
+      "record_sha256": "419e4b8cd0d63bcc46498387b93cf4d4503996df0edc6891f1b438a4ae99d201",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-REGISTRY-FACTORY"
+      ],
+      "source": "net.minecraft.world.level.chunk.PalettedContainerFactory#createForBiomes()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0328"
+    },
+    {
+      "body_sha256": "cef1a64c1e4f9bcf625e7c1946ee7579944bf94cf442730e9865aa28df50f275",
+      "normalized_sha256": "5f0b5afe7e89dba879de309f08729984bf8f18d9093f7e0094c2b6b4ca1a691f",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0335.json",
+      "record_sha256": "a48f7161bdecabad86d6651ac7f012c4ab160e41a9693bec7997fb1a6d714dab",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-WIRE"
+      ],
+      "source": "net.minecraft.world.level.chunk.SingleValuePalette#write(final FriendlyByteBuf buffer , final IdMap < T > globalMap)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0335"
+    },
+    {
+      "body_sha256": "8ea161dbe86ad2376cc9c1a1b0a516707d8ae476127182314a4b3f953076a8c8",
+      "normalized_sha256": "26898af07dcc897581ce943eaf6d351f2eade509e568f797e292c7d3fd7dd740",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0339.json",
+      "record_sha256": "f1f5fee5c39f244109de011bb491ed852d86b4c07a07fcc7ccca3624c40466c5",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-MODES"
+      ],
+      "source": "net.minecraft.world.level.chunk.Strategy#<clinit>()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0339"
+    },
+    {
+      "body_sha256": "91a633ea6dfc505182dcf930744fc9d5a330a390eea20b920bf499f32373fa37",
+      "normalized_sha256": "517a4aff5005eab070f787267e24fe528517d69b5d7d4a0e00237e3d94cea21a",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0340.json",
+      "record_sha256": "496884bc1680342ef413798ad2a4b1fa7bbec2e6e2d069d5487736ac742a2357",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-LATTICE"
+      ],
+      "source": "net.minecraft.world.level.chunk.Strategy#Strategy(final IdMap < T > globalMap , final int bitsPerAxis)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0340"
+    },
+    {
+      "body_sha256": "17f42a0a04759dd8fcd3b5aa7661e5f8f840b430856f72c5287b833bd5ca316b",
+      "normalized_sha256": "1dca4aaa62d51343cb75da85c10e09d8af169ca901c97ca714c4e6a6a90a2e69",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0342.json",
+      "record_sha256": "c25d4fb47add60ea3bf2fa78a7abebca94766aef576ad558485008464c0f30cd",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-LATTICE",
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-MODES"
+      ],
+      "source": "net.minecraft.world.level.chunk.Strategy#createForBiomes(final IdMap < T > registry)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0342"
+    },
+    {
+      "body_sha256": "3abfa47a5dfd306a22400c43364d02504f5d84ec6d53da2e36cef72396b800ff",
+      "normalized_sha256": "52e79c150a4818bbf9f99e837c4445444a376528cd05240b4cc4adf2f72cfb6a",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0348.json",
+      "record_sha256": "4607026de7e6c13605a8e967092c832742c5b582ce2f2d2f95247cd7f80ef713",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-MODES"
+      ],
+      "source": "net.minecraft.world.level.chunk.Strategy#getConfigurationForPaletteSize(final int paletteSize)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0348"
+    },
+    {
+      "body_sha256": "06fe085184d0f10963deb844574091a97a290c6e1b17150440cf906172d24f83",
+      "normalized_sha256": "becc365101217aa47856e2ed30638d387fb0da88c024a99eac2197d2cf6806a8",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0344.json",
+      "record_sha256": "0493e275d483d049193f7804d564f2079dcd49490f1962b1c1f7fd372f31acda",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-LATTICE"
+      ],
+      "source": "net.minecraft.world.level.chunk.Strategy#getIndex(final int x , final int y , final int z)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0344"
+    },
+    {
+      "body_sha256": "838cde15aecd88a73e3e1310cdfbade61b11e90f8db4f0d60a3d188e7364e12f",
+      "normalized_sha256": "a2e0aeedacfec07dfe08554c5a7552fc67f40944a9d5ccef2afc7580b23896ed",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0349.json",
+      "record_sha256": "7bf5f5abe4d10778a63e0f01a5e2d3eb75935f73c220bea568444ca828306307",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-BIOME-PALETTE-MODES"
+      ],
+      "source": "net.minecraft.world.level.chunk.Strategy#minimumBitsRequiredForDistinctValues(final int count)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0349"
+    },
+    {
+      "body_sha256": "737bccafb64564b6c09bd71f52725d21bb0bf14baf8cd6d493c60bbb31e13cc5",
+      "normalized_sha256": "c5dee329bfd27847d011dadea605d70b09b755f5ff011def42915538981f38b2",
+      "observed_hazards": [
+        "CODEC",
+        "PERSISTENCE",
+        "REGISTRY"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0371.json",
+      "record_sha256": "28f2e1f5a26bb150697b32319644d47d4a9550c37a1a9b7b4502960b01d5cd89",
+      "reviewed_hazards": [
+        "CODEC",
+        "PERSISTENCE",
+        "REGISTRY"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-PERSISTED-IMPORT"
+      ],
+      "source": "net.minecraft.world.level.chunk.storage.SerializableChunkData#parse(final LevelHeightAccessor levelHeight , final PalettedContainerFactory containerFactory , final CompoundTag chunkData)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0371"
+    },
+    {
+      "body_sha256": "4d6bc275f248356b2bbf019039c713409720515a4518a127799f4b0db176b088",
+      "normalized_sha256": "fd5e2c60db8b1a6c63d2c5a99187748e9c6b4e6af006c8582243837d467e8801",
+      "observed_hazards": [
+        "PERSISTENCE",
+        "SCHEDULED_TICK"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0372.json",
+      "record_sha256": "0c52c15b0d434868354ac4398449eeba33bceffb1d3317ccb1c1cc3c532369d8",
+      "reviewed_hazards": [
+        "PERSISTENCE",
+        "SCHEDULED_TICK"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-RECONSTRUCTION"
+      ],
+      "source": "net.minecraft.world.level.chunk.storage.SerializableChunkData#read(final ServerLevel level , final PoiManager poiManager , final RegionStorageInfo regionInfo , final ChunkPos pos)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0372"
+    },
+    {
+      "body_sha256": "a7025ff1ad571cbf33edf22f22dcd661f4f35d8ab6ca490e5695a8e1fb1b56a6",
+      "normalized_sha256": "278ab44118aea40d9b304153d95c698eec4e0c4e49c0f740a884ca04608b7dcb",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0350.json",
+      "record_sha256": "3cbe3962d5062dcb7bd306641f0cd4a0e1b831c9fa5aa5412d49c73e0553247d",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-PREDICATES"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap#<clinit>()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0350"
+    },
+    {
+      "body_sha256": "f59e9dcf42b8af07ab79cde38e3e322d28f63ceaed9a3e063bb2c03ef234c2a2",
+      "normalized_sha256": "80c423c740c82676493a4aa113218d0f4bbe1080be290f7d21f2b47fb5806c93",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0351.json",
+      "record_sha256": "39ce14ce3b7b637921b4ec618d147de91b1d65a529abe744639e6ffc96296534",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-STORAGE"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap#Heightmap(final ChunkAccess chunk , final Heightmap . Types heightmapType)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0351"
+    },
+    {
+      "body_sha256": "955d02db12ece92298346bb397f9bf17820da97b2fa4f8712b35c34f45f162b3",
+      "normalized_sha256": "42abc31a5564d9c144308b62078ba9bb28f01c9c5c0d8926a18a5e5efa5758af",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0356.json",
+      "record_sha256": "6713ca715c266980ab0cbf51869622d6c9dd775983f29841e95217f627ee66b8",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-PRIMING",
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-STORAGE"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap#getFirstAvailable(final int index)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0356"
+    },
+    {
+      "body_sha256": "a5c967010b975351e9f7d26ff59878e21ba80065b8908fdcb33efc77342126cd",
+      "normalized_sha256": "ef9a9921318ee6fb2f87b0b621b61e49a0492aa21870bcc85efbe22a5acfa05d",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0360.json",
+      "record_sha256": "7c56b61f1e942b80923c8333df26c9de2379a4a7655173b50f8897d6be15cc9b",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-STORAGE"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap#getIndex(final int x , final int z)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0360"
+    },
+    {
+      "body_sha256": "89f768a61cb45bb741c6169f6a59dbe9e5d1f8b56adfa980a0f21a311ca4ac0e",
+      "normalized_sha256": "9adde9485a57ea1cd2c2ff6201a9edd488f87c861b0e14a97bc56d032e3d300b",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0359.json",
+      "record_sha256": "22795713f902a9da08ae2bcf7c2478804085797361856e8c72bb50d65470d84c",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-STORAGE"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap#getRawData()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0359"
+    },
+    {
+      "body_sha256": "77bc5bc637ef877d0ba3abc66401c700a387b3f42cefb5d4e789f8fb03f713a9",
+      "normalized_sha256": "20e9f737b89cbb4b68a488350b81d6e2a3ce2fff26985078941e2c8938e90d59",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0352.json",
+      "record_sha256": "d9fd4f7a6d665951326fb33dd2a309b93313f4ada5ca7d383dd80a0dd9dcf0c7",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-PRIMING"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap#primeHeightmaps(final ChunkAccess chunk , final Set < Heightmap . Types > types)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0352"
+    },
+    {
+      "body_sha256": "f71f5b5a686d69b95bc0b8a3fd841bd56c45425ffa82cd915eed3cee72f083bb",
+      "normalized_sha256": "860ef3115a8cf965dc94d727f3179aea55d77e9432fd24c6d69bcb6cbc218e4c",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0357.json",
+      "record_sha256": "b067238a1383928503f85fa94bb05fbda9c3d1bd95f138ea613435db7503aab3",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-PRIMING",
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-STORAGE"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap#setHeight(final int x , final int z , final int height)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0357"
+    },
+    {
+      "body_sha256": "46230fd09e20d5e3a7c851a4d1fecbc0a7952cb8cb80b7441e48b0aee83c29a3",
+      "normalized_sha256": "451df82ff3f40b24b7031b15925556b286937a4cbf9fb68973ad6670888621be",
+      "observed_hazards": [
+        "CODEC"
+      ],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0362.json",
+      "record_sha256": "edaab0fbf36fe76724a301c44468193aa9e6c031dc1f18e71b2c6e0403254e52",
+      "reviewed_hazards": [
+        "CODEC"
+      ],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-CLIENT-TYPES",
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-PREDICATES"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap$Types#<clinit>()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0362"
+    },
+    {
+      "body_sha256": "7ec17dcacb816774e6874a6f5aca4924d93097e9aa6509659856e0d09ed28e17",
+      "normalized_sha256": "0a24784ac1ce2d372f4c5837867c036e28342155ecaa211f6dd35a9d70d39de9",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0367.json",
+      "record_sha256": "2849b27b0efeeda73daf3dc364cb863cdcca8582385906b2f2f2939fed71dc81",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-PREDICATES"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap$Types#isOpaque()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0367"
+    },
+    {
+      "body_sha256": "11078494b4117c5814fb204afaeffcbdc65ca1ac507b2419871f47176fef6e1c",
+      "normalized_sha256": "adfaf3fa5652e7d165fcd4f56f0bf6aa3cde289a7fefc13b4c8ac88077bd6190",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0365.json",
+      "record_sha256": "0dc1b7048ce1c36c0f875a16572b26c08edcfb724697d42287fef8398ed8e7a2",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-HEIGHTMAP-CLIENT-TYPES"
+      ],
+      "source": "net.minecraft.world.level.levelgen.Heightmap$Types#sendToClient()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0365"
+    },
+    {
+      "body_sha256": "eac847fa1f6c0a475abc1e36dbfbc67d6052a5c8e4c202d4e75cfa950fc321e1",
+      "normalized_sha256": "68f5eba24ebcaa5815581a2630e7a8a0d48f957c24a34b0f2044291f08a2e348",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0460.json",
+      "record_sha256": "e0d7866bfe12d9bd76b3762e382ef0645f1ac6cedf9571c606b4c1d8b9a26d76",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LAYER-LOOKUP"
+      ],
+      "source": "net.minecraft.world.level.lighting.LayerLightSectionStorage#getDataLayerData(final long sectionNode)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0460"
+    },
+    {
+      "body_sha256": "ba6a9ed59925846bba20cdaf053d0d64f6f09ffa1fb3505ddd75793a556b8d2b",
+      "normalized_sha256": "28b7ca394972c8a00bf54de35d8dad5f26252c9603f405e97eb0d0544946e8ac",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0490.json",
+      "record_sha256": "5d6d50fc68917bf7a4b1a84af9d19cfc13717af0d97aa5949caa051109506ba7",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LAYER-LOOKUP"
+      ],
+      "source": "net.minecraft.world.level.lighting.LevelLightEngine#getLayerListener(final LightLayer layer)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0490"
+    },
+    {
+      "body_sha256": "503d54d10aa2f65a6b246ad49efbe75c8cc6f79f743c736299733cd641d7b29c",
+      "normalized_sha256": "1089a5787ea6a840fab467610fd290bbb27dc2cd5ff701d24c395b9fc38a35c5",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0497.json",
+      "record_sha256": "bc5a4a1ed17e275069758fe51001585d083de1baf3f099301d52b14493a03d89",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LATTICE"
+      ],
+      "source": "net.minecraft.world.level.lighting.LevelLightEngine#getLightSectionCount()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0497"
+    },
+    {
+      "body_sha256": "25348e45324fd5f468558baca1de936a9ddee15f129af1191343020995ae3b4e",
+      "normalized_sha256": "2aa11c211de3cef87e99d5262f07858edb33f9dfcc77997a84a5875ad5fa33c4",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0499.json",
+      "record_sha256": "976ea45a616434668c7ac2c85d995583914639588196c4286614d4bc249446f9",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LATTICE"
+      ],
+      "source": "net.minecraft.world.level.lighting.LevelLightEngine#getMaxLightSection()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0499"
+    },
+    {
+      "body_sha256": "6b7befc56847c7a35f281d708c06b04cd5a88d0eacae4bbd74fc4916cdbe28f1",
+      "normalized_sha256": "3b13ff027ebf9e56adaaaf1f2c18257ac77dbbee7ddd3ab6223f6cfd193bcac9",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0498.json",
+      "record_sha256": "72765f2acedb5bfb4a60094444ad6273dded134c067063dbbba6a76e64a82ba6",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LATTICE"
+      ],
+      "source": "net.minecraft.world.level.lighting.LevelLightEngine#getMinLightSection()",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0498"
+    },
+    {
+      "body_sha256": "fa16642ee5fc205410ee9be6d22f8bb7eb74f316e4be8a305f4b3fa33de0bd5f",
+      "normalized_sha256": "b45be6ab631c10a9adb90d278b22f7555c5f0a0d3d2fbd07a650f6ba62ee3308",
+      "observed_hazards": [],
+      "record_path": "/tmp/helve-r2c-local-admission-9ilvnbn4/staging/records/VAR-NET-R2C-WORLD-0527.json",
+      "record_sha256": "bb10e1fd4275002f97b23d5d4a5cef8048af62600d5d1a31d9260b23a0b332bf",
+      "reviewed_hazards": [],
+      "semantic_rules": [
+        "SEM-NET-R2C-WORLD-LIGHT-LAYER-LOOKUP"
+      ],
+      "source": "net.minecraft.world.level.lighting.LightEngine#getDataLayerData(final SectionPos pos)",
+      "status": "VAR_REVIEWED",
+      "var_id": "VAR-NET-R2C-WORLD-0527"
+    }
+  ],
+  "schema": 1,
+  "source": {
+    "archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+    "atlas_version": "0.1.1",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "minecraft_version": "26.2",
+    "protocol_version": 776,
+    "schema_version": "1",
+    "world_version": 4903
+  },
+  "source_free_bundle_bound": true
+}

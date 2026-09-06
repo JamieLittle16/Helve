@@ -1,0 +1,326 @@
+{
+  "admission_worksheet_sha256": "feca34f7636374f369ec58f38e90ef0c062cf1527eea790d26ed467c8108077c",
+  "commit_policy": "SOURCE_GATE_ADMITTED_SOURCE_FREE_REPOSITORY_PROMOTION",
+  "contains_official_source_text": false,
+  "files": [
+    {
+      "path": "vanilla/gates/network/GATE-NET-R2C-WORLD-STATE-26_2-001.json",
+      "sha256": "9efcf08fb7c6dd1f3a3aeee4864de3d0f69b0d98b25a98aec5aed7d15c079feb",
+      "size": 9978
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0192.json",
+      "sha256": "ab66f9f73199e331bb6a458d110e4b4d0f5a776448b4b443bf164e49b42fadd8",
+      "size": 860
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0193.json",
+      "sha256": "7e2b9b7434015123cee6b94a138d434c229a8dbed2ac7666a85f7daa50d1c05d",
+      "size": 940
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0195.json",
+      "sha256": "bce492083eb788baa41ea05afedd5a0170d423271b24ba2b25d7d94edd27dd2f",
+      "size": 923
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0206.json",
+      "sha256": "7f4ae80787b9e1065809ff4f84c600059bfe4b4ab0040be7bfb726d693682da6",
+      "size": 866
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0209.json",
+      "sha256": "a1f3e41d34912e9e0bc2c71d00c5851c1a1089b4cb5a6992b7093bd5f4331cf4",
+      "size": 822
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0211.json",
+      "sha256": "5fa611209922ad13b609b0b7f394489c5b19681d8ed96a9874a7f08796d40119",
+      "size": 792
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0221.json",
+      "sha256": "87479d508c09c1e41e751f2c6f96a9eb84b9b6e686b80b7a5708efc6a6222875",
+      "size": 837
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0222.json",
+      "sha256": "8fec518db04281fc28e833112f476bdead60b5a32dbaa78c1c12b745ad358434",
+      "size": 837
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0224.json",
+      "sha256": "496fc9d1f9d5c895b065476654e4d75722f6c1aef5436fadeda8b5155cafdbc9",
+      "size": 854
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0226.json",
+      "sha256": "31a8f86a93cad16d0d4fadb4f1864155f291189c3db1db7f88e71d78293c5b5c",
+      "size": 817
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0228.json",
+      "sha256": "86d8ff8d76ddaddfb2b369cbc486d4572908fa1899832d3d257a6847a9e14c19",
+      "size": 857
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0265.json",
+      "sha256": "93df4f213f5f599e82a18e6ff73c0a7456fe56173f00ed851ed3cdf2d5d1b0f9",
+      "size": 836
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0274.json",
+      "sha256": "0e492fcfd89e055cc94e50dc01b4796824533c21810c83bcb1d82d6004e8e8fc",
+      "size": 854
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0278.json",
+      "sha256": "55e3e6b8ca4c2b6d241884f5d89ab23f460d03969b0c27b683ffb5e675e0ef3d",
+      "size": 857
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0311.json",
+      "sha256": "e73f50056b507616e9063d0133e7c47f2bf5ae3629a24ad2d289921944de92c6",
+      "size": 833
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0324.json",
+      "sha256": "db4ba091353f285e07576c2af78cb57ba982e76d776d8e86672b5c90cadb558f",
+      "size": 868
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0326.json",
+      "sha256": "b416d1a0849921fcfd26df3a334fcca8667534cca023aa5b80f659ac6e5054af",
+      "size": 864
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0328.json",
+      "sha256": "419e4b8cd0d63bcc46498387b93cf4d4503996df0edc6891f1b438a4ae99d201",
+      "size": 824
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0335.json",
+      "sha256": "a48f7161bdecabad86d6651ac7f012c4ab160e41a9693bec7997fb1a6d714dab",
+      "size": 862
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0339.json",
+      "sha256": "f1f5fee5c39f244109de011bb491ed852d86b4c07a07fcc7ccca3624c40466c5",
+      "size": 798
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0340.json",
+      "sha256": "496884bc1680342ef413798ad2a4b1fa7bbec2e6e2d069d5487736ac742a2357",
+      "size": 843
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0342.json",
+      "sha256": "c25d4fb47add60ea3bf2fa78a7abebca94766aef576ad558485008464c0f30cd",
+      "size": 870
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0344.json",
+      "sha256": "0493e275d483d049193f7804d564f2079dcd49490f1962b1c1f7fd372f31acda",
+      "size": 831
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0348.json",
+      "sha256": "4607026de7e6c13605a8e967092c832742c5b582ce2f2d2f95247cd7f80ef713",
+      "size": 841
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0349.json",
+      "sha256": "7bf5f5abe4d10778a63e0f01a5e2d3eb75935f73c220bea568444ca828306307",
+      "size": 841
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0350.json",
+      "sha256": "3cbe3962d5062dcb7bd306641f0cd4a0e1b831c9fa5aa5412d49c73e0553247d",
+      "size": 803
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0351.json",
+      "sha256": "39ce14ce3b7b637921b4ec618d147de91b1d65a529abe744639e6ffc96296534",
+      "size": 897
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0352.json",
+      "sha256": "d9fd4f7a6d665951326fb33dd2a309b93313f4ada5ca7d383dd80a0dd9dcf0c7",
+      "size": 903
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0356.json",
+      "sha256": "6713ca715c266980ab0cbf51869622d6c9dd775983f29841e95217f627ee66b8",
+      "size": 900
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0357.json",
+      "sha256": "b067238a1383928503f85fa94bb05fbda9c3d1bd95f138ea613435db7503aab3",
+      "size": 921
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0359.json",
+      "sha256": "22795713f902a9da08ae2bcf7c2478804085797361856e8c72bb50d65470d84c",
+      "size": 835
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0360.json",
+      "sha256": "7c56b61f1e942b80923c8333df26c9de2379a4a7655173b50f8897d6be15cc9b",
+      "size": 858
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0362.json",
+      "sha256": "edaab0fbf36fe76724a301c44468193aa9e6c031dc1f18e71b2c6e0403254e52",
+      "size": 872
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0365.json",
+      "sha256": "0dc1b7048ce1c36c0f875a16572b26c08edcfb724697d42287fef8398ed8e7a2",
+      "size": 815
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0367.json",
+      "sha256": "2849b27b0efeeda73daf3dc364cb863cdcca8582385906b2f2f2939fed71dc81",
+      "size": 809
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0371.json",
+      "sha256": "28f2e1f5a26bb150697b32319644d47d4a9550c37a1a9b7b4502960b01d5cd89",
+      "size": 1034
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0372.json",
+      "sha256": "0c52c15b0d434868354ac4398449eeba33bceffb1d3317ccb1c1cc3c532369d8",
+      "size": 1013
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0384.json",
+      "sha256": "d6ab46d709e061ad1a8d40cd65012f4b4d59c7064be902e6b736c2e88094d801",
+      "size": 857
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0385.json",
+      "sha256": "6553665de508ba61de0e2ca623ed61d3f247522db028bbe49a3015b836ea4a07",
+      "size": 1137
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0387.json",
+      "sha256": "52dbe127a79a099296fbbdb613fdac9f06740e88c43e78fdfb8c0f3a95985830",
+      "size": 912
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0388.json",
+      "sha256": "c5138e99783cbbbcf0ba56b673a3b5478348915c53c382c99a0621778d364a31",
+      "size": 1135
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0397.json",
+      "sha256": "044d23e7714e56f025a570a8fddc07a13336c0c8c544666288b7bc400477071d",
+      "size": 826
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0398.json",
+      "sha256": "2fa42a5116d4bf5be3af354e99823dcc8bb141ec5dc21737278a5530b678e606",
+      "size": 863
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0399.json",
+      "sha256": "21e7416ee5ddd8df122c069cd0f1158a4ab0304d529c83963a9eca58ece06ec5",
+      "size": 829
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0400.json",
+      "sha256": "843d486d2e26210257007195888495a317006a8a0d072684b0457af0ce002394",
+      "size": 845
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0401.json",
+      "sha256": "461ff5b6bce03cfd6d9a60ea6a2ee0da218a7749df1a418ffe240b76c67dbb1d",
+      "size": 834
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0404.json",
+      "sha256": "b667e59b385507bec054b5cc960307f8a5c1277600343c4810334f235e116133",
+      "size": 816
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0405.json",
+      "sha256": "79f8592db251ba695983df8a5187a82d6334672f49c603cbb3f5a70dd1c69e1a",
+      "size": 817
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0407.json",
+      "sha256": "5ccebf9af934e8bcc39548970d11c8084e5d7960b43ecb79e79906f45b0b7386",
+      "size": 820
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0408.json",
+      "sha256": "c39f2820d3fca2fadf22838d9616aa6f28e61216f9575126aeaedfe580caed1e",
+      "size": 853
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0409.json",
+      "sha256": "60649b0d03878619a4d897c090e4b3b4bad7f4d556b7f2122102c153a8047762",
+      "size": 850
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0414.json",
+      "sha256": "f61b4dcc13a9b93e3087a6626c3fb5ae108a136413dcee5fe3e2233603717a59",
+      "size": 853
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0460.json",
+      "sha256": "e0d7866bfe12d9bd76b3762e382ef0645f1ac6cedf9571c606b4c1d8b9a26d76",
+      "size": 846
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0490.json",
+      "sha256": "5d6d50fc68917bf7a4b1a84af9d19cfc13717af0d97aa5949caa051109506ba7",
+      "size": 838
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0497.json",
+      "sha256": "bc5a4a1ed17e275069758fe51001585d083de1baf3f099301d52b14493a03d89",
+      "size": 815
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0498.json",
+      "sha256": "72765f2acedb5bfb4a60094444ad6273dded134c067063dbbba6a76e64a82ba6",
+      "size": 813
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0499.json",
+      "sha256": "976ea45a616434668c7ac2c85d995583914639588196c4286614d4bc249446f9",
+      "size": 813
+    },
+    {
+      "path": "vanilla/records/network/r2/world-state/VAR-NET-R2C-WORLD-0527.json",
+      "sha256": "bb10e1fd4275002f97b23d5d4a5cef8048af62600d5d1a31d9260b23a0b332bf",
+      "size": 831
+    },
+    {
+      "path": "vanilla/reports/r2c-world-state-source-admission-26.2.json",
+      "sha256": "a88e272594e53fa6beb3904f3300803001dd5d467f377ddebfd6f9d2587480cf",
+      "size": 44865
+    },
+    {
+      "path": "vanilla/semantics/network/R2C_WORLD_STATE_SEMANTICS.md",
+      "sha256": "9641ed1831c94590826caad3a2e654e7b4aa149e2b0d1b4b360cd50fc8509d44",
+      "size": 13366
+    }
+  ],
+  "gate_id": "GATE-NET-R2C-WORLD-STATE-26_2-001",
+  "gate_sha256": "9efcf08fb7c6dd1f3a3aeee4864de3d0f69b0d98b25a98aec5aed7d15c079feb",
+  "id": "ADMIT-NET-R2C-WORLD-STATE-26_2-001",
+  "kind": "r2c-world-state-admitted-bundle",
+  "materialization_manifest_sha256": "aab2a967f8f35450021562743abf07507af2a11b9c5ed50cf9e98168456f3f09",
+  "production_implementation_authorized": true,
+  "review_result_sha256": "fafe5d26777ce238326702dc64c1348b7a43c4b979ae94219fce62b3b88c6353",
+  "runtime_behavior_implemented": false,
+  "schema": 1,
+  "semantic_rules": 20,
+  "source_admitted": true,
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "source_gate_report_sha256": "a88e272594e53fa6beb3904f3300803001dd5d467f377ddebfd6f9d2587480cf",
+  "var_records": 58
+}

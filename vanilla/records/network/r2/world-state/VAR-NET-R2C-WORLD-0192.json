@@ -1,0 +1,27 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [
+    "CLIENT_OBSERVABLE",
+    "CODEC"
+  ],
+  "id": "VAR-NET-R2C-WORLD-0192",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-HEIGHTMAP-WIRE"
+  ],
+  "source": {
+    "body_sha256": "74af630105f99dced67a0fd8c5931774ee242ca55f164df28823df2266aee39d",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "9e37c64c1c3d2808534ffa4213d7493b12c94dd5cc7ec8c0009de1f98c8538e9",
+    "signature": "<clinit>()",
+    "type": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData"
+  },
+  "status": "VAR_REVIEWED"
+}

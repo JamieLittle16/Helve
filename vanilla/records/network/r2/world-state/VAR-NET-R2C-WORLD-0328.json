@@ -1,0 +1,24 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [],
+  "id": "VAR-NET-R2C-WORLD-0328",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-BIOME-REGISTRY-FACTORY"
+  ],
+  "source": {
+    "body_sha256": "e6ce838436f70df58a63009c18bfe8722a8bf3504120df8e9232603f3f262d70",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "fa0fc0649bff2d9aaf347abfa7ecfe6769d597b35bf865662e884437fcc511d6",
+    "signature": "createForBiomes()",
+    "type": "net.minecraft.world.level.chunk.PalettedContainerFactory"
+  },
+  "status": "VAR_REVIEWED"
+}

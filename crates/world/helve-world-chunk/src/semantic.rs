@@ -1,7 +1,5 @@
 use helve_types::{BlockPos, ChunkGeneration, ChunkPos, ChunkRevision, ChunkStamp};
-use helve_world_contract::{
-    BiomeSection, BlockSection, BlockStateFacts, SectionBiomePos,
-};
+use helve_world_contract::{BiomeSection, BlockSection, BlockStateFacts, SectionBiomePos};
 
 use crate::{
     ChunkBiomeColumn, ChunkBiomeColumnError, ChunkCoreError, LiveChunkCore, MutationFacts,
@@ -88,8 +86,7 @@ where
     biomes: ChunkBiomeColumn<B, BiomeStorage>,
 }
 
-impl<S, BlockStorage, B, BiomeStorage>
-    LiveChunkSemanticState<S, BlockStorage, B, BiomeStorage>
+impl<S, BlockStorage, B, BiomeStorage> LiveChunkSemanticState<S, BlockStorage, B, BiomeStorage>
 where
     S: Copy + Eq,
     BlockStorage: BlockSection<S>,
@@ -344,24 +341,21 @@ mod tests {
     #[test]
     fn composition_requires_exact_identity_and_lattice() {
         let (blocks, _) = parts(ChunkPos { x: 1, z: 2 }, ChunkGeneration(4), -2, 2);
-        let (_, position_mismatch) =
-            parts(ChunkPos { x: 2, z: 2 }, ChunkGeneration(4), -2, 2);
+        let (_, position_mismatch) = parts(ChunkPos { x: 2, z: 2 }, ChunkGeneration(4), -2, 2);
         assert!(matches!(
             LiveChunkSemanticState::from_parts(blocks, position_mismatch),
             Err(ChunkSemanticStateError::PositionMismatch { .. })
         ));
 
         let (blocks, _) = parts(ChunkPos { x: 1, z: 2 }, ChunkGeneration(4), -2, 2);
-        let (_, generation_mismatch) =
-            parts(ChunkPos { x: 1, z: 2 }, ChunkGeneration(5), -2, 2);
+        let (_, generation_mismatch) = parts(ChunkPos { x: 1, z: 2 }, ChunkGeneration(5), -2, 2);
         assert!(matches!(
             LiveChunkSemanticState::from_parts(blocks, generation_mismatch),
             Err(ChunkSemanticStateError::GenerationMismatch { .. })
         ));
 
         let (blocks, _) = parts(ChunkPos { x: 1, z: 2 }, ChunkGeneration(4), -2, 2);
-        let (_, lattice_mismatch) =
-            parts(ChunkPos { x: 1, z: 2 }, ChunkGeneration(4), -1, 2);
+        let (_, lattice_mismatch) = parts(ChunkPos { x: 1, z: 2 }, ChunkGeneration(4), -1, 2);
         assert_eq!(
             LiveChunkSemanticState::from_parts(blocks, lattice_mismatch).unwrap_err(),
             ChunkSemanticStateError::LatticeMismatch {
@@ -386,9 +380,7 @@ mod tests {
         assert_ne!(state.stamp(), initial_stamp);
 
         let local = biome_pos(2, 1, 3);
-        let biome = state
-            .replace_biome(-1, local, 9)
-            .expect("biome mutation");
+        let biome = state.replace_biome(-1, local, 9).expect("biome mutation");
         assert!(biome.changed);
         assert_eq!(biome.old, 7);
         assert_eq!(state.revision(), ChunkRevision(2));

@@ -126,8 +126,13 @@ def verify_repository(repo_root: Path) -> dict[str, object]:
         expected_digest = _sha(raw_entry["sha256"], f"manifest.files[{index}].sha256")
         path = repo_root.joinpath(*relative.parts)
         raw = _read(path, f"promoted file {relative}")
-        if len(raw) != size or promote._sha256(raw) != expected_digest:
-            raise VerifyError(f"promoted file drift: {relative}")
+        actual_digest = promote._sha256(raw)
+        if len(raw) != size or actual_digest != expected_digest:
+            raise VerifyError(
+                "promoted file drift: "
+                f"{relative}: expected_size={size} actual_size={len(raw)} "
+                f"expected_sha256={expected_digest} actual_sha256={actual_digest}"
+            )
         if relative.parent == promote.RECORD_ROOT:
             record_count += 1
         elif relative == promote.REPORT_PATH:

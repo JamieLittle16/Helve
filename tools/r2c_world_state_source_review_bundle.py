@@ -30,10 +30,12 @@ DEFAULT_LOCK = discovery.DEFAULT_LOCK
 BUNDLE_MANIFEST_NAME = "bundle-manifest.json"
 BUNDLE_MANIFEST_KIND = "r2c-world-state-source-review-bundle-manifest"
 BUNDLE_MANIFEST_COMMIT_POLICY = "SOURCE_FREE_UPLOAD_PROVENANCE"
+DISCOVERY_MANIFEST_NAME = "discovery/manifest.json"
 REQUIRED_ARCHIVE_MEMBERS = frozenset(
     {
         BUNDLE_MANIFEST_NAME,
         "discovery/discovery.json",
+        DISCOVERY_MANIFEST_NAME,
         "world-state-review/review-pack.json",
         "world-state-review/worksheet.json",
         "world-state-review/manifest.json",

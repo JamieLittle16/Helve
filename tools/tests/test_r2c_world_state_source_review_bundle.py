@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import json
 import tarfile
 import tempfile
@@ -29,6 +30,13 @@ def write_fake_discovery(path: Path, plan: Path, frontier: Path) -> None:
     )
 
 
+def write_fake_discovery_handoff(output_dir: Path, plan: Path, frontier: Path) -> None:
+    output_dir.mkdir()
+    write_fake_discovery(output_dir / "discovery.json", plan, frontier)
+    (output_dir / "manifest.json").write_text("{}\n", encoding="utf-8")
+    (output_dir / "worksheet.json").write_text("{}\n", encoding="utf-8")
+
+
 class R2cWorldStateSourceReviewBundleTests(unittest.TestCase):
     def test_source_rich_output_inside_repository_is_rejected(self) -> None:
         output = bundle.REPO_ROOT / "r2c-source-review-should-not-exist.tar.gz"
@@ -53,8 +61,7 @@ class R2cWorldStateSourceReviewBundleTests(unittest.TestCase):
             ) -> dict[str, object]:
                 del db, source, lock
                 self.assertEqual(plan_path, plan)
-                output_dir.mkdir()
-                write_fake_discovery(output_dir / "discovery.json", plan, frontier)
+                write_fake_discovery_handoff(output_dir, plan, frontier)
                 return {
                     "discovery_sha256": "d" * 64,
                     "unique_candidate_methods": 7,
@@ -100,22 +107,20 @@ class R2cWorldStateSourceReviewBundleTests(unittest.TestCase):
             self.assertEqual(result["unique_candidate_methods"], 7)
             self.assertEqual(result["unique_source_records"], 5)
             self.assertEqual(result["source_excerpt_bytes"], 1234)
-            self.assertEqual(result["archive_regular_files"], 5)
+            self.assertEqual(
+                result["archive_regular_files"], len(bundle.REQUIRED_ARCHIVE_MEMBERS)
+            )
             self.assertEqual(result["plan_sha256"], bundle._sha256_file(plan))
             self.assertEqual(result["frontier_sha256"], bundle._sha256_file(frontier))
             self.assertFalse(result["production_admitted"])
             self.assertTrue(result["contains_official_source_text"])
 
             with tarfile.open(output, mode="r:gz") as archive:
-                names = set(archive.getnames())
+                regular_names = {member.name for member in archive.getmembers() if member.isfile()}
                 manifest_member = archive.extractfile(bundle.BUNDLE_MANIFEST_NAME)
                 self.assertIsNotNone(manifest_member)
                 manifest = json.loads(manifest_member.read()) if manifest_member is not None else {}
-            self.assertIn(bundle.BUNDLE_MANIFEST_NAME, names)
-            self.assertIn("discovery/discovery.json", names)
-            self.assertIn("world-state-review/review-pack.json", names)
-            self.assertIn("world-state-review/worksheet.json", names)
-            self.assertIn("world-state-review/manifest.json", names)
+            self.assertEqual(regular_names, set(bundle.REQUIRED_ARCHIVE_MEMBERS))
             self.assertEqual(manifest["kind"], bundle.BUNDLE_MANIFEST_KIND)
             self.assertEqual(manifest["plan_sha256"], bundle._sha256_file(plan))
             self.assertEqual(manifest["frontier_sha256"], bundle._sha256_file(frontier))
@@ -141,8 +146,7 @@ class R2cWorldStateSourceReviewBundleTests(unittest.TestCase):
             ) -> dict[str, object]:
                 del db, source, lock
                 self.assertEqual(plan_path, plan)
-                output_dir.mkdir()
-                write_fake_discovery(output_dir / "discovery.json", plan, frontier)
+                write_fake_discovery_handoff(output_dir, plan, frontier)
                 return {
                     "discovery_sha256": "d" * 64,
                     "unique_candidate_methods": 1,
@@ -227,6 +231,22 @@ class R2cWorldStateSourceReviewBundleTests(unittest.TestCase):
             with tarfile.open(output, mode="w:gz"):
                 pass
             with self.assertRaisesRegex(bundle.BundleError, "missing members"):
+                bundle._verify_archive(output)
+
+    def test_verify_archive_rejects_unexpected_regular_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "extra.tar.gz"
+            with tarfile.open(output, mode="w:gz") as archive:
+                for name in sorted(bundle.REQUIRED_ARCHIVE_MEMBERS):
+                    raw = b"{}\n"
+                    info = tarfile.TarInfo(name)
+                    info.size = len(raw)
+                    archive.addfile(info, io.BytesIO(raw))
+                raw = b"unexpected\n"
+                info = tarfile.TarInfo("discovery/unexpected.json")
+                info.size = len(raw)
+                archive.addfile(info, io.BytesIO(raw))
+            with self.assertRaisesRegex(bundle.BundleError, "unexpected members"):
                 bundle._verify_archive(output)
 
 

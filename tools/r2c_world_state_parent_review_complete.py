@@ -36,7 +36,19 @@ REVIEW_PACK = "world-state-review/review-pack.json"
 WORKSHEET = "world-state-review/worksheet.json"
 REVIEW_MANIFEST = "world-state-review/manifest.json"
 DISCOVERY = "discovery/discovery.json"
-BUNDLE_REGULAR_FILES = frozenset({BUNDLE_MANIFEST, REVIEW_PACK, WORKSHEET, REVIEW_MANIFEST, DISCOVERY})
+DISCOVERY_MANIFEST = "discovery/manifest.json"
+DISCOVERY_WORKSHEET = "discovery/worksheet.json"
+BUNDLE_REGULAR_FILES = frozenset(
+    {
+        BUNDLE_MANIFEST,
+        REVIEW_PACK,
+        WORKSHEET,
+        REVIEW_MANIFEST,
+        DISCOVERY,
+        DISCOVERY_MANIFEST,
+        DISCOVERY_WORKSHEET,
+    }
+)
 ALLOWED_DIRECTORIES = frozenset({"discovery", "world-state-review"})
 MAX_BUNDLE_MEMBER_BYTES = 20 * 1024 * 1024
 

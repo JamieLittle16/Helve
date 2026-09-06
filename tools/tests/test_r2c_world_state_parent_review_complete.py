@@ -22,6 +22,8 @@ class ParentReviewCompletionTests(unittest.TestCase):
         payloads = {
             complete_review.BUNDLE_MANIFEST: b"{}\n",
             complete_review.DISCOVERY: b"{}\n",
+            complete_review.DISCOVERY_MANIFEST: b"{}\n",
+            complete_review.DISCOVERY_WORKSHEET: b"{}\n",
             complete_review.REVIEW_PACK: b"{}\n",
             complete_review.WORKSHEET: b"{}\n",
             complete_review.REVIEW_MANIFEST: b"{}\n",

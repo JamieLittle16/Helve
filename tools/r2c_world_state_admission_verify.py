@@ -128,10 +128,17 @@ def verify_repository(repo_root: Path) -> dict[str, object]:
         raw = _read(path, f"promoted file {relative}")
         actual_digest = promote._sha256(raw)
         if len(raw) != size or actual_digest != expected_digest:
+            text = raw.decode("utf-8", errors="replace")
+            non_ascii = [
+                f"U+{ord(char):04X}@{offset}"
+                for offset, char in enumerate(text)
+                if ord(char) > 0x7F
+            ]
             raise VerifyError(
                 "promoted file drift: "
                 f"{relative}: expected_size={size} actual_size={len(raw)} "
-                f"expected_sha256={expected_digest} actual_sha256={actual_digest}"
+                f"expected_sha256={expected_digest} actual_sha256={actual_digest} "
+                f"non_ascii={non_ascii[:16]} non_ascii_count={len(non_ascii)}"
             )
         if relative.parent == promote.RECORD_ROOT:
             record_count += 1

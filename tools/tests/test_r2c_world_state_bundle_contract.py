@@ -8,9 +8,10 @@ from tools import r2c_world_state_source_review_bundle as source_bundle
 
 class WorldStateBundleContractTests(unittest.TestCase):
     def test_parent_review_accepts_exact_canonical_source_bundle_shape(self) -> None:
-        expected = set(source_bundle.REQUIRED_ARCHIVE_MEMBERS)
-        expected.add("discovery/manifest.json")
-        self.assertEqual(set(parent_review.BUNDLE_REGULAR_FILES), expected)
+        self.assertEqual(
+            set(parent_review.BUNDLE_REGULAR_FILES),
+            set(source_bundle.REQUIRED_ARCHIVE_MEMBERS),
+        )
 
 
 if __name__ == "__main__":

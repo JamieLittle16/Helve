@@ -39,10 +39,7 @@ impl<Chunk> ResidentDirectory<Chunk>
 where
     Chunk: ResidentChunkIdentity,
 {
-    pub(crate) fn with_capacity(
-        id: DimensionId,
-        chunk_capacity: usize,
-    ) -> Self {
+    pub(crate) fn with_capacity(id: DimensionId, chunk_capacity: usize) -> Self {
         Self {
             id,
             resident: HashMap::with_capacity(chunk_capacity),
@@ -59,11 +56,13 @@ where
     }
 
     pub(crate) fn discover(&self, position: ChunkPos) -> Option<ResidentChunkHandle> {
-        self.resident.get(&position).map(|chunk| ResidentChunkHandle {
-            dimension: self.id,
-            position,
-            generation: chunk.generation(),
-        })
+        self.resident
+            .get(&position)
+            .map(|chunk| ResidentChunkHandle {
+                dimension: self.id,
+                position,
+                generation: chunk.generation(),
+            })
     }
 
     /// Admits one chunk through exactly one sparse-directory probe.
@@ -110,12 +109,12 @@ where
         handle: ResidentChunkHandle,
     ) -> Result<&Chunk, ResidentChunkAccessError> {
         self.validate_dimension(handle)?;
-        let chunk = self
-            .resident
-            .get(&handle.position)
-            .ok_or(ResidentChunkAccessError::NotResident {
-                position: handle.position,
-            })?;
+        let chunk =
+            self.resident
+                .get(&handle.position)
+                .ok_or(ResidentChunkAccessError::NotResident {
+                    position: handle.position,
+                })?;
         validate_generation(handle, chunk.generation())?;
         Ok(chunk)
     }
@@ -125,12 +124,11 @@ where
         handle: ResidentChunkHandle,
     ) -> Result<&mut Chunk, ResidentChunkAccessError> {
         self.validate_dimension(handle)?;
-        let chunk = self
-            .resident
-            .get_mut(&handle.position)
-            .ok_or(ResidentChunkAccessError::NotResident {
+        let chunk = self.resident.get_mut(&handle.position).ok_or(
+            ResidentChunkAccessError::NotResident {
                 position: handle.position,
-            })?;
+            },
+        )?;
         validate_generation(handle, chunk.generation())?;
         Ok(chunk)
     }

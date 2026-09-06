@@ -125,7 +125,7 @@ def _verify_discovery_provenance(discovery_path: Path, plan_path: Path) -> dict[
 
 
 def _verify_archive(path: Path) -> int:
-    """Require the upload artifact to contain every review handoff before publication."""
+    """Require the upload artifact to contain exactly the canonical review handoff."""
     try:
         with tarfile.open(path, mode="r:gz") as archive:
             regular_files = {member.name for member in archive.getmembers() if member.isfile()}
@@ -135,6 +135,9 @@ def _verify_archive(path: Path) -> int:
     missing = sorted(REQUIRED_ARCHIVE_MEMBERS - regular_files)
     if missing:
         raise BundleError(f"staged R2C review bundle is incomplete; missing members: {missing}")
+    unexpected = sorted(regular_files - REQUIRED_ARCHIVE_MEMBERS)
+    if unexpected:
+        raise BundleError(f"staged R2C review bundle has unexpected members: {unexpected}")
     return len(regular_files)
 
 

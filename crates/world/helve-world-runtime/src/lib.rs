@@ -7,11 +7,13 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::{HashMap, hash_map::Entry};
+mod resident;
 
 use helve_types::{ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
 use helve_world_chunk::{ChunkCoreError, LiveChunkCore};
 use helve_world_contract::BlockSection;
+
+use resident::{ResidentAdmissionError, ResidentChunkIdentity, ResidentDirectory};
 
 const BLOCKS_PER_SECTION_AXIS: i32 = 16;
 const BLOCKS_PER_SECTION_AXIS_U32: u32 = 16;
@@ -221,11 +223,21 @@ pub enum ResidentChunkAccessError {
     },
 }
 
+impl<S, Section> ResidentChunkIdentity for LiveChunkCore<S, Section>
+where
+    S: Copy + Eq,
+    Section: BlockSection<S>,
+{
+    fn generation(&self) -> ChunkGeneration {
+        LiveChunkCore::generation(self)
+    }
+}
+
 /// Minimal loaded dimension state for R2C.
 ///
-/// The sparse `HashMap` is deliberately a lifecycle/discovery structure. HOT code should resolve a
-/// [`ResidentChunkHandle`] once, borrow the corresponding [`LiveChunkCore`], and reuse that direct
-/// reference for the bounded operation instead of repeatedly routing through this map.
+/// The sparse resident directory is deliberately a lifecycle/discovery structure. HOT code should
+/// resolve a [`ResidentChunkHandle`] once, borrow the corresponding [`LiveChunkCore`], and reuse that
+/// direct reference for the bounded operation instead of repeatedly routing through the directory.
 ///
 /// The runtime has no `Clone` implementation: loaded mutable world authority must not gain
 /// accidental copy semantics.
@@ -235,10 +247,8 @@ where
     S: Copy + Eq,
     Section: BlockSection<S>,
 {
-    id: DimensionId,
     profile: DimensionRuntimeProfile,
-    resident: HashMap<ChunkPos, LiveChunkCore<S, Section>>,
-    next_generation: u64,
+    resident: ResidentDirectory<LiveChunkCore<S, Section>>,
 }
 
 impl<S, Section> DimensionInstance<S, Section>
@@ -263,17 +273,15 @@ where
         chunk_capacity: usize,
     ) -> Self {
         Self {
-            id,
             profile,
-            resident: HashMap::with_capacity(chunk_capacity),
-            next_generation: 1,
+            resident: ResidentDirectory::with_capacity(id, chunk_capacity),
         }
     }
 
     /// Compact process-local identity of this loaded dimension instance.
     #[must_use]
     pub const fn id(&self) -> DimensionId {
-        self.id
+        self.resident.id()
     }
 
     /// Pre-resolved immutable dimension facts.
@@ -294,13 +302,7 @@ where
     /// not the API to call for every block access in a HOT loop.
     #[must_use]
     pub fn discover_chunk(&self, position: ChunkPos) -> Option<ResidentChunkHandle> {
-        self.resident
-            .get(&position)
-            .map(|chunk| ResidentChunkHandle {
-                dimension: self.id,
-                position,
-                generation: chunk.generation(),
-            })
+        self.resident.discover(position)
     }
 
     /// Installs one new resident chunk incarnation.
@@ -318,44 +320,26 @@ where
         position: ChunkPos,
         sections: Vec<Section>,
     ) -> Result<ResidentChunkHandle, LoadChunkError> {
-        match self.resident.entry(position) {
-            Entry::Occupied(entry) => Err(LoadChunkError::AlreadyResident {
-                handle: ResidentChunkHandle {
-                    dimension: self.id,
-                    position,
-                    generation: entry.get().generation(),
-                },
-            }),
-            Entry::Vacant(entry) => {
-                let expected = self.profile.section_count();
-                if sections.len() != expected {
-                    return Err(LoadChunkError::SectionCountMismatch {
-                        expected,
-                        actual: sections.len(),
-                    });
-                }
-
-                let next_generation = self
-                    .next_generation
-                    .checked_add(1)
-                    .ok_or(LoadChunkError::GenerationExhausted)?;
-                let generation = ChunkGeneration(self.next_generation);
-                let chunk = LiveChunkCore::new(
-                    position,
-                    generation,
-                    self.profile.min_section_y(),
-                    sections,
-                )
-                .map_err(LoadChunkError::ChunkCore)?;
-
-                entry.insert(chunk);
-                self.next_generation = next_generation;
-                Ok(ResidentChunkHandle {
-                    dimension: self.id,
-                    position,
-                    generation,
-                })
+        let profile = self.profile;
+        match self.resident.admit_with(position, move |generation| {
+            let expected = profile.section_count();
+            if sections.len() != expected {
+                return Err(LoadChunkError::SectionCountMismatch {
+                    expected,
+                    actual: sections.len(),
+                });
             }
+            LiveChunkCore::new(position, generation, profile.min_section_y(), sections)
+                .map_err(LoadChunkError::ChunkCore)
+        }) {
+            Ok(handle) => Ok(handle),
+            Err(ResidentAdmissionError::AlreadyResident { handle }) => {
+                Err(LoadChunkError::AlreadyResident { handle })
+            }
+            Err(ResidentAdmissionError::GenerationExhausted) => {
+                Err(LoadChunkError::GenerationExhausted)
+            }
+            Err(ResidentAdmissionError::Build(error)) => Err(error),
         }
     }
 
@@ -371,15 +355,7 @@ where
         &self,
         handle: ResidentChunkHandle,
     ) -> Result<&LiveChunkCore<S, Section>, ResidentChunkAccessError> {
-        self.validate_dimension(handle)?;
-        let chunk =
-            self.resident
-                .get(&handle.position)
-                .ok_or(ResidentChunkAccessError::NotResident {
-                    position: handle.position,
-                })?;
-        validate_generation(handle, chunk.generation())?;
-        Ok(chunk)
+        self.resident.resolve(handle)
     }
 
     /// Resolves an already-known resident handle to direct authoritative chunk mutation access.
@@ -391,14 +367,7 @@ where
         &mut self,
         handle: ResidentChunkHandle,
     ) -> Result<&mut LiveChunkCore<S, Section>, ResidentChunkAccessError> {
-        self.validate_dimension(handle)?;
-        let chunk = self.resident.get_mut(&handle.position).ok_or(
-            ResidentChunkAccessError::NotResident {
-                position: handle.position,
-            },
-        )?;
-        validate_generation(handle, chunk.generation())?;
-        Ok(chunk)
+        self.resident.resolve_mut(handle)
     }
 
     /// Removes exactly the resident chunk incarnation named by `handle` and returns its semantic
@@ -414,45 +383,7 @@ where
         &mut self,
         handle: ResidentChunkHandle,
     ) -> Result<LiveChunkCore<S, Section>, ResidentChunkAccessError> {
-        self.validate_dimension(handle)?;
-        match self.resident.entry(handle.position) {
-            Entry::Vacant(_) => Err(ResidentChunkAccessError::NotResident {
-                position: handle.position,
-            }),
-            Entry::Occupied(entry) => {
-                validate_generation(handle, entry.get().generation())?;
-                Ok(entry.remove())
-            }
-        }
-    }
-
-    fn validate_dimension(
-        &self,
-        handle: ResidentChunkHandle,
-    ) -> Result<(), ResidentChunkAccessError> {
-        if handle.dimension == self.id {
-            Ok(())
-        } else {
-            Err(ResidentChunkAccessError::WrongDimension {
-                expected: self.id,
-                actual: handle.dimension,
-            })
-        }
-    }
-}
-
-fn validate_generation(
-    handle: ResidentChunkHandle,
-    current: ChunkGeneration,
-) -> Result<(), ResidentChunkAccessError> {
-    if handle.generation == current {
-        Ok(())
-    } else {
-        Err(ResidentChunkAccessError::StaleGeneration {
-            position: handle.position,
-            current,
-            handle: handle.generation,
-        })
+        self.resident.unload(handle)
     }
 }
 

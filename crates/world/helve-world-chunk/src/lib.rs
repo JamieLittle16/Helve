@@ -10,6 +10,7 @@ mod biomes;
 mod lattice;
 mod publication;
 mod region_cell;
+mod semantic;
 mod window;
 
 use core::marker::PhantomData;
@@ -21,6 +22,7 @@ pub use biomes::{ChunkBiomeColumn, ChunkBiomeColumnError};
 pub use lattice::{VerticalSectionLattice, VerticalSectionLatticeError};
 pub use publication::PublishedChunk;
 pub use region_cell::{RegionCellAddress, RegionCellCoord, RegionCellLayout};
+pub use semantic::{BiomeMutationFacts, ChunkSemanticStateError, LiveChunkSemanticState};
 pub use window::{ResolvedChunkWindow, ResolvedChunkWindowError};
 
 const BLOCKS_PER_CHUNK_AXIS: i32 = 16;
@@ -269,11 +271,7 @@ where
         if changed {
             let summary = self.sections[section_index].summary();
             self.masks.update(section_index, summary);
-            self.revision.0 = self
-                .revision
-                .0
-                .checked_add(1)
-                .expect("chunk semantic revision exhausted u64");
+            self.advance_semantic_revision();
         } else {
             debug_assert_eq!(self.masks, before_masks);
         }
@@ -284,6 +282,18 @@ where
             new: state,
             changed,
         })
+    }
+
+    /// Advances the one generation-local semantic revision after a non-block component changes.
+    ///
+    /// This remains crate-private so only coherent chunk composition may share the block core's
+    /// existing revision authority; external callers cannot manufacture freshness changes.
+    pub(crate) fn advance_semantic_revision(&mut self) {
+        self.revision.0 = self
+            .revision
+            .0
+            .checked_add(1)
+            .expect("chunk semantic revision exhausted u64");
     }
 
     /// Independently reconstructs all vertical masks from the current section summaries.

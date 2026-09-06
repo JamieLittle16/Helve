@@ -1,10 +1,19 @@
 use helve_types::{ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
+use helve_world_contract::{BlockStateFacts, SectionStateFacts};
 use helve_world_reference::DirectBlockSection;
 use helve_world_runtime::{DimensionInstance, DimensionRuntimeProfile, LoadChunkError};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum State {
     Air,
+}
+
+struct Facts;
+
+impl BlockStateFacts<State> for Facts {
+    fn facts(&self, _state: State) -> SectionStateFacts {
+        SectionStateFacts::new(false, false, false, false)
+    }
 }
 
 fn profile() -> DimensionRuntimeProfile {
@@ -14,7 +23,7 @@ fn profile() -> DimensionRuntimeProfile {
 
 fn sections(count: usize) -> Vec<DirectBlockSection<State>> {
     (0..count)
-        .map(|_| DirectBlockSection::filled_without_facts(State::Air))
+        .map(|_| DirectBlockSection::filled(State::Air, &Facts))
         .collect()
 }
 

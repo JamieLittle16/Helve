@@ -1,0 +1,25 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [],
+  "id": "VAR-NET-R2C-WORLD-0342",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-BIOME-LATTICE",
+    "SEM-NET-R2C-WORLD-BIOME-PALETTE-MODES"
+  ],
+  "source": {
+    "body_sha256": "17f42a0a04759dd8fcd3b5aa7661e5f8f840b430856f72c5287b833bd5ca316b",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "1dca4aaa62d51343cb75da85c10e09d8af169ca901c97ca714c4e6a6a90a2e69",
+    "signature": "createForBiomes(final IdMap < T > registry)",
+    "type": "net.minecraft.world.level.chunk.Strategy"
+  },
+  "status": "VAR_REVIEWED"
+}

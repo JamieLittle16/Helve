@@ -1,0 +1,24 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [],
+  "id": "VAR-NET-R2C-WORLD-0209",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-BIOME-PACKED-STORAGE"
+  ],
+  "source": {
+    "body_sha256": "5bea43aa35fe844cefb5a170995a3693e18efdcefec6d724f06d524dda4a9643",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "40d5a6bf2cac74a1f32075724d10945b76b19ac8ced5dec1203a37fd0350b179",
+    "signature": "set(final int index , final int value)",
+    "type": "net.minecraft.util.SimpleBitStorage"
+  },
+  "status": "VAR_REVIEWED"
+}

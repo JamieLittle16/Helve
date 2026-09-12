@@ -1,0 +1,30 @@
+{
+  "classifications": [
+    "CLIENT_OBSERVABLE",
+    "PROTOCOL"
+  ],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [
+    "CLIENT_OBSERVABLE"
+  ],
+  "id": "VAR-NET-R2C-WORLD-0388",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-LIGHT-LATTICE",
+    "SEM-NET-R2C-WORLD-LIGHT-MASK-CLASSIFICATION"
+  ],
+  "source": {
+    "body_sha256": "81b84d2c2f709f2f352033dae11cc52c96ad8ac2009c9052029e753b0b292332",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "8593a1ce7af05f4271a38ba3a5aef26b81d98a26ea90dcb1fdc548a6e48a3a37",
+    "signature": "prepareSectionData(final ChunkPos pos , final LevelLightEngine lightEngine , final LightLayer layer , final int sectionIndex , final BitSet mask , final BitSet emptyMask , final List < byte [ ] > updates)",
+    "type": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData"
+  },
+  "status": "VAR_REVIEWED"
+}

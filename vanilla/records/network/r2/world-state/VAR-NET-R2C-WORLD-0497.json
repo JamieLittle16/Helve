@@ -1,0 +1,24 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [],
+  "id": "VAR-NET-R2C-WORLD-0497",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-LIGHT-LATTICE"
+  ],
+  "source": {
+    "body_sha256": "503d54d10aa2f65a6b246ad49efbe75c8cc6f79f743c736299733cd641d7b29c",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "1089a5787ea6a840fab467610fd290bbb27dc2cd5ff701d24c395b9fc38a35c5",
+    "signature": "getLightSectionCount()",
+    "type": "net.minecraft.world.level.lighting.LevelLightEngine"
+  },
+  "status": "VAR_REVIEWED"
+}

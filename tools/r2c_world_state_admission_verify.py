@@ -126,8 +126,30 @@ def verify_repository(repo_root: Path) -> dict[str, object]:
         expected_digest = _sha(raw_entry["sha256"], f"manifest.files[{index}].sha256")
         path = repo_root.joinpath(*relative.parts)
         raw = _read(path, f"promoted file {relative}")
-        if len(raw) != size or promote._sha256(raw) != expected_digest:
-            raise VerifyError(f"promoted file drift: {relative}")
+        actual_digest = promote._sha256(raw)
+        if len(raw) != size or actual_digest != expected_digest:
+            text = raw.decode("utf-8", errors="replace")
+            non_ascii = [
+                f"U+{ord(char):04X}@{offset}"
+                for offset, char in enumerate(text)
+                if ord(char) > 0x7F
+            ]
+            try:
+                parsed = json.loads(text)
+                canonical = (json.dumps(parsed, indent=2, sort_keys=True) + "\n").encode("utf-8")
+                canonical_note = (
+                    f" canonical_size={len(canonical)}"
+                    f" canonical_sha256={promote._sha256(canonical)}"
+                )
+            except json.JSONDecodeError:
+                canonical_note = " canonical_json=invalid"
+            raise VerifyError(
+                "promoted file drift: "
+                f"{relative}: expected_size={size} actual_size={len(raw)} "
+                f"expected_sha256={expected_digest} actual_sha256={actual_digest} "
+                f"non_ascii={non_ascii[:16]} non_ascii_count={len(non_ascii)}"
+                f"{canonical_note}"
+            )
         if relative.parent == promote.RECORD_ROOT:
             record_count += 1
         elif relative == promote.REPORT_PATH:

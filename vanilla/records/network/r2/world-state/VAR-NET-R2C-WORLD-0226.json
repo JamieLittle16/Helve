@@ -1,0 +1,24 @@
+{
+  "classifications": [],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [],
+  "id": "VAR-NET-R2C-WORLD-0226",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-BIOME-PALETTE-WIRE"
+  ],
+  "source": {
+    "body_sha256": "6a4e6ff14ac53ed9348c0589e16995486b67c023a4a5d6b42c294261c317ac07",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "da682476e0498b87636045026cdc1a6c0cd67455f4d81418b4ea8f148cddabf7",
+    "signature": "valueFor(final int index)",
+    "type": "net.minecraft.world.level.chunk.GlobalPalette"
+  },
+  "status": "VAR_REVIEWED"
+}

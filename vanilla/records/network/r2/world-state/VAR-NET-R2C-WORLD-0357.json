@@ -1,0 +1,27 @@
+{
+  "classifications": [
+    "DERIVED_STATE_CANDIDATE"
+  ],
+  "evidence": [
+    "REVIEW-NET-R2C-WORLD-STATE-26_2-001",
+    "ADMISSION-NET-R2C-WORLD-STATE-26_2-001"
+  ],
+  "hazards_reviewed": [],
+  "id": "VAR-NET-R2C-WORLD-0357",
+  "notes": [
+    "Canonicalized from completed R2C world-state source review plus explicit human-authored semantic admission rules."
+  ],
+  "schema": 1,
+  "semantic_rules": [
+    "SEM-NET-R2C-WORLD-HEIGHTMAP-PRIMING",
+    "SEM-NET-R2C-WORLD-HEIGHTMAP-STORAGE"
+  ],
+  "source": {
+    "body_sha256": "f71f5b5a686d69b95bc0b8a3fd841bd56c45425ffa82cd915eed3cee72f083bb",
+    "fingerprint_algorithm": "java-token-v2-literal-sensitive",
+    "normalized_sha256": "860ef3115a8cf965dc94d727f3179aea55d77e9432fd24c6d69bcb6cbc218e4c",
+    "signature": "setHeight(final int x , final int z , final int height)",
+    "type": "net.minecraft.world.level.levelgen.Heightmap"
+  },
+  "status": "VAR_REVIEWED"
+}

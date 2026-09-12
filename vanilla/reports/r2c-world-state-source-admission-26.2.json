@@ -905,9 +905,9 @@
     "atlas_version": "0.1.1",
     "fingerprint_algorithm": "java-token-v2-literal-sensitive",
     "minecraft_version": "26.2",
-    "protocol_version": 776,
+    "protocol_version": "776",
     "schema_version": "1",
-    "world_version": 4903
+    "world_version": "4903"
   },
   "source_free_bundle_bound": true
 }

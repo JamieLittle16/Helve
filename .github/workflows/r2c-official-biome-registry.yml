@@ -1,4 +1,4 @@
-name: R2C Official Biome Registry Probe
+name: R2C Official Biome Resource Probe
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   official_biome_registry:
-    name: Official 26.2 biome protocol ID ordering
+    name: Official 26.2 biome resource inventory
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -32,23 +32,23 @@ jobs:
       - name: Test fail-closed registry report parser
         run: python3 -m unittest discover -s tools/tests -p 'test_official_biome_registry.py' -v
 
-      - name: Extract source-ordered IDs from pinned official Mojang server reports
+      - name: Inventory pinned official Mojang worldgen biome definitions
         run: |
           python3 tools/official_biome_registry.py \
             --version 26.2 \
             --cache /tmp/helve-vanilla-downloads \
             --work-dir /tmp/r2c-official-biome-datagen \
-            --output /tmp/26.2-official-biome-ids.json \
+            --output /tmp/26.2-official-biome-resources.json \
             --print-ids
 
-      - name: Verify source identity and canonical ID continuity
+      - name: Verify dynamic resource identity with no fabricated protocol IDs
         run: |
           python3 - <<'PY'
           import hashlib
           import json
           import tomllib
           from pathlib import Path
-          data = json.loads(Path('/tmp/26.2-official-biome-ids.json').read_text())
+          data = json.loads(Path('/tmp/26.2-official-biome-resources.json').read_text())
           lock = tomllib.loads(Path('vanilla/vanilla.lock.toml').read_text())
           assert data['target'] == {
               'minecraft_version': '26.2',
@@ -56,9 +56,10 @@ jobs:
               'data_version': 4903,
           }
           assert data['server_sha256'] == lock['runtime']['server_sha256']
-          names = data['names_by_protocol_id']
-          assert data['registry_count'] == len(names) > 0
+          names = data['biome_resource_keys']
+          assert data['biome_resource_count'] == len(names) > 0
           assert len(set(names)) == len(names)
-          assert hashlib.sha256(('\n'.join(names) + '\n').encode()).hexdigest() == data['source_order_sha256']
-          print(f"source-bound biome ID-map: {len(names)} exact IDs")
+          assert data['protocol_id_authority'] == 'NOT_QUALIFIED'
+          assert hashlib.sha256(('\n'.join(names) + '\n').encode()).hexdigest() == data['biome_resource_keys_sha256']
+          print(f"source-backed biome inventory: {len(names)} definitions, protocol IDs NOT qualified")
           PY

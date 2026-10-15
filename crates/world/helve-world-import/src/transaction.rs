@@ -538,20 +538,20 @@ mod tests {
             &mut builder,
             &mut scratch,
         );
-        let imported = importer
+        let world_state = importer
             .import_region_chunk_with_light(&region, 0, 0, None)
             .expect("one-pass region-to-light transaction");
 
-        assert_eq!(imported.stored.blocks.header.position, position);
-        assert_eq!(imported.stored.blocks.sections.len(), 1);
-        assert!(imported.stored.blocks.sections[0].section.iter().all(|&s| s == 1));
-        assert_eq!(imported.stored.source.region_timestamp, 71);
-        assert!(imported.light.persisted_light_correct);
-        assert_eq!(imported.light.sections.len(), 1);
-        assert_eq!(imported.light.sections[0].section_y, 0);
-        assert_eq!(imported.light.sections[0].block.as_ref().unwrap().len(), 2048);
-        assert_eq!(imported.light.sections[0].block.as_ref().unwrap()[0], 0xa5);
-        assert!(imported.light.sections[0].sky.is_none());
+        assert_eq!(world_state.stored.blocks.header.position, position);
+        assert_eq!(world_state.stored.blocks.sections.len(), 1);
+        assert!(world_state.stored.blocks.sections[0].section.iter().all(|&s| s == 1));
+        assert_eq!(world_state.stored.source.region_timestamp, 71);
+        assert!(world_state.light.persisted_light_correct);
+        assert_eq!(world_state.light.sections.len(), 1);
+        assert_eq!(world_state.light.sections[0].section_y, 0);
+        assert_eq!(world_state.light.sections[0].block.as_ref().unwrap().len(), 2048);
+        assert_eq!(world_state.light.sections[0].block.as_ref().unwrap()[0], 0xa5);
+        assert!(world_state.light.sections[0].sky.is_none());
     }
 
     #[test]

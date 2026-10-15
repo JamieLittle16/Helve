@@ -321,6 +321,77 @@ where
     Ok(())
 }
 
+/// Byte spans of two jointly derived fields in one reusable COLD buffer.
+///
+/// These ranges are not a chunk-with-light packet: its **block-entity list**
+/// belongs between the two spans, and the packet ID/coordinates precede them.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct ChunkAndLightFieldSpans {
+    /// Heightmaps followed by VarInt-length-prefixed section payloads.
+    pub chunk_data_fields: std::ops::Range<usize>,
+    /// Four light masks followed by ordered sky and block arrays.
+    pub light_fields: std::ops::Range<usize>,
+}
+
+/// Rejected coherent chunk-data/light fragment construction.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ChunkAndLightCandidateError {
+    /// The section or heightmap candidate failed validation.
+    ChunkData(ChunkDataCandidateError),
+    /// The initially verified light reference failed on materialization.
+    Light(LightPayloadCandidateError),
+}
+
+/// Builds both R2C fragments from the *same* immutable, stamped source image.
+///
+/// This is COLD target-boundary construction only. No source copy, second
+/// packet byte vector, second chunk revision clock, or resident cache is
+/// introduced. A late light failure rolls back the **entire** fragment
+/// sequence, including any preceding heightmap/section candidate bytes.
+///
+/// The ranges are explicitly separate, so a future source-admitted outer
+/// encoder can place the proven block-entity field between them instead of
+/// accidentally treating them as contiguous chunk-with-light wire bytes.
+///
+/// # Errors
+///
+/// Rejects either candidate and preserves the caller's original bytes.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2C outer packet and block-entity source law remain unadmitted"
+    )
+)]
+pub(crate) fn append_coherent_chunk_and_light_fragments<BlockStorage, BiomeStorage>(
+    image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
+    biome_registry_count: usize,
+    max_section_bytes: usize,
+    output: &mut Vec<u8>,
+) -> Result<ChunkAndLightFieldSpans, ChunkAndLightCandidateError>
+where
+    BlockStorage: BlockSection<BlockStateId>,
+    BiomeStorage: BiomeSection<u16>,
+{
+    let start = output.len();
+    append_coherent_chunk_data_fields_candidate(
+        image,
+        biome_registry_count,
+        max_section_bytes,
+        output,
+    )
+    .map_err(ChunkAndLightCandidateError::ChunkData)?;
+    let split = output.len();
+    if let Err(error) = append_coherent_light_payload_candidate(image, output) {
+        output.truncate(start);
+        return Err(ChunkAndLightCandidateError::Light(error));
+    }
+    Ok(ChunkAndLightFieldSpans {
+        chunk_data_fields: start..split,
+        light_fields: split..output.len(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
@@ -342,8 +413,9 @@ mod tests {
     };
 
     use super::{
-        ChunkDataCandidateError, SectionCandidateError,
-        append_coherent_chunk_data_fields_candidate, append_coherent_light_payload_candidate,
+        ChunkAndLightCandidateError, ChunkDataCandidateError, SectionCandidateError,
+        append_coherent_chunk_and_light_fragments, append_coherent_chunk_data_fields_candidate,
+        append_coherent_light_payload_candidate,
         append_coherent_section_candidate, append_coherent_section_column_candidate,
     };
 
@@ -565,6 +637,55 @@ mod tests {
         // No intermediate 2048-byte scratch: each raw layer is written
         // exactly once through the target-owned destination.
         assert_eq!(actual.len(), 2 + 9 + 9 + 1 + 1 + 2 * (1 + 2 + 2048));
+    }
+
+    #[test]
+    fn one_borrow_produces_two_distinct_fragments_in_one_allocation() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut expected = vec![0x73, 0x25];
+        append_coherent_chunk_data_fields_candidate(&image, 66, 16_384, &mut expected)
+            .unwrap();
+        let split = expected.len();
+        append_coherent_light_payload_candidate(&image, &mut expected).unwrap();
+
+        let mut actual = Vec::with_capacity(16_384);
+        actual.extend_from_slice(&[0x73, 0x25]);
+        let allocation = actual.as_ptr();
+        let spans =
+            append_coherent_chunk_and_light_fragments(&image, 66, 16_384, &mut actual).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(spans.chunk_data_fields, 2..split);
+        assert_eq!(spans.light_fields, split..actual.len());
+        assert!(!actual[spans.chunk_data_fields].is_empty());
+        assert!(!actual[spans.light_fields].is_empty());
+        assert_eq!(actual.as_ptr(), allocation);
+        assert_eq!(image.stamp(), semantic.stamp());
+    }
+
+    #[test]
+    fn rejected_chunk_does_not_leave_fragment_or_mutate_prefix() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut bytes = vec![0xAA, 0xBB, 0xCC];
+        assert!(matches!(
+            append_coherent_chunk_and_light_fragments(&image, 3, 16_384, &mut bytes),
+            Err(ChunkAndLightCandidateError::ChunkData(
+                ChunkDataCandidateError::Sections(
+                    SectionLengthError::Source(SectionCandidateError::Biome(_))
+                )
+            ))
+        ));
+        assert_eq!(bytes, &[0xAA, 0xBB, 0xCC]);
+        assert!(matches!(
+            append_coherent_chunk_and_light_fragments(&image, 66, 1, &mut bytes),
+            Err(ChunkAndLightCandidateError::ChunkData(
+                ChunkDataCandidateError::Sections(
+                    SectionLengthError::ExceedsLimit { .. }
+                )
+            ))
+        ));
+        assert_eq!(bytes, &[0xAA, 0xBB, 0xCC]);
     }
 
     #[test]

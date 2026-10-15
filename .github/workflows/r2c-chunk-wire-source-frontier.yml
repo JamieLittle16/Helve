@@ -1,0 +1,58 @@
+name: R2C Chunk Wire Source Frontier
+
+on:
+  pull_request:
+    paths:
+      - "tools/r2c_chunk_wire_source_frontier.py"
+      - "tools/tests/test_r2c_chunk_wire_source_frontier.py"
+      - "vanilla/reviews/network/r2c-chunk-wire-source-frontier.json"
+      - "docs/qualification/R2C_CHUNK_WIRE_SOURCE_FRONTIER.md"
+      - ".github/workflows/r2c-chunk-wire-source-frontier.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/r2c_chunk_wire_source_frontier.py"
+      - "tools/tests/test_r2c_chunk_wire_source_frontier.py"
+      - "vanilla/reviews/network/r2c-chunk-wire-source-frontier.json"
+      - "docs/qualification/R2C_CHUNK_WIRE_SOURCE_FRONTIER.md"
+      - ".github/workflows/r2c-chunk-wire-source-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-free:
+    name: Frozen chunk-wire source review frontier
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Verify source-free declaration inventory contract
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_chunk_wire_source_frontier.py' -v
+
+      - name: Verify Python syntax
+        run: |
+          python3 -m py_compile \
+            tools/r2c_chunk_wire_source_frontier.py \
+            tools/tests/test_r2c_chunk_wire_source_frontier.py
+
+      - name: Refuse accidental source-admission flag in frozen plan
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          plan = json.loads(Path(
+              'vanilla/reviews/network/r2c-chunk-wire-source-frontier.json'
+          ).read_text(encoding='utf-8'))
+          assert plan['status'] == 'DISCOVERY_NOT_ADMISSION'
+          assert plan['target'] == {
+              'minecraft': '26.2', 'protocol': 776, 'data_version': 4903
+          }
+          assert len(plan['roots']) == 4
+          print('PASS: chunk-with-light source review remains unadmitted')
+          PY

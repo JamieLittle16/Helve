@@ -1,0 +1,67 @@
+name: R2C Official Heightmap Facts
+
+on:
+  pull_request:
+    paths:
+      - tools/official_r2c_heightmap_facts.py
+      - tools/official_state_data.py
+      - tools/tests/test_official_r2c_heightmap_facts.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-heightmap-facts.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  oracle:
+    name: Exact official 26.2 heightmap state oracle (candidate)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Hermetic heightmap oracle tests
+        run: |
+          python3 -m unittest discover -s tools/tests -p 'test_official_r2c_heightmap_facts.py' -v
+
+      - name: Probe official pinned server
+        run: |
+          python3 tools/official_r2c_heightmap_facts.py \
+            --output /tmp/26.2-heightmap-state-facts-candidate.json
+
+      - name: Fail closed on wrong identity or silent authority promotion
+        run: |
+          python3 - <<'PY'
+          import json
+          import tomllib
+          from pathlib import Path
+          with Path("vanilla/vanilla.lock.toml").open("rb") as stream:
+              lock = tomllib.load(stream)
+          report = json.loads(Path("/tmp/26.2-heightmap-state-facts-candidate.json").read_text())
+          assert report["server_sha256"] == lock["runtime"]["server_sha256"]
+          assert report["source_archive_sha256"] == lock["source"]["archive_sha256"]
+          assert report["state_count"] == 32366
+          assert len(report["flags_by_vanilla_state_id"]) == 32366
+          assert not report["source_admitted"]
+          assert not report["production_admitted"]
+          assert all(0 <= value <= 15 for value in report["flags_by_vanilla_state_id"])
+          print("Official dense heightmap candidate PASS; production admission remains blocked")
+          PY
+
+      - name: Upload ephemeral source-free candidate facts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-official-heightmap-facts-candidate
+          path: /tmp/26.2-heightmap-state-facts-candidate.json
+          if-no-files-found: error
+          retention-days: 7

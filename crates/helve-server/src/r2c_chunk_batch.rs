@@ -171,7 +171,8 @@ impl R2bPlaySession {
                     return Ok(ChunkBatchStep::WaitingForTick);
                 }
 
-                self.driver.queue_frame::<E>(&[CLIENTBOUND_CHUNK_BATCH_START])?;
+                self.driver
+                    .queue_frame::<E>(&[CLIENTBOUND_CHUNK_BATCH_START])?;
                 let count = u8::try_from(budget).expect("source bounded remote batch <= 64");
                 state.unacknowledged += 1;
                 state.phase = BatchPhase::Sending {
@@ -296,29 +297,17 @@ mod tests {
         let scratch_ptr = scratch.as_ptr();
         let mut state = R2cChunkBatchState::new(12);
         assert_eq!(
-            conn.service_r2c_chunk_batch_one(
-                &mut state,
-                &mut scratch,
-                synthetic_chunk,
-            ),
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk,),
             Ok(ChunkBatchStep::WaitingForTick)
         );
         state.on_tick();
         assert_eq!(
-            conn.service_r2c_chunk_batch_one(
-                &mut state,
-                &mut scratch,
-                synthetic_chunk,
-            ),
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk,),
             Ok(ChunkBatchStep::Started { count: 9 })
         );
         for index in 0..9 {
             assert_eq!(
-                conn.service_r2c_chunk_batch_one(
-                    &mut state,
-                    &mut scratch,
-                    synthetic_chunk,
-                ),
+                conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk,),
                 Ok(ChunkBatchStep::ChunkQueued {
                     index,
                     body_bytes: 2
@@ -387,7 +376,9 @@ mod tests {
         let original = conn.pending_play_egress().to_vec();
         assert!(matches!(
             conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
-            Err(DriverError::Buffer(ConnectionBufferError::EgressLimitExceeded { .. }))
+            Err(DriverError::Buffer(
+                ConnectionBufferError::EgressLimitExceeded { .. }
+            ))
         ));
         assert_eq!(conn.pending_play_egress(), original);
         assert_eq!(state.unacknowledged_batches(), 0);
@@ -398,14 +389,10 @@ mod tests {
             Ok(ChunkBatchStep::Started { count: 1 })
         );
         assert_eq!(
-            conn.service_r2c_chunk_batch_one(
-                &mut state,
-                &mut scratch,
-                |_, bytes| {
-                    bytes.extend_from_slice(&[45, 99]);
-                    Err::<(), _>("stale receipt")
-                }
-            ),
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, |_, bytes| {
+                bytes.extend_from_slice(&[45, 99]);
+                Err::<(), _>("stale receipt")
+            }),
             Err(DriverError::Handler("stale receipt"))
         );
         assert_eq!(state.next_chunk_index(), 0);
@@ -424,7 +411,9 @@ mod tests {
         let full = conn.pending_play_egress().to_vec();
         assert!(matches!(
             conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
-            Err(DriverError::Buffer(ConnectionBufferError::EgressLimitExceeded { .. }))
+            Err(DriverError::Buffer(
+                ConnectionBufferError::EgressLimitExceeded { .. }
+            ))
         ));
         assert_eq!(conn.pending_play_egress(), full);
         assert_eq!(state.unacknowledged_batches(), 1);

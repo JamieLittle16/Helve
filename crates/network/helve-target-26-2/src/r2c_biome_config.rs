@@ -101,7 +101,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use helve_packet_core::PacketWriter;
+    use helve_packet_core::{PacketCodecError, PacketWriter};
 
     use super::{BiomeConfigOrderError, borrow_core_biome_order};
 

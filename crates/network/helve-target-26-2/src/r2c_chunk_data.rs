@@ -16,7 +16,11 @@ pub enum HeightmapMapError {
     /// The semantic dimension has no supported section-height mapping.
     InvalidDimensionHeight { blocks: u16 },
     /// Each of the three maps must have the source-required word count.
-    WrongWordCount { map: usize, expected: usize, actual: usize },
+    WrongWordCount {
+        map: usize,
+        expected: usize,
+        actual: usize,
+    },
     /// A height is outside the dimension or an unused long bit was set.
     InvalidWordValue { map: usize, word: usize },
 }
@@ -164,9 +168,8 @@ pub fn append_length_prefixed_sections<E>(
             max_bytes,
         });
     }
-    let (length, count) = length_as_varint(
-        u32::try_from(section_bytes).expect("validated <= u32::MAX"),
-    );
+    let (length, count) =
+        length_as_varint(u32::try_from(section_bytes).expect("validated <= u32::MAX"));
     let end = output.len();
     output.resize(end + count, 0);
     output.copy_within(before..end, before + count);
@@ -208,7 +211,11 @@ mod tests {
         let mut out = vec![0xAA, 0xBB];
         assert_eq!(
             append_heightmap_map_candidate(&mut out, 32, [&words, &words, &short]),
-            Err(HeightmapMapError::WrongWordCount { map: 2, expected: 26, actual: 25 })
+            Err(HeightmapMapError::WrongWordCount {
+                map: 2,
+                expected: 26,
+                actual: 25
+            })
         );
         let mut invalid = words;
         invalid[3] = 33;
@@ -237,14 +244,16 @@ mod tests {
         append_length_prefixed_sections(&mut out, 3000, |bytes| {
             bytes.extend_from_slice(&[0xBB; 128]);
             Ok::<(), ()>(())
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(&out[..4], &[0xF7, 0x80, 0x01, 0xBB]);
         assert_eq!(out.len(), 1 + 2 + 128);
         assert_eq!(out.as_ptr(), allocation);
         append_length_prefixed_sections(&mut out, 3000, |bytes| {
             bytes.extend_from_slice(&[0x22; 127]);
             Ok::<(), ()>(())
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(&out[131..133], &[127, 0x22]);
         assert_eq!(out.as_ptr(), allocation);
     }
@@ -264,7 +273,10 @@ mod tests {
                 bytes.extend_from_slice(&[1, 2, 3, 4, 5, 6]);
                 Ok::<(), u8>(())
             }),
-            Err(SectionLengthError::ExceedsLimit { actual: 6, max_bytes: 5 })
+            Err(SectionLengthError::ExceedsLimit {
+                actual: 6,
+                max_bytes: 5
+            })
         );
         assert_eq!(
             append_length_prefixed_sections(&mut out, 128, |_bytes| Ok::<(), u8>(())),

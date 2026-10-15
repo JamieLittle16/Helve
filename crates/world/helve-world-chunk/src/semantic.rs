@@ -2,8 +2,8 @@ use helve_types::{BlockPos, ChunkGeneration, ChunkPos, ChunkRevision, ChunkStamp
 use helve_world_contract::{BiomeSection, BlockSection, BlockStateFacts, SectionBiomePos};
 
 use crate::{
-    ChunkBiomeColumn, ChunkBiomeColumnError, ChunkCoreError, LiveChunkCore, MutationFacts,
-    SectionMasks, VerticalSectionLattice,
+    ChunkBiomeColumn, ChunkBiomeColumnError, ChunkCoreError, InitialChunkLight, LiveChunkCore,
+    MutationFacts, SectionMasks, VerticalSectionLattice,
 };
 
 /// One authoritative biome mutation committed through [`LiveChunkSemanticState`].
@@ -45,6 +45,22 @@ pub enum ChunkSemanticStateError {
         /// Lattice owned by the biome column.
         biomes: VerticalSectionLattice,
     },
+    /// Initial light claims a different semantic chunk position.
+    InitialLightPositionMismatch { blocks: ChunkPos, light: ChunkPos },
+    /// Initial light belongs to a different chunk incarnation.
+    InitialLightGenerationMismatch {
+        blocks: ChunkGeneration,
+        light: ChunkGeneration,
+    },
+    /// Initial light describes a different vertical section lattice.
+    InitialLightLatticeMismatch {
+        blocks: VerticalSectionLattice,
+        light: VerticalSectionLattice,
+    },
+    /// Persisted initial light cannot be attached after semantic mutations have occurred.
+    InitialLightAfterMutation { revision: ChunkRevision },
+    /// One coherent owner cannot accept a second independently imported light image.
+    InitialLightAlreadyPresent,
     /// Block access or mutation failed.
     Blocks(ChunkCoreError),
     /// Biome access or mutation failed.
@@ -84,6 +100,7 @@ where
 {
     blocks: LiveChunkCore<S, BlockStorage>,
     biomes: ChunkBiomeColumn<B, BiomeStorage>,
+    initial_light: Option<InitialChunkLight>,
 }
 
 impl<S, BlockStorage, B, BiomeStorage> LiveChunkSemanticState<S, BlockStorage, B, BiomeStorage>
@@ -123,7 +140,55 @@ where
                 biomes: biomes.vertical_lattice(),
             });
         }
-        Ok(Self { blocks, biomes })
+        Ok(Self {
+            blocks,
+            biomes,
+            initial_light: None,
+        })
+    }
+
+    /// Attaches a just-imported light column without copying or adding an independent clock.
+    ///
+    /// Only an unmodified initial block/biome owner may accept persisted light. After any real
+    /// mutation, that saved lighting image is no longer a valid description of the current blocks.
+    /// Later read-only access is guarded by the existing monotone whole-chunk revision, so ordinary
+    /// mutations do not perform additional light invalidation work.
+    ///
+    /// # Errors
+    ///
+    /// Rejects a second image, mismatched position/generation/lattice or nonzero initial revision.
+    pub fn with_initial_light(
+        mut self,
+        light: InitialChunkLight,
+    ) -> Result<Self, ChunkSemanticStateError> {
+        if self.initial_light.is_some() {
+            return Err(ChunkSemanticStateError::InitialLightAlreadyPresent);
+        }
+        if self.position() != light.position() {
+            return Err(ChunkSemanticStateError::InitialLightPositionMismatch {
+                blocks: self.position(),
+                light: light.position(),
+            });
+        }
+        if self.generation() != light.generation() {
+            return Err(ChunkSemanticStateError::InitialLightGenerationMismatch {
+                blocks: self.generation(),
+                light: light.generation(),
+            });
+        }
+        if self.vertical_lattice() != light.vertical_lattice() {
+            return Err(ChunkSemanticStateError::InitialLightLatticeMismatch {
+                blocks: self.vertical_lattice(),
+                light: light.vertical_lattice(),
+            });
+        }
+        if self.revision() != ChunkRevision(0) {
+            return Err(ChunkSemanticStateError::InitialLightAfterMutation {
+                revision: self.revision(),
+            });
+        }
+        self.initial_light = Some(light);
+        Ok(self)
     }
 
     /// Semantic chunk-column position shared by every component.
@@ -184,6 +249,22 @@ where
     #[must_use]
     pub const fn biomes(&self) -> &ChunkBiomeColumn<B, BiomeStorage> {
         &self.biomes
+    }
+
+    /// Borrows the initial imported light only while its saved semantic image is current.
+    ///
+    /// The exact persisted light-correctness flag must be true. Any block **or** biome mutation
+    /// advances the existing revision and permanently disqualifies initial lighting in this
+    /// generation. Missing light arrays remain missing; this gate does not claim complete light
+    /// reconstruction or authorize publishing a 26.2 light packet by itself.
+    #[must_use]
+    pub fn current_initial_light(&self) -> Option<&InitialChunkLight> {
+        if self.revision() != ChunkRevision(0) {
+            return None;
+        }
+        self.initial_light
+            .as_ref()
+            .filter(|light| light.persisted_light_correct())
     }
 
     /// Reads one exact semantic block state.
@@ -265,8 +346,9 @@ where
     ) -> (
         LiveChunkCore<S, BlockStorage>,
         ChunkBiomeColumn<B, BiomeStorage>,
+        Option<InitialChunkLight>,
     ) {
-        (self.blocks, self.biomes)
+        (self.blocks, self.biomes, self.initial_light)
     }
 }
 
@@ -277,8 +359,8 @@ mod tests {
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 
     use crate::{
-        ChunkBiomeColumn, ChunkSemanticStateError, LiveChunkCore, LiveChunkSemanticState,
-        VerticalSectionLattice,
+        ChunkBiomeColumn, ChunkSemanticStateError, ImportedLightSection, InitialChunkLight,
+        LightDataLayer, LiveChunkCore, LiveChunkSemanticState, VerticalSectionLattice,
     };
 
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -404,6 +486,110 @@ mod tests {
             .expect("same-biome mutation");
         assert!(!biome_result.changed);
         assert_eq!(state.stamp(), stamp);
+    }
+
+    fn initial_light(
+        position: ChunkPos,
+        generation: ChunkGeneration,
+        lattice: VerticalSectionLattice,
+        light_correct: bool,
+    ) -> InitialChunkLight {
+        InitialChunkLight::from_imported(
+            position,
+            generation,
+            lattice,
+            true,
+            light_correct,
+            vec![ImportedLightSection {
+                section_y: lattice.min_section_y() - 1,
+                block: Some(LightDataLayer::homogeneous(0).expect("zero nibble")),
+                sky: Some(LightDataLayer::homogeneous(15).expect("full nibble")),
+            }],
+        )
+        .expect("valid imported initial light")
+    }
+
+    #[test]
+    fn initial_light_requires_exact_identity_and_unmodified_semantics() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let generation = ChunkGeneration(3);
+        let lattice = VerticalSectionLattice::new(-1, 2).expect("test lattice");
+
+        assert!(matches!(
+            semantic().with_initial_light(initial_light(
+                ChunkPos { x: 1, z: 0 },
+                generation,
+                lattice,
+                true
+            )),
+            Err(ChunkSemanticStateError::InitialLightPositionMismatch { .. })
+        ));
+        assert!(matches!(
+            semantic().with_initial_light(initial_light(
+                position,
+                ChunkGeneration(4),
+                lattice,
+                true
+            )),
+            Err(ChunkSemanticStateError::InitialLightGenerationMismatch { .. })
+        ));
+        assert!(matches!(
+            semantic().with_initial_light(initial_light(
+                position,
+                generation,
+                VerticalSectionLattice::new(0, 2).unwrap(),
+                true
+            )),
+            Err(ChunkSemanticStateError::InitialLightLatticeMismatch { .. })
+        ));
+
+        let mut changed = semantic();
+        changed
+            .replace_block(BlockPos { x: 0, y: -16, z: 0 }, Block::Stone, &Facts)
+            .expect("real change");
+        assert!(matches!(
+            changed.with_initial_light(initial_light(position, generation, lattice, true)),
+            Err(ChunkSemanticStateError::InitialLightAfterMutation { .. })
+        ));
+    }
+
+    #[test]
+    fn initial_light_uses_existing_revision_without_hot_bookkeeping() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let lattice = VerticalSectionLattice::new(-1, 2).expect("test lattice");
+        let mut state = semantic()
+            .with_initial_light(initial_light(position, ChunkGeneration(3), lattice, true))
+            .expect("coherent initial light");
+        assert!(state.current_initial_light().is_some());
+        state
+            .replace_block(BlockPos { x: 0, y: -1, z: 0 }, Block::Air, &Facts)
+            .expect("same block");
+        state
+            .replace_biome(-1, biome_pos(1, 2, 3), 7)
+            .expect("same biome");
+        assert!(state.current_initial_light().is_some());
+        state
+            .replace_biome(-1, biome_pos(1, 2, 3), 9)
+            .expect("real biome change");
+        assert!(state.current_initial_light().is_none());
+
+        let state = semantic()
+            .with_initial_light(initial_light(position, ChunkGeneration(3), lattice, true))
+            .expect("coherent initial light");
+        let (blocks, biomes, light) = state.into_parts();
+        assert_eq!(blocks.position(), position);
+        assert_eq!(biomes.position(), position);
+        assert!(light.is_some());
+    }
+
+    #[test]
+    fn false_persisted_correctness_never_becomes_publishable() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let lattice = VerticalSectionLattice::new(-1, 2).expect("test lattice");
+        let state = semantic()
+            .with_initial_light(initial_light(position, ChunkGeneration(3), lattice, false))
+            .expect("import may retain incorrect lighting for diagnostics");
+        assert!(state.current_initial_light().is_none());
     }
 
     #[test]

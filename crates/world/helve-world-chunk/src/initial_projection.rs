@@ -9,8 +9,9 @@ use helve_types::{ChunkPos, ChunkStamp};
 use helve_world_contract::{BiomeSection, BlockSection};
 
 use crate::{
-    ChunkBiomeColumn, HeightmapProjectionError, HeightmapStateFacts, InitialLightMaskReference,
-    LightMaskReferenceError, LiveChunkCore, LiveChunkSemanticState, PackedClientHeightmaps,
+    BiomeProjectionError, ChunkBiomeColumn, HeightmapProjectionError, HeightmapStateFacts,
+    InitialLightMaskReference, LightMaskReferenceError, LiveChunkCore, LiveChunkSemanticState,
+    PackedBiomeSectionReference, PackedClientHeightmaps,
 };
 
 /// A whole initial chunk cannot be represented by an exact verified semantic snapshot.
@@ -124,6 +125,40 @@ where
     }
 }
 
+/// Exact optional biome container publication from an already-verified initial chunk reference.
+///
+/// The source owner remains borrowed; each container is built independently only when needed for
+/// the selected section. No duplicate resident palette is allocated or cached for future mutation.
+impl<'a, S, BlockStorage, BiomeStorage>
+    InitialChunkReference<'a, S, BlockStorage, u16, BiomeStorage>
+where
+    S: Copy + Eq,
+    BlockStorage: BlockSection<S>,
+    BiomeStorage: BiomeSection<u16>,
+{
+    /// Derives one source-law biome-container reference from this exact current chunk snapshot.
+    ///
+    /// The supplied cardinality **must** belong to the already source-qualified and synchronized
+    /// 26.2 biome registry. No guess about runtime biome ID order is made by this adapter.
+    ///
+    /// # Errors
+    ///
+    /// Rejects an outside-the-chunk section, an invalid registry cardinality or source biome ID
+    /// absent from that exact registry. No fallback biome or partial packet is produced.
+    ///
+    /// # Panics
+    ///
+    /// Only if the coherent resident biome section internally violates the already validated
+    /// 4×4×4 cell-lattice invariants.
+    pub fn biome_container(
+        &self,
+        section_y: i32,
+        registry_count: usize,
+    ) -> Result<PackedBiomeSectionReference, BiomeProjectionError> {
+        PackedBiomeSectionReference::derive(self.source, section_y, registry_count)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use helve_types::{BlockPos, ChunkGeneration, ChunkPos};
@@ -137,6 +172,7 @@ mod tests {
     };
 
     use super::{InitialChunkReference, InitialChunkReferenceError};
+    use crate::BiomePaletteMode;
 
     struct Facts;
 
@@ -227,6 +263,25 @@ mod tests {
                 .get(-1, SectionBiomePos::new(0, 0, 0).expect("valid quart"),),
             Ok(2),
         );
+    }
+
+    #[test]
+    fn two_biome_containers_share_one_verified_borrow_and_stamp() {
+        let semantic = chunk(true, true);
+        let image = InitialChunkReference::derive(&semantic, &Facts).expect("fresh initial");
+        let lower = image.biome_container(-1, 64).expect("lower source biomes");
+        let upper = image.biome_container(0, 64).expect("upper source biomes");
+        assert_eq!(lower.mode(), BiomePaletteMode::SingleValue);
+        assert_eq!(upper.mode(), BiomePaletteMode::SingleValue);
+        assert_eq!(lower.local_palette(), &[2]);
+        assert_eq!(upper.local_palette(), &[5]);
+        assert_eq!(lower.encode_container(), vec![0, 2, 0]);
+        assert_eq!(upper.encode_container(), vec![0, 5, 0]);
+        assert!(lower.is_current_for(&semantic));
+        assert!(upper.is_current_for(&semantic));
+        assert_eq!(image.stamp(), semantic.stamp());
+        assert!(image.biome_container(1, 64).is_err());
+        assert!(image.biome_container(-1, 2).is_err());
     }
 
     #[test]

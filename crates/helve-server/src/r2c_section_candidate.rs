@@ -20,13 +20,16 @@ use helve_target_26_2::r2c_light::{
 };
 use helve_types::ChunkPos;
 use helve_world_chunk::{
-    BiomeProjectionError, InitialChunkReference, LightKind, LightMaskReferenceError,
+    BiomeProjectionError, HeightmapStateFacts, InitialChunkReference,
+    InitialChunkReferenceError, LightKind, LightMaskReferenceError,
 };
 use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
 use helve_world_import::{
     EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
     TARGET_DATA_VERSION_26_2,
 };
+use helve_world_load::{SourceChunkPublicationReceipt, SourceChunkReceiptError};
+use helve_world_runtime::SemanticDimensionInstance;
 
 /// A source or section invariant prevents a coherent candidate from being emitted.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -512,6 +515,73 @@ where
         block_entities: after_chunk_data..after_entities,
         light: after_entities..output.len(),
     })
+}
+
+/// A source receipt cannot authorize this candidate against the live owner.
+#[derive(Debug)]
+pub(crate) enum ReceiptBoundBodyCandidateError {
+    /// Original dimension/position/incarnation, revision, or empty-list evidence failed.
+    Receipt(SourceChunkReceiptError),
+    /// Current source heightmaps/light cannot form a coherent immutable borrow.
+    Reference(InitialChunkReferenceError),
+    /// Target-owned candidate field encoding was rejected.
+    Body(EmptyChunkBodyCandidateError),
+}
+
+/// Build one explicitly-empty body only from a proven, current import receipt.
+///
+/// The source proof is minted by world-load *after* a real installation; it
+/// cannot be synthesized by passing a header and evidence separately.
+/// One COLD dimension-handle resolution verifies dimension and generation;
+/// a pristine revision check rejects post-import mutation. The resulting
+/// immutable chunk borrow stays live across every output write, excluding
+/// concurrent/unrelated unload or mutation during synchronous projection.
+///
+/// All source/target work is at the COLD publication boundary. No resident
+/// block-entity sidecar, extra HOT revision work, second packet buffer or
+/// implicit protocol admission is introduced.
+///
+/// **Not a Play route.** Outer packet identity/SEM, client numeric biome IDs
+/// and publication ordering still require distinct 26.2 source admission.
+///
+/// # Errors
+///
+/// Receipt, coherent reference, or candidate body failure; no bytes remain
+/// appended on any rejection.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2C source-bound packet candidates remain separate from live Play routing"
+    )
+)]
+pub(crate) fn append_receipt_bound_empty_chunk_body_candidate<BlockStorage, BiomeStorage, F>(
+    dimension: &SemanticDimensionInstance<BlockStateId, BlockStorage, u16, BiomeStorage>,
+    receipt: &SourceChunkPublicationReceipt,
+    facts: &F,
+    biome_registry_count: usize,
+    max_section_bytes: usize,
+    output: &mut Vec<u8>,
+) -> Result<EmptyChunkBodyFieldSpans, ReceiptBoundBodyCandidateError>
+where
+    BlockStorage: BlockSection<BlockStateId>,
+    BiomeStorage: BiomeSection<u16>,
+    F: HeightmapStateFacts<BlockStateId>,
+{
+    let (source, header) = receipt
+        .resolve_explicitly_empty(dimension)
+        .map_err(ReceiptBoundBodyCandidateError::Receipt)?;
+    let image = InitialChunkReference::derive(source, facts)
+        .map_err(ReceiptBoundBodyCandidateError::Reference)?;
+    append_explicit_empty_chunk_body_candidate(
+        &image,
+        &header,
+        StoredBlockEntityEvidence::ExplicitlyEmpty,
+        biome_registry_count,
+        max_section_bytes,
+        output,
+    )
+    .map_err(ReceiptBoundBodyCandidateError::Body)
 }
 
 #[cfg(test)]

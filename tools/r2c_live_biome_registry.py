@@ -215,14 +215,32 @@ def server_properties() -> str:
     ]) + "\n"
 
 
-def observe_official_server(server: Path, work_dir: Path) -> tuple[str, ...]:
+def observe_official_server(
+    server: Path,
+    work_dir: Path,
+    *,
+    agent_jar: Path | None = None,
+    oracle_output: Path | None = None,
+) -> tuple[str, ...]:
+    if (agent_jar is None) != (oracle_output is None):
+        raise LiveBiomeProbeError("agent and fresh oracle output must be specified together")
+    if agent_jar is not None and (not agent_jar.is_file()
+                                  or oracle_output.exists() or oracle_output.is_symlink()):
+        raise LiveBiomeProbeError("agent must exist and the oracle output must be fresh")
     if work_dir.exists() or work_dir.is_symlink():
         raise LiveBiomeProbeError("runtime world work directory must be fresh")
     work_dir.mkdir(parents=True)
     (work_dir / "eula.txt").write_text("eula=true\n", encoding="ascii")
     (work_dir / "server.properties").write_text(server_properties(), encoding="ascii")
+    command = ["java", "-Xms256M", "-Xmx1536M"]
+    if agent_jar is not None:
+        command += [
+            "--add-opens=java.base/java.lang=ALL-UNNAMED",
+            f"-javaagent:{agent_jar.resolve()}={oracle_output.resolve()}",
+        ]
+    command += ["-jar", str(server.resolve()), "nogui"]
     proc = subprocess.Popen(
-        ["java", "-Xms256M", "-Xmx1536M", "-jar", str(server.resolve()), "nogui"],
+        command,
         cwd=work_dir, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT, text=True, bufsize=1,
     )
@@ -260,7 +278,25 @@ def observe_official_server(server: Path, work_dir: Path) -> tuple[str, ...]:
                 "official 26.2 server startup timeout\n" + "".join(tail[-16:])
             )
         with socket.create_connection(("127.0.0.1", PORT), timeout=10) as conn:
-            return observe_configuration(conn)
+            network_order = observe_configuration(conn)
+        if oracle_output is not None:
+            # The independent agent may observe the loaded registry at the
+            # startup barrier or just after the Configuration exchange.
+            # Do not pass a missing/partial observer report.
+            oracle_deadline = time.monotonic() + 20
+            while not oracle_output.is_file() and time.monotonic() < oracle_deadline:
+                if proc.poll() is not None:
+                    raise LiveBiomeProbeError(
+                        "official JVM exited before loaded registry report"
+                        + "".join(tail[-16:])
+                    )
+                time.sleep(0.1)
+            if not oracle_output.is_file():
+                raise LiveBiomeProbeError(
+                    "independent loaded registry oracle did not finish"
+                    + "".join(tail[-16:])
+                )
+        return network_order
     finally:
         if proc.poll() is None:
             try:

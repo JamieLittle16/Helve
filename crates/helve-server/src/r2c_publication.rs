@@ -8,7 +8,7 @@
 use std::convert::Infallible;
 
 use helve_connection_driver::DriverError;
-use helve_publication_core::{PublicationCursor, PublicationStep, publish_one};
+use helve_publication_core::{PublicationCursor, PublicationStep, publish_one, publish_projected_one};
 
 use crate::r2b_server::{R2bPlayError, R2bPlaySession};
 
@@ -86,6 +86,38 @@ impl R2bPlaySession {
         publish_one::<Infallible, B>(publication, cursor, &mut self.driver)
             .map_err(|error| map_publication_driver_error(&error))
     }
+
+    /// Projects and admits only the next ordered COLD item through this same Play driver.
+    ///
+    /// The caller retains a fixed ordered selection of semantic chunk receipts (not serialized
+    /// packets). It validates the selected receipt and appends one target-owned complete packet
+    /// body into reusable scratch. After admission, scratch length is restored and the existing
+    /// one-word cursor advances. A failed projection or bounded-egress rejection preserves both
+    /// cursor position and existing outbound bytes; there is no separate per-player packet queue.
+    ///
+    /// This is intentionally dormant until the exact R2C packet ID, numeric biome registry and
+    /// initial publication laws have passed their independent source gates.
+    ///
+    /// # Errors
+    ///
+    /// Returns the projector error or existing bounded Play-driver rejection unchanged.
+    #[cfg_attr(
+        not(test),
+        expect(
+            dead_code,
+            reason = "R2C chunk packet and biome source admission block production projection"
+        )
+    )]
+    pub(crate) fn service_play_projected_one<E>(
+        &mut self,
+        item_count: usize,
+        cursor: &mut PublicationCursor,
+        scratch: &mut Vec<u8>,
+        append_one: impl FnOnce(usize, &mut Vec<u8>) -> Result<(), E>,
+    ) -> Result<PublicationStep, DriverError<E>> {
+        publish_projected_one(item_count, cursor, &mut self.driver, scratch, append_one)
+    }
+
 }
 
 #[cfg_attr(
@@ -141,6 +173,54 @@ mod tests {
             .queue_batch::<Infallible, _>(bodies)
             .expect("independent framing fits");
         driver.pending_egress().to_vec()
+    }
+
+
+    #[test]
+    fn cold_projection_reuses_live_r2b_driver_without_a_packet_list() {
+        let mut session = session(10);
+        let original_read_scratch = session.read_scratch.as_ptr();
+        let mut cursor = PublicationCursor::new();
+        let mut scratch = Vec::with_capacity(32);
+        scratch.push(0xEE);
+        let original_projection_allocation = scratch.as_ptr();
+        let encode = |index: usize, output: &mut Vec<u8>| {
+            output.push(0x11);
+            output.extend_from_slice(&[index as u8; 7]);
+            Ok::<(), &'static str>(())
+        };
+
+        assert_eq!(
+            session.service_play_projected_one(2, &mut cursor, &mut scratch, encode),
+            Ok(PublicationStep::Queued { index: 0, body_bytes: 8 })
+        );
+        assert_eq!(cursor.next_index(), 1);
+        assert_eq!(scratch, [0xEE]);
+        let before = session.pending_play_egress().to_vec();
+
+        assert!(matches!(
+            session.service_play_projected_one(2, &mut cursor, &mut scratch, encode),
+            Err(helve_connection_driver::DriverError::Buffer(_))
+        ));
+        assert_eq!(cursor.next_index(), 1);
+        assert_eq!(session.pending_play_egress(), before);
+        assert_eq!(scratch, [0xEE]);
+        assert_eq!(scratch.as_ptr(), original_projection_allocation);
+        assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
+
+        session.consume_play_written(before.len()).expect("drain admitted packet");
+        assert_eq!(
+            session.service_play_projected_one(2, &mut cursor, &mut scratch, encode),
+            Ok(PublicationStep::Queued { index: 1, body_bytes: 8 })
+        );
+        assert_eq!(cursor.next_index(), 2);
+        assert_eq!(
+            session.service_play_projected_one::<&'static str>(
+                2, &mut cursor, &mut scratch, |_, _| panic!("must not project completed item"),
+            ),
+            Ok(PublicationStep::Complete)
+        );
+        assert_eq!(scratch, [0xEE]);
     }
 
     #[test]

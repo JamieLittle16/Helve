@@ -20,6 +20,7 @@ helve-session-core = { path = "../network/helve-session-core" }
 helve-target-26-2 = { path = "../network/helve-target-26-2" }
 helve-world-chunk = { path = "../world/helve-world-chunk" }
 helve-world-contract = { path = "../world/helve-world-contract" }
+helve-world-import = { path = "../world/helve-world-import" }
 
 [dev-dependencies]
 helve-types = { path = "../helve-types" }

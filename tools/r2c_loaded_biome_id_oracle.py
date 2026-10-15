@@ -40,7 +40,20 @@ class LoadedIdOracleError(ValueError):
     """A source/official runtime identity or numeric-id invariant was not established."""
 
 
-def symbols(mapping_text: str) -> dict[str, str]:
+def symbols(mapping_text: str | None) -> dict[str, str]:
+    if mapping_text is None:
+        # The official 26.2 launcher does not distribute a separate
+        # server_mappings artifact. As in official_state_data.py's sealed
+        # state-ID oracle, use readable runtime symbols and require every
+        # reflected class/method/field to exist. Do not invent obfuscated IDs.
+        return {
+            **NAME_SYMBOLS,
+            "BIOME_FIELD": "BIOME",
+            "SERVER_ACCESS": "registryAccess",
+            "BY_ID": "byId",
+            "GET_ID": "getId",
+            "GET_KEY": "getKey",
+        }
     classes, fields, methods = official_state_data.parse_mappings(mapping_text)
     resolved: dict[str, str] = {}
     for token, class_name in NAME_SYMBOLS.items():
@@ -69,7 +82,7 @@ def symbols(mapping_text: str) -> dict[str, str]:
     return resolved
 
 
-def build_agent(java_root: Path, mapping_text: str) -> Path:
+def build_agent(java_root: Path, mapping_text: str | None) -> Path:
     if java_root.exists() or java_root.is_symlink():
         raise LoadedIdOracleError("Java agent build directory must be fresh")
     java_root.mkdir(parents=True)
@@ -196,14 +209,15 @@ def main() -> int:
             raise LoadedIdOracleError("version lock does not select 26.2/776/4903")
         resolved, _ = official_state_data.resolve("26.2", args.cache)
         server, _ = resolved["server"]
-        mappings, _ = resolved["server_mappings"]
+        mapping_entry = resolved.get("server_mappings")
+        mappings = mapping_entry[0] if mapping_entry is not None else None
         server_sha = official_state_data.sha256_file(server)
         if server_sha != lock.get("runtime", {}).get("server_sha256"):
             raise LoadedIdOracleError("official-server SHA-256 differs from pinned runtime")
         args.work_dir.mkdir(parents=True)
         jar = build_agent(
             args.work_dir / "agent",
-            mappings.read_text(encoding="utf-8"),
+            mappings.read_text(encoding="utf-8") if mappings is not None else None,
         )
         agent_output = args.work_dir / "loaded-registry-by-id.txt"
         network_ids = live.observe_official_server(

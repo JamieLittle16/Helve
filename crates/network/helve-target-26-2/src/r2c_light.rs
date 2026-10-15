@@ -33,8 +33,9 @@ pub enum LightWireError {
 }
 
 fn append_bitset(output: &mut Vec<u8>, bits: u128) {
-    let low = bits as u64;
-    let high = (bits >> 64) as u64;
+    let low = u64::try_from(bits & u128::from(u64::MAX))
+        .expect("low 64 bits are bounded by the mask");
+    let high = u64::try_from(bits >> 64).expect("high 64 bits fit u64");
     if high != 0 {
         output.push(2); // canonical VarInt array count, two 64-bit words.
         output.extend_from_slice(&low.to_be_bytes());
@@ -47,7 +48,7 @@ fn append_bitset(output: &mut Vec<u8>, bits: u128) {
     }
 }
 
-/// Validates and appends four source-ordered packed BitSet masks.
+/// Validates and appends four source-ordered packed `BitSet` masks.
 ///
 /// For each mask, the target long-array length is the smallest count that
 /// covers its highest set bit; long words are emitted low-index-first and
@@ -115,11 +116,13 @@ pub fn append_light_update_count_candidate(
         return Err(LightWireError::UpdateCountExceedsLimit { actual: count });
     }
     // The maximum is 66, hence this is an exact single-byte VarInt.
-    output.push(u8::try_from(count).expect("source lattice count <= 66"));
+    let bounded = u8::try_from(count)
+        .map_err(|_| LightWireError::UpdateCountExceedsLimit { actual: count })?;
+    output.push(bounded);
     Ok(())
 }
 
-/// Appends one 2048-byte packed light layer with its exact VarInt length.
+/// Appends one 2048-byte packed light layer with its exact `VarInt` length.
 ///
 /// Writes raw bytes directly into the caller's growing output allocation.
 /// The source visitor fills that final byte region without an intermediate
@@ -184,15 +187,24 @@ mod tests {
         );
         assert_eq!(
             append_light_masks_candidate(
-                &mut out, 3,
-                LightWireMasks { block_empty: 1_u128 << 4, ..LightWireMasks::default() }
+                &mut out,
+                3,
+                LightWireMasks {
+                    block_empty: 1_u128 << 4,
+                    ..LightWireMasks::default()
+                }
             ),
             Err(LightWireError::MaskOutsideSpan { mask: 3 })
         );
         assert_eq!(
             append_light_masks_candidate(
-                &mut out, 3,
-                LightWireMasks { sky_data: 1, sky_empty: 1, ..LightWireMasks::default() }
+                &mut out,
+                3,
+                LightWireMasks {
+                    sky_data: 1,
+                    sky_empty: 1,
+                    ..LightWireMasks::default()
+                }
             ),
             Err(LightWireError::ConflictingMask { sky: true })
         );

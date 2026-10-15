@@ -83,6 +83,11 @@ class DirectLoadedBiomeIdTests(unittest.TestCase):
             "    public int getId(java.lang.Object) -> g",
             "",
         ])
+        self.assertEqual(
+            oracle.symbols(None)["SERVER_CLASS"],
+            "net.minecraft.server.MinecraftServer",
+        )
+        self.assertEqual(oracle.symbols(None)["BY_ID"], "byId")
         symbols = oracle.symbols(mapping)
         self.assertEqual(symbols["SERVER_CLASS"], "a.b")
         self.assertEqual(symbols["BIOME_FIELD"], "z")

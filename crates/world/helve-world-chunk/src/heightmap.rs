@@ -34,26 +34,74 @@ pub enum ClientHeightmapKind {
 /// leaves are distinct properties. A target provider must obtain all four facts from independently
 /// admitted state data instead of guessing from the section summary or stored NBT Heightmaps.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub struct HeightmapStateProperties {
-    /// Block state is not air (WORLD_SURFACE predicate).
-    pub non_air: bool,
-    /// Block state blocks motion.
-    pub blocks_motion: bool,
-    /// State has non-empty fluid, independently of the section's counted-fluid bookkeeping.
-    pub fluid_non_empty: bool,
-    /// State is in the leaves category.
-    pub leaves: bool,
-}
+pub struct HeightmapStateProperties(u8);
 
 impl HeightmapStateProperties {
+    const NON_AIR: u8 = 1;
+    const BLOCKS_MOTION: u8 = 2;
+    const FLUID_NON_EMPTY: u8 = 4;
+    const LEAVES: u8 = 8;
+
+    /// Packs the four independent admitted predicates into one byte.
+    #[must_use]
+    #[expect(
+        clippy::fn_params_excessive_bools,
+        reason = "four distinct source-admitted block properties are packed into one byte"
+    )]
+    pub const fn new(
+        non_air: bool,
+        blocks_motion: bool,
+        fluid_non_empty: bool,
+        leaves: bool,
+    ) -> Self {
+        let mut flags = 0;
+        if non_air {
+            flags |= Self::NON_AIR;
+        }
+        if blocks_motion {
+            flags |= Self::BLOCKS_MOTION;
+        }
+        if fluid_non_empty {
+            flags |= Self::FLUID_NON_EMPTY;
+        }
+        if leaves {
+            flags |= Self::LEAVES;
+        }
+        Self(flags)
+    }
+
+    /// Whether the block is not air (the `WORLD_SURFACE` predicate).
+    #[must_use]
+    pub const fn non_air(self) -> bool {
+        self.0 & Self::NON_AIR != 0
+    }
+
+    /// Whether the state blocks motion.
+    #[must_use]
+    pub const fn blocks_motion(self) -> bool {
+        self.0 & Self::BLOCKS_MOTION != 0
+    }
+
+    /// Whether the state contains a non-empty fluid.
+    #[must_use]
+    pub const fn fluid_non_empty(self) -> bool {
+        self.0 & Self::FLUID_NON_EMPTY != 0
+    }
+
+    /// Whether the state is leaves.
+    #[must_use]
+    pub const fn leaves(self) -> bool {
+        self.0 & Self::LEAVES != 0
+    }
+
     fn matching_kinds(self) -> u8 {
         let mut matching = 0;
-        if self.non_air {
+        if self.non_air() {
             matching |= WORLD_SURFACE;
         }
-        if self.blocks_motion || self.fluid_non_empty {
+        if self.blocks_motion() || self.fluid_non_empty() {
             matching |= MOTION_BLOCKING;
-            if !self.leaves {
+            if !self.leaves() {
                 matching |= MOTION_BLOCKING_NO_LEAVES;
             }
         }
@@ -91,6 +139,11 @@ impl ClientHeightmaps {
     /// predicates have found their topmost matching state. No world-coordinate multiplication,
     /// world-directory lookup, scratch heap allocation or live-state mutation is required. This
     /// recomputation is a cold/reference operation; do not invoke it on each block mutation.
+    ///
+    /// # Panics
+    ///
+    /// Only if the existing validated chunk section-count or section-local coordinate
+    /// invariants are broken. Both conversion bounds are guaranteed by `LiveChunkCore`.
     #[must_use]
     pub fn derive<S, Section, Facts>(chunk: &LiveChunkCore<S, Section>, facts: &Facts) -> Self
     where
@@ -111,14 +164,13 @@ impl ClientHeightmaps {
                     for y in (0_u8..16).rev() {
                         let pos =
                             SectionBlockPos::new(x, y, z).expect("loop bounds are section-local");
-                        let matched = facts.properties(section.get(pos)).matching_kinds() & remaining;
+                        let matched =
+                            facts.properties(section.get(pos)).matching_kinds() & remaining;
                         if matched == 0 {
                             continue;
                         }
-                        let relative_y = u16::try_from(
-                            section_index * AXIS + usize::from(y) + 1,
-                        )
-                        .expect("chunk mask admits at most 64 sections");
+                        let relative_y = u16::try_from(section_index * AXIS + usize::from(y) + 1)
+                            .expect("chunk mask admits at most 64 sections");
                         if matched & WORLD_SURFACE != 0 {
                             world_surface[column] = relative_y;
                         }
@@ -154,10 +206,7 @@ impl ClientHeightmaps {
 
     /// Returns all 256 first-available Y offsets in x + 16*z order, without allocation.
     #[must_use]
-    pub const fn relative_heights(
-        &self,
-        kind: ClientHeightmapKind,
-    ) -> &[u16; HEIGHTMAP_COLUMNS] {
+    pub const fn relative_heights(&self, kind: ClientHeightmapKind) -> &[u16; HEIGHTMAP_COLUMNS] {
         match kind {
             ClientHeightmapKind::WorldSurface => &self.world_surface,
             ClientHeightmapKind::MotionBlocking => &self.motion_blocking,
@@ -179,9 +228,7 @@ impl ClientHeightmaps {
 #[cfg(test)]
 mod tests {
     use helve_types::{BlockPos, ChunkGeneration, ChunkPos};
-    use helve_world_contract::{
-        BlockStateFacts, SectionBlockPos, SectionStateFacts,
-    };
+    use helve_world_contract::{BlockStateFacts, SectionStateFacts};
     use helve_world_reference::DirectBlockSection;
 
     use super::{
@@ -203,23 +250,18 @@ mod tests {
 
     impl BlockStateFacts<Block> for Facts {
         fn facts(&self, state: Block) -> SectionStateFacts {
-            SectionStateFacts::new(
-                state != Block::Air,
-                state == Block::Water,
-                false,
-                false,
-            )
+            SectionStateFacts::new(state != Block::Air, state == Block::Water, false, false)
         }
     }
 
     impl HeightmapStateFacts<Block> for Facts {
         fn properties(&self, state: Block) -> HeightmapStateProperties {
-            HeightmapStateProperties {
-                non_air: state != Block::Air,
-                blocks_motion: matches!(state, Block::Stone | Block::Leaves),
-                fluid_non_empty: state == Block::Water,
-                leaves: state == Block::Leaves,
-            }
+            HeightmapStateProperties::new(
+                state != Block::Air,
+                matches!(state, Block::Stone | Block::Leaves),
+                state == Block::Water,
+                state == Block::Leaves,
+            )
         }
     }
 
@@ -296,7 +338,10 @@ mod tests {
             Kind::MotionBlocking,
             Kind::MotionBlockingNoLeaves,
         ] {
-            assert_eq!(restored.relative_heights(kind), heights.relative_heights(kind));
+            assert_eq!(
+                restored.relative_heights(kind),
+                heights.relative_heights(kind)
+            );
         }
         assert_ne!(restored.stamp(), heights.stamp());
         let same_stamp = core.stamp();
@@ -307,7 +352,10 @@ mod tests {
     #[test]
     fn height_derivation_does_not_materialize_world_coordinates_at_chunk_extremes() {
         let extreme = LiveChunkCore::new(
-            ChunkPos { x: i32::MAX, z: i32::MIN },
+            ChunkPos {
+                x: i32::MAX,
+                z: i32::MIN,
+            },
             ChunkGeneration(1),
             i32::MIN / 16,
             vec![DirectBlockSection::filled(Block::Air, &Facts)],
@@ -356,17 +404,20 @@ mod tests {
                 ] {
                     let mut expected = -16;
                     for y in (-16..16).rev() {
-                        let block = core.get_block(BlockPos {
-                            x: -32 + i32::from(x),
-                            y,
-                            z: 48 + i32::from(z),
-                        }).expect("valid cell");
+                        let block = core
+                            .get_block(BlockPos {
+                                x: -32 + i32::from(x),
+                                y,
+                                z: 48 + i32::from(z),
+                            })
+                            .expect("valid cell");
                         let props = Facts.properties(block);
                         let matches_kind = match kind {
-                            Kind::WorldSurface => props.non_air,
-                            Kind::MotionBlocking => props.blocks_motion || props.fluid_non_empty,
-                            Kind::MotionBlockingNoLeaves =>
-                                (props.blocks_motion || props.fluid_non_empty) && !props.leaves,
+                            Kind::WorldSurface => props.non_air(),
+                            Kind::MotionBlocking => props.blocks_motion() || props.fluid_non_empty(),
+                            Kind::MotionBlockingNoLeaves => {
+                                (props.blocks_motion() || props.fluid_non_empty()) && !props.leaves()
+                            }
                         };
                         if matches_kind {
                             expected = y + 1;

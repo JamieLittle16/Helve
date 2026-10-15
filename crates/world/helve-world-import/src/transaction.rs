@@ -505,7 +505,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn light_aware_region_transaction_decodes_blocks_and_exact_initial_light_once() {
         let position = ChunkPos { x: 0, z: 0 };
@@ -524,8 +523,8 @@ mod tests {
         nbt.push(TagType::End as u8);
 
         let region_bytes = region_bytes(3, &nbt, 71);
-        let region = RegionView::new(&region_bytes, 0, 0, REGION_LIMITS)
-            .expect("valid one-chunk region");
+        let region =
+            RegionView::new(&region_bytes, 0, 0, REGION_LIMITS).expect("valid one-chunk region");
         let resolver = Resolver;
         let mut builder = VecBuilder;
         let mut scratch = BlockSectionDecodeScratch::new();
@@ -544,13 +543,24 @@ mod tests {
 
         assert_eq!(world_state.stored.blocks.header.position, position);
         assert_eq!(world_state.stored.blocks.sections.len(), 1);
-        assert!(world_state.stored.blocks.sections[0].section.iter().all(|&s| s == 1));
+        assert!(
+            world_state.stored.blocks.sections[0]
+                .section
+                .iter()
+                .all(|&s| s == 1)
+        );
         assert_eq!(world_state.stored.source.region_timestamp, 71);
         assert!(world_state.light.persisted_light_correct);
         assert_eq!(world_state.light.sections.len(), 1);
         assert_eq!(world_state.light.sections[0].section_y, 0);
-        assert_eq!(world_state.light.sections[0].block.as_ref().unwrap().len(), 2048);
-        assert_eq!(world_state.light.sections[0].block.as_ref().unwrap()[0], 0xa5);
+        assert_eq!(
+            world_state.light.sections[0].block.as_ref().unwrap().len(),
+            2048
+        );
+        assert_eq!(
+            world_state.light.sections[0].block.as_ref().unwrap()[0],
+            0xa5
+        );
         assert!(world_state.light.sections[0].sky.is_none());
     }
 

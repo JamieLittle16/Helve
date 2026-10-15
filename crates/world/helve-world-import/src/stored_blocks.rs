@@ -518,7 +518,12 @@ where
                 set_section_once(&mut section_y, section_index, "Y", reader.read_i8()?)?;
             }
             "BlockLight" if INCLUDE_LIGHT => {
-                require_section_type(section_index, "BlockLight", field.tag_type, TagType::ByteArray)?;
+                require_section_type(
+                    section_index,
+                    "BlockLight",
+                    field.tag_type,
+                    TagType::ByteArray,
+                )?;
                 let bytes = reader.read_byte_array()?;
                 if bytes.len() != SOURCE_LIGHT_LAYER_BYTES {
                     return Err(BlockSectionImportError::LightByteCount {
@@ -528,10 +533,20 @@ where
                         expected: SOURCE_LIGHT_LAYER_BYTES,
                     });
                 }
-                set_section_once(&mut block_light, section_index, "BlockLight", bytes.to_vec())?;
+                set_section_once(
+                    &mut block_light,
+                    section_index,
+                    "BlockLight",
+                    bytes.to_vec(),
+                )?;
             }
             "SkyLight" if INCLUDE_LIGHT => {
-                require_section_type(section_index, "SkyLight", field.tag_type, TagType::ByteArray)?;
+                require_section_type(
+                    section_index,
+                    "SkyLight",
+                    field.tag_type,
+                    TagType::ByteArray,
+                )?;
                 let bytes = reader.read_byte_array()?;
                 if bytes.len() != SOURCE_LIGHT_LAYER_BYTES {
                     return Err(BlockSectionImportError::LightByteCount {
@@ -1395,14 +1410,10 @@ mod tests {
         );
     }
 
-
     fn light_section(y: i8, block: Option<usize>, sky: Option<usize>) -> Vec<u8> {
         let mut bytes = Vec::new();
         byte_field(&mut bytes, "Y", y);
-        for (name, length, fill) in [
-            ("BlockLight", block, 0xa3_u8),
-            ("SkyLight", sky, 0x5c_u8),
-        ] {
+        for (name, length, fill) in [("BlockLight", block, 0xa3_u8), ("SkyLight", sky, 0x5c_u8)] {
             if let Some(length) = length {
                 named_header(&mut bytes, TagType::ByteArray, name);
                 bytes.extend_from_slice(
@@ -1441,10 +1452,13 @@ mod tests {
         let position = ChunkPos { x: -1, z: 2 };
         let sections = [
             light_section(-5, Some(2048), None),
-            section_payload(-4, Some(block_states_payload(
-                &[palette_entry("minecraft:stone", &[], false)],
-                None,
-            ))),
+            section_payload(
+                -4,
+                Some(block_states_payload(
+                    &[palette_entry("minecraft:stone", &[], false)],
+                    None,
+                )),
+            ),
             light_section(20, None, Some(2048)),
         ];
         let bytes = with_light_flag(chunk_nbt(position, &sections), 1);
@@ -1480,8 +1494,8 @@ mod tests {
         let missing = decode_with_light(&bytes, position).expect("missing flag");
         assert!(!missing.light.persisted_light_correct);
         assert_eq!(missing.light.sections.len(), 1);
-        let false_value = decode_with_light(&with_light_flag(bytes, 0), position)
-            .expect("explicit false flag");
+        let false_value =
+            decode_with_light(&with_light_flag(bytes, 0), position).expect("explicit false flag");
         assert!(!false_value.light.persisted_light_correct);
     }
 

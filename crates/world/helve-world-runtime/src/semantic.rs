@@ -278,7 +278,7 @@ mod tests {
 
     fn chunk(
         pos: ChunkPos,
-        gen: ChunkGeneration,
+        generation: ChunkGeneration,
         lattice_min: i32,
         include_light: bool,
     ) -> Semantic {
@@ -286,10 +286,10 @@ mod tests {
             .map(|_| DirectBlockSection::filled(0_u8, &Facts))
             .collect();
         let blocks =
-            LiveChunkCore::new(pos, gen, lattice_min, sections).expect("valid core");
+            LiveChunkCore::new(pos, generation, lattice_min, sections).expect("valid core");
         let biomes = ChunkBiomeColumn::new(
             pos,
-            gen,
+            generation,
             lattice_min,
             (0..2).map(|_| DirectBiomeSection::filled(7_u16)).collect(),
         )
@@ -299,7 +299,7 @@ mod tests {
         if include_light {
             let light = InitialChunkLight::from_imported(
                 pos,
-                gen,
+                generation,
                 VerticalSectionLattice::new(lattice_min, 2).expect("lattice"),
                 true,
                 true,
@@ -321,7 +321,7 @@ mod tests {
         let mut dim = Dimension::new(DimensionId(9), profile());
         let pos = ChunkPos { x: -2, z: 8 };
         let handle = dim
-            .admit_chunk(pos, |gen, _| Ok::<_, Infallible>(chunk(pos, gen, -1, true)))
+            .admit_chunk(pos, |generation, _| Ok::<_, Infallible>(chunk(pos, generation, -1, true)))
             .expect("atomic semantic admission");
         assert_eq!(dim.discover_chunk(pos), Some(handle));
         assert_eq!(dim.resident_chunk_count(), 1);
@@ -369,26 +369,26 @@ mod tests {
             Err(SemanticResidentLoadError::Build("invalid source"))
         ));
         assert!(matches!(
-            dim.admit_chunk(pos, |gen, _| {
-                Ok::<_, Infallible>(chunk(ChunkPos { x: 8, z: 3 }, gen, -1, false))
+            dim.admit_chunk(pos, |generation, _| {
+                Ok::<_, Infallible>(chunk(ChunkPos { x: 8, z: 3 }, generation, -1, false))
             }),
             Err(SemanticResidentLoadError::PositionMismatch { .. })
         ));
         assert!(matches!(
-            dim.admit_chunk(pos, |gen, _| {
-                Ok::<_, Infallible>(chunk(pos, ChunkGeneration(gen.0 + 1), -1, false))
+            dim.admit_chunk(pos, |generation, _| {
+                Ok::<_, Infallible>(chunk(pos, ChunkGeneration(generation.0 + 1), -1, false))
             }),
             Err(SemanticResidentLoadError::GenerationMismatch { .. })
         ));
         assert!(matches!(
-            dim.admit_chunk(pos, |gen, _| {
-                Ok::<_, Infallible>(chunk(pos, gen, 0, false))
+            dim.admit_chunk(pos, |generation, _| {
+                Ok::<_, Infallible>(chunk(pos, generation, 0, false))
             }),
             Err(SemanticResidentLoadError::LatticeMismatch { .. })
         ));
         assert!(matches!(
-            dim.admit_chunk(pos, |gen, _| {
-                let mut state = chunk(pos, gen, -1, false);
+            dim.admit_chunk(pos, |generation, _| {
+                let mut state = chunk(pos, generation, -1, false);
                 state
                     .replace_block(BlockPos { x: 32, y: -16, z: 48 }, 1, &Facts)
                     .expect("change");
@@ -398,13 +398,13 @@ mod tests {
         ));
         assert_eq!(dim.resident_chunk_count(), 0);
         let first = dim
-            .admit_chunk(pos, |gen, _| Ok::<_, Infallible>(chunk(pos, gen, -1, true)))
+            .admit_chunk(pos, |generation, _| Ok::<_, Infallible>(chunk(pos, generation, -1, true)))
             .expect("first accepted generation");
         assert_eq!(first.generation, ChunkGeneration(1));
         let mut builder_called = false;
-        let rejection = dim.admit_chunk(pos, |gen, _| {
+        let rejection = dim.admit_chunk(pos, |generation, _| {
             builder_called = true;
-            Ok::<_, Infallible>(chunk(pos, gen, -1, false))
+            Ok::<_, Infallible>(chunk(pos, generation, -1, false))
         });
         assert!(matches!(
             rejection,
@@ -420,7 +420,7 @@ mod tests {
         let second = Dimension::new(DimensionId(5), profile());
         let pos = ChunkPos { x: 0, z: 0 };
         let handle = first
-            .admit_chunk(pos, |gen, _| Ok::<_, Infallible>(chunk(pos, gen, -1, false)))
+            .admit_chunk(pos, |generation, _| Ok::<_, Infallible>(chunk(pos, generation, -1, false)))
             .expect("first");
         assert!(matches!(
             second.resolve_chunk(handle),
@@ -432,7 +432,7 @@ mod tests {
             Err(ResidentChunkAccessError::NotResident { .. })
         ));
         let newer = first
-            .admit_chunk(pos, |gen, _| Ok::<_, Infallible>(chunk(pos, gen, -1, false)))
+            .admit_chunk(pos, |generation, _| Ok::<_, Infallible>(chunk(pos, generation, -1, false)))
             .expect("new incarnation");
         assert_eq!(newer.generation, ChunkGeneration(handle.generation.0 + 1));
         assert!(matches!(

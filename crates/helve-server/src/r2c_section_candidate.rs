@@ -602,6 +602,10 @@ mod tests {
     use helve_target_26_2::r2c_chunk_body::{
         append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
     };
+    use helve_target_26_2::r2c_play_wire::{
+        CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
+        CLIENTBOUND_CHUNK_WITH_LIGHT, append_chunk_with_light_packet_id,
+    };
     use helve_types::{BlockPos, ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
     use helve_world_chunk::{
         ChunkBiomeColumn, HeightmapStateFacts, HeightmapStateProperties, ImportedLightSection,
@@ -631,6 +635,7 @@ mod tests {
     };
 
     use crate::r2b_server::R2bPlaySession;
+    use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState};
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
@@ -947,6 +952,107 @@ mod tests {
         assert_eq!(scratch, [0xEE]);
         assert_eq!(scratch.as_ptr(), scratch_allocation);
         assert_eq!(session.read_scratch.as_ptr(), retained_read_scratch);
+    }
+
+    #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one complete receipt-bound batch must test import, shared-driver output and ack lifecycle together"
+    )]
+    fn two_real_source_receipts_emit_exact_chunk_batch_envelope_on_retained_play_driver() {
+        let (mut dim, first) = imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let second = install_source_receipt_in_dimension(
+            &mut dim,
+            ChunkPos { x: -7, z: 11 },
+            StoredBlockEntityEvidence::ExplicitlyEmpty,
+        );
+        let receipts = [first, second];
+        let limits = ConnectionLimits::new(16_384, 32_768, 65_536).unwrap();
+        let mut session = R2bPlaySession {
+            driver: ConnectionDriver::new(limits),
+            read_scratch: vec![0; 32].into_boxed_slice(),
+            teleport: TeleportTransaction::new(),
+            liveness: LivenessState::new(0, 0).unwrap(),
+        };
+        let read_ptr = session.read_scratch.as_ptr();
+        let mut state = R2cChunkBatchState::new(receipts.len());
+        let mut scratch = Vec::with_capacity(16_384);
+        scratch.push(0xe7);
+        let projection_ptr = scratch.as_ptr();
+        state.on_tick();
+
+        let project_receipt = |index: usize, output: &mut Vec<u8>| {
+            append_chunk_with_light_packet_id(output);
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim,
+                &receipts[index],
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                output,
+            )
+            .map(|_| ())
+        };
+
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
+            Ok(ChunkBatchStep::Started { count: 2 })
+        ));
+        for expected in 0..receipts.len() {
+            assert!(matches!(
+                session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
+                Ok(ChunkBatchStep::ChunkQueued { index, body_bytes })
+                    if index == expected && body_bytes > 8
+            ));
+            assert_eq!(scratch, [0xe7]);
+            assert_eq!(scratch.as_ptr(), projection_ptr);
+        }
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
+            Ok(ChunkBatchStep::Finished { count: 2 })
+        ));
+        assert_eq!(session.read_scratch.as_ptr(), read_ptr);
+        assert_eq!(state.next_chunk_index(), 2);
+        assert_eq!(state.unacknowledged_batches(), 1);
+
+        let mut reader = IngressBuffer::new(limits);
+        reader.push(session.pending_play_egress()).unwrap();
+        let start = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(start.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_START));
+        assert!(start.payload().is_empty());
+        let consumed = start.stream_bytes();
+        reader.consume(consumed).unwrap();
+
+        for receipt in &receipts {
+            let expected = receipt.installed().handle.position;
+            let frame = reader.peek_frame().unwrap().unwrap();
+            assert_eq!(frame.packet_id(), i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
+            assert_eq!(&frame.payload()[..4], &expected.x.to_be_bytes());
+            assert_eq!(&frame.payload()[4..8], &expected.z.to_be_bytes());
+            let consumed = frame.stream_bytes();
+            reader.consume(consumed).unwrap();
+        }
+        let finish = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(
+            finish.packet_id(),
+            i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+        );
+        assert_eq!(finish.payload(), [2]);
+        let consumed = finish.stream_bytes();
+        reader.consume(consumed).unwrap();
+        assert_eq!(reader.buffered_len(), 0);
+
+        // A genuine inbound acknowledgement uses the same retained ingress.
+        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        assert_eq!(
+            session.process_one_r2c_chunk_batch_ack(&mut state),
+            Ok(ChunkBatchInboundStep::Received {
+                desired_per_tick: 9.0
+            })
+        );
+        assert_eq!(state.unacknowledged_batches(), 0);
+        assert_eq!(session.read_scratch.as_ptr(), read_ptr);
+        assert_eq!(scratch.as_ptr(), projection_ptr);
     }
 
     #[test]

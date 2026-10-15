@@ -177,38 +177,82 @@ impl PackedBiomeSectionReference {
         &self.words
     }
 
-    /// Source-law container-only representation: width byte, palette, then VarInt-counted
-    /// fixed long-array words in network big-endian order. No enclosing section headers.
+    /// Number of bytes emitted by the exact container-only representation.
     ///
-    /// This reference can be compared against vanilla's selected biome-container write
-    /// behavior before an optimized packet projection replaces it.
+    /// This permits a chunk projector to reserve once for multiple section
+    /// containers rather than allocating a temporary byte buffer per section.
+    #[must_use]
+    pub fn encoded_len(&self) -> usize {
+        let palette_bytes = match self.mode {
+            BiomePaletteMode::SingleValue => varint_len(u32::from(self.palette[0])),
+            BiomePaletteMode::LinearLocal => {
+                varint_len(u32::try_from(self.palette.len()).expect("<=8"))
+                    + self
+                        .palette
+                        .iter()
+                        .map(|&id| varint_len(u32::from(id)))
+                        .sum::<usize>()
+            }
+            BiomePaletteMode::RegistryGlobal => 0,
+        };
+        1 + palette_bytes
+            + varint_len(u32::try_from(self.words.len()).expect("<=64"))
+            + self.words.len() * 8
+    }
+
+    /// Appends the exact source-law container bytes into a caller-owned buffer.
+    ///
+    /// No temporary encoded-container allocation is performed: a caller with
+    /// pre-reserved capacity can append all chunk sections into one destination.
+    /// The existing reference encoding delegates here, so both paths remain
+    /// byte-identical. This is a container only, never an entire Play packet.
     ///
     /// # Panics
     ///
-    /// Only if the already-validated reference unexpectedly contains more than eight
-    /// linear-palette entries or more than 64 packed words, which its constructor forbids.
-    #[must_use]
-    pub fn encode_container(&self) -> Vec<u8> {
-        let mut bytes = Vec::with_capacity(1 + (self.palette.len() + 2) * 3 + self.words.len() * 8);
+    /// Only if an internally validated palette/word count invariant fails.
+    pub fn append_container(&self, bytes: &mut Vec<u8>) {
+        bytes.reserve(self.encoded_len());
         bytes.push(self.storage_bits);
         match self.mode {
             BiomePaletteMode::SingleValue => {
-                push_varint(&mut bytes, u32::from(self.palette[0]));
+                push_varint(bytes, u32::from(self.palette[0]));
             }
             BiomePaletteMode::LinearLocal => {
-                push_varint(&mut bytes, u32::try_from(self.palette.len()).expect("<=8"));
+                push_varint(bytes, u32::try_from(self.palette.len()).expect("<=8"));
                 for &id in &self.palette {
-                    push_varint(&mut bytes, u32::from(id));
+                    push_varint(bytes, u32::from(id));
                 }
             }
             BiomePaletteMode::RegistryGlobal => {}
         }
-        push_varint(&mut bytes, u32::try_from(self.words.len()).expect("<=64"));
+        push_varint(bytes, u32::try_from(self.words.len()).expect("<=64"));
         for &word in &self.words {
             bytes.extend_from_slice(&word.to_be_bytes());
         }
+    }
+
+    /// Source-law container-only representation: width byte, palette, then VarInt-counted
+    /// fixed long-array words in network big-endian order. No enclosing section headers.
+    ///
+    /// # Panics
+    ///
+    /// Only if the already-validated reference violates its palette/word bounds.
+    #[must_use]
+    pub fn encode_container(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(self.encoded_len());
+        self.append_container(&mut bytes);
         bytes
     }
+
+}
+
+fn varint_len(mut value: u32) -> usize {
+    let mut size = 1;
+    while value >= 0x80 {
+        value >>= 7;
+        size += 1;
+    }
+    size
 }
 
 fn ceil_log2(count: usize) -> usize {
@@ -363,6 +407,33 @@ mod tests {
         assert_eq!(wire[0], 7);
         assert_eq!(usize::from(wire[1]), projected.packed_words().len());
         assert_eq!(wire.len(), 2 + projected.packed_words().len() * 8);
+    }
+
+    #[test]
+    fn encoded_length_and_reused_destination_match_all_palette_modes() {
+        let mut destination = Vec::with_capacity(4096);
+        destination.extend_from_slice(&[0xee, 0x0f]);
+        let allocation = destination.as_ptr();
+        for unique in [1_usize, 3, 9] {
+            let mut state = owner();
+            for index in 0..64 {
+                let id = 130 + u16::try_from(index % unique).expect("bounded ID");
+                state
+                    .replace_biome(-1, quart_index(index), id)
+                    .expect("valid source biome");
+            }
+            let projected = PackedBiomeSectionReference::derive(&state, -1, 256).unwrap();
+            let stand_alone = projected.encode_container();
+            assert_eq!(projected.encoded_len(), stand_alone.len());
+            if unique == 1 {
+                assert_eq!(stand_alone, [0, 0x82, 0x01, 0]);
+            }
+            let before = destination.len();
+            projected.append_container(&mut destination);
+            assert_eq!(&destination[before..], stand_alone.as_slice());
+            assert_eq!(&destination[..2], &[0xee, 0x0f]);
+            assert_eq!(destination.as_ptr(), allocation, "no reallocation with capacity");
+        }
     }
 
     #[test]

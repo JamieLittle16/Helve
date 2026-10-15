@@ -168,6 +168,7 @@ mod tests {
                     sky: Some(vec![0x77; 2048]),
                 }],
             },
+            block_entities: helve_world_import::StoredBlockEntityEvidence::Absent,
             biomes: ImportedStoredBiomes {
                 // Deliberately reverse saved order; no resident slot can depend on NBT ordering.
                 sections: vec![

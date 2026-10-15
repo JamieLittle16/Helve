@@ -156,8 +156,16 @@ impl ConnectionLimits {
     /// Rejects any shrink before callers mutate buffer state.
     pub fn ensure_covers(self, original: Self) -> Result<(), ConnectionBufferError> {
         for (limit, current, proposed) in [
-            ("frame_body_len", original.frame_body_len, self.frame_body_len),
-            ("ingress_buffered", original.ingress_buffered, self.ingress_buffered),
+            (
+                "frame_body_len",
+                original.frame_body_len,
+                self.frame_body_len,
+            ),
+            (
+                "ingress_buffered",
+                original.ingress_buffered,
+                self.ingress_buffered,
+            ),
             ("egress_queued", original.egress_queued, self.egress_queued),
         ] {
             if proposed < current {
@@ -630,8 +638,7 @@ mod tests {
     #[test]
     fn widening_limits_keeps_active_ingress_and_egress_allocation_unchanged() {
         let old = ConnectionLimits::new(8, 32, 32).unwrap();
-        let wider = ConnectionLimits::new(2_097_151, 3 * 1_024 * 1_024, 4 * 1_024 * 1_024)
-            .unwrap();
+        let wider = ConnectionLimits::new(2_097_151, 3 * 1_024 * 1_024, 4 * 1_024 * 1_024).unwrap();
 
         let mut ingress = IngressBuffer::new(old);
         ingress.push(&[2, 0x44]).unwrap();

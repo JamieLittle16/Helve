@@ -70,6 +70,29 @@ class DirectLoadedBiomeIdTests(unittest.TestCase):
                 self.inventory, self.inventory, self.inventory, "a"*64, self.lock
             )
 
+    def test_frozen_runtime_crosscheck_remains_unadmitted(self) -> None:
+        import json
+
+        fixture = json.loads(
+            (TOOLS.parent /
+             "vanilla/fixtures/world/26.2-runtime-crosschecked-biome-ordinal-candidate.json")
+            .read_text(encoding="utf-8")
+        )
+        server_sha = self.lock["runtime"]["server_sha256"]
+        expected = oracle.compare_authorities(
+            self.inventory, self.inventory, self.inventory, server_sha, self.lock
+        )
+        self.assertEqual(fixture, expected)
+        self.assertEqual(
+            fixture["numeric_id_authority"],
+            "RUNTIME_CROSSCHECK_PASSED_SOURCE_SEM_ADMISSION_PENDING",
+        )
+        self.assertEqual(
+            fixture["required_source_gate"],
+            "R2C-BIOMES and client registry ID-assignment VAR/SEM",
+        )
+        self.assertEqual(fixture["names_by_verified_runtime_id_candidate"][40], "minecraft:plains")
+
     def test_official_symbol_resolution_requires_explicit_unique_mappings(self) -> None:
         mapping = "\n".join([
             "net.minecraft.server.MinecraftServer -> a.b:",

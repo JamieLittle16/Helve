@@ -18,7 +18,7 @@ use helve_world_import::{
     BiomeDecodeScratch, BlockSectionDecodeScratch, ChunkPayloadLimits, DeflateChunkPayloadDecoder,
     ExactBiomeDecoder, ExternalChunkPayload, ImportedBiomeSection, ImportedBiomeSectionBuilder,
     ImportedBlockSectionBuilder, NbtLimits, OrderedBiomeRegistry, RegionLimits, RegionView,
-    StoredBlockImporter, Target262BlockStateResolver, TARGET_DATA_VERSION_26_2,
+    StoredBlockImporter, TARGET_DATA_VERSION_26_2, Target262BlockStateResolver,
 };
 
 const MAX_REGION_BYTES: usize = 256 * 1024 * 1024;
@@ -155,7 +155,11 @@ fn run() -> Result<(), String> {
                 ExactBiomeDecoder::new(&registry, &mut biome_builder, &mut biome_scratch);
             let mut stored_chunk = importer
                 .import_region_chunk_with_biomes(
-                    &region, local_x, local_z, external, &mut biome_decoder,
+                    &region,
+                    local_x,
+                    local_z,
+                    external,
+                    &mut biome_decoder,
                 )
                 .map_err(|error| {
                     format!(
@@ -169,8 +173,11 @@ fn run() -> Result<(), String> {
                 .sort_unstable_by_key(|section| section.section_y);
 
             write_chunk_biomes(
-                &mut output, &dimension, chunk.position,
-                stored_chunk.biomes.sections, &registry,
+                &mut output,
+                &dimension,
+                chunk.position,
+                stored_chunk.biomes.sections,
+                &registry,
             )?;
         }
     }
@@ -196,10 +203,12 @@ fn write_chunk_biomes(
             if index != 0 {
                 output.write_all(b",").map_err(|error| io_error(&error))?;
             }
-            let name = registry.key(id).ok_or_else(|| {
-                format!("imported biome ID {id} not present in bound registry")
-            })?;
-            output.write_all(name.as_bytes()).map_err(|error| io_error(&error))?;
+            let name = registry
+                .key(id)
+                .ok_or_else(|| format!("imported biome ID {id} not present in bound registry"))?;
+            output
+                .write_all(name.as_bytes())
+                .map_err(|error| io_error(&error))?;
         }
         output.write_all(b"\n").map_err(|error| io_error(&error))?;
     }
@@ -207,7 +216,9 @@ fn write_chunk_biomes(
 }
 
 fn usage(message: &str) -> String {
-    format!("{message}; usage: r2c_import_biome_facts <dimension> <r.x.z.mca> <registry-keys.txt> <output>")
+    format!(
+        "{message}; usage: r2c_import_biome_facts <dimension> <r.x.z.mca> <registry-keys.txt> <output>"
+    )
 }
 
 fn validate_dimension(dimension: &str) -> Result<(), String> {

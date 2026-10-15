@@ -1,0 +1,51 @@
+name: R2C Biome ID Source Frontier Contract
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_biome_id_source_frontier.py
+      - tools/tests/test_r2c_biome_id_source_frontier.py
+      - vanilla/reviews/network/r2c-biome-id-source-frontier.json
+      - docs/qualification/R2C_BIOME_ID_SOURCE_FRONTIER.md
+      - .github/workflows/r2c-biome-id-source-frontier.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source_frontier:
+    name: Biome ID source discovery stays unadmitted
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Run finite Atlas source-discovery regressions
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_biome_id_source_frontier.py' -v
+
+      - name: Verify source-discovery tooling parses without official source
+        run: |
+          python3 -m py_compile \
+            tools/r2c_biome_id_source_frontier.py \
+            tools/tests/test_r2c_biome_id_source_frontier.py
+
+      - name: Reject client ID authority in the discovery plan
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = json.loads(Path('vanilla/reviews/network/r2c-biome-id-source-frontier.json').read_text())
+          assert p['status'] == 'DISCOVERY_NOT_ADMISSION'
+          assert p['id'] == 'REVIEW-NET-R2C-BIOME-IDS-26_2-001'
+          assert [group['id'] for group in p['groups']] == [
+              'LOADED-REGISTRY-ID-ALLOCATION',
+              'CONFIGURATION-BIOME-ENTRY-PUBLICATION',
+              'BIOME-CONTAINER-ID-BINDING',
+          ]
+          print('R2C biome ID source gap remains explicitly UNADMITTED')
+          PY

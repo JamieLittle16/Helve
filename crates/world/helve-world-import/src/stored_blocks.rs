@@ -146,9 +146,9 @@ pub struct ImportedChunkBlocks<Section> {
 pub struct ImportedStoredLightSection {
     /// Signed source section coordinate (also valid for border light sections).
     pub section_y: i8,
-    /// Exact owned 2048-byte BlockLight array; None means the tag was absent.
+    /// Exact owned 2048-byte `BlockLight` array; None means the tag was absent.
     pub block: Option<Vec<u8>>,
-    /// Exact owned 2048-byte SkyLight array; None means the tag was absent.
+    /// Exact owned 2048-byte `SkyLight` array; None means the tag was absent.
     pub sky: Option<Vec<u8>>,
 }
 
@@ -166,6 +166,11 @@ pub struct ImportedStoredLight {
 pub struct ImportedChunkWithLight<Section> {
     pub blocks: ImportedChunkBlocks<Section>,
     pub light: ImportedStoredLight,
+}
+
+struct DecodedSection<Section> {
+    blocks: Option<ImportedBlockSection<Section>>,
+    light: Option<ImportedStoredLightSection>,
 }
 
 /// Fail-closed semantic block-section decode errors.
@@ -430,7 +435,7 @@ where
                 }
                 decoded_sections.reserve(list.len);
                 for section_index in 0..list.len {
-                    let (block, light) = decode_section::<R, B, INCLUDE_LIGHT>(
+                    let section = decode_section::<R, B, INCLUDE_LIGHT>(
                         &mut reader,
                         section_index,
                         resolver,
@@ -438,10 +443,10 @@ where
                         scratch,
                         &mut seen_section_y,
                     )?;
-                    if let Some(block) = block {
+                    if let Some(block) = section.blocks {
                         decoded_sections.push(block);
                     }
-                    if let Some(light) = light {
+                    if let Some(light) = section.light {
                         light_sections.push(light);
                     }
                 }
@@ -495,10 +500,7 @@ fn decode_section<R, B, const INCLUDE_LIGHT: bool>(
     builder: &mut B,
     scratch: &mut BlockSectionDecodeScratch<R::State>,
     seen_section_y: &mut [bool; 256],
-) -> Result<
-    (Option<ImportedBlockSection<B::Section>>, Option<ImportedStoredLightSection>),
-    BlockSectionImportError,
->
+) -> Result<DecodedSection<B::Section>, BlockSectionImportError>
 where
     R: BlockStateResolver,
     B: ImportedBlockSectionBuilder<R::State>,
@@ -587,7 +589,7 @@ where
     } else {
         None
     };
-    Ok((blocks, light))
+    Ok(DecodedSection { blocks, light })
 }
 
 fn decode_block_states<R, B>(
@@ -1493,12 +1495,12 @@ mod tests {
         let mut duplicate = light_section(0, Some(2048), None);
         duplicate.pop();
         let second = light_section(0, Some(2048), None);
-        // The second section's Y header is valid inside a compound, but repeats Y.
-        duplicate.extend_from_slice(&second);
+        // Two copies of the same singleton light field must fail, even with valid raw data.
+        duplicate.extend_from_slice(&second[4..]);
         assert!(matches!(
             decode_with_light(&chunk_nbt(position, &[duplicate]), position),
             Err(BlockSectionImportError::SectionDuplicateField {
-                field: "Y",
+                field: "BlockLight",
                 section_index: 0,
             })
         ));

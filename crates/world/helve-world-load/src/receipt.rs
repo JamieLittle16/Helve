@@ -40,6 +40,15 @@ pub enum SourceChunkReceiptError {
     BlockEntities(EmptyBlockEntityEvidenceError),
 }
 
+/// Borrow of the verified current resident and its bound original source header.
+///
+/// A type alias keeps the COLD method signature straightforward without
+/// allocating or manufacturing an independent semantic world representation.
+pub type ExplicitlyEmptyImportedSource<'a, S, BlockStorage, B, BiomeStorage> = (
+    &'a LiveChunkSemanticState<S, BlockStorage, B, BiomeStorage>,
+    StoredChunkHeader,
+);
+
 impl SourceChunkPublicationReceipt {
     /// Constructible only by a successful source-biome resident installation.
     pub(crate) const fn from_admission(
@@ -79,10 +88,7 @@ impl SourceChunkPublicationReceipt {
         &self,
         dimension: &'a SemanticDimensionInstance<S, BlockStorage, B, BiomeStorage>,
     ) -> Result<
-        (
-            &'a LiveChunkSemanticState<S, BlockStorage, B, BiomeStorage>,
-            StoredChunkHeader,
-        ),
+        ExplicitlyEmptyImportedSource<'a, S, BlockStorage, B, BiomeStorage>,
         SourceChunkReceiptError,
     >
     where

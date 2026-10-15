@@ -152,7 +152,7 @@ pub fn append_heightmap_map_candidate(
 /// # Panics
 ///
 /// Only if a successful source append violates the caller's Vec capacity
-/// invariants during the final in-place VarInt prefix insertion.
+/// invariants during the final in-place `VarInt` prefix insertion.
 pub fn append_length_prefixed_sections<E>(
     output: &mut Vec<u8>,
     max_bytes: usize,

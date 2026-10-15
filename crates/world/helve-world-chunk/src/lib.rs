@@ -8,6 +8,7 @@
 
 mod biomes;
 mod heightmap;
+mod heightmap_projection;
 mod lattice;
 mod light;
 mod light_projection;
@@ -25,6 +26,9 @@ pub use biomes::{ChunkBiomeColumn, ChunkBiomeColumnError};
 pub use heightmap::{
     ClientHeightmapKind, ClientHeightmaps, HEIGHTMAP_COLUMNS, HeightmapStateFacts,
     HeightmapStateProperties,
+};
+pub use heightmap_projection::{
+    ClientHeightmapWireKind, HeightmapProjectionError, PackedClientHeightmaps, PackedHeightmap,
 };
 pub use lattice::{VerticalSectionLattice, VerticalSectionLatticeError};
 pub use light::{

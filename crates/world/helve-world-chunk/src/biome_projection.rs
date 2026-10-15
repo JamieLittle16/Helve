@@ -181,6 +181,10 @@ impl PackedBiomeSectionReference {
     ///
     /// This permits a chunk projector to reserve once for multiple section
     /// containers rather than allocating a temporary byte buffer per section.
+    ///
+    /// # Panics
+    ///
+    /// Only if an internally validated palette/word count invariant fails.
     #[must_use]
     pub fn encoded_len(&self) -> usize {
         let palette_bytes = match self.mode {
@@ -243,7 +247,6 @@ impl PackedBiomeSectionReference {
         self.append_container(&mut bytes);
         bytes
     }
-
 }
 
 fn varint_len(mut value: u32) -> usize {
@@ -432,7 +435,11 @@ mod tests {
             projected.append_container(&mut destination);
             assert_eq!(&destination[before..], stand_alone.as_slice());
             assert_eq!(&destination[..2], &[0xee, 0x0f]);
-            assert_eq!(destination.as_ptr(), allocation, "no reallocation with capacity");
+            assert_eq!(
+                destination.as_ptr(),
+                allocation,
+                "no reallocation with capacity"
+            );
         }
     }
 

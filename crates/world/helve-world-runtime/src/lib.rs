@@ -8,6 +8,9 @@
 #![forbid(unsafe_code)]
 
 mod resident;
+mod semantic;
+
+pub use semantic::{SemanticDimensionInstance, SemanticResidentLoadError};
 
 use helve_types::{ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
 use helve_world_chunk::{ChunkCoreError, LiveChunkCore};

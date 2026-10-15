@@ -154,7 +154,7 @@ mod tests {
         assert_eq!(output, [94, 0, 255, 255, 255, 255, 15]);
         output.clear();
         append_set_chunk_cache_center(&mut output, -7, 300);
-        assert_eq!(output, [94, 249, 255, 255, 255, 255, 15, 172, 2]);
+        assert_eq!(output, [94, 249, 255, 255, 255, 15, 172, 2]);
     }
 
     #[test]

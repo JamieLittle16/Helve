@@ -19,6 +19,18 @@ use crate::r2b_server::R2bPlaySession;
 const INITIAL_RATE: f32 = 9.0;
 const MAX_OUTSTANDING_AFTER_ACK: u8 = 10;
 
+/// Convert only a verified, source-capped nonnegative quota. Truncation
+/// matches Java's floor for these finite, nonnegative values.
+#[expect(
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    reason = "quota is finite and between 0 and 64 after source-bounded replenishment"
+)]
+fn bounded_floor_quota(quota: f32) -> usize {
+    debug_assert!(quota.is_finite() && (0.0..=64.0).contains(&quota));
+    quota as usize
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum BatchPhase {
     Ready,
@@ -164,7 +176,7 @@ impl R2bPlaySession {
                 if state.unacknowledged >= state.max_unacknowledged {
                     return Ok(ChunkBatchStep::WaitingForAcknowledgement);
                 }
-                let budget = (state.quota.floor() as usize)
+                let budget = bounded_floor_quota(state.quota)
                     .min(MAX_REMOTE_CHUNKS_PER_BATCH)
                     .min(state.selected - state.cursor.next_index());
                 if budget == 0 {
@@ -278,6 +290,10 @@ mod tests {
         }
     }
 
+    #[expect(
+        clippy::unnecessary_wraps,
+        reason = "synthetic projector must share the fallible source-projection interface in retry tests"
+    )]
     fn synthetic_chunk(index: usize, bytes: &mut Vec<u8>) -> Result<(), &'static str> {
         // Only in tests: a real 26.2 *identity* with deliberately non-real
         // body bytes. No source admission or user-facing packet is implied.

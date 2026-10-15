@@ -215,6 +215,8 @@ pub struct ImportedChunkWithBiomeLight<BlockSection, BiomeSection> {
     pub blocks: ImportedChunkBlocks<BlockSection>,
     pub light: ImportedStoredLight,
     pub biomes: ImportedStoredBiomes<BiomeSection>,
+    /// Unadmitted source-list evidence, never an encoded packet representation.
+    pub block_entities: StoredBlockEntityEvidence,
 }
 
 struct DecodedSection<BlockSection, BiomeSection> {
@@ -266,6 +268,8 @@ pub enum BlockSectionImportError {
         actual: usize,
         expected: usize,
     },
+    /// A non-empty block-entity list must have compound element type.
+    BlockEntityListElementType { actual: TagType },
     /// `block_states.palette` must contain compound entries.
     PaletteListElementType {
         /// Zero-based persisted section-list index.
@@ -499,6 +503,7 @@ where
     let mut z_pos = None;
     let mut stored_section_count = None;
     let mut light_correct = None;
+    let mut block_entities = None;
     let mut decoded_sections = Vec::new();
     let mut light_sections = Vec::new();
     let mut biome_sections = Vec::new();
@@ -582,6 +587,7 @@ where
         biomes: ImportedStoredBiomes {
             sections: biome_sections,
         },
+        block_entities: block_entities.unwrap_or(StoredBlockEntityEvidence::Absent),
     })
 }
 

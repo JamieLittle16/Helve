@@ -23,7 +23,7 @@ pub enum LightLayerError {
     InvalidByteCount { actual: usize },
 }
 
-/// Exact semantic form of Minecraft's DataLayer.
+/// Exact semantic form of Minecraft's `DataLayer`.
 ///
 /// A homogeneous layer remains one tagged byte until a consumer explicitly requests materialized
 /// bytes. Packed layers own precisely 2048 bytes. In particular, a packed all-zero layer remains
@@ -67,9 +67,9 @@ impl LightDataLayer {
         Ok(Self::Packed(packed))
     }
 
-    /// Whether vanilla's unmaterialized-zero DataLayer empty test succeeds.
+    /// Whether vanilla's unmaterialized-zero `DataLayer` empty test succeeds.
     ///
-    /// An explicitly packed all-zero array is **not** an empty DataLayer for this predicate.
+    /// An explicitly packed all-zero array is **not** an empty `DataLayer` for this predicate.
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         matches!(self, Self::Homogeneous(0))

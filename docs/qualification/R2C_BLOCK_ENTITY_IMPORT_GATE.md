@@ -26,7 +26,10 @@ packet ordering and missing-field semantics are reviewed.
 
 Any malformed or repeated list, wrong non-empty list element type,
 nested invalid NBT, or NBT resource-limit failure remains an explicit
-import error. The state is carried through the light-enabled
+import error. A non-empty list also fails **before semantic resident
+installation** with an explicit `UnadmittedBlockEntities` error, so
+Helve cannot inadvertently represent such a chunk as if its stored
+block entities had never existed. The state is carried through the light-enabled
 `ImportedChunkWithBiomeLight`, `ImportedChunkWithLight` and
 `ImportedStoredChunkWithBiomeLight` transaction results, so COLD
 callers need not reparse NBT.

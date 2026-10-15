@@ -7,6 +7,9 @@
 
 use helve_generated::{BLOCK_STATE_COUNT, BlockStateId, to_vanilla_state_id};
 use helve_target_26_2::r2c_block_palette::{BlockPaletteError, PackedBlockContainer};
+use helve_target_26_2::r2c_chunk_body::{
+    append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
+};
 use helve_target_26_2::r2c_chunk_data::{
     HeightmapMapError, SectionLengthError, append_heightmap_map_candidate,
     append_length_prefixed_sections,
@@ -15,10 +18,15 @@ use helve_target_26_2::r2c_light::{
     LightWireError, LightWireMasks, append_light_masks_candidate,
     append_light_update_count_candidate, append_light_update_layer_candidate,
 };
+use helve_types::ChunkPos;
 use helve_world_chunk::{
     BiomeProjectionError, InitialChunkReference, LightKind, LightMaskReferenceError,
 };
 use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
+use helve_world_import::{
+    EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
+    TARGET_DATA_VERSION_26_2,
+};
 
 /// A source or section invariant prevents a coherent candidate from being emitted.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -392,9 +400,126 @@ where
     })
 }
 
+/// Separate byte spans of a complete *candidate* body, without packet ID.
+///
+/// Every range addresses the same caller-owned destination. No resident
+/// packet image or second serialized buffer is retained.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct EmptyChunkBodyFieldSpans {
+    /// The two candidate chunk position integers.
+    pub position: std::ops::Range<usize>,
+    /// Heightmap map and length-prefixed section bytes.
+    pub chunk_data: std::ops::Range<usize>,
+    /// Explicitly empty block-entity list candidate.
+    pub block_entities: std::ops::Range<usize>,
+    /// Four light masks and source-ordered sky/block arrays.
+    pub light: std::ops::Range<usize>,
+}
+
+/// Rejections from the selected, saved-explicitly-empty-body profile.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum EmptyChunkBodyCandidateError {
+    /// The saved chunk is not the exact borrowed resident position.
+    PositionMismatch {
+        source: ChunkPos,
+        resident: ChunkPos,
+    },
+    /// A different saved `DataVersion` cannot be interpreted under 26.2 rules.
+    DataVersionMismatch { source: i32 },
+    /// Missing or nonempty saved block entities cannot authorize an empty list.
+    BlockEntities(EmptyBlockEntityEvidenceError),
+    /// Heightmap/section projection was rejected.
+    ChunkData(ChunkDataCandidateError),
+    /// Light projection was rejected.
+    Light(LightPayloadCandidateError),
+}
+
+/// Append a COLD, source-evidence-gated *candidate* 26.2 chunk-with-light body.
+///
+/// The saved source header and block-entity evidence must come from the same
+/// caller-held import transaction. Source positional identity is checked
+/// against this immutable stamped resident borrow *before* any output write.
+/// No inferred empty entity list is ever accepted. Exact packet ID, registry
+/// assignment, publication order and source review of the entire body remain
+/// blocked; **do not send this candidate to a vanilla client**.
+///
+/// Only the existing caller-owned scratch is used, with checked rollback
+/// across *all* fields if later section or light projection fails. This
+/// code adds no HOT path check, resident cache, copy or second clock.
+///
+/// # Errors
+///
+/// Rejects target/version identity, missing/nonempty saved entity evidence,
+/// section/biome encoding or light materialization. All preserve the original
+/// destination prefix.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2C outer packet, biome numeric-ID and publication source admission remain pending"
+    )
+)]
+pub(crate) fn append_explicit_empty_chunk_body_candidate<BlockStorage, BiomeStorage>(
+    image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
+    stored: &StoredChunkHeader,
+    evidence: StoredBlockEntityEvidence,
+    biome_registry_count: usize,
+    max_section_bytes: usize,
+    output: &mut Vec<u8>,
+) -> Result<EmptyChunkBodyFieldSpans, EmptyChunkBodyCandidateError>
+where
+    BlockStorage: BlockSection<BlockStateId>,
+    BiomeStorage: BiomeSection<u16>,
+{
+    let resident = image.position();
+    if stored.position != resident {
+        return Err(EmptyChunkBodyCandidateError::PositionMismatch {
+            source: stored.position,
+            resident,
+        });
+    }
+    if stored.data_version != TARGET_DATA_VERSION_26_2 {
+        return Err(EmptyChunkBodyCandidateError::DataVersionMismatch {
+            source: stored.data_version,
+        });
+    }
+    evidence
+        .require_explicitly_empty()
+        .map_err(EmptyChunkBodyCandidateError::BlockEntities)?;
+
+    let start = output.len();
+    append_chunk_coordinates_candidate(output, resident.x, resident.z);
+    let after_position = output.len();
+    if let Err(error) = append_coherent_chunk_data_fields_candidate(
+        image,
+        biome_registry_count,
+        max_section_bytes,
+        output,
+    ) {
+        output.truncate(start);
+        return Err(EmptyChunkBodyCandidateError::ChunkData(error));
+    }
+    let after_chunk_data = output.len();
+    append_empty_block_entities_candidate(output);
+    let after_entities = output.len();
+    if let Err(error) = append_coherent_light_payload_candidate(image, output) {
+        output.truncate(start);
+        return Err(EmptyChunkBodyCandidateError::Light(error));
+    }
+    Ok(EmptyChunkBodyFieldSpans {
+        position: start..after_position,
+        chunk_data: after_position..after_chunk_data,
+        block_entities: after_chunk_data..after_entities,
+        light: after_entities..output.len(),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
+    use helve_target_26_2::r2c_chunk_body::{
+        append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
+    };
     use helve_types::{ChunkGeneration, ChunkPos};
     use helve_world_chunk::{
         ChunkBiomeColumn, HeightmapStateFacts, HeightmapStateProperties, ImportedLightSection,
@@ -402,6 +527,10 @@ mod tests {
         LiveChunkSemanticState, VerticalSectionLattice,
     };
     use helve_world_contract::{BlockSection, SectionBlockPos};
+    use helve_world_import::{
+        EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
+        TARGET_DATA_VERSION_26_2,
+    };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 
     use helve_target_26_2::r2c_chunk_data::{
@@ -413,10 +542,11 @@ mod tests {
     };
 
     use super::{
-        ChunkAndLightCandidateError, ChunkDataCandidateError, SectionCandidateError,
-        append_coherent_chunk_and_light_fragments, append_coherent_chunk_data_fields_candidate,
-        append_coherent_light_payload_candidate, append_coherent_section_candidate,
-        append_coherent_section_column_candidate,
+        ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
+        SectionCandidateError, append_coherent_chunk_and_light_fragments,
+        append_coherent_chunk_data_fields_candidate, append_coherent_light_payload_candidate,
+        append_coherent_section_candidate, append_coherent_section_column_candidate,
+        append_explicit_empty_chunk_body_candidate,
     };
 
     // Synthetic test-only predicates, deliberately NOT claimed as the 26.2
@@ -683,6 +813,143 @@ mod tests {
             ))
         ));
         assert_eq!(bytes, &[0xAA, 0xBB, 0xCC]);
+    }
+
+    fn source_header(position: ChunkPos) -> StoredChunkHeader {
+        StoredChunkHeader {
+            position,
+            data_version: TARGET_DATA_VERSION_26_2,
+            stored_section_count: 2,
+        }
+    }
+
+    #[test]
+    fn explicitly_empty_body_matches_independently_built_fields() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut expected = vec![0xFA, 0xFB];
+        let position = image.position();
+        append_chunk_coordinates_candidate(&mut expected, position.x, position.z);
+        let a = expected.len();
+        append_coherent_chunk_data_fields_candidate(&image, 66, 16_384, &mut expected).unwrap();
+        let b = expected.len();
+        append_empty_block_entities_candidate(&mut expected);
+        let c = expected.len();
+        append_coherent_light_payload_candidate(&image, &mut expected).unwrap();
+
+        let mut actual = Vec::with_capacity(16_384);
+        actual.extend_from_slice(&[0xFA, 0xFB]);
+        let allocation = actual.as_ptr();
+        let spans = append_explicit_empty_chunk_body_candidate(
+            &image,
+            &source_header(position),
+            StoredBlockEntityEvidence::ExplicitlyEmpty,
+            66,
+            16_384,
+            &mut actual,
+        )
+        .unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(spans.position, 2..a);
+        assert_eq!(spans.chunk_data, a..b);
+        assert_eq!(spans.block_entities, b..c);
+        assert_eq!(spans.light, c..actual.len());
+        assert_eq!(&actual[spans.block_entities], &[0]);
+        assert_eq!(actual.as_ptr(), allocation);
+        assert_eq!(image.stamp(), semantic.stamp());
+    }
+
+    #[test]
+    fn missing_nonempty_mismatched_or_wrong_version_evidence_never_writes() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut bytes = vec![0xCA, 0xFE];
+        let good = source_header(image.position());
+        for (evidence, expected) in [
+            (
+                StoredBlockEntityEvidence::Absent,
+                EmptyBlockEntityEvidenceError::MissingList,
+            ),
+            (
+                StoredBlockEntityEvidence::UnhandledEntries { count: 3 },
+                EmptyBlockEntityEvidenceError::UnhandledEntries { count: 3 },
+            ),
+        ] {
+            assert_eq!(
+                append_explicit_empty_chunk_body_candidate(
+                    &image, &good, evidence, 66, 16_384, &mut bytes,
+                ),
+                Err(EmptyChunkBodyCandidateError::BlockEntities(expected))
+            );
+        }
+        let wrong_pos = source_header(ChunkPos { x: 33, z: -24 });
+        assert_eq!(
+            append_explicit_empty_chunk_body_candidate(
+                &image,
+                &wrong_pos,
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                66,
+                16_384,
+                &mut bytes
+            ),
+            Err(EmptyChunkBodyCandidateError::PositionMismatch {
+                source: wrong_pos.position,
+                resident: image.position(),
+            })
+        );
+        let wrong_version = StoredChunkHeader {
+            data_version: 123,
+            ..good
+        };
+        assert_eq!(
+            append_explicit_empty_chunk_body_candidate(
+                &image,
+                &wrong_version,
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                66,
+                16_384,
+                &mut bytes
+            ),
+            Err(EmptyChunkBodyCandidateError::DataVersionMismatch { source: 123 })
+        );
+        assert_eq!(bytes, [0xCA, 0xFE]);
+    }
+
+    #[test]
+    fn late_section_failure_discards_coordinates_and_entity_profile() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut bytes = vec![0xCE, 0xDD];
+        assert!(matches!(
+            append_explicit_empty_chunk_body_candidate(
+                &image,
+                &source_header(image.position()),
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                3,
+                16_384,
+                &mut bytes
+            ),
+            Err(EmptyChunkBodyCandidateError::ChunkData(
+                ChunkDataCandidateError::Sections(SectionLengthError::Source(
+                    SectionCandidateError::Biome(_)
+                ))
+            ))
+        ));
+        assert_eq!(bytes, [0xCE, 0xDD]);
+        assert!(matches!(
+            append_explicit_empty_chunk_body_candidate(
+                &image,
+                &source_header(image.position()),
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                66,
+                1,
+                &mut bytes
+            ),
+            Err(EmptyChunkBodyCandidateError::ChunkData(
+                ChunkDataCandidateError::Sections(SectionLengthError::ExceedsLimit { .. })
+            ))
+        ));
+        assert_eq!(bytes, [0xCE, 0xDD]);
     }
 
     #[test]

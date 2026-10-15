@@ -116,3 +116,32 @@ light payload, while packet identity and coordinates precede them.
 A future admitted outer encoder must insert these source-backed
 fields explicitly. The returned byte ranges are *candidate offsets*,
 not protocol framing, and no live Play publication is enabled.
+
+## Dormant explicitly empty block-entity body candidate
+
+The 26.2 target now supplies candidate-only signed big-endian chunk-coordinate
+fields and the single-byte empty block-entity count field. The server composes
+these with the existing heightmap/section and light encoders into the **same
+reusable output buffer**. The resulting ranges track four distinct groups:
+coordinates, chunk-data, block-entity list and lighting.
+
+The server first requires the exact saved source chunk position to match the
+immutable resident reference, the saved DataVersion to be 4903 and the
+`StoredBlockEntityEvidence` to be **ExplicitlyEmpty**. A missing
+`block_entities` tag, any nonempty list, the wrong position or another
+version is rejected before writing any bytes. Any later section/biome/light
+failure truncates every appended field, preserving the caller's prefix.
+The source evidence is supplied by the caller and must be bound to the same
+import/incarnation in an admitted world-publication path; **the method alone
+cannot prove that lifecycle binding**.
+
+This is a **source-review-pending reference body candidate only**, not a
+production 26.2 packet. It deliberately omits the packet ID and runtime
+dispatch, makes no claim of completed outer packet SEM/VAR admission, uses
+no live socket, and cannot be sent to a stock client. The candidate's empty
+list byte still requires exact source gate verification before production
+promotion; it is not a substitute for block-entity type/NBT serialization
+or the known-packs biome ordinal gate (#285).
+
+The codec adds no target-specific field to resident chunk state, new
+packet queue, extra encoded buffer, or ordinary HOT-path bookkeeping.

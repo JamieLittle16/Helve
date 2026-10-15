@@ -151,6 +151,7 @@ dependencies = [
  "helve-types",
  "helve-world-chunk",
  "helve-world-contract",
+ "helve-world-import",
  "helve-world-reference",
 ]
 

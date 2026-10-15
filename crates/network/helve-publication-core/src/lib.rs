@@ -280,7 +280,10 @@ mod tests {
             let step =
                 publish_projected_one(3, &mut cursor, &mut driver, &mut scratch, |index, bytes| {
                     visited.push(index);
-                    bytes.extend_from_slice(&[0x11, u8::try_from(index).expect("three selected indices")]);
+                    bytes.extend_from_slice(&[
+                        0x11,
+                        u8::try_from(index).expect("three selected indices"),
+                    ]);
                     Ok::<(), ()>(())
                 })
                 .expect("each one-frame projected publication fits");

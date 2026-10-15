@@ -67,3 +67,29 @@ VarInt boundaries, invalid padding/count and source failures. The server
 composition tests verify byte equality with separately assembled fields,
 retention of allocation with pre-reserved scratch, and atomic rollback even
 when the **second** section fails.
+
+## Target-owned initial light payload candidate
+
+The selected 26.2 light source group already admits four masks in order:
+sky data, block data, empty sky, empty block. The new COLD target
+`r2c_light` module writes their **minimal BitSet long arrays** (including
+the 64-bit boundary at light section index 64), and VarInt-counted sky
+then block updates. Each update has exact VarInt(2048) length and 2048
+raw packed bytes, copied straight from the borrowed source
+`LightDataLayer` into the existing caller output allocation.
+
+The server candidate `append_coherent_light_payload_candidate`
+retains the same `InitialChunkReference` as the section/heightmap
+candidate, classifies masks only from its already verified initial light,
+and visits source updates in ascending light-section order. It confirms
+each mask's set-bit count agrees with its source update iterator.
+Contradictory/out-of-span masks are rejected before output; a later
+source inconsistency truncates the complete candidate suffix.
+Missing light remains missing and packed zero data remains **present
+data**, not an empty layer.
+
+No intermediate 2048-byte layer buffer, new light engine, second
+publication queue or resident packet image is introduced. There is
+still **no enclosing Play chunk-with-light packet**, as the packet
+identity, coordinates, block entities, publication ordering and
+source-verified biome numeric IDs must be admitted separately.

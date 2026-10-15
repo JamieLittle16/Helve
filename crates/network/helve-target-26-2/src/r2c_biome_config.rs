@@ -18,6 +18,7 @@ use helve_packet_core::{PacketCodecError, PacketReader};
 const REGISTRY_DATA_PACKET_ID: i32 = 7;
 const BIOME_REGISTRY_KEY: &str = "minecraft:worldgen/biome";
 const CORE_BIOME_COUNT: usize = 66;
+const CORE_BIOME_COUNT_WIRE: i32 = 66;
 const MAX_IDENTIFIER_UTF16_UNITS: usize = 32_767;
 
 /// A different Configuration image or pack profile cannot claim this order.
@@ -57,9 +58,9 @@ impl From<PacketCodecError> for BiomeConfigOrderError {
 ///
 /// Rejects absent/duplicate biome registries, malformed byte fields,
 /// a different biome cardinality or any entry carrying inline NBT.
-pub fn borrow_core_biome_order<'a, B>(
-    configuration_bodies: &'a [B],
-) -> Result<Vec<&'a str>, BiomeConfigOrderError>
+pub fn borrow_core_biome_order<B>(
+    configuration_bodies: &[B],
+) -> Result<Vec<&str>, BiomeConfigOrderError>
 where
     B: AsRef<[u8]>,
 {
@@ -78,7 +79,7 @@ where
         }
 
         let count = reader.read_var_int()?;
-        if count != CORE_BIOME_COUNT as i32 {
+        if count != CORE_BIOME_COUNT_WIRE {
             return Err(BiomeConfigOrderError::WrongBiomeCount { actual: count });
         }
         let mut keys = Vec::with_capacity(CORE_BIOME_COUNT);
@@ -123,11 +124,7 @@ mod tests {
 
     #[test]
     fn borrowed_ordinals_follow_exact_configuration_order_not_key_sorting() {
-        let bodies = [
-            vec![0x01, 0x00],
-            build_selected_biome_body(),
-            vec![0x03],
-        ];
+        let bodies = [vec![0x01, 0x00], build_selected_biome_body(), vec![0x03]];
         let ordered = borrow_core_biome_order(&bodies).unwrap();
         assert_eq!(ordered.len(), 66);
         assert_eq!(ordered[0], "minecraft:test_65");
@@ -136,7 +133,10 @@ mod tests {
         assert_eq!(ordered[0].as_ptr(), {
             let source = &bodies[1];
             let needle = b"minecraft:test_65";
-            let offset = source.windows(needle.len()).position(|w| w == needle).unwrap();
+            let offset = source
+                .windows(needle.len())
+                .position(|w| w == needle)
+                .unwrap();
             source[offset..].as_ptr()
         });
     }
@@ -154,9 +154,11 @@ mod tests {
         );
         // Find the VarInt(66) directly after the registry key.
         let mut wrong = correct;
-        let index = wrong.windows(b"minecraft:worldgen/biome".len())
+        let index = wrong
+            .windows(b"minecraft:worldgen/biome".len())
             .position(|w| w == b"minecraft:worldgen/biome")
-            .unwrap() + b"minecraft:worldgen/biome".len();
+            .unwrap()
+            + b"minecraft:worldgen/biome".len();
         assert_eq!(wrong[index], 66);
         wrong[index] = 65;
         assert_eq!(
@@ -170,7 +172,10 @@ mod tests {
         let mut body = build_selected_biome_body();
         // The first entry's boolean immediately follows its key.
         let needle = b"minecraft:test_65";
-        let index = body.windows(needle.len()).position(|w| w == needle).unwrap()
+        let index = body
+            .windows(needle.len())
+            .position(|w| w == needle)
+            .unwrap()
             + needle.len();
         assert_eq!(body[index], 0);
         body[index] = 1;
@@ -183,9 +188,9 @@ mod tests {
         extra.push(0xaa);
         assert!(matches!(
             borrow_core_biome_order(&[extra]),
-            Err(BiomeConfigOrderError::Codec(PacketCodecError::TrailingBytes {
-                remaining: 1
-            }))
+            Err(BiomeConfigOrderError::Codec(
+                PacketCodecError::TrailingBytes { remaining: 1 }
+            ))
         ));
     }
 }

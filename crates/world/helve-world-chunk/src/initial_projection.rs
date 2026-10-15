@@ -171,7 +171,7 @@ where
 #[cfg(test)]
 mod tests {
     use helve_types::{BlockPos, ChunkGeneration, ChunkPos};
-    use helve_world_contract::{BlockStateFacts, SectionBiomePos, SectionStateFacts};
+    use helve_world_contract::{BlockSection, BlockStateFacts, SectionBiomePos, SectionStateFacts};
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 
     use crate::{
@@ -251,6 +251,16 @@ mod tests {
         assert_eq!(projected.position(), semantic.position());
         assert_eq!(projected.stamp(), semantic.stamp());
         assert!(std::ptr::eq(projected.blocks(), semantic.blocks()));
+        let lower_source = semantic.blocks().section_ref(-1).expect("lower resident section");
+        let lower_image = projected.block_section(-1).expect("same source section");
+        assert!(std::ptr::eq(lower_source, lower_image));
+        assert_eq!(
+            lower_image.get(helve_world_contract::SectionBlockPos::new(0, 0, 0).unwrap()),
+            0
+        );
+        assert!(projected.block_section(-2).is_none());
+        assert!(projected.block_section(1).is_none());
+
         assert!(std::ptr::eq(projected.biomes(), semantic.biomes()));
         assert_eq!(projected.heightmaps().entries().len(), 3);
         assert!(projected.heightmaps().is_current_for(&semantic));

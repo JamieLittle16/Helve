@@ -994,10 +994,10 @@ mod tests {
             .map(|_| ())
         };
 
-        assert_eq!(
+        assert!(matches!(
             session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
             Ok(ChunkBatchStep::Started { count: 2 })
-        );
+        ));
         for expected in 0..receipts.len() {
             assert!(matches!(
                 session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
@@ -1007,10 +1007,10 @@ mod tests {
             assert_eq!(scratch, [0xe7]);
             assert_eq!(scratch.as_ptr(), projection_ptr);
         }
-        assert_eq!(
+        assert!(matches!(
             session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
             Ok(ChunkBatchStep::Finished { count: 2 })
-        );
+        ));
         assert_eq!(session.read_scratch.as_ptr(), read_ptr);
         assert_eq!(state.next_chunk_index(), 2);
         assert_eq!(state.unacknowledged_batches(), 1);

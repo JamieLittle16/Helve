@@ -8,6 +8,7 @@ on:
       - tools/r2c_live_biome_registry.py
       - tools/tests/test_r2c_loaded_biome_id_oracle.py
       - vanilla/fixtures/world/26.2-official-biome-resource-keys.txt
+      - vanilla/fixtures/world/26.2-runtime-crosschecked-biome-ordinal-candidate.json
       - vanilla/vanilla.lock.toml
       - .github/workflows/r2c-independent-loaded-biome-ids.yml
   workflow_dispatch:
@@ -61,6 +62,12 @@ jobs:
           assert value['independent_numeric_id_order_sha256'] == value['configuration_network_order_sha256']
           assert value['independent_numeric_id_order_sha256'] == '97cba53b1bfd18870a345a42cea14e665e0a59f559dba939bec95cdf6fa5373d'
           assert value['names_by_verified_runtime_id_candidate'] == inventory
+          frozen = json.loads(Path(
+              'vanilla/fixtures/world/26.2-runtime-crosschecked-biome-ordinal-candidate.json'
+          ).read_text())
+          assert frozen == value, 'frozen source-free candidate differs from fresh official numeric ID oracle'
+          assert frozen['numeric_id_authority'] == 'RUNTIME_CROSSCHECK_PASSED_SOURCE_SEM_ADMISSION_PENDING'
+          print('PASSED: frozen unadmitted ID-order candidate exactly matches fresh official runtime')
           print('PASSED: independent loaded in-memory ID mapping equals Configuration ordinal order')
           print('Still blocked: reviewed source/SEM admission and exact selected runtime profile parity')
           PY

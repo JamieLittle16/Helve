@@ -129,8 +129,8 @@ where
 ///
 /// The source owner remains borrowed; each container is built independently only when needed for
 /// the selected section. No duplicate resident palette is allocated or cached for future mutation.
-impl<'a, S, BlockStorage, BiomeStorage>
-    InitialChunkReference<'a, S, BlockStorage, u16, BiomeStorage>
+impl<S, BlockStorage, BiomeStorage>
+    InitialChunkReference<'_, S, BlockStorage, u16, BiomeStorage>
 where
     S: Copy + Eq,
     BlockStorage: BlockSection<S>,

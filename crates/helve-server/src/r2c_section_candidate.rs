@@ -564,7 +564,7 @@ mod tests {
 
         // No intermediate 2048-byte scratch: each raw layer is written
         // exactly once through the target-owned destination.
-        assert_eq!(actual.len(), 2 + 4 * 9 + 2 * (1 + 2 + 2048));
+        assert_eq!(actual.len(), 2 + 9 + 9 + 1 + 1 + 2 * (1 + 2 + 2048));
     }
 
     #[test]

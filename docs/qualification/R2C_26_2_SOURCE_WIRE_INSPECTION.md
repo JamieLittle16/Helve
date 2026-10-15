@@ -111,6 +111,26 @@ and acknowledgement float normalization. Tests prove the packet scalars and
 malformed-input behaviour. This does not add a second packet queue, runtime
 protocol registry, resident copy, or HOT-path dependency.
 
+## Phase-boundary packet capacity (R2C retained-driver widening)
+
+R2B originally accepts packet bodies up to 65,536 bytes on the *same*
+continuing driver. The pinned `ClientboundLevelChunkPacketData` constructor
+checks its **section-byte** count against 2,097,152, independently of the
+outer chunk position/heightmaps/block-entity/light fields. The actual outer
+remote frame remains constrained by Minecraft's three-byte `VarInt21`
+limit of 2,097,151 **total body** bytes. A packet body exceeding that
+external limit is invalid; the inner section cap does not override it.
+
+R2C may now raise the existing driver limits monotonically at the
+`WorldProjection` handoff: 2,097,151 frame-body bytes, 3 MiB ingress,
+4 MiB egress. The operation updates scalar limits **in place**, retaining
+both original `Vec` allocations, unread fragmented ingress and pending
+egress, and does not reserve 3/4 MiB on every join. All reductions fail
+without mutating active data. No second driver, queue, socket or read-scratch
+owner is introduced. The widening hook is dormant until the actual R2C
+product route is source-admitted. The chosen 3/4 MiB budgets are explicit
+Helve policy, **not** asserted as vanilla quotas.
+
 ## What still blocks production R2C
 
 - The pinned source archive is a **server-source corpus**. The precise

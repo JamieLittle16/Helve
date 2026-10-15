@@ -58,6 +58,15 @@ pub enum ConnectionBufferError {
     TruncatedPacketId,
     /// Integer arithmetic required to preserve a resource bound overflowed `usize`.
     LengthOverflow,
+    /// A phase-boundary reconfiguration attempted to tighten an established bound.
+    LimitReduction {
+        /// Which of the three independent byte bounds would shrink.
+        limit: &'static str,
+        /// Existing bound, which remains in force.
+        current: usize,
+        /// Rejected narrower bound.
+        proposed: usize,
+    },
     /// The underlying Minecraft wire law rejected the bytes.
     Wire(WireError),
 }
@@ -135,6 +144,41 @@ impl ConnectionLimits {
         })
     }
 
+    /// Verify a new coherent limit set only widens the existing byte limits.
+    ///
+    /// Allows phase-boundary negotiation without replacing already-used
+    /// ingress/egress allocations or accidentally invalidating an active
+    /// partial frame. A newly constructed `ConnectionLimits` is coherent
+    /// by construction; no new bytes are allocated merely by widening.
+    ///
+    /// # Errors
+    ///
+    /// Rejects any shrink before callers mutate buffer state.
+    pub fn ensure_covers(self, original: Self) -> Result<(), ConnectionBufferError> {
+        for (limit, current, proposed) in [
+            (
+                "frame_body_len",
+                original.frame_body_len,
+                self.frame_body_len,
+            ),
+            (
+                "ingress_buffered",
+                original.ingress_buffered,
+                self.ingress_buffered,
+            ),
+            ("egress_queued", original.egress_queued, self.egress_queued),
+        ] {
+            if proposed < current {
+                return Err(ConnectionBufferError::LimitReduction {
+                    limit,
+                    current,
+                    proposed,
+                });
+            }
+        }
+        Ok(())
+    }
+
     /// Maximum decoded frame-body bytes accepted from or emitted to this connection.
     #[must_use]
     pub const fn max_frame_body_len(self) -> usize {
@@ -208,6 +252,27 @@ impl IngressBuffer {
             start: 0,
             limits,
         }
+    }
+
+    /// Coherent limits currently applied to this exact ingress allocation.
+    #[must_use]
+    pub const fn limits(&self) -> ConnectionLimits {
+        self.limits
+    }
+
+    /// Widen this ingress store's limits without replacing or resizing its
+    /// `Vec`. Safe even with an incomplete frame already buffered.
+    ///
+    /// # Errors
+    ///
+    /// Rejects reduction of any declared limit without changing state.
+    pub fn widen_limits(
+        &mut self,
+        proposed: ConnectionLimits,
+    ) -> Result<(), ConnectionBufferError> {
+        proposed.ensure_covers(self.limits)?;
+        self.limits = proposed;
+        Ok(())
     }
 
     /// Number of unconsumed bytes currently retained.
@@ -346,6 +411,27 @@ impl EgressBuffer {
             start: 0,
             limits,
         }
+    }
+
+    /// Coherent limits currently applied to this exact egress allocation.
+    #[must_use]
+    pub const fn limits(&self) -> ConnectionLimits {
+        self.limits
+    }
+
+    /// Widen this egress store's limits without replacing or resizing its
+    /// `Vec`. Already queued framed bytes remain exactly in place.
+    ///
+    /// # Errors
+    ///
+    /// Rejects reduction of any declared limit without changing state.
+    pub fn widen_limits(
+        &mut self,
+        proposed: ConnectionLimits,
+    ) -> Result<(), ConnectionBufferError> {
+        proposed.ensure_covers(self.limits)?;
+        self.limits = proposed;
+        Ok(())
     }
 
     /// Number of encoded bytes not yet acknowledged as written.
@@ -548,6 +634,50 @@ mod tests {
     use helve_protocol_core::{WireError, encode_frame, encode_var_int};
 
     use super::{BufferKind, ConnectionBufferError, ConnectionLimits, EgressBuffer, IngressBuffer};
+
+    #[test]
+    fn widening_limits_keeps_active_ingress_and_egress_allocation_unchanged() {
+        let old = ConnectionLimits::new(8, 32, 32).unwrap();
+        let wider = ConnectionLimits::new(2_097_151, 3 * 1_024 * 1_024, 4 * 1_024 * 1_024).unwrap();
+
+        let mut ingress = IngressBuffer::new(old);
+        ingress.push(&[2, 0x44]).unwrap();
+        let mut egress = EgressBuffer::new(old);
+        egress.queue_frame(&[0x25, 0x99]).unwrap();
+        let egress_pointer = egress.pending().as_ptr();
+        let egress_before = egress.pending().to_vec();
+
+        ingress.widen_limits(wider).unwrap();
+        egress.widen_limits(wider).unwrap();
+        assert_eq!(ingress.limits(), wider);
+        assert_eq!(egress.limits(), wider);
+        assert_eq!(ingress.buffered_len(), 2);
+        assert!(ingress.peek_frame().unwrap().is_none());
+        ingress.push(&[0x10]).unwrap();
+        assert_eq!(ingress.peek_frame().unwrap().unwrap().packet_id(), 0x44);
+        assert_eq!(egress.pending(), egress_before);
+        assert_eq!(egress.pending().as_ptr(), egress_pointer);
+        assert_eq!(
+            ingress.widen_limits(old),
+            Err(ConnectionBufferError::LimitReduction {
+                limit: "frame_body_len",
+                current: 2_097_151,
+                proposed: 8
+            })
+        );
+        assert_eq!(
+            egress.widen_limits(old),
+            Err(ConnectionBufferError::LimitReduction {
+                limit: "frame_body_len",
+                current: 2_097_151,
+                proposed: 8
+            })
+        );
+        assert_eq!(ingress.limits(), wider);
+        assert_eq!(egress.limits(), wider);
+        assert_eq!(egress.pending(), egress_before);
+        assert_eq!(egress.pending().as_ptr(), egress_pointer);
+    }
 
     fn limits() -> ConnectionLimits {
         ConnectionLimits::new(1_024, 4_096, 4_096).expect("valid test limits")

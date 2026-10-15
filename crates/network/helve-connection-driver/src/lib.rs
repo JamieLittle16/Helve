@@ -135,6 +135,32 @@ impl ConnectionDriver {
         }
     }
 
+    /// Raise a phase's legal framing and buffering ceilings while retaining
+    /// this exact driver and both existing underlying byte allocations.
+    ///
+    /// Reconfiguration accepts only monotone widening. Incomplete ingress
+    /// frames and unwritten egress bytes remain valid and in place, and
+    /// no allocation occurs unless a later read/write needs more capacity.
+    /// The `ConnectionLimits` constructor independently checks framing
+    /// coherence and the underlying Minecraft framing ceiling.
+    ///
+    /// # Errors
+    ///
+    /// Rejects a reduction of *any* existing ingress or egress limit
+    /// atomically, with neither buffer limit nor active bytes changed.
+    pub fn widen_limits(
+        &mut self,
+        proposed: ConnectionLimits,
+    ) -> Result<(), ConnectionBufferError> {
+        // Verify both owners before either can be changed. They normally
+        // share one limit set but don't rely on that historical invariant.
+        proposed.ensure_covers(self.ingress.limits())?;
+        proposed.ensure_covers(self.egress.limits())?;
+        self.ingress.widen_limits(proposed)?;
+        self.egress.widen_limits(proposed)?;
+        Ok(())
+    }
+
     /// Appends one arbitrary socket-read fragment to bounded ingress storage.
     ///
     /// # Errors
@@ -415,6 +441,49 @@ mod tests {
         }
         assert_eq!(driver.buffered_ingress(), 0);
         (checksum, frames)
+    }
+
+    #[test]
+    fn bounded_driver_can_widen_for_large_play_chunks_without_replacing_queued_bytes() {
+        let initial = ConnectionLimits::new(12, 48, 48).unwrap();
+        let larger =
+            ConnectionLimits::new(2_097_151, 3 * 1_024 * 1_024, 4 * 1_024 * 1_024).unwrap();
+        let mut driver = ConnectionDriver::new(initial);
+        driver.queue_frame::<()>(&[0x2c, 0xff]).unwrap();
+        driver.ingest::<()>(&[2, 0x1c]).unwrap();
+        let pending = driver.pending_egress().to_vec();
+        let pointer = driver.pending_egress().as_ptr();
+
+        driver.widen_limits(larger).unwrap();
+        assert_eq!(driver.pending_egress(), pending);
+        assert_eq!(driver.pending_egress().as_ptr(), pointer);
+        assert_eq!(driver.buffered_ingress(), 2);
+        assert!(matches!(
+            driver.widen_limits(initial),
+            Err(ConnectionBufferError::LimitReduction { .. })
+        ));
+        assert_eq!(driver.pending_egress(), pending);
+        assert_eq!(driver.pending_egress().as_ptr(), pointer);
+
+        // The accepted framing ceiling now permits a body far beyond R2B.
+        // The exact existing egress Vec is used, never a second queue.
+        let body = vec![0x2d; 65_537];
+        driver.queue_frame::<()>(&body).unwrap();
+        assert!(driver.pending_egress().starts_with(&pending));
+        assert!(driver.queued_egress() > 65_536);
+
+        // Ingress retains its incomplete first frame and can complete it
+        // after reconfiguration without a receive-buffer replacement.
+        driver.ingest::<()>(&[0x99]).unwrap();
+        let done = driver.process_one_transactional::<(), _, _>(|frame| {
+            assert_eq!(frame.packet_id(), 0x1c);
+            assert_eq!(frame.payload(), [0x99]);
+            Ok(PreparedAction {
+                marker: 0,
+                frames: vec![],
+            })
+        });
+        assert!(matches!(done, Ok(TransactionResult::Committed(_))));
     }
 
     #[test]

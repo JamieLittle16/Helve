@@ -85,6 +85,19 @@ Packet/wire facts are never inferred merely because the runtime substrate or a h
 
 A biome's compact numeric ID is its **source registry ordinal**, not its alphabetical resource-key rank. `OrderedBiomeRegistry` binds the exact source order supplied by a caller and constructs one COLD lexicographically indexed lookup table without duplicating key strings. It requires DataVersion 4903 and rejects empty, malformed, duplicate or oversized registries. The saved-biome palette decoder consumes this binder directly as its `BiomeStateResolver`, so resolved sections retain numeric IDs without a HOT lookup. The constructor validates input **shape**, not origin: the complete Minecraft 26.2 runtime registry order still needs an independent extraction, pinned content hash and source-grounded acceptance evidence. Do not imply that the synthetic test input or a registry whose names merely happen to match is a source-qualified target list.
 
+## Official biome registry protocol-ID source gate (in review)
+
+The 26.2 saved biome **cell/name** differential (#280) does not determine the
+numeric biome IDs the client sees. The `tools/official_biome_registry.py` runtime
+probe calls the data generator inside the **digest-pinned official Mojang server**
+and requires an explicit `protocol_id` for every `minecraft:worldgen/biome`
+entry in its `reports/registries.json`. It refuses duplicates, gaps, missing
+report values, version drift and server SHA mismatch. This probe is a
+**candidate source-generation gate only** until CI produces the exact output,
+independent source qualification reviews it, and a frozen versioned source-order
+artifact is checked on every change. An observed-save name list must never be
+mistaken for that complete ID map.
+
 ## World-state human review now closed
 
 The committed source-free semantic decision record is `vanilla/reviews/network/r2c-world-state-semantic-admission-decisions.json`. It records explicit human-authored rules rather than generated semantic inference.

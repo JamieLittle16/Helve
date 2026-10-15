@@ -822,8 +822,7 @@ mod tests {
 
     #[test]
     fn receipt_body_and_reference_errors_retain_inspectable_causes() {
-        let (dim, receipt) =
-            imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let (dim, receipt) = imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
         let mut out = vec![0x21, 0x43];
         assert!(matches!(
             append_receipt_bound_empty_chunk_body_candidate(

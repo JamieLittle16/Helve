@@ -334,3 +334,36 @@ fn hundred_thousand_target_mutations_match_independent_image_and_masks() {
         }
     }
 }
+
+#[test]
+fn immutable_section_borrow_resolves_signed_lattice_without_world_position_work() {
+    let pos = ChunkPos { x: -7, z: 13 };
+    let mut chunk = synthetic_chunk(pos, -4, 3);
+    let local = SectionBlockPos::new(15, 3, 8).expect("valid local position");
+    let block = world_pos(pos, -3, (15, 3, 8));
+    chunk
+        .replace_block(block, State::RandomFluid, &Facts)
+        .expect("source mutation before immutable borrow");
+    let stamp = chunk.stamp();
+
+    assert!(chunk.section_ref(-5).is_none());
+    assert!(chunk.section_ref(-1).is_none());
+    assert!(chunk.section_ref(i32::MIN).is_none());
+    assert!(chunk.section_ref(i32::MAX).is_none());
+
+    for section_y in -4..=-2 {
+        let section = chunk.section_ref(section_y).expect("exact lattice section");
+        assert_eq!(
+            section.get(local),
+            if section_y == -3 {
+                State::RandomFluid
+            } else {
+                State::Air
+            }
+        );
+        assert_eq!(section.summary().non_air_count, u16::from(section_y == -3));
+        assert_eq!(section.summary().fluid_count, u16::from(section_y == -3));
+    }
+    // Read-only reference does not copy, cache, or advance the owner's clock.
+    assert_eq!(chunk.stamp(), stamp);
+}

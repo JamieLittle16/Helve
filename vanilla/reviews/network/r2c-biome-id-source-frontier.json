@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "id": "REVIEW-NET-R2C-BIOME-IDS-26_2-001",
+  "target": {
+    "minecraft": "26.2",
+    "protocol": 776,
+    "data_version": 4903
+  },
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "status": "DISCOVERY_NOT_ADMISSION",
+  "max_methods_per_type": 256,
+  "groups": [
+    {
+      "id": "LOADED-REGISTRY-ID-ALLOCATION",
+      "review_focus": "Inspect exact dynamic world-registry loading, ordered holder insertion and byId/getId numeric identity. A readable JVM name or runtime witness alone cannot substitute for this source proof.",
+      "types": [
+        "net.minecraft.core.MappedRegistry",
+        "net.minecraft.core.Registry",
+        "net.minecraft.resources.RegistryDataLoader"
+      ]
+    },
+    {
+      "id": "CONFIGURATION-BIOME-ENTRY-PUBLICATION",
+      "review_focus": "Review the default known-packs branch, packing/dynamic-registry enumeration order, and the exact Configuration registry-data value order; keep client assignment proof separate.",
+      "types": [
+        "net.minecraft.server.network.config.SynchronizeRegistriesTask",
+        "net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket"
+      ]
+    },
+    {
+      "id": "BIOME-CONTAINER-ID-BINDING",
+      "review_focus": "Connect the already-admitted biome holder ID-map factory to loaded registry IDs, without extending existing R2C world-state admission to dynamic client ID assignment.",
+      "types": [
+        "net.minecraft.world.level.chunk.PalettedContainerFactory"
+      ]
+    }
+  ]
+}

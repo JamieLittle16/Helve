@@ -531,30 +531,13 @@ where
                 set_chunk_once(&mut light_correct, "isLightOn", reader.read_i8()? != 0)?;
             }
             "block_entities" if INCLUDE_LIGHT => {
-                require_chunk_type("block_entities", field.tag_type, TagType::List)?;
                 if block_entities.is_some() {
                     return Err(ChunkImportError::DuplicateField {
                         field: "block_entities",
                     }
                     .into());
                 }
-                let list = reader.read_list_header()?;
-                if list.len != 0 && list.element_type != TagType::Compound {
-                    return Err(BlockSectionImportError::BlockEntityListElementType {
-                        actual: list.element_type,
-                    });
-                }
-                // Preserve cardinality while refusing to infer publication
-                // semantics from uninterpreted persisted NBT. No tree or
-                // second source cursor is constructed.
-                for _ in 0..list.len {
-                    reader.skip_payload(TagType::Compound)?;
-                }
-                block_entities = Some(if list.len == 0 {
-                    StoredBlockEntityEvidence::ExplicitlyEmpty
-                } else {
-                    StoredBlockEntityEvidence::UnhandledEntries { count: list.len }
-                });
+                block_entities = Some(read_block_entity_list(&mut reader, field.tag_type)?);
             }
             "sections" => {
                 require_chunk_type("sections", field.tag_type, TagType::List)?;
@@ -617,6 +600,31 @@ where
             sections: biome_sections,
         },
         block_entities: block_entities.unwrap_or(StoredBlockEntityEvidence::Absent),
+    })
+}
+
+/// Reads only the saved list presence and count with the existing bounded cursor.
+///
+/// NBT payloads are checked/skipped but never translated into unadmitted
+/// clientbound block-entity packet bytes.
+fn read_block_entity_list(
+    reader: &mut NbtReader<'_>,
+    tag_type: TagType,
+) -> Result<StoredBlockEntityEvidence, BlockSectionImportError> {
+    require_chunk_type("block_entities", tag_type, TagType::List)?;
+    let list = reader.read_list_header()?;
+    if list.len != 0 && list.element_type != TagType::Compound {
+        return Err(BlockSectionImportError::BlockEntityListElementType {
+            actual: list.element_type,
+        });
+    }
+    for _ in 0..list.len {
+        reader.skip_payload(TagType::Compound)?;
+    }
+    Ok(if list.len == 0 {
+        StoredBlockEntityEvidence::ExplicitlyEmpty
+    } else {
+        StoredBlockEntityEvidence::UnhandledEntries { count: list.len }
     })
 }
 

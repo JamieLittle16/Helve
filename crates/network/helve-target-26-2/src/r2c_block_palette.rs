@@ -101,7 +101,7 @@ impl PackedBlockContainer {
         let words = if bits == 0 {
             Vec::new()
         } else {
-            let per_word = 64 / bits;
+            let per_word = 64_usize.checked_div(bits).expect("positive palette width");
             let mut words = vec![0_u64; CELLS.div_ceil(per_word)];
             for i in 0..CELLS {
                 let value = if global_mode { global[i] } else { local[i] };
@@ -274,8 +274,7 @@ mod tests {
         (0..CELLS)
             .map(|i| {
                 let value = usize::try_from(
-                    (words[i / per_word] >> ((i % per_word) * width))
-                        & ((1_u64 << width) - 1),
+                    (words[i / per_word] >> ((i % per_word) * width)) & ((1_u64 << width) - 1),
                 )
                 .unwrap();
                 if width <= 8 {
@@ -329,10 +328,8 @@ mod tests {
         assert_eq!(packed.storage_bits(), 15);
         assert!(packed.local_palette().is_empty());
         assert_eq!(decode(&packed.encode_container(), 32_366), cells);
-        let maximum = PackedBlockContainer::derive(65_536, |i| {
-            u16::try_from(i % 257).unwrap()
-        })
-        .unwrap();
+        let maximum =
+            PackedBlockContainer::derive(65_536, |i| u16::try_from(i % 257).unwrap()).unwrap();
         assert_eq!(maximum.storage_bits(), 16);
         assert_eq!(decode(&maximum.encode_container(), 65_536).len(), CELLS);
     }

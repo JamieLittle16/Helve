@@ -20,19 +20,18 @@ R2C has crossed the stored-world/import boundary and now also has the first cohe
 - target-neutral 4×4×4 biome semantic storage;
 - one whole-chunk `ChunkRevision` coherence baseline shared by block and biome mutation;
 - atomic same-driver publication admission and allocation-free one-body publication progression;
-- completed source-free human review and explicit semantic decisions for the selected biome, heightmap and light laws;
-- a one-command local runner that regenerates the exact reviewed world-state dossier and performs the independent Vanilla Atlas admission gate.
+- independently promoted source-free source admission for 58 reviewed world-state methods and 20 biome/heightmap/light SEM rules (PR #268);
+- a one-command local runner retained to reproduce the independently admitted source boundary;
+- source-law heightmap recomputation oracle with no extra HOT mutation bookkeeping (reference projection input; generated 26.2 predicate facts and coherent ownership remain pending).
 
-The world-state review is therefore **not** the current blocker. The remaining admission boundary is independent local Atlas validation and explicit promotion of that exact source-free bundle. Production heightmap/light and 26.2 world-state wire implementation remain forbidden until that promotion succeeds.
+The selected BIOMES / HEIGHTMAPS / LIGHT semantic source boundary was independently admitted and promoted in #268 (main commit `3e5fe9b`). It authorizes implementation, **not** a completed runtime behavior. Target-generated heightmap predicate facts, light state/import, biome target mapping and other world-wire groups remain separate engineering gates.
 
 The remaining world-publication groups outside the completed BIOMES / HEIGHTMAPS / LIGHT review also remain independently unadmitted: world-entry ordering, chunk-span/batch state, block-section publication law not already covered by admitted lower layers, selected block-entity publication, pacing/acknowledgement and exact packet identities.
 
 ```text
-completed human BIOME / HEIGHTMAP / LIGHT source review
+admitted BIOME / HEIGHTMAP / LIGHT semantics (#268)
         ↓
-independent local Atlas gate + explicit promotion
-        ↓
-Helve-native heightmap/light state
+heightmap reference recomputation + target facts; light state
         ↓
 coherent resident block + biome + heightmap + light ownership
         ↓
@@ -54,7 +53,7 @@ Packet/wire facts are never inferred merely because the runtime substrate or a h
 | Slice | State | Evidence / boundary |
 | --- | --- | --- |
 | R2C.0 frontier/contracts | **ESTABLISHED** | Finite pregenerated-world-first scope and ownership/evidence boundaries are frozen. World generation and movement-driven interest are not prerequisites for the first R2C gate. |
-| R2C.1 world-state source review | **HUMAN REVIEW COMPLETE; INDEPENDENT ATLAS ADMISSION/PROMOTION PENDING** | BIOMES, HEIGHTMAPS and LIGHT now have explicit source-free selected/rejected closure and semantic decisions bound to the pinned 26.2 source identity. `r2c_world_state_local_admission.py` regenerates the exact dossier, materializes VAR/SEM evidence and runs the independent Atlas gate. Production admission is still false until a green gate is explicitly promoted. |
+| R2C.1 world-state source review | **INDEPENDENTLY ADMITTED AND PROMOTED (#268)** | BIOMES, HEIGHTMAPS and LIGHT: 58 required reviewed methods, 20 admitted SEM rules, zero gate failures. Target semantics are authorized for implementation, but the admission record explicitly states that runtime behavior is not implemented. Other world-wire groups remain unadmitted. |
 | R2C.1 remaining world-wire review | **PENDING** | World-entry, chunk-span, selected block-entity, pacing/acknowledgement and exact packet-identity/order law still require bounded source admission. Existing lower-layer block-section evidence may be reused only where its admitted claim exactly matches the R2C route. |
 | R2C.2 resident-world substrate | **LANDED** | `DimensionInstance`, compact chunk generations, direct resolved access, unload/reload and stale-handle rejection are on `main`. Sparse directory lookup is a lifecycle boundary, not a HOT cell-access mechanism. |
 | R2C.2 whole-chunk freshness | **BLOCK + BIOME COMPOSITE LANDED** | `LiveChunkSemanticState` composes existing block and biome owners without copying, requires exact position/generation/lattice identity and uses the existing `LiveChunkCore` revision as the sole whole-chunk semantic clock. Real block or biome changes advance that one revision; no-ops/rejected mutations do not. No secondary revision, dynamic dispatch or projection work was introduced. |
@@ -63,9 +62,9 @@ Packet/wire facts are never inferred merely because the runtime substrate or a h
 | R2C.3 pregenerated-world block import | **LANDED AND GENUINE-SAVE DIFFERENTIAL GREEN** | Bounded Anvil framing, DEFLATE, schema-directed NBT, exact persisted-state resolution and final section construction are on `main`. Independent official-save comparison covers 12,696 block-bearing sections / 52,002,816 block cells exactly. |
 | R2C.3 import → residency qualification | **LANDED** | Genuine official save passes validated region read → bounded decompression → semantic import → final section construction → `DimensionInstance` residency with exact evidence identity and scratch high-water checks. |
 | R2C.3 selected cold-import mechanisms | **LANDED** | Byte-table gzip CRC32 and four-bit packed-state specialization crossed semantic + benchmark qualification. Generic five-bit-and-wider packed decoding remains intact and regression-covered. |
-| R2C.4 biome semantics | **TARGET-NEUTRAL STORAGE LANDED; 26.2 HUMAN REVIEW COMPLETE; ADMISSION PENDING** | One 64-sample biome lattice per logical section is live under static target-neutral storage. Reviewed 26.2 palette/wire law is source-free evidence only until Atlas promotion. |
-| R2C.4 heightmap semantics | **HUMAN REVIEW COMPLETE; IMPLEMENTATION BLOCKED ON ADMISSION** | Selected client heightmaps are reviewed as derived state from authoritative blocks rather than persisted Heightmaps NBT becoming live truth. Runtime derivation starts only after independent promotion. |
-| R2C.4 light semantics | **HUMAN REVIEW COMPLETE; IMPLEMENTATION BLOCKED ON ADMISSION** | Persisted `isLightOn`, DataLayer shape, lookup, mask classification and initial wire law are reviewed. Missing/false light-correctness cannot be silently upgraded; without relighting the unsupported route must fail closed. Runtime ownership starts only after independent promotion. |
+| R2C.4 biome semantics | **TARGET-NEUTRAL STORAGE LANDED; 26.2 SEM ADMITTED; TARGET IMPLEMENTATION PENDING** | One 64-sample biome lattice per logical section is live under static target-neutral storage. Palette/wire semantics have independent source admission, but live target biome import and packet codecs are not yet implemented. |
+| R2C.4 heightmap semantics | **SEM ADMITTED; RECOMPUTATION ORACLE LANDED; TARGET FACTS PENDING** | A stamped reference computes the three client maps from authoritative blocks in one descending pass per column. It does not introduce a live cache, secondary revision or HOT mutation work. Generated target facts and final chunk ownership/projection integration are still missing. |
+| R2C.4 light semantics | **SEM ADMITTED; TARGET IMPLEMENTATION PENDING** | Persisted `isLightOn`, DataLayer shape, lookup, mask classification and initial wire law are admitted. Missing/false light-correctness cannot be silently upgraded; without relighting the unsupported route must fail closed. Runtime ownership and import remain unimplemented. |
 | R2C.5 reference projector | **PENDING R2C.4 + REMAINING WORLD-WIRE ADMISSION** | Must consume one coherent semantic chunk state and remain the permanent correctness/freshness oracle before projection optimization. |
 | R2C.6 production projector | **PENDING REFERENCE PATH + MECHANISM EVIDENCE** | Cache/snapshot/layout choices remain a mechanism tournament. No network-shaped second world representation may become live truth. |
 | R2C.7 same-driver publication | **TRANSPORT/FAIRNESS SUBSTRATE LANDED; PROJECTOR INTEGRATION PENDING** | Internal server composition admits already target-encoded bodies through the exact continuing `ConnectionDriver`. Atomic batches reuse transactional queue admission; large ordered publications reuse the generic one-word `PublicationCursor`. Backpressure advances neither egress transaction state nor cursor progress. There is no second queue/socket or public raw-packet injection API. |
@@ -101,7 +100,7 @@ Important selected laws include:
 - initial light masks distinguish null, empty-present and non-empty-present layers;
 - the reviewed light lattice is dimension section count + 2 and initial wire ordering is explicit in the human decision record.
 
-These are reviewed claims, **not yet production authorization**. The independent Atlas gate still owns that transition.
+These claims were independently source-admitted in #268. This **authorizes implementation only**: generated target state facts, in-memory light semantics and complete world-wire projection must still be implemented and tested.
 
 ## Whole-chunk coherence baseline
 
@@ -121,7 +120,7 @@ The existing block-only `PublishedChunk` remains valid as a reference block imag
 
 ## R2C.1 independent admission boundary
 
-The canonical local command is now:
+PR #268 promoted the independently verified source-free artifact to `main`. The following command remains a **reproduction path**, not an unfinished milestone:
 
 ```bash
 cd ~/Helve
@@ -149,7 +148,7 @@ production_implementation_authorized = true
 runtime_behavior_implemented = false
 ```
 
-Until that succeeds, reviewed target-specific biome IDs/palette law, heightmap IDs/packing and light masks/arrays remain unavailable to production target code.
+The admitted bundle is present under `vanilla/records/network/r2/world-state/`, `vanilla/semantics/network/` and `vanilla/reports/`. The remaining wire families must not inherit authorization from this narrower gate.
 
 ## R2C.2S section-policy gate
 
@@ -167,9 +166,9 @@ No hosted-runner timing may select the production representation.
 
 ## Immediate next engineering moves
 
-1. Run the independent local world-state Atlas admission and explicitly promote the exact green source-free artifact. Human review is already complete; do not rebuild that review pipeline.
-2. In parallel, finish the resident-lifecycle composition so the new coherent semantic chunk owner reuses the existing sparse directory/generation/stale-handle machinery rather than creating a second map or clock.
-3. After promotion, implement target-neutral heightmap derivation from authoritative blocks and target-neutral imported light ownership with the explicit light-correctness boundary. Join both to the same whole-chunk revision.
+1. Complete generated 26.2 heightmap predicate facts against admitted source data, then differential-qualify the new recomputation oracle; do not infer motion/leaves/fluid from section counts.
+2. Implement target-neutral imported biome and light ownership (including the explicit light-correctness boundary) through the existing resident directory and whole-chunk revision; no second map or semantic clock.
+3. Integrate the complete heightmap/biome/light view into one authoritative chunk projection snapshot without introducing network-shaped live state.
 4. Close the remaining selected world-wire source groups: world entry/order, chunk span/batch state, selected block entities, pacing/acknowledgement and exact packet identities. Reuse existing admitted lower-layer evidence only where claim identity matches exactly.
 5. Build R2C.5 as a transparent reference projector from one coherent semantic chunk state into the fully admitted 26.2 law.
 6. Only then benchmark projection/cache/snapshot mechanism candidates and select production R2C.6 by whole-path cost.
@@ -195,7 +194,7 @@ A lower evidence class never substitutes for a higher one.
 
 Current `main` does **not** yet prove:
 
-- independent Atlas admission/promotion of the reviewed BIOME / HEIGHTMAP / LIGHT bundle;
+- runtime implementation and end-to-end client qualification of the already admitted BIOME / HEIGHTMAP / LIGHT SEM bundle;
 - production target implementation of the reviewed biome palette/wire law;
 - production derived client heightmaps;
 - production light ownership / light-correct import path;

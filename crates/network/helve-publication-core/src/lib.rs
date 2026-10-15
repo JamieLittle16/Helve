@@ -112,6 +112,52 @@ where
     })
 }
 
+/// Projects and admits at most one publication item without retaining all encoded bodies.
+///
+/// Unlike `publish_one`, the caller keeps only a stable ordered semantic selection and one
+/// reusable COLD scratch buffer. `append_one` appends the *complete* target-encoded packet body
+/// (packet ID and payload) for the selected index after the scratch's existing prefix. Only that
+/// suffix is framed by the continuing driver; the prefix is never transmitted.
+///
+/// Both successful and rejected attempts restore the scratch's original length, retaining its
+/// capacity for the next chunk. The cursor advances only after successful egress admission.
+/// Rejection leaves the driver's existing egress unchanged, and a later service opportunity may
+/// retry the same semantic item. This function owns no chunk cache, second queue, or packet law.
+///
+/// The caller must keep the semantic selection stable for the lifetime of `cursor` and separately
+/// establish target packet identities and any source-generation/revision validity.
+///
+/// # Errors
+///
+/// Propagates a projection failure as `DriverError::Handler` or an existing bounded-driver
+/// framing/capacity error, without committing cursor progress or an incomplete packet.
+pub fn publish_projected_one<E>(
+    publication_len: usize,
+    cursor: &mut PublicationCursor,
+    driver: &mut ConnectionDriver,
+    scratch: &mut Vec<u8>,
+    append_one: impl FnOnce(usize, &mut Vec<u8>) -> Result<(), E>,
+) -> Result<PublicationStep, DriverError<E>> {
+    let index = cursor.next;
+    if index >= publication_len {
+        return Ok(PublicationStep::Complete);
+    }
+
+    let start = scratch.len();
+    if let Err(error) = append_one(index, scratch) {
+        scratch.truncate(start);
+        return Err(DriverError::Handler(error));
+    }
+    let body_bytes = scratch.len() - start;
+    let admission = driver.queue_frame::<E>(&scratch[start..]);
+    scratch.truncate(start);
+    admission?;
+
+    // index < publication_len proves index < usize::MAX, even at the terminal boundary.
+    cursor.next = index + 1;
+    Ok(PublicationStep::Queued { index, body_bytes })
+}
+
 #[cfg(test)]
 mod tests {
     use std::mem::size_of;
@@ -119,7 +165,7 @@ mod tests {
     use helve_connection_core::{ConnectionBufferError, ConnectionLimits};
     use helve_connection_driver::{ConnectionDriver, DriverError};
 
-    use super::{PublicationCursor, PublicationStep, publish_one};
+    use super::{PublicationCursor, PublicationStep, publish_one, publish_projected_one};
 
     fn limits(max_body: usize, egress: usize) -> ConnectionLimits {
         ConnectionLimits::new(max_body, max_body + 5, egress).expect("coherent publication limits")
@@ -220,4 +266,135 @@ mod tests {
         assert_eq!(cursor.next_index(), 0);
         assert_eq!(driver.queued_egress(), 0);
     }
+
+    #[test]
+    fn projected_stream_reuses_one_scratch_and_preserves_order() {
+        let mut cursor = PublicationCursor::new();
+        let mut driver = ConnectionDriver::new(limits(32, 128));
+        let mut scratch = Vec::with_capacity(64);
+        scratch.extend_from_slice(&[0xFA, 0xCE]);
+        let scratch_ptr = scratch.as_ptr();
+        let mut visited = Vec::new();
+
+        for expected in 0..3 {
+            let step = publish_projected_one(
+                3,
+                &mut cursor,
+                &mut driver,
+                &mut scratch,
+                |index, bytes| {
+                    visited.push(index);
+                    bytes.extend_from_slice(&[0x11, index as u8]);
+                    Ok::<(), ()>(())
+                },
+            )
+            .expect("each one-frame projected publication fits");
+            assert_eq!(step, PublicationStep::Queued { index: expected, body_bytes: 2 });
+            assert_eq!(scratch, [0xFA, 0xCE]);
+            assert_eq!(scratch.as_ptr(), scratch_ptr);
+            assert_eq!(cursor.next_index(), expected + 1);
+        }
+
+        assert_eq!(visited, [0, 1, 2]);
+        assert_eq!(driver.pending_egress(), [2, 0x11, 0, 2, 0x11, 1, 2, 0x11, 2]);
+        assert_eq!(
+            publish_projected_one::<()>(
+                3,
+                &mut cursor,
+                &mut driver,
+                &mut scratch,
+                |_, _| panic!("complete publication must never call projector"),
+            ),
+            Ok(PublicationStep::Complete)
+        );
+        assert_eq!(cursor.next_index(), 3);
+        assert_eq!(scratch, [0xFA, 0xCE]);
+    }
+
+    #[test]
+    fn projected_failure_restores_prefix_and_retries_same_item() {
+        let mut cursor = PublicationCursor::new();
+        let mut driver = ConnectionDriver::new(limits(32, 64));
+        let mut scratch = vec![0xAB, 0xCD];
+
+        let error = publish_projected_one(1, &mut cursor, &mut driver, &mut scratch, |index, bytes| {
+            assert_eq!(index, 0);
+            bytes.extend_from_slice(&[0x11, 0x22]);
+            Err::<(), _>("missing source evidence")
+        })
+        .expect_err("partial projection must never be queued");
+        assert_eq!(error, DriverError::Handler("missing source evidence"));
+        assert_eq!(cursor.next_index(), 0);
+        assert_eq!(driver.queued_egress(), 0);
+        assert_eq!(scratch, [0xAB, 0xCD]);
+
+        assert_eq!(
+            publish_projected_one(1, &mut cursor, &mut driver, &mut scratch, |_, bytes| {
+                bytes.extend_from_slice(&[0x11, 0x33]);
+                Ok::<(), &str>(())
+            }),
+            Ok(PublicationStep::Queued { index: 0, body_bytes: 2 })
+        );
+        assert_eq!(driver.pending_egress(), [2, 0x11, 0x33]);
+        assert_eq!(scratch, [0xAB, 0xCD]);
+    }
+
+    #[test]
+    fn projected_backpressure_keeps_cursor_and_existing_wire_unchanged() {
+        let mut cursor = PublicationCursor::new();
+        let mut driver = ConnectionDriver::new(limits(16, 18));
+        let mut scratch = Vec::with_capacity(32);
+
+        let encode = |index: usize, bytes: &mut Vec<u8>| {
+            bytes.extend_from_slice(&[0x11]);
+            bytes.extend_from_slice(&[index as u8; 9]);
+            Ok::<(), ()>(())
+        };
+        assert_eq!(
+            publish_projected_one(2, &mut cursor, &mut driver, &mut scratch, encode),
+            Ok(PublicationStep::Queued { index: 0, body_bytes: 10 })
+        );
+        let before = driver.pending_egress().to_vec();
+        let error = publish_projected_one(2, &mut cursor, &mut driver, &mut scratch, encode)
+            .expect_err("next complete frame does not fit remaining egress");
+        assert!(matches!(
+            error,
+            DriverError::Buffer(ConnectionBufferError::EgressLimitExceeded { .. })
+        ));
+        assert_eq!(cursor.next_index(), 1);
+        assert_eq!(driver.pending_egress(), before);
+        assert!(scratch.is_empty());
+
+        driver.consume_written::<()>(before.len()).expect("drain first queued frame");
+        assert_eq!(
+            publish_projected_one(2, &mut cursor, &mut driver, &mut scratch, encode),
+            Ok(PublicationStep::Queued { index: 1, body_bytes: 10 })
+        );
+        assert_eq!(cursor.next_index(), 2);
+        assert_eq!(driver.pending_egress(), [10, 0x11, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+    }
+
+    #[test]
+    fn projected_oversized_and_empty_bodies_cannot_advance() {
+        let mut cursor = PublicationCursor::new();
+        let mut driver = ConnectionDriver::new(limits(16, 64));
+        let mut scratch = vec![0xCC];
+        for body in [Vec::new(), vec![0x11; 17]] {
+            let rejected = publish_projected_one(
+                1,
+                &mut cursor,
+                &mut driver,
+                &mut scratch,
+                |_, bytes| {
+                    bytes.extend_from_slice(&body);
+                    Ok::<(), ()>(())
+                },
+            );
+            assert!(matches!(rejected, Err(DriverError::Buffer(_))));
+            assert_eq!(cursor.next_index(), 0);
+            assert_eq!(driver.queued_egress(), 0);
+            assert_eq!(scratch, [0xCC]);
+        }
+    }
+
 }

@@ -64,6 +64,7 @@ jobs:
           assert output['runtime_order_sha256'] == hashlib.sha256(
               ('\n'.join(observed) + '\n').encode()
           ).hexdigest()
+          assert output['runtime_order_sha256'] == '97cba53b1bfd18870a345a42cea14e665e0a59f559dba939bec95cdf6fa5373d', 'observed runtime network ordinal drift'
           print('Official live Config biome ordinal observation is internally consistent.')
           print('Loaded registry independent ID oracle and source/SEM admission: STILL PENDING.')
           PY

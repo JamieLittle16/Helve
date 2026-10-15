@@ -172,6 +172,8 @@ def official_runtime_facts(server: Path, mappings: Path | None) -> list[int]:
 def extract(output: Path, cache: Path, server: Path | None, mappings: Path | None, lock: Path) -> None:
     with lock.open("rb") as stream:
         pin = tomllib.load(stream)
+    if pin["source"]["archive_sha256"] != SOURCE_ARCHIVE_SHA256:
+        raise ValueError("source archive commitment differs from the pinned 26.2 inspection")
     if server is None:
         resolved, _ = official.resolve(VERSION, cache)
         server = resolved["server"][0]

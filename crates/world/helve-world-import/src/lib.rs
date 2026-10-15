@@ -7,6 +7,7 @@
 #![forbid(unsafe_code)]
 
 pub mod anvil;
+pub mod biome_registry;
 pub mod chunk;
 pub mod compression;
 mod generated_state_lookup;
@@ -17,6 +18,7 @@ pub mod stored_blocks;
 pub mod transaction;
 
 pub use anvil::{ChunkCompression, RegionChunk, RegionError, RegionLimits, RegionView};
+pub use biome_registry::{BiomeRegistryError, OrderedBiomeRegistry};
 pub use chunk::{
     ChunkImportError, StoredChunkHeader, TARGET_DATA_VERSION_26_2, inspect_chunk_header,
 };

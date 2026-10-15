@@ -106,6 +106,16 @@ where
         self.source.blocks()
     }
 
+    /// Borrows one exact section for direct local-cell target projection.
+    ///
+    /// The immutable borrow retains the complete coherent chunk image; there
+    /// is no section copy, second clock or repeated block-space resolution.
+    /// An outside-the-source-lattice section returns None.
+    #[must_use]
+    pub fn block_section(&self, section_y: i32) -> Option<&BlockStorage> {
+        self.source.blocks().section_ref(section_y)
+    }
+
     /// Borrow canonical quart biomes, which must have been bound to source-verified IDs.
     #[must_use]
     pub const fn biomes(&self) -> &'a ChunkBiomeColumn<B, BiomeStorage> {

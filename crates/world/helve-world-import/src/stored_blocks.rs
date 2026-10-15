@@ -976,7 +976,7 @@ mod tests {
     use super::{
         BLOCK_SECTION_CELLS, BlockProperty, BlockSectionDecodeScratch, BlockSectionImportError,
         BlockStateResolver, ImportedBlockSection, ImportedBlockSectionBuilder, ImportedChunkBlocks,
-        decode_chunk_block_sections,
+        decode_chunk_block_sections, decode_chunk_block_sections_with_light,
     };
     use crate::{
         chunk::{ChunkImportError, StoredChunkHeader, TARGET_DATA_VERSION_26_2},
@@ -1389,6 +1389,132 @@ mod tests {
                     expected,
                     actual: stored,
                 }
+            ))
+        );
+    }
+
+
+    fn light_section(y: i8, block: Option<usize>, sky: Option<usize>) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        byte_field(&mut bytes, "Y", y);
+        for (name, length, fill) in [
+            ("BlockLight", block, 0xa3_u8),
+            ("SkyLight", sky, 0x5c_u8),
+        ] {
+            if let Some(length) = length {
+                named_header(&mut bytes, TagType::ByteArray, name);
+                bytes.extend_from_slice(
+                    &i32::try_from(length).expect("small fixture").to_be_bytes(),
+                );
+                bytes.extend(std::iter::repeat_n(fill, length));
+            }
+        }
+        bytes.push(TagType::End as u8);
+        bytes
+    }
+
+    fn with_light_flag(mut bytes: Vec<u8>, flag: i8) -> Vec<u8> {
+        assert_eq!(bytes.pop(), Some(TagType::End as u8));
+        byte_field(&mut bytes, "isLightOn", flag);
+        bytes.push(TagType::End as u8);
+        bytes
+    }
+
+    fn decode_with_light(
+        bytes: &[u8],
+        position: ChunkPos,
+    ) -> Result<super::ImportedChunkWithLight<Vec<u16>>, BlockSectionImportError> {
+        decode_chunk_block_sections_with_light(
+            bytes,
+            position,
+            NbtLimits::new(256, 4096, 4096, 16).expect("light-capable bounds"),
+            &Resolver,
+            &mut VecBuilder,
+            &mut BlockSectionDecodeScratch::new(),
+        )
+    }
+
+    #[test]
+    fn light_only_border_sections_survive_same_pass_without_fabricated_blocks() {
+        let position = ChunkPos { x: -1, z: 2 };
+        let sections = [
+            light_section(-5, Some(2048), None),
+            section_payload(-4, Some(block_states_payload(
+                &[palette_entry("minecraft:stone", &[], false)],
+                None,
+            ))),
+            light_section(20, None, Some(2048)),
+        ];
+        let bytes = with_light_flag(chunk_nbt(position, &sections), 1);
+        let result = decode_with_light(&bytes, position).expect("coherent one-pass import");
+        assert!(result.light.persisted_light_correct);
+        assert_eq!(result.blocks.header.stored_section_count, 3);
+        assert_eq!(result.blocks.sections.len(), 1);
+        assert_eq!(result.blocks.sections[0].section_y, -4);
+        assert_eq!(result.light.sections.len(), 2);
+        assert_eq!(result.light.sections[0].section_y, -5);
+        assert_eq!(result.light.sections[0].block.as_ref().unwrap().len(), 2048);
+        assert!(result.light.sections[0].sky.is_none());
+        assert_eq!(result.light.sections[1].section_y, 20);
+        assert_eq!(result.light.sections[1].sky.as_ref().unwrap()[0], 0x5c);
+        assert!(result.light.sections[1].block.is_none());
+        let legacy = decode(&bytes, position).expect("block-only route remains valid");
+        assert_eq!(legacy, result.blocks);
+    }
+
+    #[test]
+    fn light_correctness_defaults_false_and_zero_flag_remains_false() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let sections = [light_section(-1, None, Some(2048))];
+        let bytes = chunk_nbt(position, &sections);
+        let missing = decode_with_light(&bytes, position).expect("missing flag");
+        assert!(!missing.light.persisted_light_correct);
+        assert_eq!(missing.light.sections.len(), 1);
+        let false_value = decode_with_light(&with_light_flag(bytes, 0), position)
+            .expect("explicit false flag");
+        assert!(!false_value.light.persisted_light_correct);
+    }
+
+    #[test]
+    fn light_array_length_and_duplicate_tag_fail_closed() {
+        let position = ChunkPos { x: 0, z: 0 };
+        for length in [0_usize, 2047, 2049] {
+            let bytes = chunk_nbt(position, &[light_section(0, Some(length), None)]);
+            assert_eq!(
+                decode_with_light(&bytes, position),
+                Err(BlockSectionImportError::LightByteCount {
+                    section_index: 0,
+                    field: "BlockLight",
+                    actual: length,
+                    expected: 2048,
+                })
+            );
+        }
+        let mut duplicate = light_section(0, Some(2048), None);
+        duplicate.pop();
+        let second = light_section(0, Some(2048), None);
+        // The second section's Y header is valid inside a compound, but repeats Y.
+        duplicate.extend_from_slice(&second);
+        assert!(matches!(
+            decode_with_light(&chunk_nbt(position, &[duplicate]), position),
+            Err(BlockSectionImportError::SectionDuplicateField {
+                field: "Y",
+                section_index: 0,
+            })
+        ));
+    }
+
+    #[test]
+    fn persisted_flag_repetition_is_rejected() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let mut bytes = with_light_flag(chunk_nbt(position, &[]), 1);
+        assert_eq!(bytes.pop(), Some(TagType::End as u8));
+        byte_field(&mut bytes, "isLightOn", 1);
+        bytes.push(TagType::End as u8);
+        assert_eq!(
+            decode_with_light(&bytes, position),
+            Err(BlockSectionImportError::Chunk(
+                ChunkImportError::DuplicateField { field: "isLightOn" }
             ))
         );
     }

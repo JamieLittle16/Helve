@@ -165,6 +165,28 @@ into independently admitted production authority. The client-side
 VAR/SEM proof and complete selected profile remain open as described in
 issue #285.
 
+## Configuration-bound COLD import composition
+
+The server's `r2c_configured_biomes` candidate ties the exact 66
+ordered names borrowed from a validated immutable `Target26_2R1xContext`
+to the existing `OrderedBiomeRegistry`. It keeps both the byte-owning
+Configuration image and a small derived pointer array alive only for a
+closure-scoped COLD import operation; no self-referential registry object
+or copied name table becomes another owner.
+
+The existing `ExactBiomeDecoder` can resolve each saved 4×4×4 biome
+palette name directly to this transmitted-order `u16` identity, not
+an alphabetic ranking. Tests compose synthetic Configuration registry
+wire fields and actual schema-decoded biome-section NBT, deliberately
+reversing names to prove that sorting cannot change IDs. Unknown saved
+names and duplicate Configuration entries fail before world installation.
+
+The bridge is deliberately not called in the live R2B playtest. It
+does not bypass independent client numeric-ID assignment admission or
+grant authority to its synthetic tests. The source-matching selected
+Configuration branch and `R2C-BIOMES` gate must still be verified
+before it can be used to publish native Play chunks.
+
 ## What still blocks production R2C
 
 - The pinned source archive is a **server-source corpus**. The precise

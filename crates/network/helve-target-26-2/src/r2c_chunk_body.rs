@@ -15,7 +15,7 @@ pub fn append_chunk_coordinates_candidate(output: &mut Vec<u8>, x: i32, z: i32) 
     output.extend_from_slice(&z.to_be_bytes());
 }
 
-/// Writes a *candidate* empty block-entity collection as one zero VarInt.
+/// Writes a *candidate* empty block-entity collection as one zero `VarInt`.
 ///
 /// **Precondition:** the server COLD adapter has independently verified a
 /// uniquely present, explicitly empty saved block-entity source list for

@@ -312,7 +312,8 @@ mod tests {
             let packed = PackedBlockContainer::derive(32_366, |i| cells[i]).unwrap();
             assert_eq!(packed.mode(), BlockPaletteMode::Local);
             assert_eq!(packed.local_palette().len(), distinct);
-            let expected_width = (usize::BITS - (distinct - 1).leading_zeros()) as u8;
+            let expected_width =
+                u8::try_from(usize::BITS - (distinct - 1).leading_zeros()).unwrap();
             assert_eq!(packed.storage_bits(), expected_width.max(4));
             assert_eq!(decode(&packed.encode_container(), 32_366), cells);
         }

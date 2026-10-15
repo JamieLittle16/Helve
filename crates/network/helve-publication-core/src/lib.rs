@@ -277,34 +277,34 @@ mod tests {
         let mut visited = Vec::new();
 
         for expected in 0..3 {
-            let step = publish_projected_one(
-                3,
-                &mut cursor,
-                &mut driver,
-                &mut scratch,
-                |index, bytes| {
+            let step =
+                publish_projected_one(3, &mut cursor, &mut driver, &mut scratch, |index, bytes| {
                     visited.push(index);
                     bytes.extend_from_slice(&[0x11, index as u8]);
                     Ok::<(), ()>(())
-                },
-            )
-            .expect("each one-frame projected publication fits");
-            assert_eq!(step, PublicationStep::Queued { index: expected, body_bytes: 2 });
+                })
+                .expect("each one-frame projected publication fits");
+            assert_eq!(
+                step,
+                PublicationStep::Queued {
+                    index: expected,
+                    body_bytes: 2
+                }
+            );
             assert_eq!(scratch, [0xFA, 0xCE]);
             assert_eq!(scratch.as_ptr(), scratch_ptr);
             assert_eq!(cursor.next_index(), expected + 1);
         }
 
         assert_eq!(visited, [0, 1, 2]);
-        assert_eq!(driver.pending_egress(), [2, 0x11, 0, 2, 0x11, 1, 2, 0x11, 2]);
         assert_eq!(
-            publish_projected_one::<()>(
-                3,
-                &mut cursor,
-                &mut driver,
-                &mut scratch,
-                |_, _| panic!("complete publication must never call projector"),
-            ),
+            driver.pending_egress(),
+            [2, 0x11, 0, 2, 0x11, 1, 2, 0x11, 2]
+        );
+        assert_eq!(
+            publish_projected_one::<()>(3, &mut cursor, &mut driver, &mut scratch, |_, _| panic!(
+                "complete publication must never call projector"
+            ),),
             Ok(PublicationStep::Complete)
         );
         assert_eq!(cursor.next_index(), 3);
@@ -317,12 +317,13 @@ mod tests {
         let mut driver = ConnectionDriver::new(limits(32, 64));
         let mut scratch = vec![0xAB, 0xCD];
 
-        let error = publish_projected_one(1, &mut cursor, &mut driver, &mut scratch, |index, bytes| {
-            assert_eq!(index, 0);
-            bytes.extend_from_slice(&[0x11, 0x22]);
-            Err::<(), _>("missing source evidence")
-        })
-        .expect_err("partial projection must never be queued");
+        let error =
+            publish_projected_one(1, &mut cursor, &mut driver, &mut scratch, |index, bytes| {
+                assert_eq!(index, 0);
+                bytes.extend_from_slice(&[0x11, 0x22]);
+                Err::<(), _>("missing source evidence")
+            })
+            .expect_err("partial projection must never be queued");
         assert_eq!(error, DriverError::Handler("missing source evidence"));
         assert_eq!(cursor.next_index(), 0);
         assert_eq!(driver.queued_egress(), 0);
@@ -333,7 +334,10 @@ mod tests {
                 bytes.extend_from_slice(&[0x11, 0x33]);
                 Ok::<(), &str>(())
             }),
-            Ok(PublicationStep::Queued { index: 0, body_bytes: 2 })
+            Ok(PublicationStep::Queued {
+                index: 0,
+                body_bytes: 2
+            })
         );
         assert_eq!(driver.pending_egress(), [2, 0x11, 0x33]);
         assert_eq!(scratch, [0xAB, 0xCD]);
@@ -352,7 +356,10 @@ mod tests {
         };
         assert_eq!(
             publish_projected_one(2, &mut cursor, &mut driver, &mut scratch, encode),
-            Ok(PublicationStep::Queued { index: 0, body_bytes: 10 })
+            Ok(PublicationStep::Queued {
+                index: 0,
+                body_bytes: 10
+            })
         );
         let before = driver.pending_egress().to_vec();
         let error = publish_projected_one(2, &mut cursor, &mut driver, &mut scratch, encode)
@@ -365,13 +372,21 @@ mod tests {
         assert_eq!(driver.pending_egress(), before);
         assert!(scratch.is_empty());
 
-        driver.consume_written::<()>(before.len()).expect("drain first queued frame");
+        driver
+            .consume_written::<()>(before.len())
+            .expect("drain first queued frame");
         assert_eq!(
             publish_projected_one(2, &mut cursor, &mut driver, &mut scratch, encode),
-            Ok(PublicationStep::Queued { index: 1, body_bytes: 10 })
+            Ok(PublicationStep::Queued {
+                index: 1,
+                body_bytes: 10
+            })
         );
         assert_eq!(cursor.next_index(), 2);
-        assert_eq!(driver.pending_egress(), [10, 0x11, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+        assert_eq!(
+            driver.pending_egress(),
+            [10, 0x11, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        );
     }
 
     #[test]
@@ -380,21 +395,14 @@ mod tests {
         let mut driver = ConnectionDriver::new(limits(16, 64));
         let mut scratch = vec![0xCC];
         for body in [Vec::new(), vec![0x11; 17]] {
-            let rejected = publish_projected_one(
-                1,
-                &mut cursor,
-                &mut driver,
-                &mut scratch,
-                |_, bytes| {
+            let rejected =
+                publish_projected_one(1, &mut cursor, &mut driver, &mut scratch, |_, bytes| {
                     bytes.extend_from_slice(&body);
                     Ok::<(), ()>(())
-                },
-            );
+                });
             assert!(matches!(rejected, Err(DriverError::Buffer(_))));
             assert_eq!(cursor.next_index(), 0);
             assert_eq!(driver.queued_egress(), 0);
             assert_eq!(scratch, [0xCC]);
         }
-    }
-
-}
+    }}

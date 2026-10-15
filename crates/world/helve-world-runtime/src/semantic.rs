@@ -55,9 +55,9 @@ pub enum SemanticResidentLoadError<E> {
 
 /// One loaded dimension owning coherent block/biome/initial-light chunks.
 ///
-/// This is an **alternative** to the existing block-only \`DimensionInstance\`: a dimension
+/// This is an **alternative** to the existing block-only `DimensionInstance`: a dimension
 /// constructs one of these owners, never both. Both modes use the exact same generic
-/// \`ResidentDirectory\`, single sparse map and generation allocation/handle checking logic.
+/// `ResidentDirectory`, single sparse map and generation allocation/handle checking logic.
 /// No target packets, NBT parsing, biome registry lookup or scheduler placement enter this type.
 ///
 /// The caller's cold builder receives the generation *from the authoritative directory* and
@@ -128,13 +128,13 @@ where
 
     /// Atomically constructs and admits one whole semantic chunk under a single generation.
     ///
-    /// \`build\` executes only if the position is vacant and receives the actual reserved
+    /// `build` executes only if the position is vacant and receives the actual reserved
     /// generation and immutable dimension profile. The returned block, biome and initial-light
     /// components must be coherent. This boundary also validates the dimension lattice, exact
     /// generation and pristine revision before committing the resident entry.
     ///
     /// This is COLD lifecycle work. After admission, every HOT read or mutation operates on a
-    /// directly resolved \`&LiveChunkSemanticState\` / \`&mut LiveChunkSemanticState\`, without
+    /// directly resolved `&LiveChunkSemanticState` / `&mut LiveChunkSemanticState`, without
     /// repeated map lookups or any additional independent revision.
     ///
     /// # Errors

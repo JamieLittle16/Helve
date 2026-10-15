@@ -2,6 +2,14 @@
 
 Status: **synthetic and genuine Minecraft Java 26.2 block-section differentials qualified**
 
+## Saved-biome cell differential (separate source claim)
+
+The dedicated `r2c_genuine_save_biome_differential.py` CI gate starts from the **pinned official Minecraft 26.2 generated save**, uses an independent Python NBT/Anvil reader to expand every persisted 64-cell quart-biome palette (uniform and non-spanning positive-width packed long arrays), then compares every original namespaced biome key per cell against the Rust **production** importer in `r2c_import_biome_facts`. It records official region hashes, section and cell counts, distinct observed names, a byte-exact expected/actual semantic hash and the observed catalog hash.
+
+The Rust qualification emitter deliberately resolves through the new `OrderedBiomeRegistry` with a **synthetic sorted catalog of only the names observed in this save**, then converts each ID *back to the stored name* for the differential. This isolates actual persisted-biome **name, cell-index and packed-state semantics** from global registry-ID assignment and keeps the oracle independent of Rust's parsing algorithm. The observed-name catalog **is not** a complete Java registry, and its numeric indices **must not** be used for client packets. The gate is parser/differential evidence, not world-entry, global biome-ID parity or a production performance decision.
+
+Final numeric IDs require an independently extracted, pinned and source-qualified **complete official 26.2 biome registry ID-map ordering**; an unrelated list of valid resource names can pass the syntactic `OrderedBiomeRegistry` constructor but is not trusted by this gate. No missing biome is filled with Plains.
+
 ## Purpose
 
 This gate compares Helve's production Rust persisted-world importer with an independently implemented

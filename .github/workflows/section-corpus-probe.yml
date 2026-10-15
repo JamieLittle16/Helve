@@ -8,10 +8,12 @@ on:
       - tools/official_section_world.py
       - tools/vanilla_section_extractor.py
       - tools/r2c_genuine_save_differential.py
+      - tools/r2c_genuine_save_biome_differential.py
       - tools/section_corpus.py
       - tools/section_corpus_import_evidence.py
       - tools/tests/test_vanilla_section_extractor.py
       - tools/tests/test_r2c_genuine_save_differential.py
+      - tools/tests/test_r2c_genuine_save_biome_differential.py
       - tools/tests/test_section_corpus.py
       - tools/tests/test_section_corpus_import_evidence.py
       - crates/qualification/helve-section-qualification/src/bin/section_bench/**
@@ -63,6 +65,7 @@ jobs:
           python3 -m unittest discover -s tools/tests -p 'test_vanilla_section_extractor.py' -v
           python3 -m unittest discover -s tools/tests -p 'test_section_corpus_import_evidence.py' -v
           python3 -m unittest discover -s tools/tests -p 'test_r2c_genuine_save_differential.py' -v
+          python3 -m unittest discover -s tools/tests -p 'test_r2c_genuine_save_biome_differential.py' -v
 
       - name: Extract official runtime state identities
         run: |
@@ -129,6 +132,21 @@ jobs:
             --work-dir /tmp/r2c-genuine-save-differential \
             --dimension minecraft:overworld \
             --evidence /tmp/26.2-production-import-differential.json
+
+      - name: Build production raw-Anvil biome fact emitter
+        run: >-
+          cargo build --release --offline --locked
+          --package helve-world-import
+          --bin r2c_import_biome_facts
+
+      - name: Compare every official saved biome quart cell with independent oracle
+        run: |
+          python3 tools/r2c_genuine_save_biome_differential.py \
+            --world /tmp/helve-section-world/world \
+            --rust-emitter target/release/r2c_import_biome_facts \
+            --work-dir /tmp/r2c-genuine-save-biome-differential \
+            --dimension minecraft:overworld \
+            --evidence /tmp/26.2-production-biome-cell-differential.json
 
       - name: Build import-to-resident qualification harness
         run: >-

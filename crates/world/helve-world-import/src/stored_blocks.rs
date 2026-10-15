@@ -172,6 +172,43 @@ pub struct ImportedChunkWithLight<Section> {
     pub light: ImportedStoredLight,
 }
 
+/// COLD evidence of the saved block-entity list, without payload publication authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StoredBlockEntityEvidence {
+    /// The field was not present; this is not evidence of an empty list.
+    Absent,
+    /// A uniquely present list contained exactly zero entries.
+    ExplicitlyEmpty,
+    /// Saved entries exist and their payloads remain unsupported.
+    UnhandledEntries { count: usize },
+}
+
+/// A caller cannot assume an unreviewed block-entity list is empty.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EmptyBlockEntityEvidenceError {
+    /// No explicit empty list was seen in the source.
+    MissingList,
+    /// Non-empty saved data must not be silently dropped.
+    UnhandledEntries { count: usize },
+}
+
+impl StoredBlockEntityEvidence {
+    /// Requires positive proof that the saved list was explicitly empty.
+    ///
+    /// # Errors
+    ///
+    /// Rejects absent or non-empty saved lists.
+    pub const fn require_explicitly_empty(self) -> Result<(), EmptyBlockEntityEvidenceError> {
+        match self {
+            Self::ExplicitlyEmpty => Ok(()),
+            Self::Absent => Err(EmptyBlockEntityEvidenceError::MissingList),
+            Self::UnhandledEntries { count } => {
+                Err(EmptyBlockEntityEvidenceError::UnhandledEntries { count })
+            }
+        }
+    }
+}
+
 /// Block, biome and initial-light state decoded in one bounded NBT traversal.
 #[derive(Debug, Eq, PartialEq)]
 pub struct ImportedChunkWithBiomeLight<BlockSection, BiomeSection> {

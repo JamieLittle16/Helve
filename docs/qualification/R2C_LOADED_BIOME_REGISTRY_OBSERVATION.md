@@ -33,3 +33,19 @@ Next: verify the independently loaded runtime registry numeric IDs against
 this ordered Configuration observation; bind the source declaration and
 client registry assignment semantics to reviewed VAR/SEM records, freeze
 reproducible digest and only then enable 26.2 biome ordinals for R2C.
+
+## First pinned live run (15 October 2026)
+
+The dedicated CI oracle successfully completed the full offline Login and
+Configuration registry sync against the source-locked 26.2 server, observing
+29 registry-data packets and exactly 66 biome entries. **The observed
+network ordinal sequence happened to coincide with the alphabetical
+datagen inventory for this specific default known-pack profile.** The
+complete ordered UTF-8 digest was
+`97cba53b1bfd18870a345a42cea14e665e0a59f559dba939bec95cdf6fa5373d`.
+
+The CI witness now checks that *runtime-observed* digest explicitly. This is
+a reproducibility lock, **not** permission to generate production numeric IDs
+from sorted resource paths or to assume the order survives different datapacks.
+The independent exact loaded-registry numeric-ID/packet source proof is still
+required to satisfy #285.

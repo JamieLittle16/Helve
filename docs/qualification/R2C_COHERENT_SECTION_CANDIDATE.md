@@ -93,3 +93,26 @@ publication queue or resident packet image is introduced. There is
 still **no enclosing Play chunk-with-light packet**, as the packet
 identity, coordinates, block entities, publication ordering and
 source-verified biome numeric IDs must be admitted separately.
+
+## Atomic two-fragment output from one coherent chunk borrow
+
+The COLD server adapter `append_coherent_chunk_and_light_fragments`
+now combines the separately qualified heightmap/section and initial
+light candidates, reading exactly the same immutable, stamped
+`InitialChunkReference`. Both fragments write into **one reused
+destination**; the returned two byte ranges identify the independent
+fields without retaining a second buffer or resident packet graph.
+
+If section/biome projection fails or the caller's section byte cap is
+exceeded, the caller prefix remains unchanged. If light projection
+fails after chunk fields are already appended, the adapter explicitly
+truncates the **whole candidate suffix**, not just the light bytes.
+Independent unit tests compare the byte ranges against sequential
+standalone fragment construction.
+
+The two fragments are **not contiguous fields in a complete vanilla
+packet**: the block-entity list belongs between the chunk-data and
+light payload, while packet identity and coordinates precede them.
+A future admitted outer encoder must insert these source-backed
+fields explicitly. The returned byte ranges are *candidate offsets*,
+not protocol framing, and no live Play publication is enabled.

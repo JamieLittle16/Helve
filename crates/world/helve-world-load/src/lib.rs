@@ -14,7 +14,9 @@
 
 mod light;
 
-pub use light::{InitialLightCompositionError, compose_imported_initial_light};
+pub use light::{
+    InitialLightCompositionError, PreparedImportedChunkLight, prepare_imported_chunk_light,
+};
 
 use helve_world_contract::BlockSection;
 use helve_world_import::{ImportedStoredChunk, StoredChunkSourceMetadata};

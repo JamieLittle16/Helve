@@ -86,7 +86,8 @@ impl InputPaths {
             .into_string()
             .map_err(|_| usage("dimension is not UTF-8"))?;
         let region_path = PathBuf::from(args.next().ok_or_else(|| usage("missing region path"))?);
-        let registry_path = PathBuf::from(args.next().ok_or_else(|| usage("missing key-list path"))?);
+        let registry_path =
+            PathBuf::from(args.next().ok_or_else(|| usage("missing key-list path"))?);
         let output_path = PathBuf::from(args.next().ok_or_else(|| usage("missing output path"))?);
         if args.next().is_some() {
             return Err(usage("too many arguments"));

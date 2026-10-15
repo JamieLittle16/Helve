@@ -623,7 +623,10 @@ fn encoded_frame_len(body_len: usize) -> Result<usize, ConnectionBufferError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{ConnectionBufferError, ConnectionLimits, EgressBuffer, IngressBuffer};
+    use helve_protocol_core::{WireError, encode_frame, encode_var_int};
+
+    use super::{BufferKind, ConnectionBufferError, ConnectionLimits, EgressBuffer, IngressBuffer};
+
     #[test]
     fn widening_limits_keeps_active_ingress_and_egress_allocation_unchanged() {
         let old = ConnectionLimits::new(8, 32, 32).unwrap();
@@ -642,6 +645,8 @@ mod tests {
         assert_eq!(ingress.limits(), wider);
         assert_eq!(egress.limits(), wider);
         assert_eq!(ingress.buffered_len(), 2);
+        assert!(ingress.peek_frame().unwrap().is_none());
+        ingress.push(&[0x10]).unwrap();
         assert_eq!(ingress.peek_frame().unwrap().unwrap().packet_id(), 0x44);
         assert_eq!(egress.pending(), egress_before);
         assert_eq!(egress.pending().as_ptr(), egress_pointer);
@@ -666,10 +671,6 @@ mod tests {
         assert_eq!(egress.pending(), egress_before);
         assert_eq!(egress.pending().as_ptr(), egress_pointer);
     }
-
-    use helve_protocol_core::{WireError, encode_frame, encode_var_int};
-
-    use super::{BufferKind, ConnectionBufferError, ConnectionLimits, EgressBuffer, IngressBuffer};
 
     fn limits() -> ConnectionLimits {
         ConnectionLimits::new(1_024, 4_096, 4_096).expect("valid test limits")

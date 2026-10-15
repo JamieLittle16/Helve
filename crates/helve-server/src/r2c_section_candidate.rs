@@ -957,6 +957,10 @@ mod tests {
     }
 
     #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "one complete receipt-bound batch must test import, shared-driver output and ack lifecycle together"
+    )]
     fn two_real_source_receipts_emit_exact_chunk_batch_envelope_on_retained_play_driver() {
         let (mut dim, first) =
             imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
@@ -1019,7 +1023,8 @@ mod tests {
         let start = reader.peek_frame().unwrap().unwrap();
         assert_eq!(start.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_START));
         assert!(start.payload().is_empty());
-        reader.consume(start.stream_bytes()).unwrap();
+        let consumed = start.stream_bytes();
+        reader.consume(consumed).unwrap();
 
         for receipt in &receipts {
             let expected = receipt.installed().handle.position;
@@ -1027,12 +1032,14 @@ mod tests {
             assert_eq!(frame.packet_id(), i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
             assert_eq!(&frame.payload()[..4], &expected.x.to_be_bytes());
             assert_eq!(&frame.payload()[4..8], &expected.z.to_be_bytes());
-            reader.consume(frame.stream_bytes()).unwrap();
+            let consumed = frame.stream_bytes();
+        reader.consume(consumed).unwrap();
         }
         let finish = reader.peek_frame().unwrap().unwrap();
         assert_eq!(finish.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED));
         assert_eq!(finish.payload(), [2]);
-        reader.consume(finish.stream_bytes()).unwrap();
+        let consumed = finish.stream_bytes();
+        reader.consume(consumed).unwrap();
         assert_eq!(reader.buffered_len(), 0);
 
         // A genuine inbound acknowledgement uses the same retained ingress.

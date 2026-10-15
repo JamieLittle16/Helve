@@ -311,7 +311,7 @@ mod tests {
     fn prepared_transaction_binds_light_to_validated_stored_block_header_position() {
         let source_position = ChunkPos { x: 15, z: -12 };
         let transaction = ImportedStoredChunkWithLight {
-            block_entities: StoredBlockEntityEvidence::Absent,
+            block_entities: helve_world_import::StoredBlockEntityEvidence::Absent,
             stored: ImportedStoredChunk {
                 blocks: ImportedChunkBlocks::<Vec<u8>> {
                     header: StoredChunkHeader {

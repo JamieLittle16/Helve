@@ -521,7 +521,10 @@ where
 #[derive(Debug)]
 #[cfg_attr(
     not(test),
-    expect(dead_code, reason = "Dormant R2C source-verified body candidate has no Play consumer")
+    expect(
+        dead_code,
+        reason = "Dormant R2C source-verified body candidate has no Play consumer"
+    )
 )]
 pub(crate) enum ReceiptBoundBodyCandidateError {
     /// Original dimension/position/incarnation, revision, or empty-list evidence failed.

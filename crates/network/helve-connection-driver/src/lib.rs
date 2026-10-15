@@ -446,8 +446,8 @@ mod tests {
     #[test]
     fn bounded_driver_can_widen_for_large_play_chunks_without_replacing_queued_bytes() {
         let initial = ConnectionLimits::new(12, 48, 48).unwrap();
-        let larger = ConnectionLimits::new(2_097_151, 3 * 1_024 * 1_024, 4 * 1_024 * 1_024)
-            .unwrap();
+        let larger =
+            ConnectionLimits::new(2_097_151, 3 * 1_024 * 1_024, 4 * 1_024 * 1_024).unwrap();
         let mut driver = ConnectionDriver::new(initial);
         driver.queue_frame::<()>(&[0x2c, 0xff]).unwrap();
         driver.ingest::<()>(&[2, 0x1c]).unwrap();

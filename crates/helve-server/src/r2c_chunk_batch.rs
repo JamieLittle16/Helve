@@ -282,7 +282,8 @@ mod tests {
     fn session(egress: usize) -> R2bPlaySession {
         R2bPlaySession {
             driver: ConnectionDriver::new(
-                ConnectionLimits::new(64, 256, egress).expect("finite driver"),
+                ConnectionLimits::new(egress.saturating_sub(1).min(64), 256, egress)
+                    .expect("finite driver"),
             ),
             read_scratch: vec![0; 32].into_boxed_slice(),
             teleport: TeleportTransaction::new(),

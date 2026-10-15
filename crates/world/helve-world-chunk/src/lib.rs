@@ -6,6 +6,7 @@
 
 #![forbid(unsafe_code)]
 
+mod biome_projection;
 mod biomes;
 mod heightmap;
 mod heightmap_projection;
@@ -23,6 +24,7 @@ use core::marker::PhantomData;
 use helve_types::{BlockPos, ChunkGeneration, ChunkPos, ChunkRevision, ChunkStamp};
 use helve_world_contract::{BlockSection, BlockStateFacts, SectionBlockPos, SectionSummary};
 
+pub use biome_projection::{BiomePaletteMode, BiomeProjectionError, PackedBiomeSectionReference};
 pub use biomes::{ChunkBiomeColumn, ChunkBiomeColumnError};
 pub use heightmap::{
     ClientHeightmapKind, ClientHeightmaps, HEIGHTMAP_COLUMNS, HeightmapStateFacts,

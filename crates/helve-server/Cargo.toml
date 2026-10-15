@@ -22,6 +22,8 @@ helve-types = { path = "../helve-types" }
 helve-world-chunk = { path = "../world/helve-world-chunk" }
 helve-world-contract = { path = "../world/helve-world-contract" }
 helve-world-import = { path = "../world/helve-world-import" }
+helve-world-load = { path = "../world/helve-world-load" }
+helve-world-runtime = { path = "../world/helve-world-runtime" }
 
 [dev-dependencies]
 helve-world-reference = { path = "../world/helve-world-reference" }

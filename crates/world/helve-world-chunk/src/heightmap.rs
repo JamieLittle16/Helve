@@ -5,7 +5,7 @@
 //! A later production mechanism may cache or incrementally maintain equivalent results, but must
 //! compare against this direct recomputation oracle and preserve the generation/revision stamp.
 
-use helve_types::ChunkStamp;
+use helve_types::{ChunkPos, ChunkStamp};
 use helve_world_contract::{BlockSection, SectionBlockPos};
 
 use crate::LiveChunkCore;
@@ -123,8 +123,9 @@ pub trait HeightmapStateFacts<S: Copy> {
 /// Each entry is "first available Y - chunk minY"; zero means no matching block. The maximum
 /// admitted chunk height is 64 sections (1024 blocks), so a u16 is sufficient for each entry.
 /// This representation is semantic, not the target's packed-long network representation.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ClientHeightmaps {
+    position: ChunkPos,
     stamp: ChunkStamp,
     min_block_y: i32,
     world_surface: [u16; HEIGHTMAP_COLUMNS],
@@ -190,6 +191,7 @@ impl ClientHeightmaps {
         }
 
         Self {
+            position: chunk.position(),
             stamp: chunk.stamp(),
             min_block_y: chunk.vertical_lattice().min_block_y(),
             world_surface,
@@ -198,10 +200,29 @@ impl ClientHeightmaps {
         }
     }
 
+    /// Semantic chunk column represented by this result.
+    #[must_use]
+    pub const fn position(&self) -> ChunkPos {
+        self.position
+    }
+
     /// Exact generation and revision of the semantic blocks used for this result.
     #[must_use]
     pub const fn stamp(&self) -> ChunkStamp {
         self.stamp
+    }
+
+    /// Whether this derived result still describes exactly this live chunk incarnation.
+    ///
+    /// Checking only the stamp without position is insufficient: different chunk columns can
+    /// legitimately have identical generation/revision numbers.
+    #[must_use]
+    pub fn is_current_for<S, Section>(&self, chunk: &LiveChunkCore<S, Section>) -> bool
+    where
+        S: Copy + Eq,
+        Section: BlockSection<S>,
+    {
+        self.position == chunk.position() && self.stamp == chunk.stamp()
     }
 
     /// Returns all 256 first-available Y offsets in x + 16*z order, without allocation.
@@ -313,6 +334,8 @@ mod tests {
         let heights = ClientHeightmaps::derive(&core, &Facts);
 
         assert_ne!(before.stamp(), heights.stamp());
+        assert!(!before.is_current_for(&core));
+        assert!(heights.is_current_for(&core));
         assert_eq!(heights.first_available(Kind::WorldSurface, 5, 7), Some(14));
         assert_eq!(heights.first_available(Kind::MotionBlocking, 5, 7), Some(0));
         assert_eq!(
@@ -344,9 +367,30 @@ mod tests {
             );
         }
         assert_ne!(restored.stamp(), heights.stamp());
+        assert!(restored.is_current_for(&core));
         let same_stamp = core.stamp();
         set(&mut core, 15, Block::Air);
         assert_eq!(core.stamp(), same_stamp);
+    }
+
+    #[test]
+    fn same_generation_and_revision_do_not_authorize_a_different_chunk() {
+        let original = chunk();
+        let heights = ClientHeightmaps::derive(&original, &Facts);
+        let other = LiveChunkCore::new(
+            ChunkPos { x: 1, z: 3 },
+            ChunkGeneration(7),
+            -1,
+            vec![
+                DirectBlockSection::filled(Block::Air, &Facts),
+                DirectBlockSection::filled(Block::Air, &Facts),
+            ],
+        )
+        .expect("second chunk");
+        assert_eq!(original.stamp(), other.stamp());
+        assert_ne!(heights.position(), other.position());
+        assert!(heights.is_current_for(&original));
+        assert!(!heights.is_current_for(&other));
     }
 
     #[test]

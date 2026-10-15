@@ -16,4 +16,21 @@ This does not add a cache, worker, clock, chunk owner, packet queue or HOT-path 
 
 Tests cover direct coherent-source integration (two adjacent sections of unequal palette shape), source revision persistence, correct section order and count prefix, output reuse without reallocating pre-reserved scratch, and transactional rejection on invalid section and biome identity. The target palette's own independent decoding oracle remains in #290.
 
+## Atomic complete-section-column candidate
+
+The optional COLD server composition routine `append_coherent_section_column_candidate`
+walks the resident vertical lattice in exact bottom-to-top section-Y order, using the
+same immutable `InitialChunkReference`. Each section is projected directly into the
+existing destination. It remembers only the caller's previous byte length, and
+truncates the candidate suffix if any later section fails validation. This avoids
+a second whole-column `Vec`, palette replay, second world owner, or extra checks
+on HOT state mutation.
+
+The output is **not** a full 26.2 chunk packet and carries no registry-ID or
+world-entry authority. A suffix rollback is an output-buffer operation only,
+not a transaction on the world owner or socket. Tests establish the byte order
+against independent per-section concatenation, preserved allocation on a
+pre-reserved destination, and all-or-nothing rollback when an upper-section
+biome ordinal is out of the selected registry range.
+
 Next: source-qualify exact biome ordinal ordering and the remaining enclosing packet law, add target-owned packet serialization, and only then connect it to the existing `R2bPlaySession` publication cursor and stock-client differential runner.

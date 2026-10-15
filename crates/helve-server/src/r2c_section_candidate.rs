@@ -105,6 +105,60 @@ where
     Ok(())
 }
 
+/// Appends the complete bottom-to-top section column atomically to caller scratch.
+///
+/// Builds each section from the same borrowed world owner, with no intermediate
+/// whole-column byte allocation and no second resident data representation.
+/// If a *later* section has an invalid block or biome identity, truncate only
+/// the candidate suffix; the caller's pre-existing bytes remain unchanged.
+///
+/// This is COLD candidate construction, not an admitted chunk packet or a
+/// publication side effect. The caller must separately prove the 26.2 biome
+/// registry order and complete enclosing chunk protocol before transmission.
+///
+/// # Errors
+///
+/// Returns the first failed section candidate and restores the original
+/// destination length on any source validation error.
+///
+/// # Panics
+///
+/// Only if an already validated chunk lattice violates its signed section-Y
+/// representability invariant.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2C outer chunk wire contract and registry IDs remain unadmitted"
+    )
+)]
+pub(crate) fn append_coherent_section_column_candidate<BlockStorage, BiomeStorage>(
+    image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
+    biome_registry_count: usize,
+    output: &mut Vec<u8>,
+) -> Result<(), SectionCandidateError>
+where
+    BlockStorage: BlockSection<BlockStateId>,
+    BiomeStorage: BiomeSection<u16>,
+{
+    let before = output.len();
+    let blocks = image.blocks();
+    for index in 0..blocks.section_count() {
+        let offset = i32::try_from(index).expect("source lattice section count fits in i32");
+        let section_y = blocks
+            .min_section_y()
+            .checked_add(offset)
+            .expect("validated section lattice contains its highest section Y");
+        if let Err(error) =
+            append_coherent_section_candidate(image, section_y, biome_registry_count, output)
+        {
+            output.truncate(before);
+            return Err(error);
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
@@ -117,7 +171,10 @@ mod tests {
     use helve_world_contract::{BlockSection, SectionBlockPos};
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 
-    use super::{SectionCandidateError, append_coherent_section_candidate};
+    use super::{
+        SectionCandidateError, append_coherent_section_candidate,
+        append_coherent_section_column_candidate,
+    };
 
     // Synthetic test-only predicates, deliberately NOT claimed as the 26.2
     // source-admitted global heightmap predicate table.
@@ -201,6 +258,48 @@ mod tests {
         assert_eq!(bytes.as_ptr(), allocation);
         assert_eq!(image.stamp(), original_stamp);
         assert_eq!(semantic.stamp(), original_stamp);
+    }
+
+    #[test]
+    fn complete_column_matches_independent_section_concatenation_in_y_order() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut expected = vec![0x81, 0x42];
+        append_coherent_section_candidate(&image, -1, 66, &mut expected).unwrap();
+        append_coherent_section_candidate(&image, 0, 66, &mut expected).unwrap();
+
+        let mut actual = Vec::with_capacity(16_384);
+        actual.extend_from_slice(&[0x81, 0x42]);
+        let original_allocation = actual.as_ptr();
+        append_coherent_section_column_candidate(&image, 66, &mut actual).unwrap();
+
+        assert_eq!(actual, expected);
+        assert_eq!(actual.as_ptr(), original_allocation);
+        assert_eq!(semantic.stamp(), image.stamp());
+    }
+
+    #[test]
+    fn later_section_failure_rolls_back_entire_candidate_suffix() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut output = Vec::with_capacity(16_384);
+        output.extend_from_slice(&[0xAB, 0xCD, 0xEF]);
+        let original_allocation = output.as_ptr();
+
+        // Registry 0..3 accepts the lower section's ordinal 2. Its upper
+        // section contains ordinal 5: the first append succeeds, but the
+        // second must abort without exposing a truncated section column.
+        assert!(matches!(
+            append_coherent_section_column_candidate(&image, 3, &mut output),
+            Err(SectionCandidateError::Biome(_))
+        ));
+        assert_eq!(output, &[0xAB, 0xCD, 0xEF]);
+        assert_eq!(output.as_ptr(), original_allocation);
+
+        // The same destination remains reusable after a rejected candidate.
+        append_coherent_section_column_candidate(&image, 66, &mut output).unwrap();
+        assert!(output.len() > 3);
+        assert_eq!(output.as_ptr(), original_allocation);
     }
 
     #[test]

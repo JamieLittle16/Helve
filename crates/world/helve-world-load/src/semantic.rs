@@ -163,6 +163,7 @@ mod tests {
                     external: false,
                 },
             },
+            block_entities: helve_world_import::StoredBlockEntityEvidence::Absent,
             light: ImportedStoredLight {
                 persisted_light_correct: true,
                 sections: vec![ImportedStoredLightSection {

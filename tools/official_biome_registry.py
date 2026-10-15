@@ -34,7 +34,11 @@ def canonical_keys(data: object) -> tuple[str, ...]:
         raise RegistryExtractionError("reports/registries.json root is not an object")
     raw = data.get(REGISTRY)
     if not isinstance(raw, dict):
-        raise RegistryExtractionError(f"official reports do not contain {REGISTRY}")
+        available = sorted(data)
+        raise RegistryExtractionError(
+            f"official reports do not contain {REGISTRY}; "
+            f"available registry keys ({len(available)}): {available[:160]}"
+        )
     entries = raw.get("entries")
     if not isinstance(entries, dict) or not entries:
         raise RegistryExtractionError("official biome report has no entries")

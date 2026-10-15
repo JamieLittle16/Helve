@@ -43,6 +43,8 @@ pub mod r2c_chunk_body;
 pub mod r2c_chunk_data;
 /// COLD target-owned 26.2 initial light wire fields; no live Play admission.
 pub mod r2c_light;
+/// Source-reviewed COLD 26.2 chunk batch, cache-centre, and acknowledgement envelope.
+pub mod r2c_play_wire;
 
 pub use r1x::{R1xContextError, R1xError, Target26_2R1x, Target26_2R1xContext, Target26_2R1xState};
 

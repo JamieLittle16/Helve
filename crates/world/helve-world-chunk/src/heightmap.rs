@@ -414,9 +414,12 @@ mod tests {
                         let props = Facts.properties(block);
                         let matches_kind = match kind {
                             Kind::WorldSurface => props.non_air(),
-                            Kind::MotionBlocking => props.blocks_motion() || props.fluid_non_empty(),
+                            Kind::MotionBlocking => {
+                                props.blocks_motion() || props.fluid_non_empty()
+                            }
                             Kind::MotionBlockingNoLeaves => {
-                                (props.blocks_motion() || props.fluid_non_empty()) && !props.leaves()
+                                (props.blocks_motion() || props.fluid_non_empty())
+                                    && !props.leaves()
                             }
                         };
                         if matches_kind {

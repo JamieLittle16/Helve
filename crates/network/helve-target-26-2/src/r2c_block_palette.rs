@@ -210,7 +210,7 @@ impl PackedBlockContainer {
     /// # Panics
     ///
     /// Only if an internal packed-word invariant fails or the trusted
-    /// append_biome callback emits a length different from biome_bytes.
+    /// `append_biome` callback emits a length different from `biome_bytes`.
     pub fn append_section_candidate(
         &self,
         non_air_count: u16,

@@ -309,8 +309,8 @@ mod tests {
     use helve_world_contract::SectionBlockPos;
 
     use super::{
-        ChunkLightError, ImportedLightSection, InitialChunkLight, LIGHT_SECTION_BYTES, LightDataLayer,
-        LightKind, LightLayerError,
+        ChunkLightError, ImportedLightSection, InitialChunkLight, LIGHT_SECTION_BYTES,
+        LightDataLayer, LightKind, LightLayerError,
     };
     use crate::VerticalSectionLattice;
 
@@ -370,7 +370,10 @@ mod tests {
         let homogeneous_zero = LightDataLayer::homogeneous(0).expect("valid zero");
         assert!(!raw_zero.is_empty());
         assert!(homogeneous_zero.is_empty());
-        assert_eq!(raw_zero.get(local(0, 0, 0)), homogeneous_zero.get(local(0, 0, 0)));
+        assert_eq!(
+            raw_zero.get(local(0, 0, 0)),
+            homogeneous_zero.get(local(0, 0, 0))
+        );
     }
 
     fn section(section_y: i32, block: bool, sky: bool) -> ImportedLightSection {
@@ -398,8 +401,12 @@ mod tests {
 
     #[test]
     fn light_lattice_includes_both_boundary_sections_and_preserves_absence() {
-        let light = initial_light(true, true, vec![section(-5, true, true), section(20, false, true)])
-            .expect("valid endpoints");
+        let light = initial_light(
+            true,
+            true,
+            vec![section(-5, true, true), section(20, false, true)],
+        )
+        .expect("valid endpoints");
         assert_eq!(light.position(), ChunkPos { x: -5, z: 8 });
         assert_eq!(light.generation(), ChunkGeneration(17));
         assert_eq!(light.vertical_lattice().min_section_y(), -4);
@@ -407,10 +414,30 @@ mod tests {
         assert_eq!(light.light_section_count(), 26);
         assert!(light.has_skylight());
         assert!(light.persisted_light_correct());
-        assert!(light.layer(LightKind::Block, -5).expect("min light").is_some());
-        assert!(light.layer(LightKind::Sky, 20).expect("max light").is_some());
-        assert!(light.layer(LightKind::Block, 20).expect("max light").is_none());
-        assert!(light.layer(LightKind::Sky, 4).expect("missing layer").is_none());
+        assert!(
+            light
+                .layer(LightKind::Block, -5)
+                .expect("min light")
+                .is_some()
+        );
+        assert!(
+            light
+                .layer(LightKind::Sky, 20)
+                .expect("max light")
+                .is_some()
+        );
+        assert!(
+            light
+                .layer(LightKind::Block, 20)
+                .expect("max light")
+                .is_none()
+        );
+        assert!(
+            light
+                .layer(LightKind::Sky, 4)
+                .expect("missing layer")
+                .is_none()
+        );
         assert!(matches!(
             light.layer(LightKind::Block, -6),
             Err(ChunkLightError::SectionOutsideLightLattice { .. })
@@ -424,7 +451,11 @@ mod tests {
     #[test]
     fn duplicate_and_outside_sections_fail_even_if_empty() {
         assert!(matches!(
-            initial_light(true, false, vec![section(0, false, false), section(0, false, false)]),
+            initial_light(
+                true,
+                false,
+                vec![section(0, false, false), section(0, false, false)]
+            ),
             Err(ChunkLightError::DuplicateSection { section_y: 0 })
         ));
         assert!(matches!(
@@ -444,8 +475,18 @@ mod tests {
         assert!(!light.has_skylight());
         assert!(!light.persisted_light_correct());
         assert!(light.layer(LightKind::Sky, -4).expect("in range").is_none());
-        assert!(light.layer(LightKind::Block, -4).expect("in range").is_none());
-        assert!(light.layer(LightKind::Block, -3).expect("missing").is_none());
+        assert!(
+            light
+                .layer(LightKind::Block, -4)
+                .expect("in range")
+                .is_none()
+        );
+        assert!(
+            light
+                .layer(LightKind::Block, -3)
+                .expect("missing")
+                .is_none()
+        );
     }
 
     #[test]
@@ -467,7 +508,12 @@ mod tests {
         let oversized = VerticalSectionLattice::new(0, 65).expect("shared lattice permits 65");
         assert!(matches!(
             InitialChunkLight::from_imported(
-                ChunkPos { x: 0, z: 0 }, ChunkGeneration(1), oversized, true, true, vec![]
+                ChunkPos { x: 0, z: 0 },
+                ChunkGeneration(1),
+                oversized,
+                true,
+                true,
+                vec![]
             ),
             Err(ChunkLightError::TooManySections { count: 65 })
         ));

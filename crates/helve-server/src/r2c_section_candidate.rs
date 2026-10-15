@@ -635,9 +635,7 @@ mod tests {
     };
 
     use crate::r2b_server::R2bPlaySession;
-    use crate::r2c_chunk_batch::{
-        ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState,
-    };
+    use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState};
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
@@ -962,8 +960,7 @@ mod tests {
         reason = "one complete receipt-bound batch must test import, shared-driver output and ack lifecycle together"
     )]
     fn two_real_source_receipts_emit_exact_chunk_batch_envelope_on_retained_play_driver() {
-        let (mut dim, first) =
-            imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let (mut dim, first) = imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
         let second = install_source_receipt_in_dimension(
             &mut dim,
             ChunkPos { x: -7, z: 11 },
@@ -1033,10 +1030,13 @@ mod tests {
             assert_eq!(&frame.payload()[..4], &expected.x.to_be_bytes());
             assert_eq!(&frame.payload()[4..8], &expected.z.to_be_bytes());
             let consumed = frame.stream_bytes();
-        reader.consume(consumed).unwrap();
+            reader.consume(consumed).unwrap();
         }
         let finish = reader.peek_frame().unwrap().unwrap();
-        assert_eq!(finish.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED));
+        assert_eq!(
+            finish.packet_id(),
+            i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+        );
         assert_eq!(finish.payload(), [2]);
         let consumed = finish.stream_bytes();
         reader.consume(consumed).unwrap();

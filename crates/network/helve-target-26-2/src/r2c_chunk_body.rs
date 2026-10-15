@@ -32,9 +32,7 @@ pub fn append_empty_block_entities_candidate(output: &mut Vec<u8>) {
 
 #[cfg(test)]
 mod tests {
-        use super::{
-        append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
-    };
+    use super::{append_chunk_coordinates_candidate, append_empty_block_entities_candidate};
 
     #[test]
     fn signed_chunk_coordinates_use_network_big_endian_without_allocation() {

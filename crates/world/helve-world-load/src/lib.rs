@@ -14,6 +14,12 @@
 
 mod light;
 mod semantic;
+mod stored_biomes;
+
+pub use stored_biomes::{
+    StoredBiomeResidencyError, StoredBiomeResidentInstallResult, compose_saved_biome_sections,
+    install_source_biome_chunk,
+};
 
 pub use semantic::{
     SemanticImportBuildError, SemanticResidentInstallError, install_imported_semantic_chunk,

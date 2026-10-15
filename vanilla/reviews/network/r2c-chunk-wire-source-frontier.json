@@ -1,0 +1,48 @@
+{
+  "schema": 1,
+  "id": "REVIEW-NET-R2C-CHUNK-WIRE-26_2-001",
+  "target": {
+    "minecraft": "26.2",
+    "protocol": 776,
+    "data_version": 4903
+  },
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "status": "DISCOVERY_NOT_ADMISSION",
+  "max_methods_per_type": 256,
+  "roots": [
+    {
+      "group": "CHUNK-PACKET-ENVELOPE",
+      "type": "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket",
+      "must_review": [
+        "clientbound chunk-with-light packet registration/ID and codec identity",
+        "signed chunk coordinates and constructor field order",
+        "chunk packet data versus light data field ordering and packet ownership"
+      ]
+    },
+    {
+      "group": "CHUNK-DATA-AND-EMPTY-ENTITIES",
+      "type": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData",
+      "must_review": [
+        "exact heightmap map + section payload framing and packet write order",
+        "exact saved block-entity inclusion, absent-tag/default and zero-count wire law",
+        "nonempty block entity position/type/NBT field order and selected-profile exclusion"
+      ]
+    },
+    {
+      "group": "INITIAL-LIGHT-FIELDS",
+      "type": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData",
+      "must_review": [
+        "four source-ordered data/empty masks and long-array encoding",
+        "sky and block raw array count/length/ordering under selected initial light source"
+      ]
+    },
+    {
+      "group": "INITIAL-CHUNK-PUBLICATION",
+      "type": "net.minecraft.server.network.PlayerChunkSender",
+      "must_review": [
+        "first chunk send trigger and client packet order after R2B bootstrap",
+        "chunk batch framing, acknowledged counts, rate bounds and first-visible-world lifecycle"
+      ]
+    }
+  ]
+}

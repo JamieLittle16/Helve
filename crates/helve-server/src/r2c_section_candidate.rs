@@ -795,6 +795,10 @@ mod tests {
     }
 
     #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one continuous end-to-end lifecycle must test two receipts, egress retry and stale source ownership together"
+    )]
     fn two_imported_receipts_stream_through_single_r2b_driver_with_backpressure() {
         let mut dim = ImportedDimension::new(
             DimensionId(8),

@@ -1161,7 +1161,8 @@ fn set_section_once<T>(
 mod tests {
     use super::{
         BLOCK_SECTION_CELLS, BlockProperty, BlockSectionDecodeScratch, BlockSectionImportError,
-        BlockStateResolver, ImportedBlockSection, ImportedBlockSectionBuilder, ImportedChunkBlocks,
+        BlockStateResolver, EmptyBlockEntityEvidenceError, ImportedBlockSection,
+        ImportedBlockSectionBuilder, ImportedChunkBlocks, StoredBlockEntityEvidence,
         decode_chunk_block_sections, decode_chunk_block_sections_with_biomes,
         decode_chunk_block_sections_with_light,
     };
@@ -1819,6 +1820,93 @@ mod tests {
                 ChunkImportError::DuplicateField { field: "isLightOn" }
             ))
         );
+    }
+
+    fn with_block_entity_list(
+        mut chunk: Vec<u8>,
+        element_type: TagType,
+        elements: &[Vec<u8>],
+    ) -> Vec<u8> {
+        assert_eq!(chunk.pop(), Some(TagType::End as u8));
+        named_header(&mut chunk, TagType::List, "block_entities");
+        chunk.push(element_type as u8);
+        chunk.extend_from_slice(
+            &i32::try_from(elements.len())
+                .expect("bounded test entries")
+                .to_be_bytes(),
+        );
+        for bytes in elements {
+            chunk.extend_from_slice(bytes);
+        }
+        chunk.push(TagType::End as u8);
+        chunk
+    }
+
+    #[test]
+    fn block_entity_list_absent_empty_and_present_are_distinct() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let base = chunk_nbt(position, &[]);
+        let absent = decode_with_light(&base, position).unwrap();
+        assert_eq!(absent.block_entities, StoredBlockEntityEvidence::Absent);
+        assert_eq!(
+            absent.block_entities.require_explicitly_empty(),
+            Err(EmptyBlockEntityEvidenceError::MissingList)
+        );
+
+        let empty = with_block_entity_list(base.clone(), TagType::Compound, &[]);
+        let loaded = decode_with_light(&empty, position).unwrap();
+        assert_eq!(loaded.block_entities, StoredBlockEntityEvidence::ExplicitlyEmpty);
+        assert_eq!(loaded.block_entities.require_explicitly_empty(), Ok(()));
+
+        // The stored entry is intentionally not decoded/published yet.
+        let nonempty = with_block_entity_list(
+            base, TagType::Compound, &[vec![TagType::End as u8]],
+        );
+        let result = decode_with_light(&nonempty, position).unwrap();
+        assert_eq!(
+            result.block_entities,
+            StoredBlockEntityEvidence::UnhandledEntries { count: 1 }
+        );
+        assert_eq!(
+            result.block_entities.require_explicitly_empty(),
+            Err(EmptyBlockEntityEvidenceError::UnhandledEntries { count: 1 })
+        );
+
+        // Block-only legacy import remains independent of this R2C gate.
+        assert_eq!(
+            decode(&nonempty, position).unwrap().header,
+            result.blocks.header,
+        );
+    }
+
+    #[test]
+    fn block_entity_list_malformed_duplicate_or_truncated_fails_closed() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let base = chunk_nbt(position, &[]);
+        let malformed = with_block_entity_list(
+            base.clone(), TagType::String, &[vec![0, 0]],
+        );
+        assert_eq!(
+            decode_with_light(&malformed, position),
+            Err(BlockSectionImportError::BlockEntityListElementType {
+                actual: TagType::String,
+            })
+        );
+
+        let empty = with_block_entity_list(base, TagType::Compound, &[]);
+        let duplicate = with_block_entity_list(empty, TagType::Compound, &[]);
+        assert_eq!(
+            decode_with_light(&duplicate, position),
+            Err(BlockSectionImportError::Chunk(
+                ChunkImportError::DuplicateField { field: "block_entities" }
+            ))
+        );
+        let mut truncated = with_block_entity_list(
+            chunk_nbt(position, &[]), TagType::Compound, &[vec![TagType::End as u8]],
+        );
+        truncated.pop();
+        truncated.pop();
+        assert!(decode_with_light(&truncated, position).is_err());
     }
 
     #[test]

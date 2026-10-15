@@ -39,6 +39,8 @@ mod r2b_wire;
 pub mod r2c_block_palette;
 /// COLD heightmap/section-data candidate only; not a complete Play packet.
 pub mod r2c_chunk_data;
+/// COLD target-owned 26.2 initial light wire fields; no live Play admission.
+pub mod r2c_light;
 
 pub use r1x::{R1xContextError, R1xError, Target26_2R1x, Target26_2R1xContext, Target26_2R1xState};
 

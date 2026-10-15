@@ -35,6 +35,8 @@ mod r2b_recipe_add;
 mod r2b_spawn;
 mod r2b_teleport;
 mod r2b_wire;
+/// COLD candidate for 26.2 block-state container projection; no live packet admission.
+pub mod r2c_block_palette;
 
 pub use r1x::{R1xContextError, R1xError, Target26_2R1x, Target26_2R1xContext, Target26_2R1xState};
 

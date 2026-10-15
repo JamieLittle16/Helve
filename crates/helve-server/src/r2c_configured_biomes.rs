@@ -12,11 +12,14 @@
 
 use helve_target_26_2::{
     Target26_2R1xContext,
-    r2c_biome_config::{BiomeConfigOrderError, borrow_core_biome_order},
+    r2c_biome_config::BiomeConfigOrderError,
 };
 use helve_world_import::{
     OrderedBiomeRegistry, TARGET_DATA_VERSION_26_2, biome_registry::BiomeRegistryError,
 };
+
+#[cfg(test)]
+use helve_target_26_2::r2c_biome_config::borrow_core_biome_order;
 
 /// A selected Config image cannot yield a valid imported biome ID map.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

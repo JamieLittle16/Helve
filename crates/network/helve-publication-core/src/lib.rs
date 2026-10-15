@@ -405,4 +405,5 @@ mod tests {
             assert_eq!(driver.queued_egress(), 0);
             assert_eq!(scratch, [0xCC]);
         }
-    }}
+    }
+}

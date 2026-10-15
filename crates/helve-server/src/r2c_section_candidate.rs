@@ -821,6 +821,37 @@ mod tests {
     }
 
     #[test]
+    fn receipt_body_and_reference_errors_retain_inspectable_causes() {
+        let (dim, receipt) =
+            imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let mut out = vec![0x21, 0x43];
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim, &receipt, &SyntheticHeightFacts, 1, 16_384, &mut out
+            ),
+            Err(ReceiptBoundBodyCandidateError::Body(
+                EmptyChunkBodyCandidateError::ChunkData(_)
+            ))
+        ));
+        assert_eq!(out, [0x21, 0x43]);
+
+        // The coherent-reference failure retains its exact source cause;
+        // a future operator must not collapse it into generic packet failure.
+        let rejection = ReceiptBoundBodyCandidateError::Reference(
+            helve_world_chunk::InitialChunkReferenceError::NoCurrentVerifiedLight,
+        );
+        match rejection {
+            ReceiptBoundBodyCandidateError::Reference(cause) => {
+                assert_eq!(
+                    cause,
+                    helve_world_chunk::InitialChunkReferenceError::NoCurrentVerifiedLight
+                );
+            }
+            other => panic!("unexpected source error class: {other:?}"),
+        }
+    }
+
+    #[test]
     fn absent_saved_entities_can_reside_but_cannot_generate_candidate() {
         let (dim, receipt) = imported_source_receipt(StoredBlockEntityEvidence::Absent);
         let mut scratch = vec![0xCC];

@@ -100,6 +100,19 @@ class BiomeSourceFrontierTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_abstract_interface_method_is_not_a_verified_implementation(self) -> None:
+        db = mock_atlas()
+        try:
+            db.execute("UPDATE methods SET body_sha256=NULL WHERE id=1")
+            [candidate] = frontier.exact_type_declarations(
+                db, "net.minecraft.core.MappedRegistry"
+            )
+            self.assertIsNone(candidate["body_sha256"])
+            self.assertTrue(candidate["declaration_only"])
+            self.assertEqual(candidate["normalized_sha256"], "a" * 64)
+        finally:
+            db.close()
+
     def test_missing_ambiguous_and_excessive_declarations_fail_closed(self) -> None:
         db = mock_atlas()
         try:

@@ -10,10 +10,7 @@
 //! No registry names are copied, no registry is stored inside itself, and
 //! no lookup/dispatch cost is added to HOT resident block/biome access.
 
-use helve_target_26_2::{
-    Target26_2R1xContext,
-    r2c_biome_config::BiomeConfigOrderError,
-};
+use helve_target_26_2::{Target26_2R1xContext, r2c_biome_config::BiomeConfigOrderError};
 use helve_world_import::{
     OrderedBiomeRegistry, TARGET_DATA_VERSION_26_2, biome_registry::BiomeRegistryError,
 };
@@ -100,9 +97,7 @@ mod tests {
         },
     };
 
-    use super::{
-        ConfiguredBiomeCandidateError, with_candidate_biomes_from_wire,
-    };
+    use super::{ConfiguredBiomeCandidateError, with_candidate_biomes_from_wire};
 
     #[derive(Default)]
     struct IntoCells;
@@ -148,7 +143,10 @@ mod tests {
 
     #[test]
     fn exact_sent_configuration_order_drives_saved_biome_import_without_sorting() {
-        let names: Vec<String> = (0..66).rev().map(|i| format!("minecraft:biome_{i}")).collect();
+        let names: Vec<String> = (0..66)
+            .rev()
+            .map(|i| format!("minecraft:biome_{i}"))
+            .collect();
         let config = [vec![3], configuration_with_names(&names)];
         let section = saved_uniform_biome("minecraft:biome_57");
 
@@ -161,8 +159,7 @@ mod tests {
             let mut builder = IntoCells;
             let mut scratch = BiomeDecodeScratch::new();
             let mut decoder = ExactBiomeDecoder::new(registry, &mut builder, &mut scratch);
-            let mut reader =
-                NbtReader::new(&section, NbtLimits::new(128, 64, 64, 8).unwrap());
+            let mut reader = NbtReader::new(&section, NbtLimits::new(128, 64, 64, 8).unwrap());
             let cells = decoder.decode_section(&mut reader, 0).unwrap();
             assert_eq!(reader.offset(), section.len());
             assert_eq!(cells.len(), 64);
@@ -181,8 +178,7 @@ mod tests {
             let mut builder = IntoCells;
             let mut scratch = BiomeDecodeScratch::new();
             let mut decoder = ExactBiomeDecoder::new(registry, &mut builder, &mut scratch);
-            let mut reader =
-                NbtReader::new(&unknown, NbtLimits::new(128, 64, 64, 8).unwrap());
+            let mut reader = NbtReader::new(&unknown, NbtLimits::new(128, 64, 64, 8).unwrap());
             decoder.decode_section(&mut reader, 0)
         });
         assert_eq!(

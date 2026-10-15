@@ -120,6 +120,12 @@ public final class R2cBiomeIdAgent {
         if (depth == 0) {
             return null;
         }
+        // MinecraftServer.spin captures a java.util.concurrent.AtomicReference
+        // in the Runnable handed to "Server thread". Its get() gives the
+        // same actual server object without mutation or heap inspection.
+        if (candidate instanceof java.util.concurrent.atomic.AtomicReference<?> reference) {
+            return findCapturedServer(reference.get(), serverClass, depth - 1);
+        }
         // The 26.2 runtime's Server thread uses a captured Runnable lambda.
         // Inspect *only* its bounded, non-static captured fields and stop at
         // the first actual MinecraftServer instance. Do not enumerate heaps,

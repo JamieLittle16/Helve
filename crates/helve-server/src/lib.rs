@@ -17,6 +17,14 @@ mod r1x_image;
 mod r1x_server;
 mod r2b_playtest;
 mod r2b_server;
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "R2C selected-world biome IDs and client admission still gate the runtime publisher"
+    )
+)]
+mod r2c_chunk_batch;
 mod r2c_publication;
 mod r2c_section_candidate;
 

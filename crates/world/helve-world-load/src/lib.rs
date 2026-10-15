@@ -21,7 +21,7 @@ pub use receipt::{SourceChunkPublicationReceipt, SourceChunkReceiptError};
 
 pub use stored_biomes::{
     StoredBiomeResidencyError, StoredBiomeResidentInstallResult, compose_saved_biome_sections,
-    install_source_biome_chunk,
+    install_source_biome_chunk, install_source_biome_chunk_with_receipt,
 };
 
 pub use semantic::{

@@ -9,6 +9,7 @@
 mod biomes;
 mod heightmap;
 mod lattice;
+mod light;
 mod publication;
 mod region_cell;
 mod semantic;
@@ -25,6 +26,10 @@ pub use heightmap::{
     HeightmapStateProperties,
 };
 pub use lattice::{VerticalSectionLattice, VerticalSectionLatticeError};
+pub use light::{
+    ChunkLightError, ImportedLightSection, InitialChunkLight, LIGHT_SECTION_BYTES, LightDataLayer,
+    LightKind, LightLayerError,
+};
 pub use publication::PublishedChunk;
 pub use region_cell::{RegionCellAddress, RegionCellCoord, RegionCellLayout};
 pub use semantic::{BiomeMutationFacts, ChunkSemanticStateError, LiveChunkSemanticState};

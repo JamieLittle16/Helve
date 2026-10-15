@@ -351,7 +351,7 @@ mod tests {
 
         let encode = |index: usize, bytes: &mut Vec<u8>| {
             bytes.extend_from_slice(&[0x11]);
-            bytes.extend_from_slice(&[index as u8; 9]);
+            bytes.extend_from_slice(&[u8::try_from(index).expect("two selected indices"); 9]);
             Ok::<(), ()>(())
         };
         assert_eq!(

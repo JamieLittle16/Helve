@@ -8,7 +8,9 @@
 use std::convert::Infallible;
 
 use helve_connection_driver::DriverError;
-use helve_publication_core::{PublicationCursor, PublicationStep, publish_one, publish_projected_one};
+use helve_publication_core::{
+    PublicationCursor, PublicationStep, publish_one, publish_projected_one,
+};
 
 use crate::r2b_server::{R2bPlayError, R2bPlaySession};
 
@@ -117,7 +119,6 @@ impl R2bPlaySession {
     ) -> Result<PublicationStep, DriverError<E>> {
         publish_projected_one(item_count, cursor, &mut self.driver, scratch, append_one)
     }
-
 }
 
 #[cfg_attr(
@@ -175,7 +176,6 @@ mod tests {
         driver.pending_egress().to_vec()
     }
 
-
     #[test]
     fn cold_projection_reuses_live_r2b_driver_without_a_packet_list() {
         let mut session = session(10);
@@ -192,7 +192,10 @@ mod tests {
 
         assert_eq!(
             session.service_play_projected_one(2, &mut cursor, &mut scratch, encode),
-            Ok(PublicationStep::Queued { index: 0, body_bytes: 8 })
+            Ok(PublicationStep::Queued {
+                index: 0,
+                body_bytes: 8
+            })
         );
         assert_eq!(cursor.next_index(), 1);
         assert_eq!(scratch, [0xEE]);
@@ -208,15 +211,23 @@ mod tests {
         assert_eq!(scratch.as_ptr(), original_projection_allocation);
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
 
-        session.consume_play_written(before.len()).expect("drain admitted packet");
+        session
+            .consume_play_written(before.len())
+            .expect("drain admitted packet");
         assert_eq!(
             session.service_play_projected_one(2, &mut cursor, &mut scratch, encode),
-            Ok(PublicationStep::Queued { index: 1, body_bytes: 8 })
+            Ok(PublicationStep::Queued {
+                index: 1,
+                body_bytes: 8
+            })
         );
         assert_eq!(cursor.next_index(), 2);
         assert_eq!(
             session.service_play_projected_one::<&'static str>(
-                2, &mut cursor, &mut scratch, |_, _| panic!("must not project completed item"),
+                2,
+                &mut cursor,
+                &mut scratch,
+                |_, _| panic!("must not project completed item"),
             ),
             Ok(PublicationStep::Complete)
         );

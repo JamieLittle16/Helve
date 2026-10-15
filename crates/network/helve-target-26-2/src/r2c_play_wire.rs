@@ -6,13 +6,13 @@
 
 use helve_connection_core::FrameView;
 
-/// Packet identities from source-order GameProtocols registrations.
+/// Packet identities from source-order `GameProtocols` registrations.
 pub const CLIENTBOUND_CHUNK_WITH_LIGHT: u8 = 45;
 pub const CLIENTBOUND_CHUNK_BATCH_START: u8 = 12;
 pub const CLIENTBOUND_CHUNK_BATCH_FINISHED: u8 = 11;
 pub const CLIENTBOUND_SET_CHUNK_CACHE_CENTER: u8 = 94;
 pub const SERVERBOUND_CHUNK_BATCH_RECEIVED: i32 = 12;
-/// Selected remote-client PlayerChunkSender upper bound.
+/// Selected remote-client `PlayerChunkSender` upper bound.
 pub const MAX_REMOTE_CHUNKS_PER_BATCH: usize = 64;
 
 /// Fail-closed validation of the finite 26.2 batch scalar codecs.
@@ -33,7 +33,7 @@ pub fn append_chunk_batch_start(output: &mut Vec<u8>) {
     output.push(CLIENTBOUND_CHUNK_BATCH_START);
 }
 
-/// Close a nonempty remote-client batch with its exact VarInt chunk count.
+/// Close a nonempty remote-client batch with its exact `VarInt` chunk count.
 ///
 /// The batch publication owner must independently prove `count` successful
 /// chunks between this packet and its preceding start packet.
@@ -41,6 +41,10 @@ pub fn append_chunk_batch_start(output: &mut Vec<u8>) {
 /// # Errors
 ///
 /// Invalid count restores/preserves all caller bytes.
+///
+/// # Panics
+///
+/// Only on violation of the already-checked 1..=64 integer conversion invariant.
 pub fn append_chunk_batch_finished(
     output: &mut Vec<u8>,
     count: usize,
@@ -62,7 +66,7 @@ fn append_signed_varint(output: &mut Vec<u8>, value: i32) {
     output.push((remaining & 0x7f) as u8);
 }
 
-/// Cache-centre signed chunk coordinates use Java two's-complement VarInt,
+/// Cache-centre signed chunk coordinates use Java two's-complement `VarInt`,
 /// *not* zigzag. No permanent network-specific spatial state is introduced.
 pub fn append_set_chunk_cache_center(output: &mut Vec<u8>, x: i32, z: i32) {
     output.push(CLIENTBOUND_SET_CHUNK_CACHE_CENTER);
@@ -89,7 +93,7 @@ pub fn decode_chunk_batch_ack(
     Ok(Some(f32::from_be_bytes(*bytes)))
 }
 
-/// Exact PlayerChunkSender acknowledgement normalization (0.01 .. 64).
+/// Exact `PlayerChunkSender` acknowledgement normalization (0.01 .. 64).
 #[must_use]
 pub fn normalize_remote_chunk_rate(desired: f32) -> f32 {
     if desired.is_nan() {

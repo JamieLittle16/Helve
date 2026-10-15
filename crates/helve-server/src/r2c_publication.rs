@@ -186,7 +186,7 @@ mod tests {
         let original_projection_allocation = scratch.as_ptr();
         let encode = |index: usize, output: &mut Vec<u8>| {
             output.push(0x11);
-            output.extend_from_slice(&[index as u8; 7]);
+            output.extend_from_slice(&[u8::try_from(index).expect("two selected indices"); 7]);
             Ok::<(), &'static str>(())
         };
 

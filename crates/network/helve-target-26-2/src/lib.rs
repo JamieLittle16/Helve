@@ -37,10 +37,10 @@ mod r2b_teleport;
 mod r2b_wire;
 /// COLD candidate for 26.2 block-state container projection; no live packet admission.
 pub mod r2c_block_palette;
-/// COLD heightmap/section-data candidate only; not a complete Play packet.
-pub mod r2c_chunk_data;
 /// Dormant target-owned chunk coordinates and empty block-entity list body candidates.
 pub mod r2c_chunk_body;
+/// COLD heightmap/section-data candidate only; not a complete Play packet.
+pub mod r2c_chunk_data;
 /// COLD target-owned 26.2 initial light wire fields; no live Play admission.
 pub mod r2c_light;
 

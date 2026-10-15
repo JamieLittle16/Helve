@@ -590,15 +590,23 @@ mod tests {
     use helve_target_26_2::r2c_chunk_body::{
         append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
     };
-    use helve_types::{ChunkGeneration, ChunkPos};
+    use helve_types::{BlockPos, ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
     use helve_world_chunk::{
         ChunkBiomeColumn, HeightmapStateFacts, HeightmapStateProperties, ImportedLightSection,
         InitialChunkLight, InitialChunkReference, LightDataLayer, LiveChunkCore,
         LiveChunkSemanticState, VerticalSectionLattice,
     };
     use helve_world_contract::{BlockSection, SectionBlockPos};
+    use helve_world_load::{
+        SourceChunkPublicationReceipt, SourceChunkReceiptError,
+        install_source_biome_chunk_with_receipt,
+    };
+    use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
     use helve_world_import::{
-        EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
+        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection,
+        ImportedChunkBlocks, ImportedStoredBiomes, ImportedStoredChunk,
+        ImportedStoredChunkWithBiomeLight, ImportedStoredLight, ImportedStoredLightSection,
+        StoredBlockEntityEvidence, StoredChunkHeader, StoredChunkSourceMetadata,
         TARGET_DATA_VERSION_26_2,
     };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
@@ -613,10 +621,12 @@ mod tests {
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
-        SectionCandidateError, append_coherent_chunk_and_light_fragments,
+        ReceiptBoundBodyCandidateError, SectionCandidateError,
+        append_coherent_chunk_and_light_fragments,
         append_coherent_chunk_data_fields_candidate, append_coherent_light_payload_candidate,
         append_coherent_section_candidate, append_coherent_section_column_candidate,
         append_explicit_empty_chunk_body_candidate,
+        append_receipt_bound_empty_chunk_body_candidate,
     };
 
     // Synthetic test-only predicates, deliberately NOT claimed as the 26.2
@@ -678,6 +688,129 @@ mod tests {
         )
         .unwrap();
         owner.with_initial_light(light).unwrap()
+    }
+
+    type ImportedDimension = SemanticDimensionInstance<
+        BlockStateId,
+        DirectBlockSection<BlockStateId>,
+        u16,
+        DirectBiomeSection<u16>,
+    >;
+
+    fn imported_source_receipt(
+        evidence: StoredBlockEntityEvidence,
+    ) -> (ImportedDimension, SourceChunkPublicationReceipt) {
+        let position = ChunkPos { x: 2, z: 3 };
+        let mut dim = ImportedDimension::new(
+            DimensionId(8),
+            DimensionRuntimeProfile::new(DimensionTypeId(4), -16, 32, true).unwrap(),
+        );
+        let imported = ImportedStoredChunkWithBiomeLight {
+            stored: ImportedStoredChunk {
+                blocks: ImportedChunkBlocks {
+                    header: StoredChunkHeader {
+                        position,
+                        data_version: TARGET_DATA_VERSION_26_2,
+                        stored_section_count: 2,
+                    },
+                    sections: Vec::new(),
+                },
+                source: StoredChunkSourceMetadata {
+                    region_timestamp: 10,
+                    compression: ChunkCompression::Uncompressed,
+                    external: false,
+                },
+            },
+            block_entities: evidence,
+            light: ImportedStoredLight {
+                persisted_light_correct: true,
+                sections: vec![ImportedStoredLightSection {
+                    section_y: -2,
+                    block: Some(vec![0x33; 2048]),
+                    sky: Some(vec![0xff; 2048]),
+                }],
+            },
+            biomes: ImportedStoredBiomes {
+                sections: vec![
+                    ImportedBiomeSection {
+                        section_y: -1,
+                        section: DirectBiomeSection::filled(2_u16),
+                    },
+                    ImportedBiomeSection {
+                        section_y: 0,
+                        section: DirectBiomeSection::filled(5_u16),
+                    },
+                ],
+            },
+        };
+        let receipt = install_source_biome_chunk_with_receipt(
+            &mut dim,
+            imported,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        ).expect("real COLD importer and directory mint receipt");
+        (dim, receipt)
+    }
+
+    #[test]
+    fn source_provenance_is_resolved_before_any_candidate_byte() {
+        let (mut dim, receipt) =
+            imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let mut actual = Vec::with_capacity(16_384);
+        actual.push(0x77);
+        let allocation = actual.as_ptr();
+        let spans = append_receipt_bound_empty_chunk_body_candidate(
+            &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut actual,
+        ).expect("real receipt bounds candidate to current owner");
+        assert_eq!(spans.position.start, 1);
+        assert_eq!(&actual[spans.block_entities], &[0]);
+        assert_eq!(actual.as_ptr(), allocation);
+
+        dim.resolve_chunk_mut(receipt.installed().handle)
+            .unwrap()
+            .replace_block(
+                BlockPos { x: 32, y: -16, z: 48 },
+                BlockStateId::new(1).unwrap(),
+                &GeneratedStateFacts,
+            )
+            .unwrap();
+        let mut stale = vec![0xAA, 0xBB];
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut stale
+            ),
+            Err(ReceiptBoundBodyCandidateError::Receipt(
+                SourceChunkReceiptError::Revised { .. }
+            ))
+        ));
+        assert_eq!(stale, [0xAA, 0xBB]);
+
+        dim.unload_chunk(receipt.installed().handle).unwrap();
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut stale
+            ),
+            Err(ReceiptBoundBodyCandidateError::Receipt(
+                SourceChunkReceiptError::Resident(_)
+            ))
+        ));
+        assert_eq!(stale, [0xAA, 0xBB]);
+    }
+
+    #[test]
+    fn absent_saved_entities_can_reside_but_cannot_generate_candidate() {
+        let (dim, receipt) = imported_source_receipt(StoredBlockEntityEvidence::Absent);
+        let mut scratch = vec![0xCC];
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut scratch
+            ),
+            Err(ReceiptBoundBodyCandidateError::Receipt(
+                SourceChunkReceiptError::BlockEntities(
+                    EmptyBlockEntityEvidenceError::MissingList
+                )
+            ))
+        ));
+        assert_eq!(scratch, [0xCC]);
     }
 
     #[test]

@@ -8,7 +8,7 @@
 use helve_generated::{BLOCK_STATE_COUNT, BlockStateId, to_vanilla_state_id};
 use helve_target_26_2::r2c_block_palette::{BlockPaletteError, PackedBlockContainer};
 use helve_world_chunk::{BiomeProjectionError, InitialChunkReference};
-use helve_world_contract::{BiomeSection, BlockSection, SectionBlockPos, BLOCK_SECTION_CELLS};
+use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
 
 /// A source or section invariant prevents a coherent candidate from being emitted.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -16,7 +16,10 @@ pub(crate) enum SectionCandidateError {
     /// Requested section is not in the source dimension's exact section lattice.
     MissingSection { section_y: i32 },
     /// Section counters cannot describe a 4096-cell source section.
-    InvalidSummary { non_air_count: u16, fluid_count: u16 },
+    InvalidSummary {
+        non_air_count: u16,
+        fluid_count: u16,
+    },
     /// The resolved global block state identity was rejected by the target reference.
     Block(BlockPaletteError),
     /// The biome ordinal or section was rejected by its source-law projection.

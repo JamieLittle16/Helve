@@ -1,0 +1,66 @@
+name: R2C Independent Loaded Biome IDs
+
+on:
+  pull_request:
+    paths:
+      - tools/java/R2cBiomeIdAgent.java
+      - tools/r2c_loaded_biome_id_oracle.py
+      - tools/r2c_live_biome_registry.py
+      - tools/tests/test_r2c_loaded_biome_id_oracle.py
+      - vanilla/fixtures/world/26.2-official-biome-resource-keys.txt
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-independent-loaded-biome-ids.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  direct_loaded_ids:
+    name: Official 26.2 independent loaded registry numeric IDs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 25
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Independent numeric ID and mapping resolver tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_loaded_biome_id_oracle.py' -v
+
+      - name: Probe pinned runtime loaded registry IDs and Configuration separately
+        run: |
+          python3 tools/r2c_loaded_biome_id_oracle.py \
+            --cache /tmp/helve-vanilla-downloads \
+            --work-dir /tmp/helve-direct-biome-oracle \
+            --output /tmp/26.2-loaded-biomes-independent-unqualified.json
+
+      - name: Verify independent ID equality and conservative non-admission
+        run: |
+          python3 - <<'PY'
+          import json
+          import tomllib
+          from pathlib import Path
+          value = json.loads(Path('/tmp/26.2-loaded-biomes-independent-unqualified.json').read_text())
+          lock = tomllib.loads(Path('vanilla/vanilla.lock.toml').read_text())
+          inventory = Path('vanilla/fixtures/world/26.2-official-biome-resource-keys.txt').read_text().splitlines()
+          assert value['target'] == {'minecraft':'26.2', 'protocol':776, 'data_version':4903}
+          assert value['registry'] == 'minecraft:worldgen/biome'
+          assert value['server_sha256'] == lock['runtime']['server_sha256']
+          assert value['source_archive_sha256'] == lock['source']['archive_sha256']
+          assert value['known_packs'] == ['minecraft:core@26.2']
+          assert value['count'] == 66
+          assert value['numeric_id_authority'] == 'RUNTIME_CROSSCHECK_PASSED_SOURCE_SEM_ADMISSION_PENDING'
+          assert value['independent_numeric_id_order_sha256'] == value['configuration_network_order_sha256']
+          assert value['independent_numeric_id_order_sha256'] == '97cba53b1bfd18870a345a42cea14e665e0a59f559dba939bec95cdf6fa5373d'
+          assert value['names_by_verified_runtime_id_candidate'] == inventory
+          print('PASSED: independent loaded in-memory ID mapping equals Configuration ordinal order')
+          print('Still blocked: reviewed source/SEM admission and exact selected runtime profile parity')
+          PY

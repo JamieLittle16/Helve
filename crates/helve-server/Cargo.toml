@@ -11,12 +11,19 @@ autobins = false
 [dependencies]
 helve-connection-core = { path = "../network/helve-connection-core" }
 helve-connection-driver = { path = "../network/helve-connection-driver" }
+helve-generated = { path = "../data/helve-generated" }
 helve-packet-core = { path = "../network/helve-packet-core" }
 helve-preplay-core = { path = "../network/helve-preplay-core" }
 helve-preplay-io = { path = "../network/helve-preplay-io" }
 helve-publication-core = { path = "../network/helve-publication-core" }
 helve-session-core = { path = "../network/helve-session-core" }
 helve-target-26-2 = { path = "../network/helve-target-26-2" }
+helve-world-chunk = { path = "../world/helve-world-chunk" }
+helve-world-contract = { path = "../world/helve-world-contract" }
+
+[dev-dependencies]
+helve-types = { path = "../helve-types" }
+helve-world-reference = { path = "../world/helve-world-reference" }
 
 [[bin]]
 name = "helve"

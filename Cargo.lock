@@ -141,12 +141,17 @@ version = "0.0.0"
 dependencies = [
  "helve-connection-core",
  "helve-connection-driver",
+ "helve-generated",
  "helve-packet-core",
  "helve-preplay-core",
  "helve-preplay-io",
  "helve-publication-core",
  "helve-session-core",
  "helve-target-26-2",
+ "helve-types",
+ "helve-world-chunk",
+ "helve-world-contract",
+ "helve-world-reference",
 ]
 
 [[package]]

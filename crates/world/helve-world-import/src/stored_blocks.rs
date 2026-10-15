@@ -1496,7 +1496,7 @@ mod tests {
         duplicate.pop();
         let second = light_section(0, Some(2048), None);
         // Two copies of the same singleton light field must fail, even with valid raw data.
-        duplicate.extend_from_slice(&second[4..]);
+        duplicate.extend_from_slice(&second[5..]);
         assert!(matches!(
             decode_with_light(&chunk_nbt(position, &[duplicate]), position),
             Err(BlockSectionImportError::SectionDuplicateField {

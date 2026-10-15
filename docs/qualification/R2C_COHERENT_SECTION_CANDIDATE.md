@@ -34,3 +34,36 @@ pre-reserved destination, and all-or-nothing rollback when an upper-section
 biome ordinal is out of the selected registry range.
 
 Next: source-qualify exact biome ordinal ordering and the remaining enclosing packet law, add target-owned packet serialization, and only then connect it to the existing `R2bPlaySession` publication cursor and stock-client differential runner.
+
+## Heightmaps + bounded section-byte prefix (R2C next candidate)
+
+The target-owned COLD `r2c_chunk_data` adapter now validates and appends
+three source-selected heightmap type IDs 1, 4 and 5, each followed by its
+canonical packed long array, with a three-entry map prefix. It validates
+the exact dimension-relative height bound, required non-spanning word
+counts and unused storage padding before appending anything.
+
+The complete section sequence is built directly into the same caller-owned
+`Vec<u8>`, and then receives its canonical length `VarInt` using one
+in-place byte movement. There is no second serialized chunk buffer. The
+source section validation and a caller-specified uncompressed section byte
+limit remain fail-closed. If any section fails after heightmaps were written,
+the server candidate truncates **all** fields back to the caller's old length.
+
+`append_coherent_chunk_data_fields_candidate` consumes the same immutable
+`InitialChunkReference` (generation/revision, blocks, biomes, verified
+light and already packed heightmaps), never retains a packet-shaped
+resident image and introduces no HOT-path branches.
+
+**This is not a complete chunk packet.** The prefix omits the block-entity
+field, chunk position/packet identity, light payload and the source-backed
+publication order. The existing biome runtime candidate is not yet an
+admitted numeric-ID table; issue #285 remains open. The implementation
+must not be connected to actual Play output until all those independent
+gates are satisfied.
+
+The target adapter's unit tests verify canonical big-endian packed words,
+VarInt boundaries, invalid padding/count and source failures. The server
+composition tests verify byte equality with separately assembled fields,
+retention of allocation with pre-reserved scratch, and atomic rollback even
+when the **second** section fails.

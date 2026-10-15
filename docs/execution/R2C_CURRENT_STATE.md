@@ -18,7 +18,7 @@ R2C has crossed the stored-world/import boundary and now also has the first cohe
 - exact 26.2 stored block-state import with genuine-save differential evidence;
 - import-to-residency qualification and selected cold-import optimizations;
 - target-neutral 4×4×4 biome semantic storage;
-- one whole-chunk `ChunkRevision` coherence baseline shared by block and biome mutation;
+- one whole-chunk `ChunkRevision` coherence baseline shared by block and biome mutation, also used to invalidate any attached imported light after real changes;
 - atomic same-driver publication admission and allocation-free one-body publication progression;
 - independently promoted source-free source admission for 58 reviewed world-state methods and 20 biome/heightmap/light SEM rules (PR #268);
 - a one-command local runner retained to reproduce the independently admitted source boundary;
@@ -57,7 +57,7 @@ Packet/wire facts are never inferred merely because the runtime substrate or a h
 | R2C.1 world-state source review | **INDEPENDENTLY ADMITTED AND PROMOTED (#268)** | BIOMES, HEIGHTMAPS and LIGHT: 58 required reviewed methods, 20 admitted SEM rules, zero gate failures. Target semantics are authorized for implementation, but the admission record explicitly states that runtime behavior is not implemented. Other world-wire groups remain unadmitted. |
 | R2C.1 remaining world-wire review | **PENDING** | World-entry, chunk-span, selected block-entity, pacing/acknowledgement and exact packet-identity/order law still require bounded source admission. Existing lower-layer block-section evidence may be reused only where its admitted claim exactly matches the R2C route. |
 | R2C.2 resident-world substrate | **LANDED** | `DimensionInstance`, compact chunk generations, direct resolved access, unload/reload and stale-handle rejection are on `main`. Sparse directory lookup is a lifecycle boundary, not a HOT cell-access mechanism. |
-| R2C.2 whole-chunk freshness | **BLOCK + BIOME COMPOSITE LANDED** | `LiveChunkSemanticState` composes existing block and biome owners without copying, requires exact position/generation/lattice identity and uses the existing `LiveChunkCore` revision as the sole whole-chunk semantic clock. Real block or biome changes advance that one revision; no-ops/rejected mutations do not. No secondary revision, dynamic dispatch or projection work was introduced. |
+| R2C.2 whole-chunk freshness | **BLOCK + BIOME COMPOSITE LANDED; INITIAL-LIGHT ATTACHMENT IN REVIEW** | `LiveChunkSemanticState` owns one shared revision. The new optional imported-light component is accepted only for exactly matching chunk position/generation/lattice at revision zero, and becomes unavailable after any real block or biome mutation without extra HOT invalidation operations. No secondary revision, dynamic dispatch or network-shaped state is introduced. |
 | R2C.2 resident qualification | **CORRECTNESS/HOSTED DIAGNOSTICS LANDED; TARGET PERFORMANCE ADMISSION SEPARATE** | Lifecycle/HOT-path qualification and the official-save import-through-residency path are green. Hosted timing is diagnostic only. |
 | R2C.2S block-section production policy | **DECISION PIPELINE LANDED; REAL EVIDENCE/POLICY NOT FROZEN** | Direct, adaptive-local, fast-local and packed candidates are correctness-qualified. M0.3D/issue #19 has the complete measurement/Pareto/policy machinery; the remaining work is real four-seed population evidence, exact-revision correctness sealing, controlled physical target-hardware runs and the explicit reviewed winner/loser record. `SEC-REF-DIRECT` remains reference-only. |
 | R2C.3 pregenerated-world block import | **LANDED AND GENUINE-SAVE DIFFERENTIAL GREEN** | Bounded Anvil framing, DEFLATE, schema-directed NBT, exact persisted-state resolution and final section construction are on `main`. Independent official-save comparison covers 12,696 block-bearing sections / 52,002,816 block cells exactly. |
@@ -195,7 +195,7 @@ A lower evidence class never substitutes for a higher one.
 
 Current `main` does **not** yet prove:
 
-- runtime implementation and end-to-end client qualification of the already admitted BIOME / HEIGHTMAP / LIGHT SEM bundle;
+- runtime NBT import, complete relighting/refresh and end-to-end client qualification of the already admitted BIOME / HEIGHTMAP / LIGHT SEM bundle;
 - production target implementation of the reviewed biome palette/wire law;
 - production derived client heightmaps;
 - production light ownership / light-correct import path;

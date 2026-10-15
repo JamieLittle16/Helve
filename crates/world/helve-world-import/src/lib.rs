@@ -27,10 +27,12 @@ pub use state_lookup::{
 pub use stored_blocks::{
     BlockProperty, BlockSectionDecodeScratch, BlockSectionImportError,
     BlockSectionScratchCapacities, BlockStateResolver, ImportedBlockSection,
-    ImportedBlockSectionBuilder, ImportedChunkBlocks, decode_chunk_block_sections,
+    ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedChunkWithLight, ImportedStoredLight,
+    ImportedStoredLightSection, decode_chunk_block_sections,
+    decode_chunk_block_sections_with_light,
 };
 pub use transaction::{
     ChunkPayloadDecoder, ChunkPayloadLimits, ExternalChunkPayload, ImportedStoredChunk,
-    StoredBlockImporter, StoredChunkImportError, StoredChunkSourceMetadata,
-    UncompressedChunkPayloadDecoder, UncompressedPayloadError,
+    ImportedStoredChunkWithLight, StoredBlockImporter, StoredChunkImportError,
+    StoredChunkSourceMetadata, UncompressedChunkPayloadDecoder, UncompressedPayloadError,
 };

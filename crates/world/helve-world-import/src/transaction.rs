@@ -13,7 +13,8 @@ use crate::{
     nbt::NbtLimits,
     stored_blocks::{
         BlockSectionDecodeScratch, BlockSectionImportError, BlockStateResolver,
-        ImportedBlockSectionBuilder, ImportedChunkBlocks, decode_chunk_block_sections,
+        ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedStoredLight,
+        decode_chunk_block_sections, decode_chunk_block_sections_with_light,
     },
 };
 
@@ -127,6 +128,19 @@ pub struct ImportedStoredChunk<Section> {
     pub source: StoredChunkSourceMetadata,
 }
 
+/// Complete stored transaction including source lighting without re-parsing the chunk.
+///
+/// The `stored` block transaction remains consumable by the existing residency installer;
+/// light stays an independent, explicitly unverified COLD import input until a coherent
+/// `InitialChunkLight` is constructed against the loaded dimension profile.
+#[derive(Debug, Eq, PartialEq)]
+pub struct ImportedStoredChunkWithLight<Section> {
+    /// Identical block + source metadata transaction to the block-only path.
+    pub stored: ImportedStoredChunk<Section>,
+    /// Source `isLightOn` and all source-admitted exact light arrays.
+    pub light: ImportedStoredLight,
+}
+
 /// Fail-closed errors spanning the complete persisted block import transaction.
 #[derive(Debug, Eq, PartialEq)]
 pub enum StoredChunkImportError<DecodeError> {
@@ -224,6 +238,36 @@ where
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
     ) -> Result<ImportedStoredChunk<B::Section>, StoredChunkImportError<D::Error>> {
+        let transaction =
+            self.import_region_chunk_inner::<false>(region, local_x, local_z, external_payload)?;
+        Ok(transaction.stored)
+    }
+
+    /// Imports block sections and exact source light arrays from one bounded NBT pass.
+    ///
+    /// The compiler statically specializes the same block decode and payload/framing transaction
+    /// for the light-enabled path. The block-only path retains its original import semantics.
+    ///
+    /// # Errors
+    ///
+    /// Propagates the exact region/framing, decompression, block and light schema decode errors.
+    pub fn import_region_chunk_with_light(
+        &mut self,
+        region: &RegionView<'_>,
+        local_x: u8,
+        local_z: u8,
+        external_payload: Option<ExternalChunkPayload<'_>>,
+    ) -> Result<ImportedStoredChunkWithLight<B::Section>, StoredChunkImportError<D::Error>> {
+        self.import_region_chunk_inner::<true>(region, local_x, local_z, external_payload)
+    }
+
+    fn import_region_chunk_inner<const INCLUDE_LIGHT: bool>(
+        &mut self,
+        region: &RegionView<'_>,
+        local_x: u8,
+        local_z: u8,
+        external_payload: Option<ExternalChunkPayload<'_>>,
+    ) -> Result<ImportedStoredChunkWithLight<B::Section>, StoredChunkImportError<D::Error>> {
         let Some(chunk) = region.chunk(local_x, local_z)? else {
             return Err(StoredChunkImportError::EmptyRegionSlot { local_x, local_z });
         };
@@ -254,22 +298,43 @@ where
                 self.payload_limits.max_decompressed_bytes,
             )
             .map_err(StoredChunkImportError::Decode)?;
-        let blocks = decode_chunk_block_sections(
-            decompressed,
-            chunk.position,
-            self.nbt_limits,
-            self.resolver,
-            self.builder,
-            self.section_scratch,
-        )?;
+        let (blocks, light) = if INCLUDE_LIGHT {
+            let world = decode_chunk_block_sections_with_light(
+                decompressed,
+                chunk.position,
+                self.nbt_limits,
+                self.resolver,
+                self.builder,
+                self.section_scratch,
+            )?;
+            (world.blocks, world.light)
+        } else {
+            (
+                decode_chunk_block_sections(
+                    decompressed,
+                    chunk.position,
+                    self.nbt_limits,
+                    self.resolver,
+                    self.builder,
+                    self.section_scratch,
+                )?,
+                ImportedStoredLight {
+                    persisted_light_correct: false,
+                    sections: Vec::new(),
+                },
+            )
+        };
 
-        Ok(ImportedStoredChunk {
-            blocks,
-            source: StoredChunkSourceMetadata {
-                region_timestamp: chunk.timestamp,
-                compression: chunk.compression,
-                external: chunk.external,
+        Ok(ImportedStoredChunkWithLight {
+            stored: ImportedStoredChunk {
+                blocks,
+                source: StoredChunkSourceMetadata {
+                    region_timestamp: chunk.timestamp,
+                    compression: chunk.compression,
+                    external: chunk.external,
+                },
             },
+            light,
         })
     }
 }
@@ -438,6 +503,65 @@ mod tests {
                 external: false,
             }
         );
+    }
+
+    #[test]
+    fn light_aware_region_transaction_decodes_blocks_and_exact_initial_light_once() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let mut nbt = chunk_nbt(position, "minecraft:stone");
+        // Insert a saved BlockLight array just before the section compound's TAG_End.
+        let end_section = nbt.len() - 2;
+        let mut light_field = Vec::new();
+        named_header(&mut light_field, TagType::ByteArray, "BlockLight");
+        light_field.extend_from_slice(&2048_i32.to_be_bytes());
+        light_field.extend(std::iter::repeat_n(0xa5_u8, 2048));
+        nbt.splice(end_section..end_section, light_field);
+        // Source isLightOn is a top-level byte flag, not an inferred light-engine state.
+        assert_eq!(nbt.pop(), Some(TagType::End as u8));
+        named_header(&mut nbt, TagType::Byte, "isLightOn");
+        nbt.push(1);
+        nbt.push(TagType::End as u8);
+
+        let region_bytes = region_bytes(3, &nbt, 71);
+        let region =
+            RegionView::new(&region_bytes, 0, 0, REGION_LIMITS).expect("valid one-chunk region");
+        let resolver = Resolver;
+        let mut builder = VecBuilder;
+        let mut scratch = BlockSectionDecodeScratch::new();
+        let mut decoder = UncompressedChunkPayloadDecoder;
+        let mut importer = StoredBlockImporter::new(
+            PAYLOAD_LIMITS,
+            NbtLimits::new(256, 4096, 4096, 16).expect("light-capable bounds"),
+            &mut decoder,
+            &resolver,
+            &mut builder,
+            &mut scratch,
+        );
+        let world_state = importer
+            .import_region_chunk_with_light(&region, 0, 0, None)
+            .expect("one-pass region-to-light transaction");
+
+        assert_eq!(world_state.stored.blocks.header.position, position);
+        assert_eq!(world_state.stored.blocks.sections.len(), 1);
+        assert!(
+            world_state.stored.blocks.sections[0]
+                .section
+                .iter()
+                .all(|&s| s == 1)
+        );
+        assert_eq!(world_state.stored.source.region_timestamp, 71);
+        assert!(world_state.light.persisted_light_correct);
+        assert_eq!(world_state.light.sections.len(), 1);
+        assert_eq!(world_state.light.sections[0].section_y, 0);
+        assert_eq!(
+            world_state.light.sections[0].block.as_ref().unwrap().len(),
+            2048
+        );
+        assert_eq!(
+            world_state.light.sections[0].block.as_ref().unwrap()[0],
+            0xa5
+        );
+        assert!(world_state.light.sections[0].sky.is_none());
     }
 
     #[test]

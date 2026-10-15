@@ -20,8 +20,8 @@ use helve_target_26_2::r2c_light::{
 };
 use helve_types::ChunkPos;
 use helve_world_chunk::{
-    BiomeProjectionError, HeightmapStateFacts, InitialChunkReference,
-    InitialChunkReferenceError, LightKind, LightMaskReferenceError,
+    BiomeProjectionError, HeightmapStateFacts, InitialChunkReference, InitialChunkReferenceError,
+    LightKind, LightMaskReferenceError,
 };
 use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
 use helve_world_import::{
@@ -519,6 +519,10 @@ where
 
 /// A source receipt cannot authorize this candidate against the live owner.
 #[derive(Debug)]
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "Dormant R2C source-verified body candidate has no Play consumer")
+)]
 pub(crate) enum ReceiptBoundBodyCandidateError {
     /// Original dimension/position/incarnation, revision, or empty-list evidence failed.
     Receipt(SourceChunkReceiptError),
@@ -597,19 +601,18 @@ mod tests {
         LiveChunkSemanticState, VerticalSectionLattice,
     };
     use helve_world_contract::{BlockSection, SectionBlockPos};
+    use helve_world_import::{
+        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection, ImportedChunkBlocks,
+        ImportedStoredBiomes, ImportedStoredChunk, ImportedStoredChunkWithBiomeLight,
+        ImportedStoredLight, ImportedStoredLightSection, StoredBlockEntityEvidence,
+        StoredChunkHeader, StoredChunkSourceMetadata, TARGET_DATA_VERSION_26_2,
+    };
     use helve_world_load::{
         SourceChunkPublicationReceipt, SourceChunkReceiptError,
         install_source_biome_chunk_with_receipt,
     };
-    use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
-    use helve_world_import::{
-        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection,
-        ImportedChunkBlocks, ImportedStoredBiomes, ImportedStoredChunk,
-        ImportedStoredChunkWithBiomeLight, ImportedStoredLight, ImportedStoredLightSection,
-        StoredBlockEntityEvidence, StoredChunkHeader, StoredChunkSourceMetadata,
-        TARGET_DATA_VERSION_26_2,
-    };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
+    use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
 
     use helve_target_26_2::r2c_chunk_data::{
         SectionLengthError, append_heightmap_map_candidate, append_length_prefixed_sections,
@@ -622,10 +625,9 @@ mod tests {
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
         ReceiptBoundBodyCandidateError, SectionCandidateError,
-        append_coherent_chunk_and_light_fragments,
-        append_coherent_chunk_data_fields_candidate, append_coherent_light_payload_candidate,
-        append_coherent_section_candidate, append_coherent_section_column_candidate,
-        append_explicit_empty_chunk_body_candidate,
+        append_coherent_chunk_and_light_fragments, append_coherent_chunk_data_fields_candidate,
+        append_coherent_light_payload_candidate, append_coherent_section_candidate,
+        append_coherent_section_column_candidate, append_explicit_empty_chunk_body_candidate,
         append_receipt_bound_empty_chunk_body_candidate,
     };
 
@@ -743,11 +745,10 @@ mod tests {
                 ],
             },
         };
-        let receipt = install_source_biome_chunk_with_receipt(
-            &mut dim,
-            imported,
-            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
-        ).expect("real COLD importer and directory mint receipt");
+        let receipt = install_source_biome_chunk_with_receipt(&mut dim, imported, || {
+            DirectBlockSection::filled(AIR, &GeneratedStateFacts)
+        })
+        .expect("real COLD importer and directory mint receipt");
         (dim, receipt)
     }
 
@@ -759,8 +760,14 @@ mod tests {
         actual.push(0x77);
         let allocation = actual.as_ptr();
         let spans = append_receipt_bound_empty_chunk_body_candidate(
-            &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut actual,
-        ).expect("real receipt bounds candidate to current owner");
+            &dim,
+            &receipt,
+            &SyntheticHeightFacts,
+            66,
+            16_384,
+            &mut actual,
+        )
+        .expect("real receipt bounds candidate to current owner");
         assert_eq!(spans.position.start, 1);
         assert_eq!(&actual[spans.block_entities], &[0]);
         assert_eq!(actual.as_ptr(), allocation);
@@ -768,7 +775,11 @@ mod tests {
         dim.resolve_chunk_mut(receipt.installed().handle)
             .unwrap()
             .replace_block(
-                BlockPos { x: 32, y: -16, z: 48 },
+                BlockPos {
+                    x: 32,
+                    y: -16,
+                    z: 48,
+                },
                 BlockStateId::new(1).unwrap(),
                 &GeneratedStateFacts,
             )
@@ -776,7 +787,12 @@ mod tests {
         let mut stale = vec![0xAA, 0xBB];
         assert!(matches!(
             append_receipt_bound_empty_chunk_body_candidate(
-                &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut stale
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                &mut stale
             ),
             Err(ReceiptBoundBodyCandidateError::Receipt(
                 SourceChunkReceiptError::Revised { .. }
@@ -787,7 +803,12 @@ mod tests {
         dim.unload_chunk(receipt.installed().handle).unwrap();
         assert!(matches!(
             append_receipt_bound_empty_chunk_body_candidate(
-                &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut stale
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                &mut stale
             ),
             Err(ReceiptBoundBodyCandidateError::Receipt(
                 SourceChunkReceiptError::Resident(_)
@@ -802,12 +823,15 @@ mod tests {
         let mut scratch = vec![0xCC];
         assert!(matches!(
             append_receipt_bound_empty_chunk_body_candidate(
-                &dim, &receipt, &SyntheticHeightFacts, 66, 16_384, &mut scratch
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                &mut scratch
             ),
             Err(ReceiptBoundBodyCandidateError::Receipt(
-                SourceChunkReceiptError::BlockEntities(
-                    EmptyBlockEntityEvidenceError::MissingList
-                )
+                SourceChunkReceiptError::BlockEntities(EmptyBlockEntityEvidenceError::MissingList)
             ))
         ));
         assert_eq!(scratch, [0xCC]);

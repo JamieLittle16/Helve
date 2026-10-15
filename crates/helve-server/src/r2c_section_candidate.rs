@@ -827,7 +827,12 @@ mod tests {
         let mut out = vec![0x21, 0x43];
         assert!(matches!(
             append_receipt_bound_empty_chunk_body_candidate(
-                &dim, &receipt, &SyntheticHeightFacts, 1, 16_384, &mut out
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                1,
+                16_384,
+                &mut out
             ),
             Err(ReceiptBoundBodyCandidateError::Body(
                 EmptyChunkBodyCandidateError::ChunkData(_)

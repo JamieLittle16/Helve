@@ -84,13 +84,13 @@ pub fn prepare_imported_chunk_light<Section>(
 /// The dimension profile supplies the already-qualified vertical lattice and skylight policy.
 /// The chunk position and lifecycle generation are supplied by the caller's eventual authoritative
 /// resident incarnation, not inferred from persisted light arrays. The complete caller must still
-/// attach the result through \`LiveChunkSemanticState::with_initial_light\`, which checks identity,
+/// attach the result through `LiveChunkSemanticState::with_initial_light`, which checks identity,
 /// lattice and pristine revision together.
 ///
-/// Raw 2048-byte arrays are *moved* into \`LightDataLayer\` without per-cell copying. Explicit raw
+/// Raw 2048-byte arrays are *moved* into `LightDataLayer` without per-cell copying. Explicit raw
 /// zero arrays remain packed rather than being conflated with homogeneous-zero layers. In a
 /// dimension without skylight, persisted sky arrays are deliberately ignored before allocation.
-/// A false or absent source \`isLightOn\` is never promoted to true here.
+/// A false or absent source `isLightOn` is never promoted to true here.
 ///
 /// This is COLD boundary work: it introduces no HOT per-block mutation checks, new revision clock,
 /// global chunk directory or target-specific network representation.

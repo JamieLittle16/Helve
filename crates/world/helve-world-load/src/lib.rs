@@ -17,7 +17,9 @@ mod receipt;
 mod semantic;
 mod stored_biomes;
 
-pub use receipt::{SourceChunkPublicationReceipt, SourceChunkReceiptError};
+pub use receipt::{
+    ExplicitlyEmptyImportedSource, SourceChunkPublicationReceipt, SourceChunkReceiptError,
+};
 
 pub use stored_biomes::{
     StoredBiomeResidencyError, StoredBiomeResidentInstallResult, compose_saved_biome_sections,

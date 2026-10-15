@@ -1,0 +1,71 @@
+name: R2C Official Biome Resource Probe
+
+on:
+  pull_request:
+    paths:
+      - tools/official_biome_registry.py
+      - tools/tests/test_official_biome_registry.py
+      - vanilla/fixtures/world/26.2-official-biome-resource-keys.txt
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-biome-registry.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official_biome_registry:
+    name: Official 26.2 biome resource inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Java 25
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Test fail-closed registry report parser
+        run: python3 -m unittest discover -s tools/tests -p 'test_official_biome_registry.py' -v
+
+      - name: Inventory pinned official Mojang worldgen biome definitions
+        run: |
+          python3 tools/official_biome_registry.py \
+            --version 26.2 \
+            --cache /tmp/helve-vanilla-downloads \
+            --work-dir /tmp/r2c-official-biome-datagen \
+            --output /tmp/26.2-official-biome-resources.json \
+            --print-ids
+
+      - name: Verify dynamic resource identity with no fabricated protocol IDs
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import tomllib
+          from pathlib import Path
+          data = json.loads(Path('/tmp/26.2-official-biome-resources.json').read_text())
+          lock = tomllib.loads(Path('vanilla/vanilla.lock.toml').read_text())
+          assert data['target'] == {
+              'minecraft_version': '26.2',
+              'protocol_version': 776,
+              'data_version': 4903,
+          }
+          assert data['server_sha256'] == lock['runtime']['server_sha256']
+          names = data['biome_resource_keys']
+          assert data['biome_resource_count'] == len(names) > 0
+          assert len(set(names)) == len(names)
+          assert data['protocol_id_authority'] == 'NOT_QUALIFIED'
+          assert hashlib.sha256(('\n'.join(names) + '\n').encode()).hexdigest() == data['biome_resource_keys_sha256']
+          frozen = Path('vanilla/fixtures/world/26.2-official-biome-resource-keys.txt').read_text(encoding='utf-8')
+          assert frozen.endswith('\n'), 'source fixture must end with LF'
+          assert tuple(frozen.splitlines()) == tuple(names), 'official resource names differ from pinned source fixture'
+          assert data['biome_resource_keys_sha256'] == '97cba53b1bfd18870a345a42cea14e665e0a59f559dba939bec95cdf6fa5373d'
+          print('pinned 66-biome resource inventory matches official datagen; numeric IDs remain unqualified')
+          print(f"source-backed biome inventory: {len(names)} definitions, protocol IDs NOT qualified")
+          PY

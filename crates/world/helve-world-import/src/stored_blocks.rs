@@ -535,7 +535,8 @@ where
                 if block_entities.is_some() {
                     return Err(ChunkImportError::DuplicateField {
                         field: "block_entities",
-                    }.into());
+                    }
+                    .into());
                 }
                 let list = reader.read_list_header()?;
                 if list.len != 0 && list.element_type != TagType::Compound {
@@ -1855,13 +1856,14 @@ mod tests {
 
         let empty = with_block_entity_list(base.clone(), TagType::Compound, &[]);
         let loaded = decode_with_light(&empty, position).unwrap();
-        assert_eq!(loaded.block_entities, StoredBlockEntityEvidence::ExplicitlyEmpty);
+        assert_eq!(
+            loaded.block_entities,
+            StoredBlockEntityEvidence::ExplicitlyEmpty
+        );
         assert_eq!(loaded.block_entities.require_explicitly_empty(), Ok(()));
 
         // The stored entry is intentionally not decoded/published yet.
-        let nonempty = with_block_entity_list(
-            base, TagType::Compound, &[vec![TagType::End as u8]],
-        );
+        let nonempty = with_block_entity_list(base, TagType::Compound, &[vec![TagType::End as u8]]);
         let result = decode_with_light(&nonempty, position).unwrap();
         assert_eq!(
             result.block_entities,
@@ -1883,9 +1885,7 @@ mod tests {
     fn block_entity_list_malformed_duplicate_or_truncated_fails_closed() {
         let position = ChunkPos { x: 0, z: 0 };
         let base = chunk_nbt(position, &[]);
-        let malformed = with_block_entity_list(
-            base.clone(), TagType::String, &[vec![0, 0]],
-        );
+        let malformed = with_block_entity_list(base.clone(), TagType::String, &[vec![0, 0]]);
         assert_eq!(
             decode_with_light(&malformed, position),
             Err(BlockSectionImportError::BlockEntityListElementType {
@@ -1898,11 +1898,15 @@ mod tests {
         assert_eq!(
             decode_with_light(&duplicate, position),
             Err(BlockSectionImportError::Chunk(
-                ChunkImportError::DuplicateField { field: "block_entities" }
+                ChunkImportError::DuplicateField {
+                    field: "block_entities"
+                }
             ))
         );
         let mut truncated = with_block_entity_list(
-            chunk_nbt(position, &[]), TagType::Compound, &[vec![TagType::End as u8]],
+            chunk_nbt(position, &[]),
+            TagType::Compound,
+            &[vec![TagType::End as u8]],
         );
         truncated.pop();
         truncated.pop();

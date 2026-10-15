@@ -7,6 +7,10 @@
 
 use helve_generated::{BLOCK_STATE_COUNT, BlockStateId, to_vanilla_state_id};
 use helve_target_26_2::r2c_block_palette::{BlockPaletteError, PackedBlockContainer};
+use helve_target_26_2::r2c_chunk_data::{
+    HeightmapMapError, SectionLengthError, append_heightmap_map_candidate,
+    append_length_prefixed_sections,
+};
 use helve_world_chunk::{BiomeProjectionError, InitialChunkReference};
 use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
 
@@ -159,6 +163,74 @@ where
     Ok(())
 }
 
+/// The exact borrowed world could not form the two leading chunk-data fields.
+///
+/// This remains an **incomplete** chunk-data prefix: block-entity payloads,
+/// enclosing chunk coordinates/packet identity and light data are absent.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ChunkDataCandidateError {
+    /// Packed heightmaps failed independent target-boundary validation.
+    Heightmaps(HeightmapMapError),
+    /// The section sequence was incomplete, too large or semantically invalid.
+    Sections(SectionLengthError<SectionCandidateError>),
+}
+
+/// Append source-backed heightmap map and a length-delimited full section column.
+///
+/// Reads one immutable, whole-chunk-stamped owner. Exact heightmap/section
+/// semantics use the previously admitted R2C world-state source group;
+/// numeric biome IDs still require issue #285 and full chunk packet admission.
+///
+/// The target owns all emitted bytes. The resident world owns none. On any
+/// failure, only the candidate bytes are truncated; the original output
+/// prefix is preserved without an intermediate serialized chunk allocation.
+///
+/// # Errors
+///
+/// Heightmap, source-section, caller-size-cap or empty-section errors all
+/// reject the entire candidate and restore the original caller buffer.
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "R2C chunk packet, entity and biome ID publication remain unadmitted")
+)]
+pub(crate) fn append_coherent_chunk_data_fields_candidate<BlockStorage, BiomeStorage>(
+    image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
+    biome_registry_count: usize,
+    max_section_bytes: usize,
+    output: &mut Vec<u8>,
+) -> Result<(), ChunkDataCandidateError>
+where
+    BlockStorage: BlockSection<BlockStateId>,
+    BiomeStorage: BiomeSection<u16>,
+{
+    let before = output.len();
+    let maps = image.heightmaps().entries();
+    let height = image
+        .blocks()
+        .section_count()
+        .checked_mul(16)
+        .and_then(|blocks| u16::try_from(blocks).ok())
+        .expect("initial verified heightmap reference has representable section height");
+    append_heightmap_map_candidate(
+        output,
+        height,
+        [maps[0].words(), maps[1].words(), maps[2].words()],
+    )
+    .map_err(ChunkDataCandidateError::Heightmaps)?;
+
+    if let Err(error) = append_length_prefixed_sections(output, max_section_bytes, |destination| {
+        append_coherent_section_column_candidate(
+            image,
+            biome_registry_count,
+            destination,
+        )
+    }) {
+        output.truncate(before);
+        return Err(ChunkDataCandidateError::Sections(error));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
@@ -171,8 +243,13 @@ mod tests {
     use helve_world_contract::{BlockSection, SectionBlockPos};
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 
+    use helve_target_26_2::r2c_chunk_data::{
+        SectionLengthError, append_heightmap_map_candidate, append_length_prefixed_sections,
+    };
+
     use super::{
-        SectionCandidateError, append_coherent_section_candidate,
+        ChunkDataCandidateError, SectionCandidateError,
+        append_coherent_chunk_data_fields_candidate, append_coherent_section_candidate,
         append_coherent_section_column_candidate,
     };
 
@@ -300,6 +377,69 @@ mod tests {
         append_coherent_section_column_candidate(&image, 66, &mut output).unwrap();
         assert!(output.len() > 3);
         assert_eq!(output.as_ptr(), original_allocation);
+    }
+
+    #[test]
+    fn coherent_chunk_data_fields_match_independent_target_assembly() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut expected = vec![0xE1, 0xE2];
+        let maps = image.heightmaps().entries();
+        append_heightmap_map_candidate(
+            &mut expected,
+            32,
+            [maps[0].words(), maps[1].words(), maps[2].words()],
+        )
+        .unwrap();
+        append_length_prefixed_sections(&mut expected, 16_384, |output| {
+            append_coherent_section_candidate(&image, -1, 66, output)?;
+            append_coherent_section_candidate(&image, 0, 66, output)
+        })
+        .unwrap();
+
+        let mut actual = Vec::with_capacity(16_384);
+        actual.extend_from_slice(&[0xE1, 0xE2]);
+        let allocation = actual.as_ptr();
+        append_coherent_chunk_data_fields_candidate(&image, 66, 16_384, &mut actual).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.as_ptr(), allocation);
+        assert_eq!(image.stamp(), semantic.stamp());
+
+        // A 32-block tall world has 26 longs per heightmap. Their
+        // target-owned map field starts with count=3 and type-ID=1.
+        assert_eq!(&actual[2..5], &[3, 1, 26]);
+    }
+
+    #[test]
+    fn late_biome_failure_and_section_limit_rollback_whole_chunk_data_suffix() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let mut output = Vec::with_capacity(16_384);
+        output.extend_from_slice(&[0xAA, 0xBB, 0xCC]);
+        let allocation = output.as_ptr();
+
+        // Lower section biome=2 is valid in [0,3); upper section=5 is
+        // invalid. Entire preceding heightmap field is also removed.
+        assert!(matches!(
+            append_coherent_chunk_data_fields_candidate(&image, 3, 16_384, &mut output),
+            Err(ChunkDataCandidateError::Sections(
+                SectionLengthError::Source(SectionCandidateError::Biome(_))
+            ))
+        ));
+        assert_eq!(output, &[0xAA, 0xBB, 0xCC]);
+
+        assert!(matches!(
+            append_coherent_chunk_data_fields_candidate(&image, 66, 1, &mut output),
+            Err(ChunkDataCandidateError::Sections(
+                SectionLengthError::ExceedsLimit { .. }
+            ))
+        ));
+        assert_eq!(output, &[0xAA, 0xBB, 0xCC]);
+        assert_eq!(output.as_ptr(), allocation);
+
+        append_coherent_chunk_data_fields_candidate(&image, 66, 16_384, &mut output).unwrap();
+        assert!(output.len() > 3);
+        assert_eq!(output.as_ptr(), allocation);
     }
 
     #[test]

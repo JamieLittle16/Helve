@@ -285,16 +285,32 @@ def observe_official_server(
             # Do not pass a missing/partial observer report.
             oracle_deadline = time.monotonic() + 20
             while not oracle_output.is_file() and time.monotonic() < oracle_deadline:
+                # The stdout pump continues to own the pipe after the
+                # startup barrier. Drain its bounded queue here so agent
+                # exceptions are never silently discarded or hidden behind
+                # a generic timeout message.
+                for _ in range(128):
+                    try:
+                        line = lines.get_nowait()
+                    except queue.Empty:
+                        break
+                    tail.append(line)
+                    tail = tail[-80:]
+                    if "HELVE_BIOME_ID_ORACLE_ERROR|" in line:
+                        raise LiveBiomeProbeError(
+                            "independent registry agent failed: "
+                            + "".join(tail[-24:])
+                        )
                 if proc.poll() is not None:
                     raise LiveBiomeProbeError(
                         "official JVM exited before loaded registry report"
-                        + "".join(tail[-16:])
+                        + "".join(tail[-24:])
                     )
                 time.sleep(0.1)
             if not oracle_output.is_file():
                 raise LiveBiomeProbeError(
-                    "independent loaded registry oracle did not finish"
-                    + "".join(tail[-16:])
+                    "independent loaded registry oracle did not finish: "
+                    + "".join(tail[-24:])
                 )
         return network_order
     finally:

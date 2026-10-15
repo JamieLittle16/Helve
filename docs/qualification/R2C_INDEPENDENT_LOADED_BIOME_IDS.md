@@ -37,3 +37,25 @@ and client assignment semantics; independent reviewed R2C-BIOMES VAR/SEM
 gate; bound runtime pack-profile equivalence. A successful direct runtime
 cross-check alone must not close issue #285 or publish a biome numeric ID
 table to Helve clients.
+
+## Source-free frozen runtime candidate (after green official probe)
+
+The source-free table in
+`vanilla/fixtures/world/26.2-runtime-crosschecked-biome-ordinal-candidate.json`
+is not derived as a source authority from alphabetical data. It records the
+exact byId/getId and network-order sequence that the pinned official server
+actually produced in the independently green runtime oracle (#295). The
+network ordering happened to match the inventory's existing alphabetical
+order, but no implementation may infer numeric IDs by sorting.
+
+Its independently observed 66-item order digest is
+`97cba53b1bfd18870a345a42cea14e665e0a59f559dba939bec95cdf6fa5373d`.
+The dedicated official-server CI workflow loads a fresh vanilla runtime and
+compares its **complete** JSON cross-check output to this frozen fixture,
+including target version, SHA pins, selected known packs, every ordered
+entry and the explicit admission-pending marker. A synthetic regression also
+protects its shape without waiting for JVM startup.
+
+This is a *candidate* only. The presence of 66 ordinals here does not make
+the `R2C-BIOMES`/client-assignment source gate green. No production
+registry consumer may rely on it before that review.

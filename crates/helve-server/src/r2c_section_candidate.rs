@@ -11,7 +11,13 @@ use helve_target_26_2::r2c_chunk_data::{
     HeightmapMapError, SectionLengthError, append_heightmap_map_candidate,
     append_length_prefixed_sections,
 };
-use helve_world_chunk::{BiomeProjectionError, InitialChunkReference};
+use helve_target_26_2::r2c_light::{
+    LightWireError, LightWireMasks, append_light_masks_candidate,
+    append_light_update_count_candidate, append_light_update_layer_candidate,
+};
+use helve_world_chunk::{
+    BiomeProjectionError, InitialChunkReference, LightKind, LightMaskReferenceError,
+};
 use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
 
 /// A source or section invariant prevents a coherent candidate from being emitted.
@@ -230,6 +236,91 @@ where
     Ok(())
 }
 
+/// A coherent source image could not be projected to initial light fields.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum LightPayloadCandidateError {
+    /// Source-derived mask count/shape failed target validation.
+    Wire(LightWireError),
+    /// A previously classified data mask did not resolve to its source layer.
+    Source(LightMaskReferenceError),
+    /// Mask population and source visit count unexpectedly disagreed.
+    CountMismatch {
+        kind: LightKind,
+        expected: usize,
+        actual: usize,
+    },
+}
+
+/// Append exact initial sky/block mask and raw array *field candidates*.
+///
+/// This uses one current and immutable `InitialChunkReference`, and writes
+/// packed layers directly to the final caller scratch. A 2048-byte layer
+/// is never materialized into a second temporary copy. All source failures
+/// roll back to the original output prefix.
+///
+/// This field sequence is not itself a complete chunk-with-light Play packet.
+/// The clientbound packet identity, biome registry IDs and publication order
+/// remain separately source-admission blocked.
+///
+/// # Errors
+///
+/// Rejects invalid mask/lattice shape, stale or missing source layers, and
+/// any disagreement between data-mask population and visited source layers.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2C chunk-with-light publication is not yet fully source-admitted"
+    )
+)]
+pub(crate) fn append_coherent_light_payload_candidate<BlockStorage, BiomeStorage>(
+    image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
+    output: &mut Vec<u8>,
+) -> Result<(), LightPayloadCandidateError>
+where
+    BlockStorage: BlockSection<BlockStateId>,
+    BiomeStorage: BiomeSection<u16>,
+{
+    let before = output.len();
+    let source = image.light_masks();
+    let masks = LightWireMasks {
+        sky_data: source.data_mask(LightKind::Sky),
+        block_data: source.data_mask(LightKind::Block),
+        sky_empty: source.empty_mask(LightKind::Sky),
+        block_empty: source.empty_mask(LightKind::Block),
+    };
+    append_light_masks_candidate(output, source.light_section_count(), masks)
+        .map_err(LightPayloadCandidateError::Wire)?;
+
+    for kind in [LightKind::Sky, LightKind::Block] {
+        let expected = usize::try_from(source.data_mask(kind).count_ones())
+            .expect("at most 66 light sections");
+        if let Err(error) = append_light_update_count_candidate(output, expected) {
+            output.truncate(before);
+            return Err(LightPayloadCandidateError::Wire(error));
+        }
+        let result = source.for_each_update(kind, |_section_y, layer| {
+            append_light_update_layer_candidate(output, |raw| layer.write_raw_into(raw));
+        });
+        match result {
+            Ok(actual) if actual == expected => {}
+            Ok(actual) => {
+                output.truncate(before);
+                return Err(LightPayloadCandidateError::CountMismatch {
+                    kind,
+                    expected,
+                    actual,
+                });
+            }
+            Err(error) => {
+                output.truncate(before);
+                return Err(LightPayloadCandidateError::Source(error));
+            }
+        }
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
@@ -245,11 +336,15 @@ mod tests {
     use helve_target_26_2::r2c_chunk_data::{
         SectionLengthError, append_heightmap_map_candidate, append_length_prefixed_sections,
     };
+    use helve_target_26_2::r2c_light::{
+        LightWireMasks, append_light_masks_candidate, append_light_update_count_candidate,
+        append_light_update_layer_candidate,
+    };
 
     use super::{
         ChunkDataCandidateError, SectionCandidateError,
-        append_coherent_chunk_data_fields_candidate, append_coherent_section_candidate,
-        append_coherent_section_column_candidate,
+        append_coherent_chunk_data_fields_candidate, append_coherent_light_payload_candidate,
+        append_coherent_section_candidate, append_coherent_section_column_candidate,
     };
 
     // Synthetic test-only predicates, deliberately NOT claimed as the 26.2
@@ -439,6 +534,37 @@ mod tests {
         append_coherent_chunk_data_fields_candidate(&image, 66, 16_384, &mut output).unwrap();
         assert!(output.len() > 3);
         assert_eq!(output.as_ptr(), allocation);
+    }
+
+    #[test]
+    fn source_borrowed_light_payload_matches_explicit_four_masks_and_layers() {
+        let semantic = coherent_source();
+        let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
+        let source = image.light_masks();
+        let mut expected = vec![0x43, 0x21];
+        let masks = LightWireMasks {
+            sky_data: source.data_mask(helve_world_chunk::LightKind::Sky),
+            block_data: source.data_mask(helve_world_chunk::LightKind::Block),
+            sky_empty: source.empty_mask(helve_world_chunk::LightKind::Sky),
+            block_empty: source.empty_mask(helve_world_chunk::LightKind::Block),
+        };
+        append_light_masks_candidate(&mut expected, source.light_section_count(), masks).unwrap();
+        append_light_update_count_candidate(&mut expected, 1).unwrap();
+        append_light_update_layer_candidate(&mut expected, |raw| raw.fill(0xFF));
+        append_light_update_count_candidate(&mut expected, 1).unwrap();
+        append_light_update_layer_candidate(&mut expected, |raw| raw.fill(0x33));
+
+        let mut actual = Vec::with_capacity(8_192);
+        actual.extend_from_slice(&[0x43, 0x21]);
+        let allocation = actual.as_ptr();
+        append_coherent_light_payload_candidate(&image, &mut actual).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.as_ptr(), allocation);
+        assert_eq!(semantic.stamp(), image.stamp());
+
+        // No intermediate 2048-byte scratch: each raw layer is written
+        // exactly once through the target-owned destination.
+        assert_eq!(actual.len(), 2 + 4 * 9 + 2 * (1 + 2 + 2048));
     }
 
     #[test]

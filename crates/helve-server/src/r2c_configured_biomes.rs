@@ -52,12 +52,9 @@ impl From<BiomeRegistryError> for ConfiguredBiomeCandidateError {
 ///
 /// Rejects unsupported registry shapes, malformed names, duplicate keys,
 /// or any other previously unqualified Configuration representation.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "full client numeric registry assignment is still independently source-gated"
-    )
+#[allow(
+    dead_code,
+    reason = "real R2B Configuration bridge stays deliberately dormant in both test and product until client numeric-ID source admission"
 )]
 pub(crate) fn with_candidate_biomes_from_context<T>(
     context: &Target26_2R1xContext,

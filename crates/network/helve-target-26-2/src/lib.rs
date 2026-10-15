@@ -39,6 +39,8 @@ mod r2b_wire;
 pub mod r2c_block_palette;
 /// COLD heightmap/section-data candidate only; not a complete Play packet.
 pub mod r2c_chunk_data;
+/// Dormant target-owned chunk coordinates and empty block-entity list body candidates.
+pub mod r2c_chunk_body;
 /// COLD target-owned 26.2 initial light wire fields; no live Play admission.
 pub mod r2c_light;
 

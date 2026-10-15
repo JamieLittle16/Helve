@@ -57,7 +57,17 @@ public final class R2cBiomeIdAgent {
                         continue;
                     }
                     if (!reportedTask) {
-                        System.err.println("HELVE_BIOME_ID_ORACLE_TASK|" + task.getClass().getName());
+                        System.err.println("HELVE_BIOME_ID_ORACLE_TASK|" + task.getClass().getName()
+                            + "|synthetic=" + task.getClass().isSynthetic());
+                        for (Field captured : task.getClass().getDeclaredFields()) {
+                            if (!Modifier.isStatic(captured.getModifiers())) {
+                                captured.setAccessible(true);
+                                Object value = captured.get(task);
+                                System.err.println("HELVE_BIOME_ID_ORACLE_CAPTURE|"
+                                    + captured.getName() + "|"
+                                    + (value == null ? "null" : value.getClass().getName()));
+                            }
+                        }
                         reportedTask = true;
                     }
                     ClassLoader loader = task.getClass().getClassLoader();
@@ -114,7 +124,10 @@ public final class R2cBiomeIdAgent {
         // Inspect *only* its bounded, non-static captured fields and stop at
         // the first actual MinecraftServer instance. Do not enumerate heaps,
         // install runtime patches or retain the object outside this probe.
-        if (!candidate.getClass().isSynthetic()) {
+        // Hidden lambda classes are not guaranteed to carry the Java
+        // synthetic flag. Restrict traversal by the exact official server
+        // classloader instead, and keep a hard recursion cap.
+        if (candidate.getClass().getClassLoader() != serverClass.getClassLoader()) {
             return null;
         }
         for (Field field : candidate.getClass().getDeclaredFields()) {

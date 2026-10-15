@@ -182,12 +182,12 @@ mod tests {
 
     #[test]
     fn remote_client_rate_matches_vanilla_float_boundary() {
-        assert_eq!(normalize_remote_chunk_rate(f32::NAN), 0.01);
-        assert_eq!(normalize_remote_chunk_rate(f32::NEG_INFINITY), 0.01);
-        assert_eq!(normalize_remote_chunk_rate(-1.0), 0.01);
-        assert_eq!(normalize_remote_chunk_rate(0.0), 0.01);
-        assert_eq!(normalize_remote_chunk_rate(9.0), 9.0);
-        assert_eq!(normalize_remote_chunk_rate(128.0), 64.0);
-        assert_eq!(normalize_remote_chunk_rate(f32::INFINITY), 64.0);
+        assert_eq!(normalize_remote_chunk_rate(f32::NAN).to_bits(), 0.01_f32.to_bits());
+        assert_eq!(normalize_remote_chunk_rate(f32::NEG_INFINITY).to_bits(), 0.01_f32.to_bits());
+        assert_eq!(normalize_remote_chunk_rate(-1.0).to_bits(), 0.01_f32.to_bits());
+        assert_eq!(normalize_remote_chunk_rate(0.0).to_bits(), 0.01_f32.to_bits());
+        assert_eq!(normalize_remote_chunk_rate(9.0).to_bits(), 9.0_f32.to_bits());
+        assert_eq!(normalize_remote_chunk_rate(128.0).to_bits(), 64.0_f32.to_bits());
+        assert_eq!(normalize_remote_chunk_rate(f32::INFINITY).to_bits(), 64.0_f32.to_bits());
     }
 }

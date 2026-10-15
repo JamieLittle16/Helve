@@ -251,7 +251,10 @@ mod tests {
         assert_eq!(projected.position(), semantic.position());
         assert_eq!(projected.stamp(), semantic.stamp());
         assert!(std::ptr::eq(projected.blocks(), semantic.blocks()));
-        let lower_source = semantic.blocks().section_ref(-1).expect("lower resident section");
+        let lower_source = semantic
+            .blocks()
+            .section_ref(-1)
+            .expect("lower resident section");
         let lower_image = projected.block_section(-1).expect("same source section");
         assert!(std::ptr::eq(lower_source, lower_image));
         assert_eq!(

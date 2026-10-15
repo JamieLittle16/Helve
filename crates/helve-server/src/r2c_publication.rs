@@ -45,7 +45,9 @@ impl R2bPlaySession {
         const EGRESS_LIMIT: usize = 4 * 1_024 * 1_024;
         let limits = ConnectionLimits::new(MAX_PLAY_BODY, INGRESS_LIMIT, EGRESS_LIMIT)
             .map_err(R2bPlayError::Buffer)?;
-        self.driver.widen_limits(limits).map_err(R2bPlayError::Buffer)
+        self.driver
+            .widen_limits(limits)
+            .map_err(R2bPlayError::Buffer)
     }
 
     /// Atomically admits one target-encoded Play publication batch to the continuing connection.
@@ -213,7 +215,9 @@ mod tests {
     fn world_phase_accepts_large_legal_chunk_frame_on_same_r2b_session() {
         let mut session = session(128);
         let original_read_scratch = session.read_scratch.as_ptr();
-        session.admit_play_publication_batch(&[&[0x2c, 0xaa]]).unwrap();
+        session
+            .admit_play_publication_batch(&[&[0x2c, 0xaa]])
+            .unwrap();
         let queued = session.pending_play_egress().to_vec();
         let old_allocation = session.pending_play_egress().as_ptr();
         assert!(matches!(
@@ -225,7 +229,9 @@ mod tests {
         assert_eq!(session.pending_play_egress(), queued);
         assert_eq!(session.pending_play_egress().as_ptr(), old_allocation);
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
-        session.admit_play_publication_batch(&[vec![0x2d; 65_537]]).unwrap();
+        session
+            .admit_play_publication_batch(&[vec![0x2d; 65_537]])
+            .unwrap();
         assert!(session.pending_play_egress().starts_with(&queued));
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
         // Repeated no-op widening cannot discard already-admitted bytes.

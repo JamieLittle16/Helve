@@ -70,20 +70,44 @@ fn main() -> ExitCode {
     }
 }
 
-fn run() -> Result<(), String> {
-    let mut args = env::args_os().skip(1);
-    let dimension = args
-        .next()
-        .ok_or_else(|| usage("missing dimension"))?
-        .into_string()
-        .map_err(|_| usage("dimension is not UTF-8"))?;
-    let region_path = PathBuf::from(args.next().ok_or_else(|| usage("missing region path"))?);
-    let registry_path = PathBuf::from(args.next().ok_or_else(|| usage("missing key-list path"))?);
-    let output_path = PathBuf::from(args.next().ok_or_else(|| usage("missing output path"))?);
-    if args.next().is_some() {
-        return Err(usage("too many arguments"));
+struct InputPaths {
+    dimension: String,
+    region_path: PathBuf,
+    registry_path: PathBuf,
+    output_path: PathBuf,
+}
+
+impl InputPaths {
+    fn parse() -> Result<Self, String> {
+        let mut args = env::args_os().skip(1);
+        let dimension = args
+            .next()
+            .ok_or_else(|| usage("missing dimension"))?
+            .into_string()
+            .map_err(|_| usage("dimension is not UTF-8"))?;
+        let region_path = PathBuf::from(args.next().ok_or_else(|| usage("missing region path"))?);
+        let registry_path = PathBuf::from(args.next().ok_or_else(|| usage("missing key-list path"))?);
+        let output_path = PathBuf::from(args.next().ok_or_else(|| usage("missing output path"))?);
+        if args.next().is_some() {
+            return Err(usage("too many arguments"));
+        }
+        validate_dimension(&dimension)?;
+        Ok(Self {
+            dimension,
+            region_path,
+            registry_path,
+            output_path,
+        })
     }
-    validate_dimension(&dimension)?;
+}
+
+fn run() -> Result<(), String> {
+    let InputPaths {
+        dimension,
+        region_path,
+        registry_path,
+        output_path,
+    } = InputPaths::parse()?;
     let raw_names = String::from_utf8(read_bounded(&registry_path, MAX_REGISTRY_KEYS_BYTES)?)
         .map_err(|_| "biome key list is not UTF-8".to_owned())?;
     if !raw_names.ends_with('\n') {

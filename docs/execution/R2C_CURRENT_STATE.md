@@ -22,16 +22,17 @@ R2C has crossed the stored-world/import boundary and now also has the first cohe
 - atomic same-driver publication admission and allocation-free one-body publication progression;
 - independently promoted source-free source admission for 58 reviewed world-state methods and 20 biome/heightmap/light SEM rules (PR #268);
 - a one-command local runner retained to reproduce the independently admitted source boundary;
-- source-law heightmap recomputation oracle with no extra HOT mutation bookkeeping (reference projection input; generated 26.2 predicate facts and coherent ownership remain pending).
+- source-law heightmap recomputation oracle with no extra HOT mutation bookkeeping (reference projection input; generated 26.2 predicate facts and coherent ownership remain pending);
+- target-neutral, immutable initial light layers with exact nibble semantics and bounded sentinel-section ownership (this PR; live import/composite and wire projection remain pending).
 
-The selected BIOMES / HEIGHTMAPS / LIGHT semantic source boundary was independently admitted and promoted in #268 (main commit `3e5fe9b`). It authorizes implementation, **not** a completed runtime behavior. Target-generated heightmap predicate facts, light state/import, biome target mapping and other world-wire groups remain separate engineering gates.
+The selected BIOMES / HEIGHTMAPS / LIGHT semantic source boundary was independently admitted and promoted in #268 (main commit `3e5fe9b`). It authorizes implementation, **not** a completed runtime behavior. Target-generated heightmap predicate facts, complete light NBT import/live ownership, biome target mapping and other world-wire groups remain separate engineering gates.
 
 The remaining world-publication groups outside the completed BIOMES / HEIGHTMAPS / LIGHT review also remain independently unadmitted: world-entry ordering, chunk-span/batch state, block-section publication law not already covered by admitted lower layers, selected block-entity publication, pacing/acknowledgement and exact packet identities.
 
 ```text
 admitted BIOME / HEIGHTMAP / LIGHT semantics (#268)
         ↓
-heightmap reference recomputation + target facts; light state
+heightmap reference + exact target facts; imported light primitives
         ↓
 coherent resident block + biome + heightmap + light ownership
         ↓
@@ -64,7 +65,7 @@ Packet/wire facts are never inferred merely because the runtime substrate or a h
 | R2C.3 selected cold-import mechanisms | **LANDED** | Byte-table gzip CRC32 and four-bit packed-state specialization crossed semantic + benchmark qualification. Generic five-bit-and-wider packed decoding remains intact and regression-covered. |
 | R2C.4 biome semantics | **TARGET-NEUTRAL STORAGE LANDED; 26.2 SEM ADMITTED; TARGET IMPLEMENTATION PENDING** | One 64-sample biome lattice per logical section is live under static target-neutral storage. Palette/wire semantics have independent source admission, but live target biome import and packet codecs are not yet implemented. |
 | R2C.4 heightmap semantics | **SEM ADMITTED; RECOMPUTATION ORACLE LANDED; TARGET FACTS PENDING** | A stamped reference computes the three client maps from authoritative blocks in one descending pass per column. It does not introduce a live cache, secondary revision or HOT mutation work. Generated target facts and final chunk ownership/projection integration are still missing. |
-| R2C.4 light semantics | **SEM ADMITTED; TARGET IMPLEMENTATION PENDING** | Persisted `isLightOn`, DataLayer shape, lookup, mask classification and initial wire law are admitted. Missing/false light-correctness cannot be silently upgraded; without relighting the unsupported route must fail closed. Runtime ownership and import remain unimplemented. |
+| R2C.4 light semantics | **SEM ADMITTED; INITIAL LAYER/COLUMN PRIMITIVES IN REVIEW** | `LightDataLayer` preserves homogeneous versus packed 2048-byte layers and exact 4-bit YZX indexing; `InitialChunkLight` admits only bounded dimension+2 section slots and retains the persisted correctness flag without upgrading missing data. It does not yet parse NBT light tags, attach to the authoritative composite, relight, or encode Play packets. |
 | R2C.5 reference projector | **PENDING R2C.4 + REMAINING WORLD-WIRE ADMISSION** | Must consume one coherent semantic chunk state and remain the permanent correctness/freshness oracle before projection optimization. |
 | R2C.6 production projector | **PENDING REFERENCE PATH + MECHANISM EVIDENCE** | Cache/snapshot/layout choices remain a mechanism tournament. No network-shaped second world representation may become live truth. |
 | R2C.7 same-driver publication | **TRANSPORT/FAIRNESS SUBSTRATE LANDED; PROJECTOR INTEGRATION PENDING** | Internal server composition admits already target-encoded bodies through the exact continuing `ConnectionDriver`. Atomic batches reuse transactional queue admission; large ordered publications reuse the generic one-word `PublicationCursor`. Backpressure advances neither egress transaction state nor cursor progress. There is no second queue/socket or public raw-packet injection API. |
@@ -167,7 +168,7 @@ No hosted-runner timing may select the production representation.
 ## Immediate next engineering moves
 
 1. Complete generated 26.2 heightmap predicate facts against admitted source data, then differential-qualify the new recomputation oracle; do not infer motion/leaves/fluid from section counts.
-2. Implement target-neutral imported biome and light ownership (including the explicit light-correctness boundary) through the existing resident directory and whole-chunk revision; no second map or semantic clock.
+2. Wire source-admitted persisted light tags into the new bounded initial-light column and compose biome/light ownership under the existing resident directory and whole-chunk revision; no second map or semantic clock.
 3. Integrate the complete heightmap/biome/light view into one authoritative chunk projection snapshot without introducing network-shaped live state.
 4. Close the remaining selected world-wire source groups: world entry/order, chunk span/batch state, selected block entities, pacing/acknowledgement and exact packet identities. Reuse existing admitted lower-layer evidence only where claim identity matches exactly.
 5. Build R2C.5 as a transparent reference projector from one coherent semantic chunk state into the fully admitted 26.2 law.

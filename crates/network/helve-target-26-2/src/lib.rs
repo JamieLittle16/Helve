@@ -35,6 +35,8 @@ mod r2b_recipe_add;
 mod r2b_spawn;
 mod r2b_teleport;
 mod r2b_wire;
+/// COLD, non-admitted decoder of actual selected Configuration biome key order.
+pub mod r2c_biome_config;
 /// COLD candidate for 26.2 block-state container projection; no live packet admission.
 pub mod r2c_block_palette;
 /// Dormant target-owned chunk coordinates and empty block-entity list body candidates.

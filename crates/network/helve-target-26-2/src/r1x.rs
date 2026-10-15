@@ -129,6 +129,24 @@ impl Target26_2R1xContext {
         })
     }
 
+    /// Borrow the exact ordered default known-pack biome keys from this
+    /// validated, immutable Configuration image without copying strings.
+    ///
+    /// This establishes that later candidate biome ordinals match the
+    /// **actual network image**, not merely an independently supplied
+    /// alphabetical registry. It does not independently prove client-side
+    /// ID assignment or authorize production R2C world packets.
+    ///
+    /// # Errors
+    ///
+    /// Rejects an unsupported Registry Data profile/shape or missing
+    /// source-backed biome entry order.
+    pub fn candidate_sent_biome_order(
+        &self,
+    ) -> Result<Vec<&str>, crate::r2c_biome_config::BiomeConfigOrderError> {
+        crate::r2c_biome_config::borrow_core_biome_order(&self.configuration)
+    }
+
     /// Number of captured Play bodies selected for this smoke run.
     #[must_use]
     pub fn play_frame_count(&self) -> usize {

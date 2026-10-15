@@ -191,7 +191,10 @@ pub(crate) enum ChunkDataCandidateError {
 /// reject the entire candidate and restore the original caller buffer.
 #[cfg_attr(
     not(test),
-    expect(dead_code, reason = "R2C chunk packet, entity and biome ID publication remain unadmitted")
+    expect(
+        dead_code,
+        reason = "R2C chunk packet, entity and biome ID publication remain unadmitted"
+    )
 )]
 pub(crate) fn append_coherent_chunk_data_fields_candidate<BlockStorage, BiomeStorage>(
     image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
@@ -219,11 +222,7 @@ where
     .map_err(ChunkDataCandidateError::Heightmaps)?;
 
     if let Err(error) = append_length_prefixed_sections(output, max_section_bytes, |destination| {
-        append_coherent_section_column_candidate(
-            image,
-            biome_registry_count,
-            destination,
-        )
+        append_coherent_section_column_candidate(image, biome_registry_count, destination)
     }) {
         output.truncate(before);
         return Err(ChunkDataCandidateError::Sections(error));

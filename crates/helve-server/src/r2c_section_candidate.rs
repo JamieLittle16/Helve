@@ -415,8 +415,8 @@ mod tests {
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, SectionCandidateError,
         append_coherent_chunk_and_light_fragments, append_coherent_chunk_data_fields_candidate,
-        append_coherent_light_payload_candidate,
-        append_coherent_section_candidate, append_coherent_section_column_candidate,
+        append_coherent_light_payload_candidate, append_coherent_section_candidate,
+        append_coherent_section_column_candidate,
     };
 
     // Synthetic test-only predicates, deliberately NOT claimed as the 26.2
@@ -644,8 +644,7 @@ mod tests {
         let semantic = coherent_source();
         let image = InitialChunkReference::derive(&semantic, &SyntheticHeightFacts).unwrap();
         let mut expected = vec![0x73, 0x25];
-        append_coherent_chunk_data_fields_candidate(&image, 66, 16_384, &mut expected)
-            .unwrap();
+        append_coherent_chunk_data_fields_candidate(&image, 66, 16_384, &mut expected).unwrap();
         let split = expected.len();
         append_coherent_light_payload_candidate(&image, &mut expected).unwrap();
 
@@ -671,18 +670,16 @@ mod tests {
         assert!(matches!(
             append_coherent_chunk_and_light_fragments(&image, 3, 16_384, &mut bytes),
             Err(ChunkAndLightCandidateError::ChunkData(
-                ChunkDataCandidateError::Sections(
-                    SectionLengthError::Source(SectionCandidateError::Biome(_))
-                )
+                ChunkDataCandidateError::Sections(SectionLengthError::Source(
+                    SectionCandidateError::Biome(_)
+                ))
             ))
         ));
         assert_eq!(bytes, &[0xAA, 0xBB, 0xCC]);
         assert!(matches!(
             append_coherent_chunk_and_light_fragments(&image, 66, 1, &mut bytes),
             Err(ChunkAndLightCandidateError::ChunkData(
-                ChunkDataCandidateError::Sections(
-                    SectionLengthError::ExceedsLimit { .. }
-                )
+                ChunkDataCandidateError::Sections(SectionLengthError::ExceedsLimit { .. })
             ))
         ));
         assert_eq!(bytes, &[0xAA, 0xBB, 0xCC]);

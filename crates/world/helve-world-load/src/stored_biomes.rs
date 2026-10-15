@@ -13,7 +13,8 @@ use helve_world_runtime::{
 };
 
 use crate::{
-    InstalledStoredChunk, SemanticResidentInstallError, install_imported_semantic_chunk,
+    InstalledStoredChunk, SemanticResidentInstallError, SourceChunkPublicationReceipt,
+    install_imported_semantic_chunk,
 };
 
 /// Source saved-biome sections are incomplete, inconsistent or fail admission to one dimension.
@@ -96,14 +97,47 @@ where
     BiomeStorage: BiomeSection<B>,
     MakeEmpty: FnMut() -> BlockStorage,
 {
+    install_source_biome_chunk_with_receipt(dimension, imported, make_empty_section)
+        .map(SourceChunkPublicationReceipt::installed)
+}
+
+/// Installs one source-biome chunk and returns provenance bound to its real incarnation.
+///
+/// No receipt exists on admission failure. The saved header and block-entity
+/// evidence are copied **before** moving the final block/biome/light sections
+/// into their unique authoritative resident owner. This is a small COLD
+/// caller-held value, never a second world state or per-cell tax.
+///
+/// # Errors
+///
+/// Same exact fail-closed conditions as `install_source_biome_chunk`.
+pub fn install_source_biome_chunk_with_receipt<S, BlockStorage, B, BiomeStorage, MakeEmpty>(
+    dimension: &mut SemanticDimensionInstance<S, BlockStorage, B, BiomeStorage>,
+    imported: ImportedStoredChunkWithBiomeLight<BlockStorage, BiomeStorage>,
+    make_empty_section: MakeEmpty,
+) -> Result<SourceChunkPublicationReceipt, StoredBiomeResidencyError>
+where
+    S: Copy + Eq,
+    BlockStorage: BlockSection<S>,
+    B: Copy + Eq,
+    BiomeStorage: BiomeSection<B>,
+    MakeEmpty: FnMut() -> BlockStorage,
+{
+    let source_header = imported.stored.blocks.header;
+    let block_entities = imported.block_entities;
     let sections = compose_saved_biome_sections(dimension.profile(), imported.biomes.sections)?;
     let stored = ImportedStoredChunkWithLight {
         stored: imported.stored,
         light: imported.light,
-        block_entities: imported.block_entities,
+        block_entities,
     };
-    install_imported_semantic_chunk(dimension, stored, sections, make_empty_section)
-        .map_err(StoredBiomeResidencyError::Resident)
+    let installed = install_imported_semantic_chunk(dimension, stored, sections, make_empty_section)
+        .map_err(StoredBiomeResidencyError::Resident)?;
+    Ok(SourceChunkPublicationReceipt::from_admission(
+        installed,
+        source_header,
+        block_entities,
+    ))
 }
 
 #[cfg(test)]

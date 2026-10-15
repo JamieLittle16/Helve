@@ -79,9 +79,7 @@ pub fn append_set_chunk_cache_center(output: &mut Vec<u8>, x: i32, z: i32) {
 /// # Errors
 ///
 /// A matching packet with any payload length other than four is rejected.
-pub fn decode_chunk_batch_ack(
-    frame: FrameView<'_>,
-) -> Result<Option<f32>, ChunkBatchWireError> {
+pub fn decode_chunk_batch_ack(frame: FrameView<'_>) -> Result<Option<f32>, ChunkBatchWireError> {
     if frame.packet_id() != SERVERBOUND_CHUNK_BATCH_RECEIVED {
         return Ok(None);
     }
@@ -109,10 +107,9 @@ mod tests {
 
     use super::{
         CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
-        CLIENTBOUND_CHUNK_WITH_LIGHT, CLIENTBOUND_SET_CHUNK_CACHE_CENTER,
-        ChunkBatchWireError, MAX_REMOTE_CHUNKS_PER_BATCH, SERVERBOUND_CHUNK_BATCH_RECEIVED,
-        append_chunk_batch_finished, append_chunk_batch_start,
-        append_chunk_with_light_packet_id, append_set_chunk_cache_center,
+        CLIENTBOUND_CHUNK_WITH_LIGHT, CLIENTBOUND_SET_CHUNK_CACHE_CENTER, ChunkBatchWireError,
+        MAX_REMOTE_CHUNKS_PER_BATCH, SERVERBOUND_CHUNK_BATCH_RECEIVED, append_chunk_batch_finished,
+        append_chunk_batch_start, append_chunk_with_light_packet_id, append_set_chunk_cache_center,
         decode_chunk_batch_ack, normalize_remote_chunk_rate,
     };
 

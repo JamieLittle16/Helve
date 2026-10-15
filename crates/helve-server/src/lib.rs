@@ -25,6 +25,14 @@ mod r2b_server;
     )
 )]
 mod r2c_chunk_batch;
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "selected Configuration and client biome IDs must be independently admitted before runtime import"
+    )
+)]
+mod r2c_configured_biomes;
 mod r2c_publication;
 mod r2c_section_candidate;
 

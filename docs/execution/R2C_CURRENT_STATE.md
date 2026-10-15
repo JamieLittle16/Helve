@@ -85,6 +85,24 @@ Packet/wire facts are never inferred merely because the runtime substrate or a h
 
 A biome's compact numeric ID is its **source registry ordinal**, not its alphabetical resource-key rank. `OrderedBiomeRegistry` binds the exact source order supplied by a caller and constructs one COLD lexicographically indexed lookup table without duplicating key strings. It requires DataVersion 4903 and rejects empty, malformed, duplicate or oversized registries. The saved-biome palette decoder consumes this binder directly as its `BiomeStateResolver`, so resolved sections retain numeric IDs without a HOT lookup. The constructor validates input **shape**, not origin: the complete Minecraft 26.2 runtime registry order still needs an independent extraction, pinned content hash and source-grounded acceptance evidence. Do not imply that the synthetic test input or a registry whose names merely happen to match is a source-qualified target list.
 
+## Pinned official biome resources versus runtime biome registry IDs
+
+The 26.2 saved-biome **name/cell** differential (#280) does not establish
+the numeric biome IDs seen by the client. An initial probe of the pinned
+official server's `--reports` output established that
+`reports/registries.json` contains static registry records but **omits**
+the dynamic `minecraft:worldgen/biome` registry. It cannot be used as a
+numeric biome-ID oracle.
+
+The revised `tools/official_biome_registry.py` is an **independent resource
+inventory probe**. It uses the digest-pinned official server's `--all`
+data-generator output and verifies the generated built-in biome JSON keys;
+it deliberately labels the inventory `protocol_id_authority=NOT_QUALIFIED`.
+Those resource filenames cannot establish numeric IDs, even if all names
+match the saved world. A separately qualified 26.2 dynamic-registry loading
+order and/or a verified runtime ID-map oracle is still required before
+promoting a compact registry ordering for network projection.
+
 ## World-state human review now closed
 
 The committed source-free semantic decision record is `vanilla/reviews/network/r2c-world-state-semantic-admission-decisions.json`. It records explicit human-authored rules rather than generated semantic inference.

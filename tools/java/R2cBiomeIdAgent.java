@@ -149,8 +149,6 @@ public final class R2cBiomeIdAgent {
             return null;
         }
         Method byId = method(registry, BY_ID, int.class);
-        Method getId = method(registry, GET_ID, Object.class);
-        Method getKey = method(registry, GET_KEY, Object.class);
 
         StringBuilder buffer = new StringBuilder(2560);
         Set<String> seen = new HashSet<>();
@@ -165,6 +163,8 @@ public final class R2cBiomeIdAgent {
             if (biome == null || id >= MAX_BIOMES) {
                 throw new IllegalStateException("missing loaded biome at ordinal " + id);
             }
+            Method getId = method(registry, GET_ID, biome.getClass());
+            Method getKey = method(registry, GET_KEY, biome.getClass());
             int reverse = ((Number) getId.invoke(registry, biome)).intValue();
             if (reverse != id) {
                 throw new IllegalStateException("registry getId/byId disagreement at " + id);

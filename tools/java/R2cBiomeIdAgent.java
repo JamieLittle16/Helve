@@ -25,6 +25,7 @@ public final class R2cBiomeIdAgent {
         if (output == null || output.isBlank()) {
             throw new IllegalArgumentException("explicit fresh oracle output path required");
         }
+        System.err.println("HELVE_BIOME_ID_ORACLE_START");
         Thread observer = new Thread(() -> run(output), "Helve biome-ID observation");
         observer.setDaemon(true);
         observer.start();
@@ -39,7 +40,9 @@ public final class R2cBiomeIdAgent {
             holder.setAccessible(true);
             Field runnable = holder.getType().getDeclaredField("task");
             runnable.setAccessible(true);
-            long deadline = System.nanoTime() + 180_000_000_000L;
+            long deadline = System.nanoTime() + 45_000_000_000L;
+            boolean reportedTask = false;
+            boolean reportedNullRegistry = false;
             while (System.nanoTime() < deadline) {
                 for (Thread thread : Thread.getAllStackTraces().keySet()) {
                     if (!thread.getName().equals("Server thread") || !thread.isAlive()) {
@@ -47,7 +50,15 @@ public final class R2cBiomeIdAgent {
                     }
                     Object task = runnable.get(holder.get(thread));
                     if (task == null) {
+                        if (!reportedTask) {
+                            System.err.println("HELVE_BIOME_ID_ORACLE_TASK|null");
+                            reportedTask = true;
+                        }
                         continue;
+                    }
+                    if (!reportedTask) {
+                        System.err.println("HELVE_BIOME_ID_ORACLE_TASK|" + task.getClass().getName());
+                        reportedTask = true;
                     }
                     ClassLoader loader = task.getClass().getClassLoader();
                     Class<?> serverClass = Class.forName(SERVER_CLASS, false, loader);
@@ -56,6 +67,10 @@ public final class R2cBiomeIdAgent {
                     }
                     try {
                         String report = inspect(task, loader);
+                        if (report == null && !reportedNullRegistry) {
+                            System.err.println("HELVE_BIOME_ID_ORACLE_PENDING|registry lookup returned null");
+                            reportedNullRegistry = true;
+                        }
                         if (report != null) {
                             // Never overwrite or update an existing evidence file.
                             Files.writeString(

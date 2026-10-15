@@ -11,10 +11,11 @@ use helve_types::ChunkPos;
 use crate::{
     anvil::{ChunkCompression, RegionError, RegionView},
     nbt::NbtLimits,
+    stored_biomes::{IgnoreBiomes, ImportedStoredBiomes, SectionBiomeDecoder},
     stored_blocks::{
         BlockSectionDecodeScratch, BlockSectionImportError, BlockStateResolver,
         ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedStoredLight,
-        decode_chunk_block_sections, decode_chunk_block_sections_with_light,
+        decode_chunk_sections_inner,
     },
 };
 
@@ -141,6 +142,22 @@ pub struct ImportedStoredChunkWithLight<Section> {
     pub light: ImportedStoredLight,
 }
 
+/// One-region payload transaction that includes block, initial light and exact saved biomes.
+///
+/// This result owns the final caller-selected biome sections but has no resident world authority.
+#[derive(Debug, Eq, PartialEq)]
+pub struct ImportedStoredChunkWithBiomeLight<BlockSection, BiomeSection> {
+    pub stored: ImportedStoredChunk<BlockSection>,
+    pub light: ImportedStoredLight,
+    pub biomes: ImportedStoredBiomes<BiomeSection>,
+}
+
+/// Complete returned Anvil transaction type, keeping nested generic return types simple.
+pub type ImportedBiomeTransactionResult<BlockSection, BiomeSection, DecodeError> = Result<
+    ImportedStoredChunkWithBiomeLight<BlockSection, BiomeSection>,
+    StoredChunkImportError<DecodeError>,
+>;
+
 /// Fail-closed errors spanning the complete persisted block import transaction.
 #[derive(Debug, Eq, PartialEq)]
 pub enum StoredChunkImportError<DecodeError> {
@@ -238,8 +255,13 @@ where
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
     ) -> Result<ImportedStoredChunk<B::Section>, StoredChunkImportError<D::Error>> {
-        let transaction =
-            self.import_region_chunk_inner::<false>(region, local_x, local_z, external_payload)?;
+        let transaction = self.import_region_chunk_inner::<IgnoreBiomes, false>(
+            region,
+            local_x,
+            local_z,
+            external_payload,
+            &mut IgnoreBiomes,
+        )?;
         Ok(transaction.stored)
     }
 
@@ -258,16 +280,53 @@ where
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
     ) -> Result<ImportedStoredChunkWithLight<B::Section>, StoredChunkImportError<D::Error>> {
-        self.import_region_chunk_inner::<true>(region, local_x, local_z, external_payload)
+        let result = self.import_region_chunk_inner::<IgnoreBiomes, true>(
+            region,
+            local_x,
+            local_z,
+            external_payload,
+            &mut IgnoreBiomes,
+        )?;
+        Ok(ImportedStoredChunkWithLight {
+            stored: result.stored,
+            light: result.light,
+        })
     }
 
-    fn import_region_chunk_inner<const INCLUDE_LIGHT: bool>(
+    /// Imports exact saved biomes, blocks and light through the same Anvil/NBT transaction.
+    ///
+    /// The selected static biome codec resolves all 64 cells per present biome section.
+    /// Sections without saved biomes remain absent; the caller must validate completeness
+    /// against its dimension before committing live residency.
+    ///
+    /// # Errors
+    ///
+    /// Propagates region, compression, NBT and exact block, biome or light schema failures.
+    pub fn import_region_chunk_with_biomes<BD: SectionBiomeDecoder>(
         &mut self,
         region: &RegionView<'_>,
         local_x: u8,
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
-    ) -> Result<ImportedStoredChunkWithLight<B::Section>, StoredChunkImportError<D::Error>> {
+        biome_decoder: &mut BD,
+    ) -> ImportedBiomeTransactionResult<B::Section, BD::Section, D::Error> {
+        self.import_region_chunk_inner::<BD, true>(
+            region,
+            local_x,
+            local_z,
+            external_payload,
+            biome_decoder,
+        )
+    }
+
+    fn import_region_chunk_inner<BD: SectionBiomeDecoder, const INCLUDE_LIGHT: bool>(
+        &mut self,
+        region: &RegionView<'_>,
+        local_x: u8,
+        local_z: u8,
+        external_payload: Option<ExternalChunkPayload<'_>>,
+        biome_decoder: &mut BD,
+    ) -> ImportedBiomeTransactionResult<B::Section, BD::Section, D::Error> {
         let Some(chunk) = region.chunk(local_x, local_z)? else {
             return Err(StoredChunkImportError::EmptyRegionSlot { local_x, local_z });
         };
@@ -298,43 +357,27 @@ where
                 self.payload_limits.max_decompressed_bytes,
             )
             .map_err(StoredChunkImportError::Decode)?;
-        let (blocks, light) = if INCLUDE_LIGHT {
-            let world = decode_chunk_block_sections_with_light(
-                decompressed,
-                chunk.position,
-                self.nbt_limits,
-                self.resolver,
-                self.builder,
-                self.section_scratch,
-            )?;
-            (world.blocks, world.light)
-        } else {
-            (
-                decode_chunk_block_sections(
-                    decompressed,
-                    chunk.position,
-                    self.nbt_limits,
-                    self.resolver,
-                    self.builder,
-                    self.section_scratch,
-                )?,
-                ImportedStoredLight {
-                    persisted_light_correct: false,
-                    sections: Vec::new(),
-                },
-            )
-        };
+        let decoded = decode_chunk_sections_inner::<R, B, BD, INCLUDE_LIGHT>(
+            decompressed,
+            chunk.position,
+            self.nbt_limits,
+            self.resolver,
+            self.builder,
+            self.section_scratch,
+            biome_decoder,
+        )?;
 
-        Ok(ImportedStoredChunkWithLight {
+        Ok(ImportedStoredChunkWithBiomeLight {
             stored: ImportedStoredChunk {
-                blocks,
+                blocks: decoded.blocks,
                 source: StoredChunkSourceMetadata {
                     region_timestamp: chunk.timestamp,
                     compression: chunk.compression,
                     external: chunk.external,
                 },
             },
-            light,
+            light: decoded.light,
+            biomes: decoded.biomes,
         })
     }
 }

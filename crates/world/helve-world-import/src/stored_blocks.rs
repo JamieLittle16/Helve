@@ -11,6 +11,10 @@ use helve_types::ChunkPos;
 use crate::{
     chunk::{ChunkImportError, StoredChunkHeader, TARGET_DATA_VERSION_26_2},
     nbt::{NbtError, NbtLimits, NbtReader, TagType},
+    stored_biomes::{
+        BiomeImportError, IgnoreBiomes, ImportedBiomeSection, ImportedStoredBiomes,
+        SectionBiomeDecoder,
+    },
 };
 
 const BLOCK_SECTION_CELLS: usize = 4096;
@@ -168,9 +172,18 @@ pub struct ImportedChunkWithLight<Section> {
     pub light: ImportedStoredLight,
 }
 
-struct DecodedSection<Section> {
-    blocks: Option<ImportedBlockSection<Section>>,
+/// Block, biome and initial-light state decoded in one bounded NBT traversal.
+#[derive(Debug, Eq, PartialEq)]
+pub struct ImportedChunkWithBiomeLight<BlockSection, BiomeSection> {
+    pub blocks: ImportedChunkBlocks<BlockSection>,
+    pub light: ImportedStoredLight,
+    pub biomes: ImportedStoredBiomes<BiomeSection>,
+}
+
+struct DecodedSection<BlockSection, BiomeSection> {
+    blocks: Option<ImportedBlockSection<BlockSection>>,
     light: Option<ImportedStoredLightSection>,
+    biomes: Option<BiomeSection>,
 }
 
 /// Fail-closed semantic block-section decode errors.
@@ -178,6 +191,8 @@ struct DecodedSection<Section> {
 pub enum BlockSectionImportError {
     /// Underlying bounded NBT framing failed.
     Nbt(NbtError),
+    /// Exact persisted 64-cell biome palette or packed-data validation failed.
+    Biomes(BiomeImportError),
     /// Top-level exact-target chunk identity/schema validation failed.
     Chunk(ChunkImportError),
     /// One section omitted a field required by the selected block import profile.
@@ -297,6 +312,12 @@ pub enum BlockSectionImportError {
     ArithmeticOverflow,
 }
 
+impl From<BiomeImportError> for BlockSectionImportError {
+    fn from(value: BiomeImportError) -> Self {
+        Self::Biomes(value)
+    }
+}
+
 impl From<NbtError> for BlockSectionImportError {
     fn from(value: NbtError) -> Self {
         Self::Nbt(value)
@@ -336,13 +357,14 @@ where
     R: BlockStateResolver,
     B: ImportedBlockSectionBuilder<R::State>,
 {
-    Ok(decode_chunk_sections_inner::<R, B, false>(
+    Ok(decode_chunk_sections_inner::<R, B, IgnoreBiomes, false>(
         decompressed_nbt,
         expected_position,
         limits,
         resolver,
         builder,
         scratch,
+        &mut IgnoreBiomes,
     )?
     .blocks)
 }
@@ -369,27 +391,68 @@ where
     R: BlockStateResolver,
     B: ImportedBlockSectionBuilder<R::State>,
 {
-    decode_chunk_sections_inner::<R, B, true>(
+    let result = decode_chunk_sections_inner::<R, B, IgnoreBiomes, true>(
         decompressed_nbt,
         expected_position,
         limits,
         resolver,
         builder,
         scratch,
-    )
+        &mut IgnoreBiomes,
+    )?;
+    Ok(ImportedChunkWithLight {
+        blocks: result.blocks,
+        light: result.light,
+    })
 }
 
-fn decode_chunk_sections_inner<R, B, const INCLUDE_LIGHT: bool>(
+/// Decodes block, saved biome and initial-light source state together in the existing NBT pass.
+///
+/// This code is statically specialized for the supplied biome decoder. Legacy block-only and
+/// block/light routes share the same source parser but compile with biome processing disabled.
+///
+/// # Errors
+///
+/// Rejects invalid source block states, persisted biome palettes, light arrays or chunk identity
+/// without changing any resident world authority.
+pub fn decode_chunk_block_sections_with_biomes<R, B, D>(
     decompressed_nbt: &[u8],
     expected_position: ChunkPos,
     limits: NbtLimits,
     resolver: &R,
     builder: &mut B,
     scratch: &mut BlockSectionDecodeScratch<R::State>,
-) -> Result<ImportedChunkWithLight<B::Section>, BlockSectionImportError>
+    biome_decoder: &mut D,
+) -> Result<ImportedChunkWithBiomeLight<B::Section, D::Section>, BlockSectionImportError>
 where
     R: BlockStateResolver,
     B: ImportedBlockSectionBuilder<R::State>,
+    D: SectionBiomeDecoder,
+{
+    decode_chunk_sections_inner::<R, B, D, true>(
+        decompressed_nbt,
+        expected_position,
+        limits,
+        resolver,
+        builder,
+        scratch,
+        biome_decoder,
+    )
+}
+
+pub(crate) fn decode_chunk_sections_inner<R, B, D, const INCLUDE_LIGHT: bool>(
+    decompressed_nbt: &[u8],
+    expected_position: ChunkPos,
+    limits: NbtLimits,
+    resolver: &R,
+    builder: &mut B,
+    scratch: &mut BlockSectionDecodeScratch<R::State>,
+    biome_decoder: &mut D,
+) -> Result<ImportedChunkWithBiomeLight<B::Section, D::Section>, BlockSectionImportError>
+where
+    R: BlockStateResolver,
+    B: ImportedBlockSectionBuilder<R::State>,
+    D: SectionBiomeDecoder,
 {
     let mut reader = NbtReader::new(decompressed_nbt, limits);
     reader.begin_root_compound()?;
@@ -401,6 +464,7 @@ where
     let mut light_correct = None;
     let mut decoded_sections = Vec::new();
     let mut light_sections = Vec::new();
+    let mut biome_sections = Vec::new();
     let mut seen_section_y = [false; 256];
 
     while let Some(field) = reader.next_compound_field()? {
@@ -435,12 +499,13 @@ where
                 }
                 decoded_sections.reserve(list.len);
                 for section_index in 0..list.len {
-                    let section = decode_section::<R, B, INCLUDE_LIGHT>(
+                    let section = decode_section::<R, B, D, INCLUDE_LIGHT>(
                         &mut reader,
                         section_index,
                         resolver,
                         builder,
                         scratch,
+                        biome_decoder,
                         &mut seen_section_y,
                     )?;
                     if let Some(block) = section.blocks {
@@ -448,6 +513,9 @@ where
                     }
                     if let Some(light) = section.light {
                         light_sections.push(light);
+                    }
+                    if let Some(biomes) = section.biomes {
+                        biome_sections.push(biomes);
                     }
                 }
                 stored_section_count = Some(list.len);
@@ -457,6 +525,36 @@ where
     }
     reader.finish_root()?;
 
+    let header = validate_stored_header(
+        data_version,
+        x_pos,
+        z_pos,
+        stored_section_count,
+        expected_position,
+    )?;
+
+    Ok(ImportedChunkWithBiomeLight {
+        blocks: ImportedChunkBlocks {
+            header,
+            sections: decoded_sections,
+        },
+        light: ImportedStoredLight {
+            persisted_light_correct: light_correct.unwrap_or(false),
+            sections: light_sections,
+        },
+        biomes: ImportedStoredBiomes {
+            sections: biome_sections,
+        },
+    })
+}
+
+fn validate_stored_header(
+    data_version: Option<i32>,
+    x_pos: Option<i32>,
+    z_pos: Option<i32>,
+    stored_section_count: Option<usize>,
+    expected_position: ChunkPos,
+) -> Result<StoredChunkHeader, BlockSectionImportError> {
     let data_version = chunk_required(data_version, "DataVersion")?;
     if data_version != TARGET_DATA_VERSION_26_2 {
         return Err(ChunkImportError::DataVersionMismatch {
@@ -476,39 +574,32 @@ where
         }
         .into());
     }
-
-    Ok(ImportedChunkWithLight {
-        blocks: ImportedChunkBlocks {
-            header: StoredChunkHeader {
-                data_version,
-                position: actual_position,
-                stored_section_count: chunk_required(stored_section_count, "sections")?,
-            },
-            sections: decoded_sections,
-        },
-        light: ImportedStoredLight {
-            persisted_light_correct: light_correct.unwrap_or(false),
-            sections: light_sections,
-        },
+    Ok(StoredChunkHeader {
+        data_version,
+        position: actual_position,
+        stored_section_count: chunk_required(stored_section_count, "sections")?,
     })
 }
 
-fn decode_section<R, B, const INCLUDE_LIGHT: bool>(
+fn decode_section<R, B, D, const INCLUDE_LIGHT: bool>(
     reader: &mut NbtReader<'_>,
     section_index: usize,
     resolver: &R,
     builder: &mut B,
     scratch: &mut BlockSectionDecodeScratch<R::State>,
+    biome_decoder: &mut D,
     seen_section_y: &mut [bool; 256],
-) -> Result<DecodedSection<B::Section>, BlockSectionImportError>
+) -> Result<DecodedSection<B::Section, ImportedBiomeSection<D::Section>>, BlockSectionImportError>
 where
     R: BlockStateResolver,
     B: ImportedBlockSectionBuilder<R::State>,
+    D: SectionBiomeDecoder,
 {
     let mut section_y = None;
     let mut block_section = None;
     let mut block_light = None;
     let mut sky_light = None;
+    let mut decoded_biomes = None;
     let mut block_states_seen = false;
 
     while let Some(field) = reader.next_compound_field()? {
@@ -518,45 +609,28 @@ where
                 set_section_once(&mut section_y, section_index, "Y", reader.read_i8()?)?;
             }
             "BlockLight" if INCLUDE_LIGHT => {
-                require_section_type(
+                let packed = read_persisted_light_layer(
+                    reader,
                     section_index,
                     "BlockLight",
                     field.tag_type,
-                    TagType::ByteArray,
                 )?;
-                let bytes = reader.read_byte_array()?;
-                if bytes.len() != SOURCE_LIGHT_LAYER_BYTES {
-                    return Err(BlockSectionImportError::LightByteCount {
-                        section_index,
-                        field: "BlockLight",
-                        actual: bytes.len(),
-                        expected: SOURCE_LIGHT_LAYER_BYTES,
-                    });
-                }
-                set_section_once(
-                    &mut block_light,
-                    section_index,
-                    "BlockLight",
-                    bytes.to_vec(),
-                )?;
+                set_section_once(&mut block_light, section_index, "BlockLight", packed)?;
             }
             "SkyLight" if INCLUDE_LIGHT => {
-                require_section_type(
-                    section_index,
-                    "SkyLight",
-                    field.tag_type,
-                    TagType::ByteArray,
-                )?;
-                let bytes = reader.read_byte_array()?;
-                if bytes.len() != SOURCE_LIGHT_LAYER_BYTES {
-                    return Err(BlockSectionImportError::LightByteCount {
+                let packed =
+                    read_persisted_light_layer(reader, section_index, "SkyLight", field.tag_type)?;
+                set_section_once(&mut sky_light, section_index, "SkyLight", packed)?;
+            }
+            "biomes" if D::ENABLED => {
+                require_section_type(section_index, "biomes", field.tag_type, TagType::Compound)?;
+                if decoded_biomes.is_some() {
+                    return Err(BlockSectionImportError::SectionDuplicateField {
                         section_index,
-                        field: "SkyLight",
-                        actual: bytes.len(),
-                        expected: SOURCE_LIGHT_LAYER_BYTES,
+                        field: "biomes",
                     });
                 }
-                set_section_once(&mut sky_light, section_index, "SkyLight", bytes.to_vec())?;
+                decoded_biomes = Some(biome_decoder.decode_section(reader, section_index)?);
             }
             "block_states" => {
                 require_section_type(
@@ -604,7 +678,31 @@ where
     } else {
         None
     };
-    Ok(DecodedSection { blocks, light })
+    let biomes = decoded_biomes.map(|section| ImportedBiomeSection { section_y, section });
+    Ok(DecodedSection {
+        blocks,
+        light,
+        biomes,
+    })
+}
+
+fn read_persisted_light_layer(
+    reader: &mut NbtReader<'_>,
+    section_index: usize,
+    field: &'static str,
+    tag_type: TagType,
+) -> Result<Vec<u8>, BlockSectionImportError> {
+    require_section_type(section_index, field, tag_type, TagType::ByteArray)?;
+    let bytes = reader.read_byte_array()?;
+    if bytes.len() != SOURCE_LIGHT_LAYER_BYTES {
+        return Err(BlockSectionImportError::LightByteCount {
+            section_index,
+            field,
+            actual: bytes.len(),
+            expected: SOURCE_LIGHT_LAYER_BYTES,
+        });
+    }
+    Ok(bytes.to_vec())
 }
 
 fn decode_block_states<R, B>(
@@ -993,11 +1091,15 @@ mod tests {
     use super::{
         BLOCK_SECTION_CELLS, BlockProperty, BlockSectionDecodeScratch, BlockSectionImportError,
         BlockStateResolver, ImportedBlockSection, ImportedBlockSectionBuilder, ImportedChunkBlocks,
-        decode_chunk_block_sections, decode_chunk_block_sections_with_light,
+        decode_chunk_block_sections, decode_chunk_block_sections_with_biomes,
+        decode_chunk_block_sections_with_light,
     };
     use crate::{
         chunk::{ChunkImportError, StoredChunkHeader, TARGET_DATA_VERSION_26_2},
         nbt::{NbtLimits, TagType},
+        stored_biomes::{
+            BiomeDecodeScratch, BiomeStateResolver, ExactBiomeDecoder, ImportedBiomeSectionBuilder,
+        },
     };
     use helve_types::ChunkPos;
 
@@ -1192,6 +1294,111 @@ mod tests {
             &mut VecBuilder,
             &mut BlockSectionDecodeScratch::new(),
         )
+    }
+
+    struct BiomeResolver;
+
+    impl BiomeStateResolver for BiomeResolver {
+        type Biome = u16;
+
+        fn resolve(&self, name: &str) -> Option<Self::Biome> {
+            match name {
+                "minecraft:plains" => Some(5),
+                "minecraft:forest" => Some(9),
+                _ => None,
+            }
+        }
+    }
+
+    struct BiomeBuilder;
+
+    impl ImportedBiomeSectionBuilder<u16> for BiomeBuilder {
+        type Section = Vec<u16>;
+
+        fn build_uniform(&mut self, biome: u16) -> Self::Section {
+            vec![biome; 64]
+        }
+
+        fn build_biomes(&mut self, cells: &[u16]) -> Self::Section {
+            cells.to_vec()
+        }
+    }
+
+    fn biome_section(mut section: Vec<u8>, biome: &str) -> Vec<u8> {
+        assert_eq!(section.pop(), Some(TagType::End as u8));
+        named_header(&mut section, TagType::Compound, "biomes");
+        named_header(&mut section, TagType::List, "palette");
+        section.push(TagType::String as u8);
+        section.extend_from_slice(&1_i32.to_be_bytes());
+        string_payload(&mut section, biome);
+        section.push(TagType::End as u8);
+        section.push(TagType::End as u8);
+        section
+    }
+
+    #[test]
+    fn biome_only_and_block_biome_sections_share_one_nbt_pass() {
+        let position = ChunkPos { x: -2, z: 4 };
+        let blocks = block_states_payload(&[palette_entry("minecraft:stone", &[], false)], None);
+        let sections = [
+            biome_section(section_payload(-4, Some(blocks)), "minecraft:plains"),
+            biome_section(section_payload(-3, None), "minecraft:forest"),
+        ];
+        let bytes = chunk_nbt(position, &sections);
+        let mut builder = BiomeBuilder;
+        let mut scratch = BiomeDecodeScratch::new();
+        let mut biome_decoder = ExactBiomeDecoder::new(&BiomeResolver, &mut builder, &mut scratch);
+        let world = decode_chunk_block_sections_with_biomes(
+            &bytes,
+            position,
+            limits(),
+            &Resolver,
+            &mut VecBuilder,
+            &mut BlockSectionDecodeScratch::new(),
+            &mut biome_decoder,
+        )
+        .expect("blocks and saved biomes decoded once");
+
+        assert_eq!(world.blocks.header.stored_section_count, 2);
+        assert_eq!(world.blocks.sections.len(), 1);
+        assert_eq!(world.blocks.sections[0].section_y, -4);
+        assert_eq!(world.biomes.sections.len(), 2);
+        assert_eq!(world.biomes.sections[0].section_y, -4);
+        assert_eq!(world.biomes.sections[1].section_y, -3);
+        assert!(world.biomes.sections[0].section.iter().all(|&id| id == 5));
+        assert!(world.biomes.sections[1].section.iter().all(|&id| id == 9));
+        assert!(!world.light.persisted_light_correct);
+        assert_eq!(
+            decode(&bytes, position).expect("legacy block mode skips biome data"),
+            world.blocks
+        );
+    }
+
+    #[test]
+    fn unknown_saved_biome_rejects_entire_chunk_without_fallback() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let section = biome_section(section_payload(0, None), "minecraft:unknown");
+        let bytes = chunk_nbt(position, &[section]);
+        let mut builder = BiomeBuilder;
+        let mut scratch = BiomeDecodeScratch::new();
+        let mut biome_decoder = ExactBiomeDecoder::new(&BiomeResolver, &mut builder, &mut scratch);
+        assert!(matches!(
+            decode_chunk_block_sections_with_biomes(
+                &bytes,
+                position,
+                limits(),
+                &Resolver,
+                &mut VecBuilder,
+                &mut BlockSectionDecodeScratch::new(),
+                &mut biome_decoder,
+            ),
+            Err(BlockSectionImportError::Biomes(
+                crate::stored_biomes::BiomeImportError::UnknownBiome {
+                    section_index: 0,
+                    palette_index: 0,
+                }
+            ))
+        ));
     }
 
     #[test]

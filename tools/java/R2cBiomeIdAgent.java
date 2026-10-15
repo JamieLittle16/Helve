@@ -62,11 +62,12 @@ public final class R2cBiomeIdAgent {
                     }
                     ClassLoader loader = task.getClass().getClassLoader();
                     Class<?> serverClass = Class.forName(SERVER_CLASS, false, loader);
-                    if (!serverClass.isInstance(task)) {
+                    Object server = findCapturedServer(task, serverClass, 3);
+                    if (server == null) {
                         continue;
                     }
                     try {
-                        String report = inspect(task, loader);
+                        String report = inspect(server, loader);
                         if (report == null && !reportedNullRegistry) {
                             System.err.println("HELVE_BIOME_ID_ORACLE_PENDING|registry lookup returned null");
                             reportedNullRegistry = true;
@@ -96,6 +97,38 @@ public final class R2cBiomeIdAgent {
             System.err.println("HELVE_BIOME_ID_ORACLE_ERROR|" + error);
             error.printStackTrace(System.err);
         }
+    }
+
+    private static Object findCapturedServer(Object candidate, Class<?> serverClass, int depth)
+            throws ReflectiveOperationException {
+        if (candidate == null) {
+            return null;
+        }
+        if (serverClass.isInstance(candidate)) {
+            return candidate;
+        }
+        if (depth == 0) {
+            return null;
+        }
+        // The 26.2 runtime's Server thread uses a captured Runnable lambda.
+        // Inspect *only* its bounded, non-static captured fields and stop at
+        // the first actual MinecraftServer instance. Do not enumerate heaps,
+        // install runtime patches or retain the object outside this probe.
+        if (!candidate.getClass().isSynthetic()) {
+            return null;
+        }
+        for (Field field : candidate.getClass().getDeclaredFields()) {
+            if (Modifier.isStatic(field.getModifiers())) {
+                continue;
+            }
+            field.setAccessible(true);
+            Object nested = field.get(candidate);
+            Object server = findCapturedServer(nested, serverClass, depth - 1);
+            if (server != null) {
+                return server;
+            }
+        }
+        return null;
     }
 
     private static Method method(Object owner, String name, Class<?> parameter)

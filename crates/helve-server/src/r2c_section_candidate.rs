@@ -424,7 +424,7 @@ pub(crate) enum EmptyChunkBodyCandidateError {
         source: ChunkPos,
         resident: ChunkPos,
     },
-    /// A different saved DataVersion cannot be interpreted under 26.2 rules.
+    /// A different saved `DataVersion` cannot be interpreted under 26.2 rules.
     DataVersionMismatch { source: i32 },
     /// Missing or nonempty saved block entities cannot authorize an empty list.
     BlockEntities(EmptyBlockEntityEvidenceError),

@@ -20,6 +20,8 @@ mod offline_uuid;
 pub mod play_liveness;
 mod r1x;
 pub mod r2b;
+/// COLD candidate for 26.2 block-state container projection; no live packet admission.
+pub mod r2c_block_palette;
 mod r2b_arena;
 mod r2b_border;
 mod r2b_clock;

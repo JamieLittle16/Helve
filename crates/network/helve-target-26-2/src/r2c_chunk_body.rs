@@ -5,16 +5,14 @@
 //! These are target-owned candidate field codecs only: no server-side packet
 //! registry, new socket owner, resident state or HOT-world cost.
 
-use helve_types::ChunkPos;
-
 /// Appends candidate chunk-column coordinates as two big-endian signed ints.
 ///
 /// This source-review-pending field must not be used to claim a qualified
 /// 26.2 outer Play packet ID or publication law. Appends exactly eight bytes.
-pub fn append_chunk_coordinates_candidate(output: &mut Vec<u8>, position: ChunkPos) {
+pub fn append_chunk_coordinates_candidate(output: &mut Vec<u8>, x: i32, z: i32) {
     output.reserve(8);
-    output.extend_from_slice(&position.x.to_be_bytes());
-    output.extend_from_slice(&position.z.to_be_bytes());
+    output.extend_from_slice(&x.to_be_bytes());
+    output.extend_from_slice(&z.to_be_bytes());
 }
 
 /// Writes a *candidate* empty block-entity collection as one zero VarInt.
@@ -34,9 +32,7 @@ pub fn append_empty_block_entities_candidate(output: &mut Vec<u8>) {
 
 #[cfg(test)]
 mod tests {
-    use helve_types::ChunkPos;
-
-    use super::{
+        use super::{
         append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
     };
 
@@ -45,13 +41,7 @@ mod tests {
         let mut output = Vec::with_capacity(32);
         output.extend_from_slice(&[0xAD, 0xDE]);
         let pointer = output.as_ptr();
-        append_chunk_coordinates_candidate(
-            &mut output,
-            ChunkPos {
-                x: -1,
-                z: 0x1234_5678,
-            },
-        );
+        append_chunk_coordinates_candidate(&mut output, -1, 0x1234_5678);
         assert_eq!(
             output,
             [0xAD, 0xDE, 0xff, 0xff, 0xff, 0xff, 0x12, 0x34, 0x56, 0x78]

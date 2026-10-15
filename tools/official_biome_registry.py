@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Extract 26.2 biome registry protocol ordinals from Mojang's pinned server data reports.
+"""Produce a source-pinned 26.2 dynamic-biome *resource inventory* from Mojang datagen.
 
-This tool does NOT guess dynamic biome IDs from save names or an alphabetic registry. It
-asks the exact pinned official server's data generator to write reports/registries.json,
-selects minecraft:worldgen/biome, and refuses missing/gapped/duplicate protocol IDs.
-The canonical source-free JSON is suitable for a reviewed frozen identity artifact.
+The official reports/registries.json is a STATIC-registry report and deliberately
+does not contain minecraft:worldgen/biome. Instead this cold probe extracts all
+built-in biome JSON resource keys from the pinned official server's datagen output.
+
+The returned candidate sequence is NOT an admitted protocol-id map. Dynamic
+registry integer assignments require an independent exact 26.2 RegistryDataLoader
+source proof and/or runtime registry-ID oracle before promotion.
 """
 
 from __future__ import annotations
@@ -92,6 +95,78 @@ def payload(
     }
 
 
+def source_biome_inventory(data_root: Path) -> tuple[str, ...]:
+    """Inventory built-in worldgen biome JSON keys without assigning protocol IDs."""
+    root = data_root / "data" / "minecraft" / "worldgen" / "biome"
+    if not root.is_dir():
+        candidates = sorted(
+            p.relative_to(data_root).as_posix()
+            for p in data_root.rglob("*")
+            if p.is_file() and "biome" in p.parts
+        )
+        raise RegistryExtractionError(
+            f"official datagen produced no data/minecraft/worldgen/biome directory; "
+            f"related files: {candidates[:40]}"
+        )
+    names: list[str] = []
+    paths = sorted(root.rglob("*.json"))
+    if not paths or len(paths) > MAX_REGISTRY:
+        raise RegistryExtractionError(
+            f"unexpected official biome resource count: {len(paths)}"
+        )
+    for path in paths:
+        relative = path.relative_to(root)
+        if not path.is_file():
+            raise RegistryExtractionError("invalid generated biome file")
+        source_name = relative.with_suffix("").as_posix()
+        if not source_name or any(
+            part in ("", ".", "..") for part in relative.parts
+        ):
+            raise RegistryExtractionError("invalid generated biome resource path")
+        name = "minecraft:" + source_name
+        if name in names:
+            raise RegistryExtractionError(f"duplicate generated biome key: {name}")
+        try:
+            contents = json.loads(path.read_text(encoding="utf-8"))
+        except (UnicodeError, json.JSONDecodeError) as error:
+            raise RegistryExtractionError(
+                f"official biome data is invalid JSON: {relative}"
+            ) from error
+        if not isinstance(contents, dict) or not contents:
+            raise RegistryExtractionError(f"empty biome definition: {relative}")
+        names.append(name)
+    return tuple(names)
+
+
+def candidate_payload(
+    version: str, server_hash: str, biome_names: tuple[str, ...],
+) -> dict[str, object]:
+    """Record content identity but never claim sorted names are network ordinals."""
+    if version != TARGET_VERSION or not biome_names:
+        raise RegistryExtractionError("unsupported target or missing biome resource inventory")
+    if len(biome_names) > MAX_REGISTRY or len(set(biome_names)) != len(biome_names):
+        raise RegistryExtractionError("invalid source biome cardinality/uniqueness")
+    source_text = "\n".join(biome_names) + "\n"
+    return {
+        "schema": 1,
+        "target": {
+            "minecraft_version": TARGET_VERSION,
+            "protocol_version": 776,
+            "data_version": 4903,
+        },
+        "registry": REGISTRY,
+        "source": "digest-pinned-official-server-datagen-worldgen-biome-v1",
+        "server_sha256": server_hash,
+        "biome_resource_count": len(biome_names),
+        "biome_resource_keys_sha256": hashlib.sha256(
+            source_text.encode("utf-8")
+        ).hexdigest(),
+        "biome_resource_keys": biome_names,
+        "protocol_id_authority": "NOT_QUALIFIED",
+        "order_kind": "generated-resource-path-order-not-network-id-order",
+    }
+
+
 def extract(
     version: str,
     output: Path,
@@ -120,41 +195,31 @@ def extract(
     data_root = work_dir / "out"
     log_path = work_dir / "generator.log"
 
-    # Mojang's official server bundle supports launching its own datagen main. Unlike
-    # a world-save name inventory, this report explicitly provides protocol_id values.
+    # The official server datagen provides dynamic biome *resources*, not their IDs.
+    # Fail closed if the intended generated resource files are missing.
     command = [
         "java",
         "-DbundlerMainClass=net.minecraft.data.Main",
         "-jar",
         str(server.resolve()),
-        "--reports",
+        "--all",
         "--output",
         str(data_root.resolve()),
     ]
     try:
         completed = subprocess.run(
-            command, cwd=work_dir, capture_output=True, text=True, timeout=240,
+            command, cwd=work_dir, capture_output=True, text=True, timeout=360,
             check=False,
         )
     except subprocess.TimeoutExpired as error:
-        raise RegistryExtractionError("official datagen exceeded 240-second bound") from error
+        raise RegistryExtractionError("official datagen exceeded 360-second bound") from error
     log_path.write_text(completed.stdout + "\n" + completed.stderr, encoding="utf-8")
     if completed.returncode != 0:
         raise RegistryExtractionError(
-            f"official --reports exited {completed.returncode}; log at {log_path}"
+            f"official --all exited {completed.returncode}; log at {log_path}"
         )
-    report_path = data_root / "reports" / "registries.json"
-    if not report_path.is_file():
-        files = [p.relative_to(data_root).as_posix() for p in data_root.rglob("*")
-                 if p.is_file()]
-        raise RegistryExtractionError(
-            f"official server did not produce reports/registries.json; files={files[:25]}"
-        )
-    try:
-        report_data = json.loads(report_path.read_text(encoding="utf-8"))
-    except (UnicodeError, json.JSONDecodeError) as error:
-        raise RegistryExtractionError("official registries report is not valid JSON") from error
-    result = payload(version, server_hash, report_data)
+    keys = source_biome_inventory(data_root)
+    result = candidate_payload(version, server_hash, keys)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return result
@@ -181,12 +246,13 @@ def main() -> int:
         return 2
     print(
         f"official {TARGET_VERSION} {REGISTRY}: "
-        f"{result['registry_count']} protocol IDs, "
-        f"source-order SHA256={result['source_order_sha256']}"
+        f"{result['biome_resource_count']} generated resource keys, "
+        f"resource SHA256={result['biome_resource_keys_sha256']}; "
+        "numeric protocol IDs NOT qualified"
     )
     if args.print_ids:
-        for numeric_id, key in enumerate(result["names_by_protocol_id"]):
-            print(f"BIOME_REGISTRY_ID|{numeric_id}|{key}")
+        for key in result["biome_resource_keys"]:
+            print(f"BIOME_RESOURCE_KEY|{key}")
     return 0
 
 

@@ -106,16 +106,21 @@ def exact_type_declarations(
             raise BiomeIdSourceError("Atlas declaration fingerprint/source owner drifted")
         if not all(
             isinstance(source.get(key), str) and source[key]
-            for key in (
-                "signature", "fingerprint_algorithm",
-                "normalized_sha256", "body_sha256"
-            )
+            for key in ("signature", "fingerprint_algorithm", "normalized_sha256")
         ):
-            raise BiomeIdSourceError("Atlas returned incomplete method fingerprints")
+            raise BiomeIdSourceError("Atlas returned incomplete declaration fingerprints")
+        body_sha = source.get("body_sha256")
+        if body_sha is not None and not isinstance(body_sha, str):
+            raise BiomeIdSourceError("Atlas returned a malformed method body fingerprint")
+        # Interfaces and abstract declarations can carry a source signature
+        # without a method body. Their source-bound declaration hash remains
+        # useful discovery evidence; they cannot be elevated to a reviewed
+        # *implementation* without following the concrete delegate.
         results.append({
             "signature": source["signature"],
             "normalized_sha256": source["normalized_sha256"],
-            "body_sha256": source["body_sha256"],
+            "body_sha256": body_sha,
+            "declaration_only": body_sha is None,
             "hazard_leads": template["atlas_observed_hazards"],
         })
     return results

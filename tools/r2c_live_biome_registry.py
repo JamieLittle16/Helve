@@ -277,6 +277,12 @@ def observe_official_server(
             raise LiveBiomeProbeError(
                 "official 26.2 server startup timeout\n" + "".join(tail[-16:])
             )
+        if oracle_output is not None:
+            # Never inspect mutable startup state. The live Java agent must
+            # wait until the official server's own "Done" world-preparation
+            # barrier before reading its now-loaded registry.
+            startup_barrier = Path(str(oracle_output) + ".ready")
+            startup_barrier.write_text("ready\n", encoding="ascii")
         with socket.create_connection(("127.0.0.1", PORT), timeout=10) as conn:
             network_order = observe_configuration(conn)
         if oracle_output is not None:

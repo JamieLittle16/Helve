@@ -194,6 +194,40 @@ impl PackedBlockContainer {
         }
     }
 
+    /// Appends one COLD section-sequence candidate in target-owned field order.
+    ///
+    /// Prefixes the verified non-air and counted-fluid shorts before the block
+    /// container and delegates the biome-container append to the already-built
+    /// source reference. This remains an isolated candidate: enclosing chunk
+    /// packet law, numeric biome registry identity and world-entry publication
+    /// are not yet independently qualified. Never publish this as a Play packet.
+    ///
+    /// Both palette references and summary counts must be validated by the
+    /// caller before invoking this method, so source validation is transactional
+    /// against the caller-owned output. An exact upfront reserve avoids a
+    /// separate encoded buffer and permits reusable whole-chunk scratch.
+    ///
+    /// # Panics
+    ///
+    /// Only if an internal packed-word invariant fails or the trusted
+    /// append_biome callback emits a length different from biome_bytes.
+    pub fn append_section_candidate(
+        &self,
+        non_air_count: u16,
+        fluid_count: u16,
+        biome_bytes: usize,
+        output: &mut Vec<u8>,
+        append_biome: impl FnOnce(&mut Vec<u8>),
+    ) {
+        output.reserve(4 + self.encoded_len() + biome_bytes);
+        output.extend_from_slice(&non_air_count.to_be_bytes());
+        output.extend_from_slice(&fluid_count.to_be_bytes());
+        self.append_container(output);
+        let biome_start = output.len();
+        append_biome(output);
+        debug_assert_eq!(output.len() - biome_start, biome_bytes);
+    }
+
     /// Allocating standalone reference, permanently available for differential tests.
     ///
     /// # Panics
@@ -333,6 +367,33 @@ mod tests {
             PackedBlockContainer::derive(65_536, |i| u16::try_from(i % 257).unwrap()).unwrap();
         assert_eq!(maximum.storage_bits(), 16);
         assert_eq!(decode(&maximum.encode_container(), 65_536).len(), CELLS);
+    }
+
+    #[test]
+    fn section_candidate_writes_two_big_endian_shorts_then_containers() {
+        let packed = PackedBlockContainer::derive(32_366, |_| 251).unwrap();
+        let mut output = vec![0x99];
+        let before = output.len();
+        packed.append_section_candidate(4096, 17, 3, &mut output, |bytes| {
+            bytes.extend_from_slice(&[0, 5, 0]);
+        });
+        assert_eq!(&output[..before], &[0x99]);
+        assert_eq!(&output[before..before + 4], &[0x10, 0x00, 0x00, 0x11]);
+        assert_eq!(
+            &output[before + 4..before + 4 + packed.encoded_len()],
+            packed.encode_container()
+        );
+        assert_eq!(&output[before + 4 + packed.encoded_len()..], &[0, 5, 0]);
+
+        // A pre-reserved multi-section destination is never reallocated.
+        let mut reserved = Vec::with_capacity(output.len() * 2);
+        let pointer = reserved.as_ptr();
+        for _ in 0..2 {
+            packed.append_section_candidate(12, 0, 3, &mut reserved, |bytes| {
+                bytes.extend_from_slice(&[0, 5, 0]);
+            });
+        }
+        assert_eq!(reserved.as_ptr(), pointer);
     }
 
     #[test]

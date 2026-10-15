@@ -10,7 +10,7 @@ use helve_world_chunk::{
     ChunkLightError, ImportedLightSection, InitialChunkLight, LightDataLayer, LightKind,
     LightLayerError, VerticalSectionLattice, VerticalSectionLatticeError,
 };
-use helve_world_import::ImportedStoredLight;
+use helve_world_import::{ImportedStoredChunk, ImportedStoredChunkWithLight, ImportedStoredLight};
 use helve_world_runtime::DimensionRuntimeProfile;
 
 /// Fail-closed errors while moving stored light into a validated semantic chunk lattice.
@@ -40,6 +40,45 @@ impl From<ChunkLightError> for InitialLightCompositionError {
     }
 }
 
+/// One prepared COLD import transaction with exact semantic initial light ownership.
+///
+/// Neither block sections nor light cells are copied when this object is constructed.
+/// Resident publication still requires separate lifecycle admission and a coherent owner.
+#[derive(Debug)]
+pub struct PreparedImportedChunkLight<Section> {
+    pub stored: ImportedStoredChunk<Section>,
+    pub light: InitialChunkLight,
+}
+
+/// Moves a fully decoded, validated stored-chunk transaction into the initial light representation.
+///
+/// Light uses **the position in the validated stored block header**, rather than a caller-supplied
+/// position that could accidentally bind another chunk's light bytes. The supplied generation is
+/// the actual intended resident incarnation and must be checked when the composite owner accepts
+/// this image. This seam does not itself install anything into the dimension's resident directory.
+///
+/// # Errors
+///
+/// Propagates source light-length and dimension/light-lattice composition failures. A failure
+/// returns no prepared transaction and does not change resident world state.
+pub fn prepare_imported_chunk_light<Section>(
+    imported: ImportedStoredChunkWithLight<Section>,
+    generation: ChunkGeneration,
+    profile: DimensionRuntimeProfile,
+) -> Result<PreparedImportedChunkLight<Section>, InitialLightCompositionError> {
+    let ImportedStoredChunkWithLight { stored, light } = imported;
+    let initial = compose_imported_initial_light(
+        stored.blocks.header.position,
+        generation,
+        profile,
+        light,
+    )?;
+    Ok(PreparedImportedChunkLight {
+        stored,
+        light: initial,
+    })
+}
+
 /// Consumes source-extracted light arrays into exactly one immutable live initial-light column.
 ///
 /// The dimension profile supplies the already-qualified vertical lattice and skylight policy.
@@ -60,7 +99,7 @@ impl From<ChunkLightError> for InitialLightCompositionError {
 ///
 /// Rejects an invalid dimension lattice, malformed source layers, out-of-lattice sections,
 /// duplicate source sections or invalid sentinel bounds without modifying resident state.
-pub fn compose_imported_initial_light(
+fn compose_imported_initial_light(
     position: ChunkPos,
     generation: ChunkGeneration,
     profile: DimensionRuntimeProfile,
@@ -119,11 +158,17 @@ mod tests {
         ChunkBiomeColumn, ChunkLightError, LightKind, LiveChunkCore, LiveChunkSemanticState,
     };
     use helve_world_contract::{BlockStateFacts, SectionStateFacts, SectionBlockPos};
-    use helve_world_import::{ImportedStoredLight, ImportedStoredLightSection};
+    use helve_world_import::{
+        ChunkCompression, ImportedChunkBlocks, ImportedStoredChunk, ImportedStoredChunkWithLight,
+        ImportedStoredLight, ImportedStoredLightSection, StoredChunkHeader,
+        StoredChunkSourceMetadata, TARGET_DATA_VERSION_26_2,
+    };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
     use helve_world_runtime::DimensionRuntimeProfile;
 
-    use super::{InitialLightCompositionError, compose_imported_initial_light};
+    use super::{
+        InitialLightCompositionError, compose_imported_initial_light, prepare_imported_chunk_light,
+    };
 
     fn profile(has_skylight: bool) -> DimensionRuntimeProfile {
         DimensionRuntimeProfile::new(DimensionTypeId(1), -64, 384, has_skylight)
@@ -249,6 +294,39 @@ mod tests {
                 ChunkLightError::SectionOutsideLightLattice { section_y: 21, .. }
             ))
         ));
+    }
+
+    #[test]
+    fn prepared_transaction_binds_light_to_validated_stored_block_header_position() {
+        let source_position = ChunkPos { x: 15, z: -12 };
+        let transaction = ImportedStoredChunkWithLight {
+            stored: ImportedStoredChunk {
+                blocks: ImportedChunkBlocks::<Vec<u8>> {
+                    header: StoredChunkHeader {
+                        data_version: TARGET_DATA_VERSION_26_2,
+                        position: source_position,
+                        stored_section_count: 1,
+                    },
+                    sections: Vec::new(),
+                },
+                source: StoredChunkSourceMetadata {
+                    region_timestamp: 25,
+                    compression: ChunkCompression::Uncompressed,
+                    external: false,
+                },
+            },
+            light: source(true, vec![section(-5, Some(vec![0x21; 2048]), None)]),
+        };
+        let prepared = prepare_imported_chunk_light(
+            transaction,
+            ChunkGeneration(4),
+            profile(true),
+        )
+        .expect("one identity-bound composition");
+        assert_eq!(prepared.stored.blocks.header.position, source_position);
+        assert_eq!(prepared.light.position(), source_position);
+        assert_eq!(prepared.light.generation(), ChunkGeneration(4));
+        assert_eq!(prepared.stored.source.region_timestamp, 25);
     }
 
     struct Facts;

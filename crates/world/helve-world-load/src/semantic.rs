@@ -231,6 +231,36 @@ mod tests {
     }
 
     #[test]
+    fn nonempty_unadmitted_block_entities_never_become_resident() {
+        let pos = ChunkPos { x: 6, z: -4 };
+        let mut dim = Dim::new(DimensionId(3), profile());
+        let mut stored = make_stored(pos, -2);
+        stored.block_entities =
+            helve_world_import::StoredBlockEntityEvidence::UnhandledEntries { count: 2 };
+        let mut empty_calls = 0;
+        assert!(matches!(
+            install_imported_semantic_chunk(&mut dim, stored, biomes(), || {
+                empty_calls += 1;
+                air()
+            }),
+            Err(SemanticResidentLoadError::Build(
+                SemanticImportBuildError::InitialLight(
+                    crate::InitialLightCompositionError::UnadmittedBlockEntities { count: 2 }
+                )
+            ))
+        ));
+        assert_eq!(empty_calls, 0);
+        assert_eq!(dim.resident_chunk_count(), 0);
+
+        // Rejection consumes no generation and cannot leave a partial source
+        // block-entity or light owner in the directory.
+        let installed =
+            install_imported_semantic_chunk(&mut dim, make_stored(pos, -2), biomes(), air)
+                .expect("first valid resident after failed source transaction");
+        assert_eq!(installed.handle.generation, ChunkGeneration(1));
+    }
+
+    #[test]
     fn invalid_semantic_import_is_transactional_and_does_not_consume_generation() {
         let pos = ChunkPos { x: 1, z: 2 };
         let mut dim = Dim::new(DimensionId(3), profile());

@@ -131,6 +131,40 @@ owner is introduced. The widening hook is dormant until the actual R2C
 product route is source-admitted. The chosen 3/4 MiB budgets are explicit
 Helve policy, **not** asserted as vanilla quotas.
 
+## Selected known-pack Configuration biome order binding
+
+Source-checked additional declarations from the identical pinned server archive:
+
+- `ConfigurationProtocols.java` raw-file SHA-256
+  `d718e44bba997b84ccc756c352ead42c7652e5fe396a65371becc2671b452655`
+- `ClientboundRegistryDataPacket.java` raw-file SHA-256
+  `5fcce02e360a61fefdb057f39067185876030e311804210c23dad3bec7d37409`
+
+The 26.2 Configuration clientbound registry-data packet is ID **7**.
+Its fields are a registry identifier then a `VarInt`-length list of
+`RegistrySynchronization.PackedRegistryEntry`: each entry contains a
+resource identifier and an optional NBT value. Under the selected
+`minecraft:core@26.2` known-pack route, the frozen official runtime
+cross-check observed 66 ordered biome keys with absent entry payloads.
+Absent optional values use a zero boolean byte, which permits exact
+bounded parsing without a generic NBT/registry runtime.
+
+`helve-target-26-2::r2c_biome_config::borrow_core_biome_order` now
+borrows those 66 keys in **actual sent order** from the immutable
+Configuration packet bodies (ID 7, `minecraft:worldgen/biome`). It
+rejects wrong cardinality, inline entry NBT, malformed bodies, duplicate
+biome registry packets and trailing bytes. It copies no names, creates
+only one 66-pointer COLD vector, and never sorts to assign IDs. The
+validated `Target26_2R1xContext` exposes this through the narrow
+`candidate_sent_biome_order` method.
+
+This is a **configuration-image consistency observation**, not proof of
+the client's numeric assignment or client content resolution. It does
+not link into live publication and must not turn the 66-entry fixture
+into independently admitted production authority. The client-side
+VAR/SEM proof and complete selected profile remain open as described in
+issue #285.
+
 ## What still blocks production R2C
 
 - The pinned source archive is a **server-source corpus**. The precise

@@ -33,8 +33,8 @@ pub enum LightWireError {
 }
 
 fn append_bitset(output: &mut Vec<u8>, bits: u128) {
-    let low = u64::try_from(bits & u128::from(u64::MAX))
-        .expect("low 64 bits are bounded by the mask");
+    let low =
+        u64::try_from(bits & u128::from(u64::MAX)).expect("low 64 bits are bounded by the mask");
     let high = u64::try_from(bits >> 64).expect("high 64 bits fit u64");
     if high != 0 {
         output.push(2); // canonical VarInt array count, two 64-bit words.

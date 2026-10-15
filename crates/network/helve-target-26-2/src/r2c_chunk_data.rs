@@ -65,6 +65,11 @@ fn length_as_varint(mut length: u32) -> ([u8; 5], usize) {
 ///
 /// Rejects dimensions, array counts, stored values or padding that cannot
 /// describe the exact target heightmap source law.
+///
+/// # Panics
+///
+/// Only if the compile-time source-bounded heightmap word-count/width
+/// invariants or allocation capacity cannot be honored.
 pub fn append_heightmap_map_candidate(
     output: &mut Vec<u8>,
     dimension_height_blocks: u16,
@@ -143,6 +148,11 @@ pub fn append_heightmap_map_candidate(
 /// # Errors
 ///
 /// The destination length and bytes remain unchanged on every rejection.
+///
+/// # Panics
+///
+/// Only if a successful source append violates the caller's Vec capacity
+/// invariants during the final in-place VarInt prefix insertion.
 pub fn append_length_prefixed_sections<E>(
     output: &mut Vec<u8>,
     max_bytes: usize,

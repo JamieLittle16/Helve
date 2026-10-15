@@ -12,6 +12,12 @@
 
 #![forbid(unsafe_code)]
 
+mod light;
+
+pub use light::{
+    InitialLightCompositionError, PreparedImportedChunkLight, prepare_imported_chunk_light,
+};
+
 use helve_world_contract::BlockSection;
 use helve_world_import::{ImportedStoredChunk, StoredChunkSourceMetadata};
 use helve_world_runtime::{DimensionInstance, LoadChunkError, ResidentChunkHandle};

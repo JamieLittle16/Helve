@@ -10,11 +10,6 @@ use helve_target_26_2::r2c_block_palette::{BlockPaletteError, PackedBlockContain
 use helve_target_26_2::r2c_chunk_body::{
     append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
 };
-use helve_world_import::{
-    EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
-    TARGET_DATA_VERSION_26_2,
-};
-use helve_types::ChunkPos;
 use helve_target_26_2::r2c_chunk_data::{
     HeightmapMapError, SectionLengthError, append_heightmap_map_candidate,
     append_length_prefixed_sections,
@@ -23,10 +18,15 @@ use helve_target_26_2::r2c_light::{
     LightWireError, LightWireMasks, append_light_masks_candidate,
     append_light_update_count_candidate, append_light_update_layer_candidate,
 };
+use helve_types::ChunkPos;
 use helve_world_chunk::{
     BiomeProjectionError, InitialChunkReference, LightKind, LightMaskReferenceError,
 };
 use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
+use helve_world_import::{
+    EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
+    TARGET_DATA_VERSION_26_2,
+};
 
 /// A source or section invariant prevents a coherent candidate from being emitted.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -420,7 +420,10 @@ pub(crate) struct EmptyChunkBodyFieldSpans {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum EmptyChunkBodyCandidateError {
     /// The saved chunk is not the exact borrowed resident position.
-    PositionMismatch { source: ChunkPos, resident: ChunkPos },
+    PositionMismatch {
+        source: ChunkPos,
+        resident: ChunkPos,
+    },
     /// A different saved DataVersion cannot be interpreted under 26.2 rules.
     DataVersionMismatch { source: i32 },
     /// Missing or nonempty saved block entities cannot authorize an empty list.
@@ -514,10 +517,6 @@ where
 #[cfg(test)]
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
-    use helve_world_import::{
-        EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
-        TARGET_DATA_VERSION_26_2,
-    };
     use helve_target_26_2::r2c_chunk_body::{
         append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
     };
@@ -528,6 +527,10 @@ mod tests {
         LiveChunkSemanticState, VerticalSectionLattice,
     };
     use helve_world_contract::{BlockSection, SectionBlockPos};
+    use helve_world_import::{
+        EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
+        TARGET_DATA_VERSION_26_2,
+    };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 
     use helve_target_26_2::r2c_chunk_data::{
@@ -540,10 +543,10 @@ mod tests {
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
-        SectionCandidateError, append_explicit_empty_chunk_body_candidate,
-        append_coherent_chunk_and_light_fragments, append_coherent_chunk_data_fields_candidate,
-        append_coherent_light_payload_candidate, append_coherent_section_candidate,
-        append_coherent_section_column_candidate,
+        SectionCandidateError, append_coherent_chunk_and_light_fragments,
+        append_coherent_chunk_data_fields_candidate, append_coherent_light_payload_candidate,
+        append_coherent_section_candidate, append_coherent_section_column_candidate,
+        append_explicit_empty_chunk_body_candidate,
     };
 
     // Synthetic test-only predicates, deliberately NOT claimed as the 26.2
@@ -844,7 +847,8 @@ mod tests {
             66,
             16_384,
             &mut actual,
-        ).unwrap();
+        )
+        .unwrap();
         assert_eq!(actual, expected);
         assert_eq!(spans.position, 2..a);
         assert_eq!(spans.chunk_data, a..b);
@@ -881,19 +885,30 @@ mod tests {
         let wrong_pos = source_header(ChunkPos { x: 33, z: -24 });
         assert_eq!(
             append_explicit_empty_chunk_body_candidate(
-                &image, &wrong_pos, StoredBlockEntityEvidence::ExplicitlyEmpty,
-                66, 16_384, &mut bytes
+                &image,
+                &wrong_pos,
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                66,
+                16_384,
+                &mut bytes
             ),
             Err(EmptyChunkBodyCandidateError::PositionMismatch {
                 source: wrong_pos.position,
                 resident: image.position(),
             })
         );
-        let wrong_version = StoredChunkHeader { data_version: 123, ..good };
+        let wrong_version = StoredChunkHeader {
+            data_version: 123,
+            ..good
+        };
         assert_eq!(
             append_explicit_empty_chunk_body_candidate(
-                &image, &wrong_version, StoredBlockEntityEvidence::ExplicitlyEmpty,
-                66, 16_384, &mut bytes
+                &image,
+                &wrong_version,
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                66,
+                16_384,
+                &mut bytes
             ),
             Err(EmptyChunkBodyCandidateError::DataVersionMismatch { source: 123 })
         );
@@ -907,20 +922,28 @@ mod tests {
         let mut bytes = vec![0xCE, 0xDD];
         assert!(matches!(
             append_explicit_empty_chunk_body_candidate(
-                &image, &source_header(image.position()),
-                StoredBlockEntityEvidence::ExplicitlyEmpty, 3, 16_384, &mut bytes
+                &image,
+                &source_header(image.position()),
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                3,
+                16_384,
+                &mut bytes
             ),
             Err(EmptyChunkBodyCandidateError::ChunkData(
-                ChunkDataCandidateError::Sections(
-                    SectionLengthError::Source(SectionCandidateError::Biome(_))
-                )
+                ChunkDataCandidateError::Sections(SectionLengthError::Source(
+                    SectionCandidateError::Biome(_)
+                ))
             ))
         ));
         assert_eq!(bytes, [0xCE, 0xDD]);
         assert!(matches!(
             append_explicit_empty_chunk_body_candidate(
-                &image, &source_header(image.position()),
-                StoredBlockEntityEvidence::ExplicitlyEmpty, 66, 1, &mut bytes
+                &image,
+                &source_header(image.position()),
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+                66,
+                1,
+                &mut bytes
             ),
             Err(EmptyChunkBodyCandidateError::ChunkData(
                 ChunkDataCandidateError::Sections(SectionLengthError::ExceedsLimit { .. })

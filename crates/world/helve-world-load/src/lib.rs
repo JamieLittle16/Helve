@@ -13,14 +13,23 @@
 #![forbid(unsafe_code)]
 
 mod light;
+mod semantic;
+
+pub use semantic::{
+    SemanticImportBuildError, SemanticResidentInstallError, install_imported_semantic_chunk,
+};
 
 pub use light::{
     InitialLightCompositionError, PreparedImportedChunkLight, prepare_imported_chunk_light,
 };
 
 use helve_world_contract::BlockSection;
-use helve_world_import::{ImportedStoredChunk, StoredChunkSourceMetadata};
-use helve_world_runtime::{DimensionInstance, LoadChunkError, ResidentChunkHandle};
+use helve_world_import::{
+    ImportedBlockSection, ImportedStoredChunk, StoredChunkSourceMetadata,
+};
+use helve_world_runtime::{
+    DimensionInstance, DimensionRuntimeProfile, LoadChunkError, ResidentChunkHandle,
+};
 
 const BLOCKS_PER_SECTION_AXIS: i32 = 16;
 
@@ -95,14 +104,32 @@ where
 {
     let position = imported.blocks.header.position;
     let profile = dimension.profile();
+    let source = imported.source;
+    let resident_sections = compose_block_sections(
+        profile,
+        imported.blocks.sections,
+        &mut make_empty_section,
+    )?;
+
+    let handle = dimension.load_chunk(position, resident_sections)?;
+    Ok(InstalledStoredChunk { handle, source })
+}
+
+
+fn compose_block_sections<Section, MakeEmpty>(
+    profile: DimensionRuntimeProfile,
+    mut sparse_sections: Vec<ImportedBlockSection<Section>>,
+    mut make_empty_section: MakeEmpty,
+) -> Result<Vec<Section>, ResidentInstallError>
+where
+    MakeEmpty: FnMut() -> Section,
+{
     let min_section_y = profile.min_section_y();
     let max_section_y_exclusive = profile
         .max_block_y_exclusive()
         .div_euclid(BLOCKS_PER_SECTION_AXIS);
     let section_count = profile.section_count();
 
-    let source = imported.source;
-    let mut sparse_sections = imported.blocks.sections;
     sparse_sections.sort_unstable_by_key(|section| section.section_y);
 
     let mut previous_y = None;
@@ -142,8 +169,7 @@ where
     debug_assert_eq!(resident_sections.len(), section_count);
     debug_assert_eq!(resident_sections.capacity(), section_count);
 
-    let handle = dimension.load_chunk(position, resident_sections)?;
-    Ok(InstalledStoredChunk { handle, source })
+    Ok(resident_sections)
 }
 
 #[cfg(test)]

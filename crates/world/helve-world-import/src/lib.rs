@@ -36,6 +36,7 @@ pub use stored_blocks::{
     BlockSectionScratchCapacities, BlockStateResolver, ImportedBlockSection,
     ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedChunkWithBiomeLight,
     ImportedChunkWithLight, ImportedStoredLight, ImportedStoredLightSection,
+    EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence,
     decode_chunk_block_sections, decode_chunk_block_sections_with_biomes,
     decode_chunk_block_sections_with_light,
 };

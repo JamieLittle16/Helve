@@ -170,6 +170,8 @@ pub struct ImportedStoredLight {
 pub struct ImportedChunkWithLight<Section> {
     pub blocks: ImportedChunkBlocks<Section>,
     pub light: ImportedStoredLight,
+    /// Exact source-list presence; no assumption of block-entity publication.
+    pub block_entities: StoredBlockEntityEvidence,
 }
 
 /// COLD evidence of the saved block-entity list, without payload publication authority.
@@ -444,6 +446,7 @@ where
     Ok(ImportedChunkWithLight {
         blocks: result.blocks,
         light: result.light,
+        block_entities: result.block_entities,
     })
 }
 

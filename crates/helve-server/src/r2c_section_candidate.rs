@@ -595,10 +595,10 @@ where
 mod tests {
     use helve_connection_core::{ConnectionLimits, IngressBuffer};
     use helve_connection_driver::{ConnectionDriver, DriverError};
+    use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
     use helve_publication_core::{PublicationCursor, PublicationStep};
     use helve_session_core::LivenessState;
     use helve_target_26_2::r2b::TeleportTransaction;
-    use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
     use helve_target_26_2::r2c_chunk_body::{
         append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
     };
@@ -716,11 +716,8 @@ mod tests {
             DimensionId(8),
             DimensionRuntimeProfile::new(DimensionTypeId(4), -16, 32, true).unwrap(),
         );
-        let receipt = install_source_receipt_in_dimension(
-            &mut dim,
-            ChunkPos { x: 2, z: 3 },
-            evidence,
-        );
+        let receipt =
+            install_source_receipt_in_dimension(&mut dim, ChunkPos { x: 2, z: 3 }, evidence);
         (dim, receipt)
     }
 
@@ -767,11 +764,10 @@ mod tests {
                 ],
             },
         };
-        let receipt = install_source_biome_chunk_with_receipt(dim, imported, || {
+        install_source_biome_chunk_with_receipt(dim, imported, || {
             DirectBlockSection::filled(AIR, &GeneratedStateFacts)
         })
-        .expect("real COLD importer and directory mint receipt");
-        receipt
+        .expect("real COLD importer and directory mint receipt")
     }
     // This synthetic packet identity is strictly test-local; it is NOT a
     // Minecraft 26.2 Play ID and never reaches the product runtime.
@@ -852,7 +848,10 @@ mod tests {
         let mut reader = IngressBuffer::new(limits);
         reader.push(&original_egress).unwrap();
         let first_frame = reader.peek_frame().unwrap().unwrap();
-        assert_eq!(first_frame.packet_id(), i32::from(SYNTHETIC_CHUNK_PACKET_ID));
+        assert_eq!(
+            first_frame.packet_id(),
+            i32::from(SYNTHETIC_CHUNK_PACKET_ID)
+        );
         assert_eq!(first_frame.stream_bytes(), original_egress.len());
         assert_eq!(&first_frame.payload()[..4], &left.x.to_be_bytes());
         assert_eq!(&first_frame.payload()[4..8], &left.z.to_be_bytes());
@@ -905,7 +904,10 @@ mod tests {
         let mut reader = IngressBuffer::new(limits);
         reader.push(&second_wire).unwrap();
         let second_frame = reader.peek_frame().unwrap().unwrap();
-        assert_eq!(second_frame.packet_id(), i32::from(SYNTHETIC_CHUNK_PACKET_ID));
+        assert_eq!(
+            second_frame.packet_id(),
+            i32::from(SYNTHETIC_CHUNK_PACKET_ID)
+        );
         assert_eq!(&second_frame.payload()[..4], &right.x.to_be_bytes());
         assert_eq!(&second_frame.payload()[4..8], &right.z.to_be_bytes());
 
@@ -932,9 +934,9 @@ mod tests {
                 &mut fresh_cursor,
                 &mut scratch,
             ),
-            Err(DriverError::Handler(ReceiptBoundBodyCandidateError::Receipt(
-                SourceChunkReceiptError::Revised { .. }
-            )))
+            Err(DriverError::Handler(
+                ReceiptBoundBodyCandidateError::Receipt(SourceChunkReceiptError::Revised { .. })
+            ))
         ));
         assert_eq!(fresh_cursor.next_index(), 0);
         assert_eq!(session.pending_play_egress(), second_wire);

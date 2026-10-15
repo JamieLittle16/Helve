@@ -15,7 +15,7 @@ use crate::{
     stored_blocks::{
         BlockSectionDecodeScratch, BlockSectionImportError, BlockStateResolver,
         ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedStoredLight,
-        decode_chunk_sections_inner,
+        StoredBlockEntityEvidence, decode_chunk_sections_inner,
     },
 };
 
@@ -140,6 +140,8 @@ pub struct ImportedStoredChunkWithLight<Section> {
     pub stored: ImportedStoredChunk<Section>,
     /// Source `isLightOn` and all source-admitted exact light arrays.
     pub light: ImportedStoredLight,
+    /// Saved block entities, without publishing unsupported payloads.
+    pub block_entities: StoredBlockEntityEvidence,
 }
 
 /// One-region payload transaction that includes block, initial light and exact saved biomes.
@@ -150,6 +152,8 @@ pub struct ImportedStoredChunkWithBiomeLight<BlockSection, BiomeSection> {
     pub stored: ImportedStoredChunk<BlockSection>,
     pub light: ImportedStoredLight,
     pub biomes: ImportedStoredBiomes<BiomeSection>,
+    /// Exact saved block-entity list evidence for the COLD admission decision.
+    pub block_entities: StoredBlockEntityEvidence,
 }
 
 /// Complete returned Anvil transaction type, keeping nested generic return types simple.
@@ -290,6 +294,7 @@ where
         Ok(ImportedStoredChunkWithLight {
             stored: result.stored,
             light: result.light,
+            block_entities: result.block_entities,
         })
     }
 
@@ -378,6 +383,7 @@ where
             },
             light: decoded.light,
             biomes: decoded.biomes,
+            block_entities: decoded.block_entities,
         })
     }
 }

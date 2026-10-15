@@ -10,7 +10,9 @@ use helve_world_chunk::{
     ChunkLightError, ImportedLightSection, InitialChunkLight, LightDataLayer, LightKind,
     LightLayerError, VerticalSectionLattice, VerticalSectionLatticeError,
 };
-use helve_world_import::{ImportedStoredChunk, ImportedStoredChunkWithLight, ImportedStoredLight};
+use helve_world_import::{
+    ImportedStoredChunk, ImportedStoredChunkWithLight, ImportedStoredLight, StoredBlockEntityEvidence,
+};
 use helve_world_runtime::DimensionRuntimeProfile;
 
 /// Fail-closed errors while moving stored light into a validated semantic chunk lattice.
@@ -26,6 +28,8 @@ pub enum InitialLightCompositionError {
     },
     /// Stored section identity, duplicate section or dimension sentinel bounds failed.
     Column(ChunkLightError),
+    /// Nonempty block-entity source data has no admitted resident representation.
+    UnadmittedBlockEntities { count: usize },
 }
 
 impl From<VerticalSectionLatticeError> for InitialLightCompositionError {
@@ -66,7 +70,14 @@ pub fn prepare_imported_chunk_light<Section>(
     generation: ChunkGeneration,
     profile: DimensionRuntimeProfile,
 ) -> Result<PreparedImportedChunkLight<Section>, InitialLightCompositionError> {
-    let ImportedStoredChunkWithLight { stored, light } = imported;
+    let ImportedStoredChunkWithLight {
+        stored,
+        light,
+        block_entities,
+    } = imported;
+    if let StoredBlockEntityEvidence::UnhandledEntries { count } = block_entities {
+        return Err(InitialLightCompositionError::UnadmittedBlockEntities { count });
+    }
     let initial = compose_imported_initial_light(
         stored.blocks.header.position,
         generation,
@@ -300,6 +311,7 @@ mod tests {
     fn prepared_transaction_binds_light_to_validated_stored_block_header_position() {
         let source_position = ChunkPos { x: 15, z: -12 };
         let transaction = ImportedStoredChunkWithLight {
+            block_entities: helve_world_import::StoredBlockEntityEvidence::Absent,
             stored: ImportedStoredChunk {
                 blocks: ImportedChunkBlocks::<Vec<u8>> {
                     header: StoredChunkHeader {

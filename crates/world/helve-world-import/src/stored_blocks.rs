@@ -170,6 +170,45 @@ pub struct ImportedStoredLight {
 pub struct ImportedChunkWithLight<Section> {
     pub blocks: ImportedChunkBlocks<Section>,
     pub light: ImportedStoredLight,
+    /// Exact source-list presence; no assumption of block-entity publication.
+    pub block_entities: StoredBlockEntityEvidence,
+}
+
+/// COLD evidence of the saved block-entity list, without payload publication authority.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StoredBlockEntityEvidence {
+    /// The field was not present; this is not evidence of an empty list.
+    Absent,
+    /// A uniquely present list contained exactly zero entries.
+    ExplicitlyEmpty,
+    /// Saved entries exist and their payloads remain unsupported.
+    UnhandledEntries { count: usize },
+}
+
+/// A caller cannot assume an unreviewed block-entity list is empty.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum EmptyBlockEntityEvidenceError {
+    /// No explicit empty list was seen in the source.
+    MissingList,
+    /// Non-empty saved data must not be silently dropped.
+    UnhandledEntries { count: usize },
+}
+
+impl StoredBlockEntityEvidence {
+    /// Requires positive proof that the saved list was explicitly empty.
+    ///
+    /// # Errors
+    ///
+    /// Rejects absent or non-empty saved lists.
+    pub const fn require_explicitly_empty(self) -> Result<(), EmptyBlockEntityEvidenceError> {
+        match self {
+            Self::ExplicitlyEmpty => Ok(()),
+            Self::Absent => Err(EmptyBlockEntityEvidenceError::MissingList),
+            Self::UnhandledEntries { count } => {
+                Err(EmptyBlockEntityEvidenceError::UnhandledEntries { count })
+            }
+        }
+    }
 }
 
 /// Block, biome and initial-light state decoded in one bounded NBT traversal.
@@ -178,6 +217,8 @@ pub struct ImportedChunkWithBiomeLight<BlockSection, BiomeSection> {
     pub blocks: ImportedChunkBlocks<BlockSection>,
     pub light: ImportedStoredLight,
     pub biomes: ImportedStoredBiomes<BiomeSection>,
+    /// Unadmitted source-list evidence, never an encoded packet representation.
+    pub block_entities: StoredBlockEntityEvidence,
 }
 
 struct DecodedSection<BlockSection, BiomeSection> {
@@ -229,6 +270,8 @@ pub enum BlockSectionImportError {
         actual: usize,
         expected: usize,
     },
+    /// A non-empty block-entity list must have compound element type.
+    BlockEntityListElementType { actual: TagType },
     /// `block_states.palette` must contain compound entries.
     PaletteListElementType {
         /// Zero-based persisted section-list index.
@@ -403,6 +446,7 @@ where
     Ok(ImportedChunkWithLight {
         blocks: result.blocks,
         light: result.light,
+        block_entities: result.block_entities,
     })
 }
 
@@ -462,6 +506,7 @@ where
     let mut z_pos = None;
     let mut stored_section_count = None;
     let mut light_correct = None;
+    let mut block_entities = None;
     let mut decoded_sections = Vec::new();
     let mut light_sections = Vec::new();
     let mut biome_sections = Vec::new();
@@ -484,6 +529,15 @@ where
             "isLightOn" if INCLUDE_LIGHT => {
                 require_chunk_type("isLightOn", field.tag_type, TagType::Byte)?;
                 set_chunk_once(&mut light_correct, "isLightOn", reader.read_i8()? != 0)?;
+            }
+            "block_entities" if INCLUDE_LIGHT => {
+                if block_entities.is_some() {
+                    return Err(ChunkImportError::DuplicateField {
+                        field: "block_entities",
+                    }
+                    .into());
+                }
+                block_entities = Some(read_block_entity_list(&mut reader, field.tag_type)?);
             }
             "sections" => {
                 require_chunk_type("sections", field.tag_type, TagType::List)?;
@@ -545,6 +599,32 @@ where
         biomes: ImportedStoredBiomes {
             sections: biome_sections,
         },
+        block_entities: block_entities.unwrap_or(StoredBlockEntityEvidence::Absent),
+    })
+}
+
+/// Reads only the saved list presence and count with the existing bounded cursor.
+///
+/// NBT payloads are checked/skipped but never translated into unadmitted
+/// clientbound block-entity packet bytes.
+fn read_block_entity_list(
+    reader: &mut NbtReader<'_>,
+    tag_type: TagType,
+) -> Result<StoredBlockEntityEvidence, BlockSectionImportError> {
+    require_chunk_type("block_entities", tag_type, TagType::List)?;
+    let list = reader.read_list_header()?;
+    if list.len != 0 && list.element_type != TagType::Compound {
+        return Err(BlockSectionImportError::BlockEntityListElementType {
+            actual: list.element_type,
+        });
+    }
+    for _ in 0..list.len {
+        reader.skip_payload(TagType::Compound)?;
+    }
+    Ok(if list.len == 0 {
+        StoredBlockEntityEvidence::ExplicitlyEmpty
+    } else {
+        StoredBlockEntityEvidence::UnhandledEntries { count: list.len }
     })
 }
 
@@ -1090,7 +1170,8 @@ fn set_section_once<T>(
 mod tests {
     use super::{
         BLOCK_SECTION_CELLS, BlockProperty, BlockSectionDecodeScratch, BlockSectionImportError,
-        BlockStateResolver, ImportedBlockSection, ImportedBlockSectionBuilder, ImportedChunkBlocks,
+        BlockStateResolver, EmptyBlockEntityEvidenceError, ImportedBlockSection,
+        ImportedBlockSectionBuilder, ImportedChunkBlocks, StoredBlockEntityEvidence,
         decode_chunk_block_sections, decode_chunk_block_sections_with_biomes,
         decode_chunk_block_sections_with_light,
     };
@@ -1748,6 +1829,96 @@ mod tests {
                 ChunkImportError::DuplicateField { field: "isLightOn" }
             ))
         );
+    }
+
+    fn with_block_entity_list(
+        mut chunk: Vec<u8>,
+        element_type: TagType,
+        elements: &[Vec<u8>],
+    ) -> Vec<u8> {
+        assert_eq!(chunk.pop(), Some(TagType::End as u8));
+        named_header(&mut chunk, TagType::List, "block_entities");
+        chunk.push(element_type as u8);
+        chunk.extend_from_slice(
+            &i32::try_from(elements.len())
+                .expect("bounded test entries")
+                .to_be_bytes(),
+        );
+        for bytes in elements {
+            chunk.extend_from_slice(bytes);
+        }
+        chunk.push(TagType::End as u8);
+        chunk
+    }
+
+    #[test]
+    fn block_entity_list_absent_empty_and_present_are_distinct() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let base = chunk_nbt(position, &[]);
+        let absent = decode_with_light(&base, position).unwrap();
+        assert_eq!(absent.block_entities, StoredBlockEntityEvidence::Absent);
+        assert_eq!(
+            absent.block_entities.require_explicitly_empty(),
+            Err(EmptyBlockEntityEvidenceError::MissingList)
+        );
+
+        let empty = with_block_entity_list(base.clone(), TagType::Compound, &[]);
+        let loaded = decode_with_light(&empty, position).unwrap();
+        assert_eq!(
+            loaded.block_entities,
+            StoredBlockEntityEvidence::ExplicitlyEmpty
+        );
+        assert_eq!(loaded.block_entities.require_explicitly_empty(), Ok(()));
+
+        // The stored entry is intentionally not decoded/published yet.
+        let nonempty = with_block_entity_list(base, TagType::Compound, &[vec![TagType::End as u8]]);
+        let result = decode_with_light(&nonempty, position).unwrap();
+        assert_eq!(
+            result.block_entities,
+            StoredBlockEntityEvidence::UnhandledEntries { count: 1 }
+        );
+        assert_eq!(
+            result.block_entities.require_explicitly_empty(),
+            Err(EmptyBlockEntityEvidenceError::UnhandledEntries { count: 1 })
+        );
+
+        // Block-only legacy import remains independent of this R2C gate.
+        assert_eq!(
+            decode(&nonempty, position).unwrap().header,
+            result.blocks.header,
+        );
+    }
+
+    #[test]
+    fn block_entity_list_malformed_duplicate_or_truncated_fails_closed() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let base = chunk_nbt(position, &[]);
+        let malformed = with_block_entity_list(base.clone(), TagType::String, &[vec![0, 0]]);
+        assert_eq!(
+            decode_with_light(&malformed, position),
+            Err(BlockSectionImportError::BlockEntityListElementType {
+                actual: TagType::String,
+            })
+        );
+
+        let empty = with_block_entity_list(base, TagType::Compound, &[]);
+        let duplicate = with_block_entity_list(empty, TagType::Compound, &[]);
+        assert_eq!(
+            decode_with_light(&duplicate, position),
+            Err(BlockSectionImportError::Chunk(
+                ChunkImportError::DuplicateField {
+                    field: "block_entities"
+                }
+            ))
+        );
+        let mut truncated = with_block_entity_list(
+            chunk_nbt(position, &[]),
+            TagType::Compound,
+            &[vec![TagType::End as u8]],
+        );
+        truncated.pop();
+        truncated.pop();
+        assert!(decode_with_light(&truncated, position).is_err());
     }
 
     #[test]

@@ -100,6 +100,7 @@ where
     let stored = ImportedStoredChunkWithLight {
         stored: imported.stored,
         light: imported.light,
+        block_entities: imported.block_entities,
     };
     install_imported_semantic_chunk(dimension, stored, sections, make_empty_section)
         .map_err(StoredBiomeResidencyError::Resident)
@@ -167,6 +168,7 @@ mod tests {
                     sky: Some(vec![0x77; 2048]),
                 }],
             },
+            block_entities: helve_world_import::StoredBlockEntityEvidence::Absent,
             biomes: ImportedStoredBiomes {
                 // Deliberately reverse saved order; no resident slot can depend on NBT ordering.
                 sections: vec![

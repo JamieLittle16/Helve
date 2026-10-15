@@ -249,6 +249,21 @@ where
         self.masks
     }
 
+    /// Borrows one immutable, already-resident block section by logical section Y.
+    ///
+    /// This is a publication/owner-local read seam, not a new resident truth or a
+    /// mutable escape hatch. A statically bound projector may traverse the
+    /// section's 4096 local cells using its BlockSection implementation without
+    /// a repeated global directory lookup or block-to-world coordinate division.
+    /// Any mutation requires an exclusive borrow of the whole chunk and therefore
+    /// cannot race this source borrow. Out-of-lattice sections return None.
+    #[must_use]
+    pub fn section_ref(&self, section_y: i32) -> Option<&Section> {
+        self.lattice
+            .section_index_for_section_y(section_y)
+            .and_then(|index| self.sections.get(index))
+    }
+
     /// Reads the exact semantic block state at one world position.
     ///
     /// # Errors

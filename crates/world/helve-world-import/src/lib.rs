@@ -12,6 +12,7 @@ pub mod compression;
 mod generated_state_lookup;
 pub mod nbt;
 pub mod state_lookup;
+pub mod stored_biomes;
 pub mod stored_blocks;
 pub mod transaction;
 
@@ -24,15 +25,21 @@ pub use nbt::{ListHeader, NamedTag, NbtError, NbtLimits, NbtReader, TagType};
 pub use state_lookup::{
     Target262BlockStateResolver, canonical_state_fingerprint, resolve_target_26_2_block_state,
 };
+pub use stored_biomes::{
+    BiomeDecodeScratch, BiomeImportError, BiomeStateResolver, ExactBiomeDecoder,
+    ImportedBiomeSection, ImportedBiomeSectionBuilder, ImportedStoredBiomes,
+};
 pub use stored_blocks::{
     BlockProperty, BlockSectionDecodeScratch, BlockSectionImportError,
     BlockSectionScratchCapacities, BlockStateResolver, ImportedBlockSection,
-    ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedChunkWithLight, ImportedStoredLight,
-    ImportedStoredLightSection, decode_chunk_block_sections,
+    ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedChunkWithBiomeLight,
+    ImportedChunkWithLight, ImportedStoredLight, ImportedStoredLightSection,
+    decode_chunk_block_sections, decode_chunk_block_sections_with_biomes,
     decode_chunk_block_sections_with_light,
 };
 pub use transaction::{
     ChunkPayloadDecoder, ChunkPayloadLimits, ExternalChunkPayload, ImportedStoredChunk,
-    ImportedStoredChunkWithLight, StoredBlockImporter, StoredChunkImportError,
-    StoredChunkSourceMetadata, UncompressedChunkPayloadDecoder, UncompressedPayloadError,
+    ImportedStoredChunkWithBiomeLight, ImportedStoredChunkWithLight, StoredBlockImporter,
+    StoredChunkImportError, StoredChunkSourceMetadata, UncompressedChunkPayloadDecoder,
+    UncompressedPayloadError,
 };

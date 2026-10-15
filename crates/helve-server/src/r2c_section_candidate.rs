@@ -593,7 +593,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use helve_connection_core::{ConnectionLimits, IngressBuffer};
+    use helve_connection_driver::{ConnectionDriver, DriverError};
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
+    use helve_publication_core::{PublicationCursor, PublicationStep};
+    use helve_session_core::LivenessState;
+    use helve_target_26_2::r2b::TeleportTransaction;
     use helve_target_26_2::r2c_chunk_body::{
         append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
     };
@@ -624,6 +629,8 @@ mod tests {
         LightWireMasks, append_light_masks_candidate, append_light_update_count_candidate,
         append_light_update_layer_candidate,
     };
+
+    use crate::r2b_server::R2bPlaySession;
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
@@ -705,11 +712,20 @@ mod tests {
     fn imported_source_receipt(
         evidence: StoredBlockEntityEvidence,
     ) -> (ImportedDimension, SourceChunkPublicationReceipt) {
-        let position = ChunkPos { x: 2, z: 3 };
         let mut dim = ImportedDimension::new(
             DimensionId(8),
             DimensionRuntimeProfile::new(DimensionTypeId(4), -16, 32, true).unwrap(),
         );
+        let receipt =
+            install_source_receipt_in_dimension(&mut dim, ChunkPos { x: 2, z: 3 }, evidence);
+        (dim, receipt)
+    }
+
+    fn install_source_receipt_in_dimension(
+        dim: &mut ImportedDimension,
+        position: ChunkPos,
+        evidence: StoredBlockEntityEvidence,
+    ) -> SourceChunkPublicationReceipt {
         let imported = ImportedStoredChunkWithBiomeLight {
             stored: ImportedStoredChunk {
                 blocks: ImportedChunkBlocks {
@@ -748,11 +764,189 @@ mod tests {
                 ],
             },
         };
-        let receipt = install_source_biome_chunk_with_receipt(&mut dim, imported, || {
+        install_source_biome_chunk_with_receipt(dim, imported, || {
             DirectBlockSection::filled(AIR, &GeneratedStateFacts)
         })
-        .expect("real COLD importer and directory mint receipt");
-        (dim, receipt)
+        .expect("real COLD importer and directory mint receipt")
+    }
+    // This synthetic packet identity is strictly test-local; it is NOT a
+    // Minecraft 26.2 Play ID and never reaches the product runtime.
+    const SYNTHETIC_CHUNK_PACKET_ID: u8 = 0x55;
+
+    fn emit_synthetic_receipt_window_one(
+        session: &mut R2bPlaySession,
+        dimension: &ImportedDimension,
+        receipts: &[SourceChunkPublicationReceipt],
+        cursor: &mut PublicationCursor,
+        scratch: &mut Vec<u8>,
+    ) -> Result<PublicationStep, DriverError<ReceiptBoundBodyCandidateError>> {
+        session.service_play_projected_one(receipts.len(), cursor, scratch, |index, output| {
+            output.push(SYNTHETIC_CHUNK_PACKET_ID);
+            append_receipt_bound_empty_chunk_body_candidate(
+                dimension,
+                &receipts[index],
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                output,
+            )
+            .map(|_| ())
+        })
+    }
+
+    #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one continuous end-to-end lifecycle must test two receipts, egress retry and stale source ownership together"
+    )]
+    fn two_imported_receipts_stream_through_single_r2b_driver_with_backpressure() {
+        let mut dim = ImportedDimension::new(
+            DimensionId(8),
+            DimensionRuntimeProfile::new(DimensionTypeId(4), -16, 32, true).unwrap(),
+        );
+        let left = ChunkPos { x: 2, z: 3 };
+        let right = ChunkPos { x: -7, z: 11 };
+        let receipts = [
+            install_source_receipt_in_dimension(
+                &mut dim,
+                left,
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+            ),
+            install_source_receipt_in_dimension(
+                &mut dim,
+                right,
+                StoredBlockEntityEvidence::ExplicitlyEmpty,
+            ),
+        ];
+
+        // Both packets individually fit. Their combined framed bytes do
+        // not, forcing a real same-driver retry rather than a second queue.
+        let limits = ConnectionLimits::new(8_192, 32_768, 8_196).unwrap();
+        let mut session = R2bPlaySession {
+            driver: ConnectionDriver::new(limits),
+            read_scratch: vec![0; 32].into_boxed_slice(),
+            teleport: TeleportTransaction::new(),
+            liveness: LivenessState::new(0, 0).unwrap(),
+        };
+        let retained_read_scratch = session.read_scratch.as_ptr();
+        let mut scratch = Vec::with_capacity(16_384);
+        scratch.push(0xEE);
+        let scratch_allocation = scratch.as_ptr();
+        let mut cursor = PublicationCursor::new();
+
+        let first = emit_synthetic_receipt_window_one(
+            &mut session,
+            &dim,
+            &receipts,
+            &mut cursor,
+            &mut scratch,
+        )
+        .expect("first receipt can publish one full synthetic body");
+        assert!(matches!(first, PublicationStep::Queued { index: 0, .. }));
+        assert_eq!(cursor.next_index(), 1);
+        assert_eq!(scratch, [0xEE]);
+        assert_eq!(scratch.as_ptr(), scratch_allocation);
+        assert_eq!(session.read_scratch.as_ptr(), retained_read_scratch);
+
+        let original_egress = session.pending_play_egress().to_vec();
+        let mut reader = IngressBuffer::new(limits);
+        reader.push(&original_egress).unwrap();
+        let first_frame = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(
+            first_frame.packet_id(),
+            i32::from(SYNTHETIC_CHUNK_PACKET_ID)
+        );
+        assert_eq!(first_frame.stream_bytes(), original_egress.len());
+        assert_eq!(&first_frame.payload()[..4], &left.x.to_be_bytes());
+        assert_eq!(&first_frame.payload()[4..8], &left.z.to_be_bytes());
+
+        assert!(matches!(
+            emit_synthetic_receipt_window_one(
+                &mut session,
+                &dim,
+                &receipts,
+                &mut cursor,
+                &mut scratch,
+            ),
+            Err(DriverError::Buffer(
+                helve_connection_core::ConnectionBufferError::EgressLimitExceeded { .. }
+            ))
+        ));
+        assert_eq!(cursor.next_index(), 1);
+        assert_eq!(session.pending_play_egress(), original_egress);
+        assert_eq!(scratch, [0xEE]);
+        assert_eq!(scratch.as_ptr(), scratch_allocation);
+
+        session
+            .consume_play_written(original_egress.len())
+            .expect("the original driver drains the first frame");
+        assert!(matches!(
+            emit_synthetic_receipt_window_one(
+                &mut session,
+                &dim,
+                &receipts,
+                &mut cursor,
+                &mut scratch,
+            ),
+            Ok(PublicationStep::Queued { index: 1, .. })
+        ));
+        assert_eq!(cursor.next_index(), 2);
+        assert_eq!(scratch, [0xEE]);
+        assert_eq!(scratch.as_ptr(), scratch_allocation);
+        assert!(matches!(
+            emit_synthetic_receipt_window_one(
+                &mut session,
+                &dim,
+                &receipts,
+                &mut cursor,
+                &mut scratch,
+            ),
+            Ok(PublicationStep::Complete)
+        ));
+
+        let second_wire = session.pending_play_egress().to_vec();
+        let mut reader = IngressBuffer::new(limits);
+        reader.push(&second_wire).unwrap();
+        let second_frame = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(
+            second_frame.packet_id(),
+            i32::from(SYNTHETIC_CHUNK_PACKET_ID)
+        );
+        assert_eq!(&second_frame.payload()[..4], &right.x.to_be_bytes());
+        assert_eq!(&second_frame.payload()[4..8], &right.z.to_be_bytes());
+
+        // A new publication selection cannot silently use an old receipt
+        // after a real world mutation, even with other bytes already queued.
+        dim.resolve_chunk_mut(receipts[0].installed().handle)
+            .unwrap()
+            .replace_block(
+                BlockPos {
+                    x: 32,
+                    y: -16,
+                    z: 48,
+                },
+                BlockStateId::new(1).unwrap(),
+                &GeneratedStateFacts,
+            )
+            .unwrap();
+        let mut fresh_cursor = PublicationCursor::new();
+        assert!(matches!(
+            emit_synthetic_receipt_window_one(
+                &mut session,
+                &dim,
+                &receipts,
+                &mut fresh_cursor,
+                &mut scratch,
+            ),
+            Err(DriverError::Handler(
+                ReceiptBoundBodyCandidateError::Receipt(SourceChunkReceiptError::Revised { .. })
+            ))
+        ));
+        assert_eq!(fresh_cursor.next_index(), 0);
+        assert_eq!(session.pending_play_egress(), second_wire);
+        assert_eq!(scratch, [0xEE]);
+        assert_eq!(scratch.as_ptr(), scratch_allocation);
+        assert_eq!(session.read_scratch.as_ptr(), retained_read_scratch);
     }
 
     #[test]

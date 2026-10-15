@@ -7,9 +7,12 @@ A disposable Java 25 agent uses JDK reflection to find the running,
 SHA-pinned official 26.2 MinecraftServer and its loaded biome registry.
 It enumerates **by numeric byId** and verifies the inverse getId and
 the resource getKey at every ordinal. No sorted resource list is used to
-assign IDs. The class/field/method names are obtained from the official
-server's separate Mojang mapping artifact, not guessed via unaudited
-obfuscated names.
+assign IDs. The class/field/method names are resolved through official Mojang mappings
+when distributed. The pinned official 26.2 launcher has **no**
+server_mappings entry, so the observer uses the readable official runtime
+symbols, the same policy as the existing sealed block-state runtime oracle.
+Every class, field and method must independently resolve at runtime; a
+missing symbol aborts the probe instead of guessing obfuscated names.
 
 **Independent within one process:** an unrelated minimal offline client
 socket simultaneously observes the ordered Configuration registry-data

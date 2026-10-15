@@ -253,7 +253,7 @@ where
     ///
     /// This is a publication/owner-local read seam, not a new resident truth or a
     /// mutable escape hatch. A statically bound projector may traverse the
-    /// section's 4096 local cells using its BlockSection implementation without
+    /// section's 4096 local cells using its [`BlockSection`] implementation without
     /// a repeated global directory lookup or block-to-world coordinate division.
     /// Any mutation requires an exclusive borrow of the whole chunk and therefore
     /// cannot race this source borrow. Out-of-lattice sections return None.

@@ -238,9 +238,9 @@ where
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
     ) -> Result<ImportedStoredChunk<B::Section>, StoredChunkImportError<D::Error>> {
-        let (stored, _) =
+        let transaction =
             self.import_region_chunk_inner::<false>(region, local_x, local_z, external_payload)?;
-        Ok(stored)
+        Ok(transaction.stored)
     }
 
     /// Imports block sections and exact source light arrays from one bounded NBT pass.
@@ -258,9 +258,7 @@ where
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
     ) -> Result<ImportedStoredChunkWithLight<B::Section>, StoredChunkImportError<D::Error>> {
-        let (stored, light) =
-            self.import_region_chunk_inner::<true>(region, local_x, local_z, external_payload)?;
-        Ok(ImportedStoredChunkWithLight { stored, light })
+        self.import_region_chunk_inner::<true>(region, local_x, local_z, external_payload)
     }
 
     fn import_region_chunk_inner<const INCLUDE_LIGHT: bool>(
@@ -269,7 +267,7 @@ where
         local_x: u8,
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
-    ) -> Result<(ImportedStoredChunk<B::Section>, ImportedStoredLight), StoredChunkImportError<D::Error>> {
+    ) -> Result<ImportedStoredChunkWithLight<B::Section>, StoredChunkImportError<D::Error>> {
         let Some(chunk) = region.chunk(local_x, local_z)? else {
             return Err(StoredChunkImportError::EmptyRegionSlot { local_x, local_z });
         };
@@ -327,8 +325,8 @@ where
             )
         };
 
-        Ok((
-            ImportedStoredChunk {
+        Ok(ImportedStoredChunkWithLight {
+            stored: ImportedStoredChunk {
                 blocks,
                 source: StoredChunkSourceMetadata {
                     region_timestamp: chunk.timestamp,
@@ -337,7 +335,7 @@ where
                 },
             },
             light,
-        ))
+        })
     }
 }
 

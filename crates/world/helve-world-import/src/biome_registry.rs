@@ -11,7 +11,7 @@
 use crate::{stored_biomes::BiomeStateResolver, TARGET_DATA_VERSION_26_2};
 
 /// Maximum supported registry cardinality for one compact `u16` identity.
-const MAX_BIOME_IDS: usize = usize::from(u16::MAX) + 1;
+const MAX_BIOME_IDS: usize = 65_536;
 
 /// Invalid or unsupported registry evidence. No canonical ID is guessed on failure.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

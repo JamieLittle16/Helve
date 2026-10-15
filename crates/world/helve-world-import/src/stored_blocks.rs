@@ -1460,7 +1460,15 @@ mod tests {
         assert_eq!(result.light.sections[1].section_y, 20);
         assert_eq!(result.light.sections[1].sky.as_ref().unwrap()[0], 0x5c);
         assert!(result.light.sections[1].block.is_none());
-        let legacy = decode(&bytes, position).expect("block-only route remains valid");
+        let legacy = decode_chunk_block_sections(
+            &bytes,
+            position,
+            NbtLimits::new(256, 4096, 4096, 16).expect("same light-capable bounds"),
+            &Resolver,
+            &mut VecBuilder,
+            &mut BlockSectionDecodeScratch::new(),
+        )
+        .expect("block-only route remains valid under the same input resource limit");
         assert_eq!(legacy, result.blocks);
     }
 

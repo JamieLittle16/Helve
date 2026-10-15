@@ -294,6 +294,7 @@ where
         Ok(ImportedStoredChunkWithLight {
             stored: result.stored,
             light: result.light,
+            block_entities: result.block_entities,
         })
     }
 
@@ -382,6 +383,7 @@ where
             },
             light: decoded.light,
             biomes: decoded.biomes,
+            block_entities: decoded.block_entities,
         })
     }
 }

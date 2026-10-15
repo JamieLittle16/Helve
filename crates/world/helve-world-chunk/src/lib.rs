@@ -9,6 +9,7 @@
 mod biomes;
 mod heightmap;
 mod heightmap_projection;
+mod initial_projection;
 mod lattice;
 mod light;
 mod light_projection;
@@ -30,6 +31,7 @@ pub use heightmap::{
 pub use heightmap_projection::{
     ClientHeightmapWireKind, HeightmapProjectionError, PackedClientHeightmaps, PackedHeightmap,
 };
+pub use initial_projection::{InitialChunkReference, InitialChunkReferenceError};
 pub use lattice::{VerticalSectionLattice, VerticalSectionLatticeError};
 pub use light::{
     ChunkLightError, ImportedLightSection, InitialChunkLight, LIGHT_SECTION_BYTES, LightDataLayer,

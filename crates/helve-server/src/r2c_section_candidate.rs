@@ -20,13 +20,16 @@ use helve_target_26_2::r2c_light::{
 };
 use helve_types::ChunkPos;
 use helve_world_chunk::{
-    BiomeProjectionError, InitialChunkReference, LightKind, LightMaskReferenceError,
+    BiomeProjectionError, HeightmapStateFacts, InitialChunkReference, InitialChunkReferenceError,
+    LightKind, LightMaskReferenceError,
 };
 use helve_world_contract::{BLOCK_SECTION_CELLS, BiomeSection, BlockSection, SectionBlockPos};
 use helve_world_import::{
     EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
     TARGET_DATA_VERSION_26_2,
 };
+use helve_world_load::{SourceChunkPublicationReceipt, SourceChunkReceiptError};
+use helve_world_runtime::SemanticDimensionInstance;
 
 /// A source or section invariant prevents a coherent candidate from being emitted.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -514,13 +517,87 @@ where
     })
 }
 
+/// A source receipt cannot authorize this candidate against the live owner.
+#[derive(Debug)]
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "Dormant R2C source-verified body candidate has no Play consumer"
+    )
+)]
+pub(crate) enum ReceiptBoundBodyCandidateError {
+    /// Original dimension/position/incarnation, revision, or empty-list evidence failed.
+    Receipt(SourceChunkReceiptError),
+    /// Current source heightmaps/light cannot form a coherent immutable borrow.
+    Reference(InitialChunkReferenceError),
+    /// Target-owned candidate field encoding was rejected.
+    Body(EmptyChunkBodyCandidateError),
+}
+
+/// Build one explicitly-empty body only from a proven, current import receipt.
+///
+/// The source proof is minted by world-load *after* a real installation; it
+/// cannot be synthesized by passing a header and evidence separately.
+/// One COLD dimension-handle resolution verifies dimension and generation;
+/// a pristine revision check rejects post-import mutation. The resulting
+/// immutable chunk borrow stays live across every output write, excluding
+/// concurrent/unrelated unload or mutation during synchronous projection.
+///
+/// All source/target work is at the COLD publication boundary. No resident
+/// block-entity sidecar, extra HOT revision work, second packet buffer or
+/// implicit protocol admission is introduced.
+///
+/// **Not a Play route.** Outer packet identity/SEM, client numeric biome IDs
+/// and publication ordering still require distinct 26.2 source admission.
+///
+/// # Errors
+///
+/// Receipt, coherent reference, or candidate body failure; no bytes remain
+/// appended on any rejection.
+#[cfg_attr(
+    not(test),
+    expect(
+        dead_code,
+        reason = "R2C source-bound packet candidates remain separate from live Play routing"
+    )
+)]
+pub(crate) fn append_receipt_bound_empty_chunk_body_candidate<BlockStorage, BiomeStorage, F>(
+    dimension: &SemanticDimensionInstance<BlockStateId, BlockStorage, u16, BiomeStorage>,
+    receipt: &SourceChunkPublicationReceipt,
+    facts: &F,
+    biome_registry_count: usize,
+    max_section_bytes: usize,
+    output: &mut Vec<u8>,
+) -> Result<EmptyChunkBodyFieldSpans, ReceiptBoundBodyCandidateError>
+where
+    BlockStorage: BlockSection<BlockStateId>,
+    BiomeStorage: BiomeSection<u16>,
+    F: HeightmapStateFacts<BlockStateId>,
+{
+    let (source, header) = receipt
+        .resolve_explicitly_empty(dimension)
+        .map_err(ReceiptBoundBodyCandidateError::Receipt)?;
+    let image = InitialChunkReference::derive(source, facts)
+        .map_err(ReceiptBoundBodyCandidateError::Reference)?;
+    append_explicit_empty_chunk_body_candidate(
+        &image,
+        &header,
+        StoredBlockEntityEvidence::ExplicitlyEmpty,
+        biome_registry_count,
+        max_section_bytes,
+        output,
+    )
+    .map_err(ReceiptBoundBodyCandidateError::Body)
+}
+
 #[cfg(test)]
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
     use helve_target_26_2::r2c_chunk_body::{
         append_chunk_coordinates_candidate, append_empty_block_entities_candidate,
     };
-    use helve_types::{ChunkGeneration, ChunkPos};
+    use helve_types::{BlockPos, ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
     use helve_world_chunk::{
         ChunkBiomeColumn, HeightmapStateFacts, HeightmapStateProperties, ImportedLightSection,
         InitialChunkLight, InitialChunkReference, LightDataLayer, LiveChunkCore,
@@ -528,10 +605,17 @@ mod tests {
     };
     use helve_world_contract::{BlockSection, SectionBlockPos};
     use helve_world_import::{
-        EmptyBlockEntityEvidenceError, StoredBlockEntityEvidence, StoredChunkHeader,
-        TARGET_DATA_VERSION_26_2,
+        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection, ImportedChunkBlocks,
+        ImportedStoredBiomes, ImportedStoredChunk, ImportedStoredChunkWithBiomeLight,
+        ImportedStoredLight, ImportedStoredLightSection, StoredBlockEntityEvidence,
+        StoredChunkHeader, StoredChunkSourceMetadata, TARGET_DATA_VERSION_26_2,
+    };
+    use helve_world_load::{
+        SourceChunkPublicationReceipt, SourceChunkReceiptError,
+        install_source_biome_chunk_with_receipt,
     };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
+    use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
 
     use helve_target_26_2::r2c_chunk_data::{
         SectionLengthError, append_heightmap_map_candidate, append_length_prefixed_sections,
@@ -543,10 +627,11 @@ mod tests {
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
-        SectionCandidateError, append_coherent_chunk_and_light_fragments,
-        append_coherent_chunk_data_fields_candidate, append_coherent_light_payload_candidate,
-        append_coherent_section_candidate, append_coherent_section_column_candidate,
-        append_explicit_empty_chunk_body_candidate,
+        ReceiptBoundBodyCandidateError, SectionCandidateError,
+        append_coherent_chunk_and_light_fragments, append_coherent_chunk_data_fields_candidate,
+        append_coherent_light_payload_candidate, append_coherent_section_candidate,
+        append_coherent_section_column_candidate, append_explicit_empty_chunk_body_candidate,
+        append_receipt_bound_empty_chunk_body_candidate,
     };
 
     // Synthetic test-only predicates, deliberately NOT claimed as the 26.2
@@ -608,6 +693,186 @@ mod tests {
         )
         .unwrap();
         owner.with_initial_light(light).unwrap()
+    }
+
+    type ImportedDimension = SemanticDimensionInstance<
+        BlockStateId,
+        DirectBlockSection<BlockStateId>,
+        u16,
+        DirectBiomeSection<u16>,
+    >;
+
+    fn imported_source_receipt(
+        evidence: StoredBlockEntityEvidence,
+    ) -> (ImportedDimension, SourceChunkPublicationReceipt) {
+        let position = ChunkPos { x: 2, z: 3 };
+        let mut dim = ImportedDimension::new(
+            DimensionId(8),
+            DimensionRuntimeProfile::new(DimensionTypeId(4), -16, 32, true).unwrap(),
+        );
+        let imported = ImportedStoredChunkWithBiomeLight {
+            stored: ImportedStoredChunk {
+                blocks: ImportedChunkBlocks {
+                    header: StoredChunkHeader {
+                        position,
+                        data_version: TARGET_DATA_VERSION_26_2,
+                        stored_section_count: 2,
+                    },
+                    sections: Vec::new(),
+                },
+                source: StoredChunkSourceMetadata {
+                    region_timestamp: 10,
+                    compression: ChunkCompression::Uncompressed,
+                    external: false,
+                },
+            },
+            block_entities: evidence,
+            light: ImportedStoredLight {
+                persisted_light_correct: true,
+                sections: vec![ImportedStoredLightSection {
+                    section_y: -2,
+                    block: Some(vec![0x33; 2048]),
+                    sky: Some(vec![0xff; 2048]),
+                }],
+            },
+            biomes: ImportedStoredBiomes {
+                sections: vec![
+                    ImportedBiomeSection {
+                        section_y: -1,
+                        section: DirectBiomeSection::filled(2_u16),
+                    },
+                    ImportedBiomeSection {
+                        section_y: 0,
+                        section: DirectBiomeSection::filled(5_u16),
+                    },
+                ],
+            },
+        };
+        let receipt = install_source_biome_chunk_with_receipt(&mut dim, imported, || {
+            DirectBlockSection::filled(AIR, &GeneratedStateFacts)
+        })
+        .expect("real COLD importer and directory mint receipt");
+        (dim, receipt)
+    }
+
+    #[test]
+    fn source_provenance_is_resolved_before_any_candidate_byte() {
+        let (mut dim, receipt) =
+            imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let mut actual = Vec::with_capacity(16_384);
+        actual.push(0x77);
+        let allocation = actual.as_ptr();
+        let spans = append_receipt_bound_empty_chunk_body_candidate(
+            &dim,
+            &receipt,
+            &SyntheticHeightFacts,
+            66,
+            16_384,
+            &mut actual,
+        )
+        .expect("real receipt bounds candidate to current owner");
+        assert_eq!(spans.position.start, 1);
+        assert_eq!(&actual[spans.block_entities], &[0]);
+        assert_eq!(actual.as_ptr(), allocation);
+
+        dim.resolve_chunk_mut(receipt.installed().handle)
+            .unwrap()
+            .replace_block(
+                BlockPos {
+                    x: 32,
+                    y: -16,
+                    z: 48,
+                },
+                BlockStateId::new(1).unwrap(),
+                &GeneratedStateFacts,
+            )
+            .unwrap();
+        let mut stale = vec![0xAA, 0xBB];
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                &mut stale
+            ),
+            Err(ReceiptBoundBodyCandidateError::Receipt(
+                SourceChunkReceiptError::Revised { .. }
+            ))
+        ));
+        assert_eq!(stale, [0xAA, 0xBB]);
+
+        dim.unload_chunk(receipt.installed().handle).unwrap();
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                &mut stale
+            ),
+            Err(ReceiptBoundBodyCandidateError::Receipt(
+                SourceChunkReceiptError::Resident(_)
+            ))
+        ));
+        assert_eq!(stale, [0xAA, 0xBB]);
+    }
+
+    #[test]
+    fn receipt_body_and_reference_errors_retain_inspectable_causes() {
+        let (dim, receipt) = imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let mut out = vec![0x21, 0x43];
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                1,
+                16_384,
+                &mut out
+            ),
+            Err(ReceiptBoundBodyCandidateError::Body(
+                EmptyChunkBodyCandidateError::ChunkData(_)
+            ))
+        ));
+        assert_eq!(out, [0x21, 0x43]);
+
+        // The coherent-reference failure retains its exact source cause;
+        // a future operator must not collapse it into generic packet failure.
+        let rejection = ReceiptBoundBodyCandidateError::Reference(
+            helve_world_chunk::InitialChunkReferenceError::NoCurrentVerifiedLight,
+        );
+        match rejection {
+            ReceiptBoundBodyCandidateError::Reference(cause) => {
+                assert_eq!(
+                    cause,
+                    helve_world_chunk::InitialChunkReferenceError::NoCurrentVerifiedLight
+                );
+            }
+            other => panic!("unexpected source error class: {other:?}"),
+        }
+    }
+
+    #[test]
+    fn absent_saved_entities_can_reside_but_cannot_generate_candidate() {
+        let (dim, receipt) = imported_source_receipt(StoredBlockEntityEvidence::Absent);
+        let mut scratch = vec![0xCC];
+        assert!(matches!(
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim,
+                &receipt,
+                &SyntheticHeightFacts,
+                66,
+                16_384,
+                &mut scratch
+            ),
+            Err(ReceiptBoundBodyCandidateError::Receipt(
+                SourceChunkReceiptError::BlockEntities(EmptyBlockEntityEvidenceError::MissingList)
+            ))
+        ));
+        assert_eq!(scratch, [0xCC]);
     }
 
     #[test]

@@ -13,12 +13,17 @@
 #![forbid(unsafe_code)]
 
 mod light;
+mod receipt;
 mod semantic;
 mod stored_biomes;
 
+pub use receipt::{
+    ExplicitlyEmptyImportedSource, SourceChunkPublicationReceipt, SourceChunkReceiptError,
+};
+
 pub use stored_biomes::{
     StoredBiomeResidencyError, StoredBiomeResidentInstallResult, compose_saved_biome_sections,
-    install_source_biome_chunk,
+    install_source_biome_chunk, install_source_biome_chunk_with_receipt,
 };
 
 pub use semantic::{

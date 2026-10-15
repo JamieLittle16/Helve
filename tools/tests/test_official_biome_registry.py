@@ -63,5 +63,42 @@ class OfficialBiomeRegistryTests(unittest.TestCase):
             probe.payload("26.3", "a" * 64, synthetic(("minecraft:forest",)))
 
 
+    def test_resource_inventory_is_not_protocol_id_evidence(self) -> None:
+        import json
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as dirname:
+            root = Path(dirname)
+            biome_dir = root / "data/minecraft/worldgen/biome"
+            biome_dir.mkdir(parents=True)
+            (biome_dir / "plains.json").write_text(
+                json.dumps({"temperature": 0.8}), encoding="utf-8"
+            )
+            (biome_dir / "forest.json").write_text(
+                json.dumps({"temperature": 0.7}), encoding="utf-8"
+            )
+            names = probe.source_biome_inventory(root)
+            self.assertEqual(
+                names, ("minecraft:forest", "minecraft:plains"),
+            )
+            evidence = probe.candidate_payload(
+                probe.TARGET_VERSION, "a" * 64, names
+            )
+            self.assertEqual(evidence["protocol_id_authority"], "NOT_QUALIFIED")
+            self.assertEqual(evidence["biome_resource_count"], 2)
+            self.assertNotIn("names_by_protocol_id", evidence)
+            (biome_dir / "forest.json").write_text("{}", encoding="utf-8")
+            with self.assertRaises(probe.RegistryExtractionError):
+                probe.source_biome_inventory(root)
+
+    def test_missing_dynamic_biome_resource_inventory_fails_closed(self) -> None:
+        import tempfile
+        from pathlib import Path
+        with tempfile.TemporaryDirectory() as dirname:
+            with self.assertRaises(probe.RegistryExtractionError):
+                probe.source_biome_inventory(Path(dirname))
+
+
 if __name__ == "__main__":
     unittest.main()

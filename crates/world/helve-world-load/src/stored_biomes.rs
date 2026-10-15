@@ -100,6 +100,7 @@ where
     let stored = ImportedStoredChunkWithLight {
         stored: imported.stored,
         light: imported.light,
+        block_entities: imported.block_entities,
     };
     install_imported_semantic_chunk(dimension, stored, sections, make_empty_section)
         .map_err(StoredBiomeResidencyError::Resident)

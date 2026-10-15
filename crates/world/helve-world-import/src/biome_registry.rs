@@ -8,7 +8,7 @@
 //! The sorted ordinal index is constructed once per loading session. Its binary search resolves
 //! each persisted palette entry in O(log N), with no allocations, key copies or HOT cell lookups.
 
-use crate::{stored_biomes::BiomeStateResolver, TARGET_DATA_VERSION_26_2};
+use crate::{TARGET_DATA_VERSION_26_2, stored_biomes::BiomeStateResolver};
 
 /// Maximum supported registry cardinality for one compact `u16` identity.
 const MAX_BIOME_IDS: usize = 65_536;
@@ -50,10 +50,7 @@ impl<'a> OrderedBiomeRegistry<'a> {
     ///
     /// Rejects mismatched data version, empty/oversized registries, malformed namespaced
     /// resource locations, and duplicate names. Nothing is installed into resident world state.
-    pub fn new(
-        data_version: i32,
-        source_order: &'a [&'a str],
-    ) -> Result<Self, BiomeRegistryError> {
+    pub fn new(data_version: i32, source_order: &'a [&'a str]) -> Result<Self, BiomeRegistryError> {
         if data_version != TARGET_DATA_VERSION_26_2 {
             return Err(BiomeRegistryError::WrongDataVersion {
                 expected: TARGET_DATA_VERSION_26_2,
@@ -147,9 +144,7 @@ fn valid_resource_location(name: &str) -> bool {
     !namespace.is_empty()
         && !path.is_empty()
         && namespace.bytes().all(|byte| {
-            byte.is_ascii_lowercase()
-                || byte.is_ascii_digit()
-                || matches!(byte, b'_' | b'.' | b'-')
+            byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(byte, b'_' | b'.' | b'-')
         })
         && path.bytes().all(|byte| {
             byte.is_ascii_lowercase()
@@ -219,9 +214,16 @@ mod tests {
             },
         );
         for bad in [
-            "", "plains", ":plains", "minecraft:", "minecraft:bad:biome",
-            "Minecraft:forest", "minecraft:Snow", "minecraft:with space",
-            "minecraft:é", "minecraft:./?bad",
+            "",
+            "plains",
+            ":plains",
+            "minecraft:",
+            "minecraft:bad:biome",
+            "Minecraft:forest",
+            "minecraft:Snow",
+            "minecraft:with space",
+            "minecraft:é",
+            "minecraft:./?bad",
         ] {
             assert_eq!(
                 OrderedBiomeRegistry::new(TARGET_DATA_VERSION_26_2, &[bad]).unwrap_err(),
@@ -241,7 +243,10 @@ mod tests {
             .expect("all 256 compact IDs");
         for (id, &name) in borrowed.iter().enumerate() {
             assert_eq!(registry.id_of(name), u16::try_from(id).ok());
-            assert_eq!(registry.key(u16::try_from(id).expect("test bound")), Some(name));
+            assert_eq!(
+                registry.key(u16::try_from(id).expect("test bound")),
+                Some(name)
+            );
         }
     }
 
@@ -271,33 +276,22 @@ mod tests {
         section.push(TagType::String as u8);
         section.extend_from_slice(&(1_i32.to_be_bytes()));
         let name = "minecraft:desert";
-        section.extend_from_slice(
-            &u16::try_from(name.len()).expect("short name").to_be_bytes(),
-        );
+        section.extend_from_slice(&u16::try_from(name.len()).expect("short name").to_be_bytes());
         section.extend_from_slice(name.as_bytes());
         section.push(TagType::End as u8);
 
         let mut builder = VecBuilder;
         let mut scratch = BiomeDecodeScratch::new();
         let mut decoder = ExactBiomeDecoder::new(&registry, &mut builder, &mut scratch);
-        let mut reader = NbtReader::new(
-            &section,
-            NbtLimits::new(128, 64, 64, 8).expect("bounded"),
-        );
-        assert_eq!(
-            decoder.decode_section(&mut reader, 0),
-            Ok(vec![2_u16; 64]),
-        );
+        let mut reader = NbtReader::new(&section, NbtLimits::new(128, 64, 64, 8).expect("bounded"));
+        assert_eq!(decoder.decode_section(&mut reader, 0), Ok(vec![2_u16; 64]),);
         assert_eq!(reader.offset(), section.len());
 
         let mut unknown = section.clone();
         let start = unknown.len() - (name.len() + 1);
         // The source name is not substituted; corruption fails rather than defaulting Plains.
         unknown[start] = b'!';
-        let mut reader = NbtReader::new(
-            &unknown,
-            NbtLimits::new(128, 64, 64, 8).expect("bounded"),
-        );
+        let mut reader = NbtReader::new(&unknown, NbtLimits::new(128, 64, 64, 8).expect("bounded"));
         assert!(matches!(
             decoder.decode_section(&mut reader, 0),
             Err(BiomeImportError::UnknownBiome {

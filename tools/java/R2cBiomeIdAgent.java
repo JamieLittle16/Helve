@@ -40,10 +40,15 @@ public final class R2cBiomeIdAgent {
             holder.setAccessible(true);
             Field runnable = holder.getType().getDeclaredField("task");
             runnable.setAccessible(true);
-            long deadline = System.nanoTime() + 45_000_000_000L;
+            long deadline = System.nanoTime() + 150_000_000_000L;
+            Path startupBarrier = Path.of(destination + ".ready");
             boolean reportedTask = false;
             boolean reportedNullRegistry = false;
             while (System.nanoTime() < deadline) {
+                if (!Files.exists(startupBarrier)) {
+                    Thread.sleep(100);
+                    continue;
+                }
                 for (Thread thread : Thread.getAllStackTraces().keySet()) {
                     if (!thread.getName().equals("Server thread") || !thread.isAlive()) {
                         continue;

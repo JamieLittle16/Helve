@@ -142,20 +142,27 @@ where
 
 #[cfg(test)]
 mod tests {
-    use helve_types::{BlockPos, ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
+    use helve_types::{
+        BlockPos, ChunkGeneration, ChunkPos, ChunkRevision, DimensionId, DimensionTypeId,
+    };
     use helve_world_contract::{BlockStateFacts, SectionBiomePos, SectionStateFacts};
     use helve_world_import::{
         ChunkCompression, ImportedBiomeSection, ImportedBlockSection, ImportedChunkBlocks,
         ImportedStoredBiomes, ImportedStoredChunk, ImportedStoredChunkWithBiomeLight,
         ImportedStoredLight, ImportedStoredLightSection, StoredChunkHeader,
-        StoredChunkSourceMetadata, TARGET_DATA_VERSION_26_2,
+        StoredBlockEntityEvidence, StoredChunkSourceMetadata, TARGET_DATA_VERSION_26_2,
     };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
     use helve_world_runtime::{
-        DimensionRuntimeProfile, SemanticDimensionInstance, SemanticResidentLoadError,
+        DimensionRuntimeProfile, ResidentChunkAccessError, SemanticDimensionInstance,
+        SemanticResidentLoadError,
     };
 
-    use super::{StoredBiomeResidencyError, compose_saved_biome_sections, install_source_biome_chunk};
+    use super::{
+        StoredBiomeResidencyError, compose_saved_biome_sections, install_source_biome_chunk,
+        install_source_biome_chunk_with_receipt,
+    };
+    use crate::SourceChunkReceiptError;
 
     struct Facts;
 
@@ -217,6 +224,87 @@ mod tests {
                 ],
             },
         }
+    }
+
+    #[test]
+    fn publication_receipt_tracks_true_generation_dimension_revision_and_source() {
+        let pos = ChunkPos { x: -5, z: 7 };
+        let mut dim = Dimension::new(DimensionId(4), profile());
+        let mut source = original(pos, [0, -1]);
+        source.block_entities = StoredBlockEntityEvidence::ExplicitlyEmpty;
+        let receipt = install_source_biome_chunk_with_receipt(
+            &mut dim,
+            source,
+            || DirectBlockSection::filled(0, &Facts),
+        )
+        .expect("receipt minted only on successful authoritative install");
+        assert_eq!(receipt.installed().handle.generation, ChunkGeneration(1));
+        let (current, header) = receipt.resolve_explicitly_empty(&dim).unwrap();
+        assert_eq!(current.position(), pos);
+        assert_eq!(current.revision(), ChunkRevision(0));
+        assert_eq!(header.position, pos);
+        assert_eq!(header.data_version, TARGET_DATA_VERSION_26_2);
+
+        let other = Dimension::new(DimensionId(12), profile());
+        assert!(matches!(
+            receipt.resolve_explicitly_empty(&other),
+            Err(SourceChunkReceiptError::Resident(
+                ResidentChunkAccessError::WrongDimension { .. }
+            ))
+        ));
+
+        dim.resolve_chunk_mut(receipt.installed().handle)
+            .unwrap()
+            .replace_block(BlockPos { x: -80, y: -16, z: 112 }, 0, &Facts)
+            .expect("real change");
+        assert!(matches!(
+            receipt.resolve_explicitly_empty(&dim),
+            Err(SourceChunkReceiptError::Revised {
+                actual: ChunkRevision(1)
+            })
+        ));
+
+        dim.unload_chunk(receipt.installed().handle)
+            .expect("discard first incarnation");
+        assert!(matches!(
+            receipt.resolve_explicitly_empty(&dim),
+            Err(SourceChunkReceiptError::Resident(
+                ResidentChunkAccessError::NotResident { .. }
+            ))
+        ));
+        let mut second = original(pos, [0, -1]);
+        second.block_entities = StoredBlockEntityEvidence::ExplicitlyEmpty;
+        let next = install_source_biome_chunk_with_receipt(
+            &mut dim,
+            second,
+            || DirectBlockSection::filled(0, &Facts),
+        )
+        .expect("same coordinates have a fresh incarnation");
+        assert_eq!(next.installed().handle.generation, ChunkGeneration(2));
+        assert!(next.resolve_explicitly_empty(&dim).is_ok());
+        assert!(matches!(
+            receipt.resolve_explicitly_empty(&dim),
+            Err(SourceChunkReceiptError::Resident(
+                ResidentChunkAccessError::StaleGeneration { .. }
+            ))
+        ));
+    }
+
+    #[test]
+    fn missing_saved_list_receipt_cannot_authorize_empty_block_entities() {
+        let pos = ChunkPos { x: 3, z: 2 };
+        let mut dim = Dimension::new(DimensionId(9), profile());
+        let receipt = install_source_biome_chunk_with_receipt(
+            &mut dim,
+            original(pos, [0, -1]),
+            || DirectBlockSection::filled(0, &Facts),
+        ).expect("source may be installed without publication authority");
+        assert_eq!(
+            receipt.resolve_explicitly_empty(&dim).unwrap_err(),
+            SourceChunkReceiptError::BlockEntities(
+                helve_world_import::EmptyBlockEntityEvidenceError::MissingList
+            )
+        );
     }
 
     #[test]

@@ -507,6 +507,55 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn light_aware_region_transaction_decodes_blocks_and_exact_initial_light_once() {
+        let position = ChunkPos { x: 0, z: 0 };
+        let mut nbt = chunk_nbt(position, "minecraft:stone");
+        // Insert a saved BlockLight array just before the section compound's TAG_End.
+        let end_section = nbt.len() - 2;
+        let mut light_field = Vec::new();
+        named_header(&mut light_field, TagType::ByteArray, "BlockLight");
+        light_field.extend_from_slice(&2048_i32.to_be_bytes());
+        light_field.extend(std::iter::repeat_n(0xa5_u8, 2048));
+        nbt.splice(end_section..end_section, light_field);
+        // Source isLightOn is a top-level byte flag, not an inferred light-engine state.
+        assert_eq!(nbt.pop(), Some(TagType::End as u8));
+        named_header(&mut nbt, TagType::Byte, "isLightOn");
+        nbt.push(1);
+        nbt.push(TagType::End as u8);
+
+        let region_bytes = region_bytes(3, &nbt, 71);
+        let region = RegionView::new(&region_bytes, 0, 0, REGION_LIMITS)
+            .expect("valid one-chunk region");
+        let resolver = Resolver;
+        let mut builder = VecBuilder;
+        let mut scratch = BlockSectionDecodeScratch::new();
+        let mut decoder = UncompressedChunkPayloadDecoder;
+        let mut importer = StoredBlockImporter::new(
+            PAYLOAD_LIMITS,
+            NbtLimits::new(256, 4096, 4096, 16).expect("light-capable bounds"),
+            &mut decoder,
+            &resolver,
+            &mut builder,
+            &mut scratch,
+        );
+        let imported = importer
+            .import_region_chunk_with_light(&region, 0, 0, None)
+            .expect("one-pass region-to-light transaction");
+
+        assert_eq!(imported.stored.blocks.header.position, position);
+        assert_eq!(imported.stored.blocks.sections.len(), 1);
+        assert!(imported.stored.blocks.sections[0].section.iter().all(|&s| s == 1));
+        assert_eq!(imported.stored.source.region_timestamp, 71);
+        assert!(imported.light.persisted_light_correct);
+        assert_eq!(imported.light.sections.len(), 1);
+        assert_eq!(imported.light.sections[0].section_y, 0);
+        assert_eq!(imported.light.sections[0].block.as_ref().unwrap().len(), 2048);
+        assert_eq!(imported.light.sections[0].block.as_ref().unwrap()[0], 0xa5);
+        assert!(imported.light.sections[0].sky.is_none());
+    }
+
     #[test]
     fn external_record_uses_separately_bounded_payload_without_aliasing_region_padding() {
         let position = ChunkPos { x: 0, z: 0 };

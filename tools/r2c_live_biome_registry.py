@@ -283,7 +283,8 @@ def observe_official_server(
             # The independent agent may observe the loaded registry at the
             # startup barrier or just after the Configuration exchange.
             # Do not pass a missing/partial observer report.
-            oracle_deadline = time.monotonic() + 20
+            oracle_deadline = time.monotonic() + 25
+            oracle_diagnostics: list[str] = []
             while not oracle_output.is_file() and time.monotonic() < oracle_deadline:
                 # The stdout pump continues to own the pipe after the
                 # startup barrier. Drain its bounded queue here so agent
@@ -296,6 +297,8 @@ def observe_official_server(
                         break
                     tail.append(line)
                     tail = tail[-80:]
+                    if "HELVE_BIOME_ID_ORACLE_" in line:
+                        oracle_diagnostics.append(line)
                     if "HELVE_BIOME_ID_ORACLE_ERROR|" in line:
                         raise LiveBiomeProbeError(
                             "independent registry agent failed: "
@@ -310,6 +313,7 @@ def observe_official_server(
             if not oracle_output.is_file():
                 raise LiveBiomeProbeError(
                     "independent loaded registry oracle did not finish: "
+                    + "".join(oracle_diagnostics[-16:])
                     + "".join(tail[-24:])
                 )
         return network_order

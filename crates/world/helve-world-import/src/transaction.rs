@@ -13,7 +13,8 @@ use crate::{
     nbt::NbtLimits,
     stored_blocks::{
         BlockSectionDecodeScratch, BlockSectionImportError, BlockStateResolver,
-        ImportedBlockSectionBuilder, ImportedChunkBlocks, decode_chunk_block_sections,
+        ImportedBlockSectionBuilder, ImportedChunkBlocks, ImportedStoredLight,
+        decode_chunk_block_sections, decode_chunk_block_sections_with_light,
     },
 };
 
@@ -127,6 +128,19 @@ pub struct ImportedStoredChunk<Section> {
     pub source: StoredChunkSourceMetadata,
 }
 
+/// Complete stored transaction including source lighting without re-parsing the chunk.
+///
+/// The `stored` block transaction remains consumable by the existing residency installer;
+/// light stays an independent, explicitly unverified COLD import input until a coherent
+/// `InitialChunkLight` is constructed against the loaded dimension profile.
+#[derive(Debug, Eq, PartialEq)]
+pub struct ImportedStoredChunkWithLight<Section> {
+    /// Identical block + source metadata transaction to the block-only path.
+    pub stored: ImportedStoredChunk<Section>,
+    /// Source `isLightOn` and all source-admitted exact light arrays.
+    pub light: ImportedStoredLight,
+}
+
 /// Fail-closed errors spanning the complete persisted block import transaction.
 #[derive(Debug, Eq, PartialEq)]
 pub enum StoredChunkImportError<DecodeError> {
@@ -224,6 +238,38 @@ where
         local_z: u8,
         external_payload: Option<ExternalChunkPayload<'_>>,
     ) -> Result<ImportedStoredChunk<B::Section>, StoredChunkImportError<D::Error>> {
+        let (stored, _) =
+            self.import_region_chunk_inner::<false>(region, local_x, local_z, external_payload)?;
+        Ok(stored)
+    }
+
+    /// Imports block sections and exact source light arrays from one bounded NBT pass.
+    ///
+    /// The compiler statically specializes the same block decode and payload/framing transaction
+    /// for the light-enabled path. The block-only path retains its original import semantics.
+    ///
+    /// # Errors
+    ///
+    /// Propagates the exact region/framing, decompression, block and light schema decode errors.
+    pub fn import_region_chunk_with_light(
+        &mut self,
+        region: &RegionView<'_>,
+        local_x: u8,
+        local_z: u8,
+        external_payload: Option<ExternalChunkPayload<'_>>,
+    ) -> Result<ImportedStoredChunkWithLight<B::Section>, StoredChunkImportError<D::Error>> {
+        let (stored, light) =
+            self.import_region_chunk_inner::<true>(region, local_x, local_z, external_payload)?;
+        Ok(ImportedStoredChunkWithLight { stored, light })
+    }
+
+    fn import_region_chunk_inner<const INCLUDE_LIGHT: bool>(
+        &mut self,
+        region: &RegionView<'_>,
+        local_x: u8,
+        local_z: u8,
+        external_payload: Option<ExternalChunkPayload<'_>>,
+    ) -> Result<(ImportedStoredChunk<B::Section>, ImportedStoredLight), StoredChunkImportError<D::Error>> {
         let Some(chunk) = region.chunk(local_x, local_z)? else {
             return Err(StoredChunkImportError::EmptyRegionSlot { local_x, local_z });
         };
@@ -254,23 +300,44 @@ where
                 self.payload_limits.max_decompressed_bytes,
             )
             .map_err(StoredChunkImportError::Decode)?;
-        let blocks = decode_chunk_block_sections(
-            decompressed,
-            chunk.position,
-            self.nbt_limits,
-            self.resolver,
-            self.builder,
-            self.section_scratch,
-        )?;
+        let (blocks, light) = if INCLUDE_LIGHT {
+            let world = decode_chunk_block_sections_with_light(
+                decompressed,
+                chunk.position,
+                self.nbt_limits,
+                self.resolver,
+                self.builder,
+                self.section_scratch,
+            )?;
+            (world.blocks, world.light)
+        } else {
+            (
+                decode_chunk_block_sections(
+                    decompressed,
+                    chunk.position,
+                    self.nbt_limits,
+                    self.resolver,
+                    self.builder,
+                    self.section_scratch,
+                )?,
+                ImportedStoredLight {
+                    persisted_light_correct: false,
+                    sections: Vec::new(),
+                },
+            )
+        };
 
-        Ok(ImportedStoredChunk {
-            blocks,
-            source: StoredChunkSourceMetadata {
-                region_timestamp: chunk.timestamp,
-                compression: chunk.compression,
-                external: chunk.external,
+        Ok((
+            ImportedStoredChunk {
+                blocks,
+                source: StoredChunkSourceMetadata {
+                    region_timestamp: chunk.timestamp,
+                    compression: chunk.compression,
+                    external: chunk.external,
+                },
             },
-        })
+            light,
+        ))
     }
 }
 

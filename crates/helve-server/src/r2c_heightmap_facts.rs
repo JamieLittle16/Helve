@@ -116,8 +116,8 @@ mod tests {
     use helve_world_reference::DirectBlockSection;
 
     use super::{
-        BLOCK_STATE_COUNT, BlockStateId, CandidateHeightmapFacts, FLUID,
-        HeightmapCandidateError, LEAVES, MOTION, NON_AIR, STATE_MUTATION_FLAGS,
+        BLOCK_STATE_COUNT, BlockStateId, CandidateHeightmapFacts, FLUID, HeightmapCandidateError,
+        LEAVES, MOTION, NON_AIR, STATE_MUTATION_FLAGS,
     };
 
     fn consistent_synthetic_oracle() -> Vec<u8> {

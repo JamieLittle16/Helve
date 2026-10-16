@@ -100,13 +100,15 @@ def handler_invocations(disassembly: str) -> list[dict]:
         if "// " not in line:
             raise ValueError("javap invocation without symbolic constant-pool target")
         target = line.split("// ", 1)[1].strip()
-        if not target or len(target) > 512:
-            raise ValueError("empty or excessive symbolic invoke target")
+        if not target or len(target) > 8192:
+            raise ValueError("empty or implausibly large symbolic invoke target")
         calls = found[current]
         calls.append({
             "bytecode_offset": int(insn.group(1)),
             "opcode": insn.group(2),
-            "symbolic_target": target,
+            "symbolic_target": target[:512],
+            "symbolic_target_sha256": hashlib.sha256(target.encode("utf-8")).hexdigest(),
+            "target_truncated": len(target) > 512,
         })
         if len(calls) > MAX_INVOKES_PER_HANDLER:
             raise ValueError("client registry handler exceeds bounded call-site limit")

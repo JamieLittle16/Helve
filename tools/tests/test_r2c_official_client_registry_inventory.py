@@ -123,6 +123,23 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "symbolic constant-pool target"):
             probe.handler_invocations(no_symbol)
+        long_name = "net/minecraft/BigDelegate." + ("x" * 600)
+        long_javap = JAVAP_CODE.replace(
+            "net/minecraft/resources/RegistryDataCollector.append:(Ljava/lang/Object;)V",
+            long_name,
+        )
+        [receiver, _] = probe.handler_invocations(long_javap)
+        edge = receiver["invocations"][1]
+        self.assertTrue(edge["target_truncated"])
+        self.assertEqual(len(edge["symbolic_target"]), 512)
+        self.assertEqual(edge["symbolic_target_sha256"],
+                         hashlib.sha256(("InterfaceMethod " + long_name).encode()).hexdigest())
+        too_large = JAVAP_CODE.replace(
+            "net/minecraft/resources/RegistryDataCollector.append:(Ljava/lang/Object;)V",
+            "net/minecraft/BigDelegate." + ("x" * 8200),
+        )
+        with self.assertRaisesRegex(ValueError, "implausibly large"):
+            probe.handler_invocations(too_large)
         flooding = JAVAP_CODE.replace(
             "      10: return",
             "      10: return\n" + "\n".join(

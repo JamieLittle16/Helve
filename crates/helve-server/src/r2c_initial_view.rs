@@ -1,6 +1,6 @@
 //! COLD first-view selection from genuine, source-bound imported chunk receipts.
 //!
-//! A fixed R2C initial view is chosen exactly once at the R2B WorldProjection
+//! A fixed R2C initial view is chosen exactly once at the R2B `WorldProjection`
 //! seam, never discovered by walking the resident directory each batch tick.
 //! The caller already owns the receipt Vec. We filter and sort it *in place*;
 //! after that the retained R2C batch cursor advances over its immutable order.

@@ -75,15 +75,15 @@ fn checked_read<E>(
     if limit == 0 {
         return Err(PregeneratedRegionError::InvalidLimits);
     }
-    let cap = u64::try_from(limit)
-        .ok()
-        .and_then(|n| n.checked_add(1))
+    let bounded = u64::try_from(limit).map_err(|_| PregeneratedRegionError::InvalidLimits)?;
+    let cap = bounded
+        .checked_add(1)
         .ok_or(PregeneratedRegionError::InvalidLimits)?;
     let metadata = fs::symlink_metadata(path).map_err(|e| PregeneratedRegionError::Io(e.kind()))?;
     if !metadata.is_file() || metadata.file_type().is_symlink() {
         return Err(PregeneratedRegionError::InvalidSourceFile);
     }
-    if metadata.len() > u64::try_from(limit).expect("limit was validated") {
+    if metadata.len() > bounded {
         return Err(PregeneratedRegionError::FileExceedsLimit { limit });
     }
     let mut file = File::open(path).map_err(|e| PregeneratedRegionError::Io(e.kind()))?;
@@ -116,6 +116,11 @@ fn checked_read<E>(
 /// Returns a fail-closed error on malformed caller selection, unbounded
 /// or unsupported file, malformed source framing, absent selected chunk,
 /// unsupported external bytes, or any callback admission failure.
+///
+/// # Panics
+///
+/// Only if a validated modulo-32 coordinate cannot be represented in
+/// a u8/usize, which is impossible on supported targets.
 pub fn visit_pregenerated_region<E>(
     world: &Path,
     region_x: i32,
@@ -152,11 +157,11 @@ pub fn visit_pregenerated_region<E>(
             * 32
             + usize::try_from(position.x.rem_euclid(REGION_AXIS)).expect("0..31");
         let mask = 1_u64 << (slot % 64);
-        let word = &mut seen[slot / 64];
-        if *word & mask != 0 {
+        let selected_word = &mut seen[slot / 64];
+        if *selected_word & mask != 0 {
             return Err(PregeneratedRegionError::DuplicatePosition { position });
         }
-        *word |= mask;
+        *selected_word |= mask;
     }
     if selected.is_empty() {
         return Ok(0);

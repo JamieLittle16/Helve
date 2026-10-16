@@ -123,6 +123,9 @@ mod tests {
     use super::{
         AnvilSourceAdmissionError, SelectedAnvilSource, import_and_install_anvil_source,
     };
+    use crate::{
+        PregeneratedRegionError, PregeneratedRegionLimits, visit_pregenerated_region,
+    };
 
     const REGION_HEADER: usize = 8192;
     const SECTOR: usize = 4096;
@@ -258,6 +261,21 @@ mod tests {
             bytes, 0, 0, RegionLimits::new(64 * SECTOR, 32 * SECTOR),
         )
         .unwrap();
+        run_selected_import(
+            dimension,
+            SelectedAnvilSource {
+                region: &region,
+                local_x: 0,
+                local_z: 0,
+                external_payload: None,
+            },
+        )
+    }
+
+    fn run_selected_import(
+        dimension: &mut Dimension,
+        source: SelectedAnvilSource<'_, '_>,
+    ) -> Result<crate::SourceChunkPublicationReceipt, AnvilSourceAdmissionError<helve_world_import::UncompressedPayloadError>> {
         let resolver = Target262BlockStateResolver;
         let mut blocks = BlockBuilder;
         let mut block_scratch = BlockSectionDecodeScratch::new();
@@ -281,15 +299,76 @@ mod tests {
         import_and_install_anvil_source(
             dimension,
             &mut importer,
-            SelectedAnvilSource {
-                region: &region,
-                local_x: 0,
-                local_z: 0,
-                external_payload: None,
-            },
+            source,
             &mut decoder,
             || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
         )
+    }
+
+    #[test]
+    fn actual_disk_region_source_receipts_reject_absent_entities_then_admit_good_chunk() {
+        use std::sync::atomic::{AtomicU64, Ordering};
+
+        static NEXT: AtomicU64 = AtomicU64::new(1);
+        let index = NEXT.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "helve-r2c-disk-source-{}-{index}",
+            std::process::id()
+        ));
+        let region_dir = root.join("region");
+        std::fs::create_dir_all(&region_dir).unwrap();
+        let file = region_dir.join("r.0.0.mca");
+        let limits = PregeneratedRegionLimits {
+            region: RegionLimits::new(64 * SECTOR, 32 * SECTOR),
+            max_external_bytes: 32 * SECTOR,
+        };
+        let position = [ChunkPos { x: 0, z: 0 }];
+        let mut dimension = dim();
+        let mut receipts = Vec::new();
+
+        std::fs::write(&file, region_bytes(&source_nbt(4903, false))).unwrap();
+        let rejected = visit_pregenerated_region(
+            &root,
+            0,
+            0,
+            &position,
+            limits,
+            |source| {
+                receipts.push(run_selected_import(&mut dimension, source)?);
+                Ok::<(), AnvilSourceAdmissionError<_>>(())
+            },
+        );
+        assert!(matches!(
+            rejected,
+            Err(PregeneratedRegionError::Visit(
+                AnvilSourceAdmissionError::BlockEntities(
+                    helve_world_import::EmptyBlockEntityEvidenceError::MissingList
+                )
+            ))
+        ));
+        assert!(receipts.is_empty());
+        assert_eq!(dimension.resident_chunk_count(), 0);
+
+        std::fs::write(&file, region_bytes(&source_nbt(4903, true))).unwrap();
+        let count = visit_pregenerated_region(
+            &root,
+            0,
+            0,
+            &position,
+            limits,
+            |source| {
+                receipts.push(run_selected_import(&mut dimension, source)?);
+                Ok::<(), AnvilSourceAdmissionError<_>>(())
+            },
+        ).expect("file-backed region must produce one current source receipt");
+        assert_eq!(count, 1);
+        assert_eq!(receipts.len(), 1);
+        assert_eq!(dimension.resident_chunk_count(), 1);
+        assert_eq!(receipts[0].installed().handle.position, position[0]);
+        assert_eq!(receipts[0].installed().source.region_timestamp, 17);
+        assert!(receipts[0].resolve_explicitly_empty(&dimension).is_ok());
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

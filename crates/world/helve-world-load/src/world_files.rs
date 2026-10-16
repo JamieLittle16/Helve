@@ -68,10 +68,11 @@ pub enum PregeneratedRegionError<E> {
     Visit(E),
 }
 
-fn checked_read<E>(
+fn checked_read_into<E>(
     path: &Path,
     limit: usize,
-) -> Result<Vec<u8>, PregeneratedRegionError<E>> {
+    bytes: &mut Vec<u8>,
+) -> Result<(), PregeneratedRegionError<E>> {
     if limit == 0 {
         return Err(PregeneratedRegionError::InvalidLimits);
     }
@@ -87,15 +88,15 @@ fn checked_read<E>(
         return Err(PregeneratedRegionError::FileExceedsLimit { limit });
     }
     let mut file = File::open(path).map_err(|e| PregeneratedRegionError::Io(e.kind()))?;
-    let mut bytes = Vec::new();
+    bytes.clear();
     file.by_ref()
         .take(cap)
-        .read_to_end(&mut bytes)
+        .read_to_end(bytes)
         .map_err(|e| PregeneratedRegionError::Io(e.kind()))?;
     if bytes.len() > limit {
         return Err(PregeneratedRegionError::FileExceedsLimit { limit });
     }
-    Ok(bytes)
+    Ok(())
 }
 
 /// Read one region exactly once, validate the caller-selected positions,
@@ -174,9 +175,13 @@ pub fn visit_pregenerated_region<E>(
         return Err(PregeneratedRegionError::InvalidRegionDirectory);
     }
     let path = directory.join(format!("r.{region_x}.{region_z}.mca"));
-    let bytes = checked_read(&path, limits.region.max_region_bytes)?;
+    let mut bytes = Vec::new();
+    checked_read_into(&path, limits.region.max_region_bytes, &mut bytes)?;
     let region = RegionView::new(&bytes, region_x, region_z, limits.region)
         .map_err(PregeneratedRegionError::Region)?;
+    // External bytes are short-lived borrowed input, not retained world
+    // state. Reuse capacity across consecutive external records.
+    let mut external_scratch = Vec::new();
 
     for &position in selected {
         let local_x = u8::try_from(position.x.rem_euclid(REGION_AXIS)).expect("0..31");
@@ -186,15 +191,15 @@ pub fn visit_pregenerated_region<E>(
             .map_err(PregeneratedRegionError::Chunk)?
             .ok_or(PregeneratedRegionError::MissingChunk { position })?;
 
-        let external = if chunk.external {
+        let external_payload = if chunk.external {
             let path = directory.join(format!("c.{}.{}.mcc", position.x, position.z));
-            Some(checked_read(&path, limits.max_external_bytes)?)
+            checked_read_into(&path, limits.max_external_bytes, &mut external_scratch)?;
+            Some(ExternalChunkPayload {
+                bytes: external_scratch.as_slice(),
+            })
         } else {
             None
         };
-        let external_payload = external
-            .as_deref()
-            .map(|bytes| ExternalChunkPayload { bytes });
         visit(SelectedAnvilSource {
             region: &region,
             local_x,
@@ -343,6 +348,41 @@ mod tests {
             ),
             Err(PregeneratedRegionError::FileExceedsLimit { limit: 16 })
         ));
+    }
+
+    #[test]
+    fn two_external_records_reuse_one_bounded_source_buffer() {
+        let world = TestWorld::new();
+        world.write_region(&region(&[
+            (0x80 | 3, b"padding-a"),
+            (0x80 | 3, b"padding-b"),
+        ]));
+        world.write_external(b"long-first-payload");
+        fs::write(world.path().join("region/c.1.0.mcc"), b"next").unwrap();
+
+        let selected = [ChunkPos { x: 0, z: 0 }, ChunkPos { x: 1, z: 0 }];
+        let mut pointers = Vec::new();
+        let mut lengths = Vec::new();
+        let count = visit_pregenerated_region(
+            world.path(),
+            0,
+            0,
+            &selected,
+            PregeneratedRegionLimits {
+                region: RegionLimits::new(8 * SECTOR, SECTOR),
+                max_external_bytes: 32,
+            },
+            |source| {
+                let external = source.external_payload.expect("selected external record");
+                pointers.push(external.bytes.as_ptr());
+                lengths.push(external.bytes.len());
+                Ok::<_, ()>(())
+            },
+        )
+        .unwrap();
+        assert_eq!(count, 2);
+        assert_eq!(lengths, [18, 4]);
+        assert_eq!(pointers[0], pointers[1], "second external record must reuse COLD bytes");
     }
 
     #[test]

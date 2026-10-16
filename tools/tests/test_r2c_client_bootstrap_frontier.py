@@ -91,8 +91,20 @@ def registration_consumer_fixture() -> str:
     Code:
        0: aload_0
        1: aload_1
-       2: invokevirtual #103 // Method net/minecraft/core/MappedRegistry.register:(Ljava/lang/Object;)Ljava/lang/Object;
+       2: invokevirtual #103 // Method com/mojang/datafixers/util/Either.ifLeft:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
        5: return
+  private void lambda$registerElements$1(net.minecraft.resources.RegistryLoadTask$PendingRegistration, java.lang.Object);
+    descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Object;)V
+    Code:
+       0: aload_0
+       1: invokevirtual #104 // Method net/minecraft/core/MappedRegistry.register:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: return
+  private void lambda$registerElements$2(net.minecraft.resources.RegistryLoadTask$PendingRegistration, java.lang.Exception);
+    descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Exception;)V
+    Code:
+       0: aload_0
+       1: invokevirtual #105 // Method java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+       4: return
 }
 BootstrapMethods:
   0: #120 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(...)
@@ -210,13 +222,14 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
             self.assertEqual(len(records), 4)
             [consumer] = [r for r in records if
                           r["class_name"] == "net.minecraft.resources.RegistryLoadTask"]
+            callbacks = consumer["register_consumer_delegate_invocations_candidate"]
             self.assertEqual(
-                consumer["register_consumer_callback_invocations_candidate"]["handler"],
-                "lambda$registerElements$0",
+                [callback["handler"] for callback in callbacks],
+                ["lambda$registerElements$0", "lambda$registerElements$1",
+                 "lambda$registerElements$2"],
             )
-            self.assertEqual(
-                len(consumer["register_consumer_callback_invocations_candidate"]["invocations"]), 1
-            )
+            self.assertEqual([len(callback["invocations"]) for callback in callbacks],
+                             [1, 1, 1])
             self.assertNotIn("synthetic-class", json.dumps(records))
             self.assertNotIn("MappedRegistry.wrong", json.dumps(records))
             jar.write_bytes(jar_bytes("net.minecraft.util.Util"))

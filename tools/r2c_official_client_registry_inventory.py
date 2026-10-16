@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""Discover the exact *client-side* 26.2 biome receiver source-review frontier.
+"""Discover the exact unobfuscated *client-side* 26.2 registry receiver frontier.
 
-The pinned server source ZIP does not include the stock client's
-Configuration listener. Download official client + official mappings only
-from the Mojang 26.2 launcher metadata, check their SHA-1/size, and emit a
-small source-free class/method inventory and SHA-256 candidates for later
-independent source/bytecode review. No client JAR or mapping text is emitted.
-This is *not* proof of the actual receiver path, ID assignment or admission.
+Java 26.2 is shipped unobfuscated and has no client_mappings download. Fetch
+only the official client JAR from the Mojang launcher manifest, check official
+SHA-1/size, and emit SHA-256 class/artifact fingerprints plus bounded method
+names from javap. No JAR, bytecode listing or original source is emitted.
+This is discovery, NOT reviewed client invocation or numeric-ID admission.
 """
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import subprocess
 import sys
 import tempfile
 import tomllib
+import zipfile
 from pathlib import Path
 
 import official_state_data as official
@@ -27,19 +29,20 @@ DATA_VERSION = 4903
 SOURCE_SHA256 = "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750"
 REPO = Path(__file__).resolve().parents[1]
 LOCK = REPO / "vanilla/vanilla.lock.toml"
-KIND = "r2c-official-client-receiver-artifact-discovery-v1"
+KIND = "r2c-official-unobfuscated-client-receiver-artifact-discovery-v1"
 MAX_CANDIDATES = 16
 MAX_METHODS_PER_CANDIDATE = 64
+MAX_CLASS_BYTES = 1_048_576
 
 
-def required_asset(meta: dict, key: str) -> dict:
-    """Reject malformed or missing *official metadata* before any download."""
+def required_client(meta: dict) -> dict:
+    """Require exact Mojang client identity; mapping absence is version law."""
     downloads = meta.get("downloads")
-    if not isinstance(downloads, dict):
-        raise ValueError("official 26.2 metadata downloads are missing")
-    asset = downloads.get(key)
+    if not isinstance(downloads, dict) or "client_mappings" in downloads:
+        raise ValueError("official 26.2 downloads must be unobfuscated and unmapped")
+    asset = downloads.get("client")
     if not isinstance(asset, dict):
-        raise ValueError(f"official 26.2 metadata has no {key}")
+        raise ValueError("official 26.2 metadata has no client")
     if (not {"url", "sha1", "size"}.issubset(asset)
         or not isinstance(asset["url"], str)
         or not asset["url"].startswith("https://")
@@ -47,37 +50,54 @@ def required_asset(meta: dict, key: str) -> dict:
         or re.fullmatch(r"[0-9a-f]{40}", asset["sha1"]) is None
         or type(asset["size"]) is not int
         or not 0 < asset["size"] < 512 * 1024 * 1024):
-        raise ValueError(f"invalid official metadata identity for {key}")
+        raise ValueError("invalid official client metadata identity")
     return asset
 
 
-def receiver_candidates(mappings: str) -> list[dict]:
-    """Bound exact mapped class/method names; never assume call semantics."""
-    classes, _, methods = official.parse_mappings(mappings)
-    names = sorted(name for name in classes
-                   if name.startswith("net.minecraft.client.")
-                   and "Configuration" in name
-                   and "Listener" in name)
-    if not 1 <= len(names) <= MAX_CANDIDATES:
-        raise ValueError("no unique bounded client Configuration listener frontier")
-    candidates: list[dict] = []
-    for name in names:
-        relevant = sorted({method for owner, method in methods
-                           if owner == name
-                           and any(word in method.lower()
-                                   for word in ("registry", "pack", "tag", "configuration"))})
-        if len(relevant) > MAX_METHODS_PER_CANDIDATE:
-            raise ValueError(f"unbounded mapped client methods in {name}")
-        candidates.append({
-            "mapped_class": name,
-            "official_obfuscated_class": classes[name],
-            "registry_related_method_names": relevant,
-        })
-    if not any(any("registry" in method.lower()
-                   for method in candidate["registry_related_method_names"])
-               for candidate in candidates):
-        raise ValueError("mapped client Configuration frontier has no registry method")
-    return candidates
+def receiver_candidates(client: Path) -> list[dict]:
+    """Read only bounded class identities and method names; no class execution."""
+    with zipfile.ZipFile(client) as archive:
+        names = sorted(name for name in archive.namelist()
+                       if name.startswith("net/minecraft/client/")
+                       and "Configuration" in name
+                       and "Listener" in name
+                       and name.endswith(".class")
+                       and "$" not in name)
+        if not 1 <= len(names) <= MAX_CANDIDATES:
+            raise ValueError("no bounded unobfuscated client Configuration listener frontier")
+        candidates: list[dict] = []
+        for name in names:
+            bytecode = archive.read(name)
+            if not 4 <= len(bytecode) <= MAX_CLASS_BYTES or bytecode[:4] != b"\xca\xfe\xba\xbe":
+                raise ValueError(f"invalid or oversized official client class {name}")
+            class_name = name[:-6].replace("/", ".")
+            result = subprocess.run(
+                ["javap", "-p", "-classpath", str(client), class_name],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+            if result.returncode:
+                raise ValueError(f"javap could not inspect {class_name}: {result.stderr[:400]}")
+            relevant: set[str] = set()
+            for line in result.stdout.splitlines():
+                names_on_line = re.findall(r"([A-Za-z_$][A-Za-z0-9_$]*)\s*\(", line)
+                if not names_on_line:
+                    continue
+                method = names_on_line[-1]
+                if any(word in method.lower()
+                       for word in ("registry", "pack", "tag", "configuration")):
+                    relevant.add(method)
+            if len(relevant) > MAX_METHODS_PER_CANDIDATE:
+                raise ValueError(f"unbounded client receiver methods: {class_name}")
+            candidates.append({
+                "class_name": class_name,
+                "classfile_sha256_candidate": hashlib.sha256(bytecode).hexdigest(),
+                "registry_related_method_names": sorted(relevant),
+            })
+        if not any(any("registry" in method.lower()
+                       for method in candidate["registry_related_method_names"])
+                   for candidate in candidates):
+            raise ValueError("actual client Configuration listener has no registry method")
+        return candidates
 
 
 def identity_lock(path: Path) -> None:
@@ -106,32 +126,29 @@ def official_version_metadata() -> dict:
 
 
 def discover(metadata: dict, cache: Path) -> dict:
-    artifacts = {}
-    for key in ("client", "client_mappings"):
-        asset = required_asset(metadata, key)
-        local = cache / f"{VERSION}-{key}.bin"
-        official.download(asset["url"], local, asset["sha1"], asset["size"])
-        artifacts[key] = {
-            "official_sha1": asset["sha1"],
-            "observed_sha256_candidate": official.sha256_file(local),
-            "official_size_bytes": asset["size"],
-        }
-    mapped = (cache / f"{VERSION}-client_mappings.bin").read_text(encoding="utf-8")
+    asset = required_client(metadata)
+    local = cache / f"{VERSION}-client.jar"
+    official.download(asset["url"], local, asset["sha1"], asset["size"])
     return {
         "schema": 1,
         "kind": KIND,
         "target": {"minecraft": VERSION, "protocol": PROTOCOL, "data_version": DATA_VERSION},
         "server_source_archive_sha256": SOURCE_SHA256,
-        "artifacts": artifacts,
-        "client_configuration_listener_candidates": receiver_candidates(mapped),
+        "official_executable_unobfuscated": True,
+        "client_artifact": {
+            "official_sha1": asset["sha1"],
+            "observed_sha256_candidate": official.sha256_file(local),
+            "official_size_bytes": asset["size"],
+        },
+        "client_configuration_listener_candidates": receiver_candidates(local),
         "source_inspected": False,
         "client_handler_invocation_proven": False,
         "client_numeric_id_assignment_proven": False,
         "production_admitted": False,
         "next_gate": (
-            "Pin complete client/mapping SHA-256; inspect exact stock-client Configuration "
-            "handler bytecode/source and resolved network-registry delegates; independently "
-            "review ordering, failures, VAR/SEM and known-pack identity before promotion"
+            "Pin full client SHA-256 and classfile fingerprints; review exact "
+            "stock client Configuration handler/delegates with javap -c or source; "
+            "independently review registration order/errors and known-pack VAR/SEM"
         ),
     }
 
@@ -152,11 +169,12 @@ def main() -> int:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(result, sort_keys=True, indent=2) + "\n",
                                encoding="utf-8")
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except (OSError, ValueError, KeyError, TypeError, zipfile.BadZipFile,
+            subprocess.TimeoutExpired) as error:
         print(f"R2C official client discovery failed closed: {error}", file=sys.stderr)
         return 2
-    print("Official client artifact identity and mapped receiver candidates discovered; "
-          "client bytecode/source review and VAR/SEM admission STILL REQUIRED")
+    print("Official unobfuscated client artifact and receiver class candidates found; "
+          "client source review and VAR/SEM admission STILL REQUIRED")
     return 0
 
 

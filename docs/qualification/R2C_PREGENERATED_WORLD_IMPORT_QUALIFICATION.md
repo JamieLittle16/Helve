@@ -417,6 +417,34 @@ Play publisher remains gated on independent client-ID and world-wire
 VAR/SEM admission. The absence of a second chunk/image owner
 and any HOT world cost is deliberate.
 
+## COLD multi-region source selection
+
+`helve-world-load::visit_selected_pregenerated_world` now groups a
+caller-owned finite list of absolute chunk positions across signed
+Anvil region coordinates. It sorts that source selection **in place**
+once by region and chunk coordinates, rejects duplicates before any
+filesystem I/O, and calls the existing bounded one-region visitor
+once per region group. No hashmap, second source-image owner or
+per-tick world scan is added.
+
+This closes the initial-file-selection composition for a pregenerated
+spawn view that crosses `r.-1.0.mca`, `r.0.0.mca`, `r.1.0.mca`
+or other region boundaries. The COLD import callback remains
+responsible for minting authentic source receipts; the separately
+implemented `prepare_initial_source_view` then sorts **those**
+receipts by client-view distance, before packet publication. File
+iteration order is not presumed to equal client publication order.
+
+Unit tests verify signed-region grouping, deterministic ordering,
+duplicate preflight before callbacks, and explicit failure for a
+missing later region without pretending earlier committed chunks were
+rolled back. No implicit world generation or fallback biome IDs are
+introduced.
+
+This does **not** select world identity, a player spawn or a
+production-loaded biome registry. Source VAR/SEM admission and the
+real R2B `WorldProjectionReady` handoff remain separate.
+
 ## Explicit non-claims at the current R2C.3 boundary
 
 A green current R2C.3 block-state boundary means Helve has:

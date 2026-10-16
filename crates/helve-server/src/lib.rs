@@ -37,6 +37,14 @@ mod r2c_configured_biomes;
     not(test),
     allow(
         dead_code,
+        reason = "first-view source import is gated on independent client world-wire admission"
+    )
+)]
+mod r2c_disk_first_view;
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
         reason = "official runtime heightmap candidate lacks independent source VAR/SEM admission"
     )
 )]

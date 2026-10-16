@@ -102,6 +102,8 @@ jobs:
           require_handle("net.minecraft.resources.RegistryLoadTask",
                          "lambda$registerElements$0", 16, "REF_invokeVirtual",
                          "RegistryLoadTask.lambda$registerElements$2:")
+          assert task_root["success_error_dispatch_callsite_shapes_pinned"]
+          assert not task_root["full_register_or_error_semantics_proven"]
           callbacks = task_root["register_consumer_delegate_invocations_candidate"]
           assert [entry["handler"] for entry in callbacks] == [
               "lambda$registerElements$0",

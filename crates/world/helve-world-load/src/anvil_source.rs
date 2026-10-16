@@ -37,6 +37,21 @@ pub enum AnvilSourceAdmissionError<E> {
     Install(StoredBiomeResidencyError),
 }
 
+/// One caller-selected chunk in an already bounded and validated Anvil
+/// region, with optional separately bounded external `.mcc` payload.
+/// Region backing remains caller-owned and borrowed for this transaction.
+#[derive(Clone, Copy, Debug)]
+pub struct SelectedAnvilSource<'a, 'r> {
+    /// Borrow of the validated region header and inline compressed bytes.
+    pub region: &'a RegionView<'r>,
+    /// Local chunk X within this 32×32 region.
+    pub local_x: u8,
+    /// Local chunk Z within this 32×32 region.
+    pub local_z: u8,
+    /// External record payload, if the region record requires one.
+    pub external_payload: Option<ExternalChunkPayload<'a>>,
+}
+
 /// Move one real region chunk into the authoritative semantic resident
 /// directory and mint its exact source publication receipt.
 ///
@@ -59,10 +74,7 @@ pub enum AnvilSourceAdmissionError<E> {
 pub fn import_and_install_anvil_source<R, SB, D, BD, Biome, MakeEmpty>(
     dimension: &mut SemanticDimensionInstance<R::State, SB::Section, Biome, BD::Section>,
     importer: &mut StoredBlockImporter<'_, R, SB, D>,
-    region: &RegionView<'_>,
-    local_x: u8,
-    local_z: u8,
-    external_payload: Option<ExternalChunkPayload<'_>>,
+    source: SelectedAnvilSource<'_, '_>,
     biome_decoder: &mut BD,
     make_empty_section: MakeEmpty,
 ) -> Result<SourceChunkPublicationReceipt, AnvilSourceAdmissionError<D::Error>>
@@ -77,7 +89,13 @@ where
     MakeEmpty: FnMut() -> SB::Section,
 {
     let imported = importer
-        .import_region_chunk_with_biomes(region, local_x, local_z, external_payload, biome_decoder)
+        .import_region_chunk_with_biomes(
+            source.region,
+            source.local_x,
+            source.local_z,
+            source.external_payload,
+            biome_decoder,
+        )
         .map_err(AnvilSourceAdmissionError::Decode)?;
     imported
         .block_entities

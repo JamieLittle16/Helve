@@ -52,6 +52,11 @@ jobs:
           assert len(result["client_configuration_listener_candidates"]) <= 16
           assert result["official_executable_unobfuscated"]
           assert result["client_artifact"]["official_size_bytes"] > 0
+          inner = result["client_inner_contents_candidate"]
+          assert inner["class_name"] == "net.minecraft.client.multiplayer.RegistryDataCollector$ContentsCollector"
+          assert inner["registry_loader_class_name"] == "net.minecraft.resources.RegistryDataLoader"
+          assert len(inner["append_invoke_sites_candidate"]) == 1
+          assert inner["append_invoke_sites_candidate"][0]["handler"] == "append"
           collector = result["client_registry_collector_candidate"]
           assert collector["class_name"] == "net.minecraft.client.multiplayer.RegistryDataCollector"
           assert len(collector["method_call_sites_candidate"]) <= 32
@@ -74,6 +79,13 @@ jobs:
           print("  receiver-reached collector:", collector["class_name"])
           for method in collector["method_call_sites_candidate"]:
               print("    collector method:", method["handler"], "invoke sites:", len(method["invocations"]))
+              for edge in method["invocations"]:
+                  print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
+          inner = result["client_inner_contents_candidate"]
+          print("  inner contents:", inner["class_name"])
+          print("  loader identity:", inner["registry_loader_class_name"])
+          for method in inner["append_invoke_sites_candidate"]:
+              print("    inner append method:", method["handler"])
               for edge in method["invocations"]:
                   print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
           PY

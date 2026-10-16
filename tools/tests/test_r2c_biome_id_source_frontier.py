@@ -49,9 +49,17 @@ class BiomeSourceFrontierTests(unittest.TestCase):
                 "LOADED-REGISTRY-ID-ALLOCATION",
                 "CONFIGURATION-BIOME-ENTRY-PUBLICATION",
                 "BIOME-CONTAINER-ID-BINDING",
+                "NETWORK-REGISTRY-RECEIVE-AND-ORDERED-REGISTRATION",
             ],
         )
-        self.assertEqual(len({name for _, roots in groups for name in roots}), 6)
+        self.assertEqual(len({name for _, roots in groups for name in roots}), 8)
+        self.assertEqual(
+            groups[3][1],
+            (
+                "net.minecraft.resources.NetworkRegistryLoadTask",
+                "net.minecraft.resources.RegistryLoadTask",
+            ),
+        )
         with tempfile.TemporaryDirectory() as tmp:
             candidate = json.loads(frontier.DEFAULT_PLAN.read_text())
             candidate["status"] = "ADMITTED"
@@ -61,6 +69,19 @@ class BiomeSourceFrontierTests(unittest.TestCase):
                 frontier.load_plan(path)
             candidate["status"] = "DISCOVERY_NOT_ADMISSION"
             candidate["groups"][1]["types"].append("net.minecraft.core.MappedRegistry")
+            path.write_text(json.dumps(candidate))
+            with self.assertRaises(frontier.BiomeIdSourceError):
+                frontier.load_plan(path)
+            candidate["groups"][1]["types"].pop()
+            candidate["groups"].pop()
+            path.write_text(json.dumps(candidate))
+            with self.assertRaisesRegex(frontier.BiomeIdSourceError, "four finite"):
+                frontier.load_plan(path)
+            candidate["groups"].append({
+                "id": "NETWORK-REGISTRY-RECEIVE-AND-ORDERED-REGISTRATION",
+                "review_focus": "unreviewed",
+                "types": ["net.minecraft.core.MappedRegistry"],
+            })
             path.write_text(json.dumps(candidate))
             with self.assertRaises(frontier.BiomeIdSourceError):
                 frontier.load_plan(path)

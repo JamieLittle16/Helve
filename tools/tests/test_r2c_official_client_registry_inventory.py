@@ -85,12 +85,33 @@ JAVAP_CONTENTS = """public class net.minecraft.client.multiplayer.RegistryDataCo
 """
 
 
+JAVAP_LOADER = """public class net.minecraft.resources.RegistryDataLoader {
+  public static void load(java.lang.String irrelevant);
+    Code:
+       0: invokestatic #99 // Method net/minecraft/core/MappedRegistry.fake:()V
+
+  public static java.util.concurrent.CompletableFuture load(java.util.Map<java.lang.String, java.lang.Integer>, net.minecraft.server.packs.resources.ResourceProvider, java.util.List<java.lang.Object>, java.util.List<java.lang.Object>, java.util.concurrent.Executor);
+    Code:
+       0: aload_0
+       1: invokestatic #12 // Method net/minecraft/resources/NetworkRegistryLoadTask.load:(Ljava/util/Map;)V
+       4: invokestatic #13 // Method net/minecraft/resources/RegistryLoadTask.registerElements:(Ljava/util/List;)V
+       7: areturn
+
+  public static void unrelated();
+    Code:
+       0: invokestatic #98 // Method net/minecraft/core/MappedRegistry.wrong:()V
+}
+"""
+
+
 def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
     del kwargs
     if "-c" in args and probe.COLLECTOR_CLASS in args:
         return subprocess.CompletedProcess(args, 0, JAVAP_COLLECTOR, "")
     if "-c" in args and probe.CONTENTS_CLASS in args:
         return subprocess.CompletedProcess(args, 0, JAVAP_CONTENTS, "")
+    if "-c" in args and probe.LOADER_CLASS in args:
+        return subprocess.CompletedProcess(args, 0, JAVAP_LOADER, "")
     return subprocess.CompletedProcess(
         args, 0, JAVAP_CODE if "-c" in args else JAVAP, ""
     )
@@ -246,6 +267,42 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
             ), self.assertRaisesRegex(ValueError, "no inspectable append"):
                 probe.inner_contents_candidate(jar)
 
+
+    def test_exact_five_argument_loader_excludes_unrelated_overloads(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            jar = Path(tmp) / "client.jar"
+            jar.write_bytes(jar_bytes({LOADER_CLASS: BYTECODE}))
+            with patch.object(probe.subprocess, "run", side_effect=mock_javap):
+                evidence = probe.registry_loader_overload_candidate(jar)
+            self.assertEqual(len(evidence["selected_overload_invoke_sites_candidate"]
+                                 ["invocations"]), 2)
+            self.assertNotIn("MappedRegistry.fake", json.dumps(evidence))
+            self.assertNotIn("MappedRegistry.wrong", json.dumps(evidence))
+            self.assertFalse(evidence["source_inspected"])
+            modified = JAVAP_LOADER.replace(
+                "net.minecraft.server.packs.resources.ResourceProvider",
+                "java.lang.String",
+            )
+            with patch.object(
+                probe.subprocess, "run",
+                return_value=subprocess.CompletedProcess([], 0, modified, ""),
+            ), self.assertRaisesRegex(ValueError, "resolve exactly once"):
+                probe.registry_loader_overload_candidate(jar)
+            repeated = JAVAP_LOADER.replace(
+                "  public static void unrelated();",
+                "  public static java.util.concurrent.CompletableFuture load(java.util.Map, net.minecraft.server.packs.resources.ResourceProvider, java.util.List, java.util.List, java.util.concurrent.Executor);"
+            )
+            with patch.object(
+                probe.subprocess, "run",
+                return_value=subprocess.CompletedProcess([], 0, repeated, ""),
+            ), self.assertRaisesRegex(ValueError, "resolve exactly once"):
+                probe.registry_loader_overload_candidate(jar)
+            jar.write_bytes(jar_bytes({CLIENT_CLASS: BYTECODE}))
+            with patch.object(
+                probe.subprocess, "run", side_effect=mock_javap,
+            ), self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                probe.registry_loader_overload_candidate(jar)
+
     def test_unobfuscated_metadata_has_exact_official_identity_fields(self) -> None:
         self.assertEqual(probe.required_client(meta())["size"], 123)
         for invalid in [
@@ -315,6 +372,13 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
         self.assertEqual(len(inner["append_invoke_sites_candidate"]), 1)
         self.assertIn("Map.put", inner["append_invoke_sites_candidate"][0]["invocations"][0]
                       ["symbolic_target"])
+        loader = result["client_registry_loader_overload_candidate"]
+        self.assertEqual(loader["class_name"], probe.LOADER_CLASS)
+        self.assertEqual(loader["selected_overload_invoke_sites_candidate"]["handler"], "load")
+        self.assertIn("NetworkRegistryLoadTask.load",
+                      loader["selected_overload_invoke_sites_candidate"]["invocations"][0]
+                      ["symbolic_target"])
+        self.assertFalse(loader["client_registration_order_admitted"])
         self.assertNotIn("synthetic-jvm-test-class", json.dumps(result))
         self.assertNotIn("public void", json.dumps(result))
 

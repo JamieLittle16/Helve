@@ -1,0 +1,78 @@
+name: R2C Official Client Lambda Bootstrap Frontier
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_client_bootstrap_frontier.py
+      - tools/tests/test_r2c_client_bootstrap_frontier.py
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-lambda-bootstrap.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    name: Exact 26.2 client registry lambda handle candidates (not admitted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25 for the unobfuscated client
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Hermetic bootstrap and hostile-input tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_client_bootstrap_frontier.py' -v
+
+      - name: Discover actual client indy-to-LambdaMetafactory handles
+        run: |
+          python3 tools/r2c_client_bootstrap_frontier.py \
+            --output /tmp/r2c-26.2-client-registry-bootstrap-candidates.json
+
+      - name: Fail closed on all authority flags and display only metadata
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("/tmp/r2c-26.2-client-registry-bootstrap-candidates.json")
+          result = json.loads(path.read_text())
+          assert result["target"] == {"minecraft": "26.2", "protocol": 776, "data_version": 4903}
+          assert result["invokedynamic_bootstrap_resolution_inspected"]
+          assert not result["full_branch_and_error_semantics_reviewed"]
+          assert not result["client_numeric_id_assignment_proven"]
+          assert not result["source_var_sem_admitted"]
+          assert not result["production_admitted"]
+          assert [r["class_name"] for r in result["rooted_class_bootstraps"]] == [
+              "net.minecraft.resources.NetworkRegistryLoadTask",
+              "net.minecraft.util.Util",
+              "net.minecraft.resources.RegistryDataLoader",
+          ]
+          for root in result["rooted_class_bootstraps"]:
+              print("Root:", root["class_name"])
+              for method in root["selected_methods"]:
+                  print(" Method:", method["method_name"])
+                  for edge in method["bootstrap_method_handle_links_candidate"]:
+                      print("  indy bci", edge["bytecode_offset"],
+                            "bsm", edge["bootstrap_index"],
+                            "=>", edge["impl_handle_kind"],
+                            edge["impl_handle_target_candidate"])
+          print("Bootstrap targets discovered, NOT production/source admitted")
+          PY
+
+      - name: Upload only short-lived source-free client method-handle evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-official-client-bootstrap-candidates
+          path: /tmp/r2c-26.2-client-registry-bootstrap-candidates.json
+          if-no-files-found: error
+          retention-days: 7

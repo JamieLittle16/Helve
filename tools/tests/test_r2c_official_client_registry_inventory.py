@@ -100,7 +100,7 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
             jar.write_bytes(jar_bytes({CLIENT_CLASS: BYTECODE}))
             missing = subprocess.CompletedProcess([], 0, "public void handleTags();", "")
             with patch.object(probe.subprocess, "run", return_value=missing):
-                with self.assertRaisesRegex(ValueError, "no registry method"):
+                with self.assertRaisesRegex(ValueError, "no inspectable handleRegistryData"):
                     probe.receiver_candidates(jar)
 
     def test_inspection_is_per_handler_bounded_and_not_whole_class_search(self) -> None:
@@ -125,7 +125,7 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
             probe.handler_invocations(no_symbol)
         flooding = JAVAP_CODE.replace(
             "      10: return",
-            "      10: return\\n" + "\\n".join(
+            "      10: return\n" + "\n".join(
                 "      11: invokestatic #11 // Method net/minecraft/Util.x:()V"
                 for _ in range(probe.MAX_INVOKES_PER_HANDLER)
             ),

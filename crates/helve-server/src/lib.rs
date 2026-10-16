@@ -33,6 +33,14 @@ mod r2c_chunk_batch;
     )
 )]
 mod r2c_configured_biomes;
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "official runtime heightmap candidate lacks independent source VAR/SEM admission"
+    )
+)]
+mod r2c_heightmap_facts;
 mod r2c_publication;
 mod r2c_section_candidate;
 

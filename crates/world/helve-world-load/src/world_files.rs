@@ -382,19 +382,15 @@ mod tests {
         world.write_region(&region(&[(3, b"first")]));
         let pos = [ChunkPos { x: 3, z: 0 }];
         assert!(matches!(
-            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |_| {
+            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |_| -> Result<(), ()> {
                 panic!("absent chunk must not be visited");
-                #[allow(unreachable_code)]
-                Ok::<_, ()>(())
             }),
             Err(PregeneratedRegionError::MissingChunk { .. })
         ));
         world.write_region(&[0; 16]);
         assert!(matches!(
-            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |_| {
+            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |_| -> Result<(), ()> {
                 panic!("invalid region must not reach callback");
-                #[allow(unreachable_code)]
-                Ok::<_, ()>(())
             }),
             Err(PregeneratedRegionError::Region(_))
         ));

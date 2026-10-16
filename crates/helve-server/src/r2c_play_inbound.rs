@@ -87,7 +87,7 @@ mod tests {
     use super::{
         R2cPlayInboundError, R2cPlayInboundStep, process_one_r2c_play_inbound,
     };
-    use crate::r2b_server::{R2bPlayInbound, R2bPlaySession};
+    use crate::r2b_server::{R2bPlayError, R2bPlayInbound, R2bPlaySession};
     use crate::r2c_chunk_batch::{
         ChunkBatchInboundError, ChunkBatchStep, R2cChunkBatchState,
     };
@@ -178,6 +178,23 @@ mod tests {
         ));
         assert_eq!(session.buffered_ingress(), 6);
         assert_eq!(batch.next_chunk_index(), 0);
+        assert_eq!(batch.unacknowledged_batches(), 0);
+    }
+
+    #[test]
+    fn malformed_control_packet_preserves_original_ingress_and_typed_error() {
+        let mut session = session();
+        let mut batch = R2cChunkBatchState::new(1);
+        // A complete serverbound teleport-confirm frame with no VarInt ID.
+        session.ingest_play(&[1, 0]).unwrap();
+        let error = process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap_err();
+        match error {
+            R2cPlayInboundError::Control(control) => {
+                assert!(matches!(control, R2bPlayError::TeleportCodec(_)));
+            }
+            R2cPlayInboundError::ChunkBatch(_) => panic!("teleport belongs to R2B control"),
+        }
+        assert_eq!(session.buffered_ingress(), 2);
         assert_eq!(batch.unacknowledged_batches(), 0);
     }
 

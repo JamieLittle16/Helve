@@ -109,8 +109,10 @@ impl HeightmapStateFacts<BlockStateId> for CandidateHeightmapFacts<'_> {
 mod tests {
     use helve_generated::{AIR, GeneratedStateFacts};
     use helve_types::{ChunkGeneration, ChunkPos};
-    use helve_world_chunk::{ClientHeightmapKind, ClientHeightmaps, LiveChunkCore};
-    use helve_world_contract::SectionBlockPos;
+    use helve_world_chunk::{
+        ClientHeightmapKind, ClientHeightmaps, HeightmapStateFacts, LiveChunkCore,
+    };
+    use helve_world_contract::{BlockSection, SectionBlockPos};
     use helve_world_reference::DirectBlockSection;
 
     use super::{

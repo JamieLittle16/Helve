@@ -309,11 +309,11 @@ where
         .map_err(DiskFirstViewError::FinalView)
 }
 
-
 /// One immutable COLD saved-world request for a continuing R2B player.
 ///
 /// The profile is an explicit caller-supplied *candidate*, not proof of the
 /// Configuration dimension/pack or of the persisted save's identity.
+#[derive(Clone, Copy)]
 pub(crate) struct PendingTeleportDiskFirstViewRequest<'a> {
     pub(crate) world: &'a Path,
     pub(crate) profile: DimensionRuntimeProfile,
@@ -400,7 +400,6 @@ where
     .map_err(PendingTeleportDiskImportError::Source)?;
     Ok((center, state))
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -659,7 +658,6 @@ mod tests {
         }
     }
 
-
     #[test]
     #[expect(
         clippy::too_many_lines,
@@ -738,7 +736,9 @@ mod tests {
             || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
         ) {
             Err(PendingTeleportDiskImportError::Player(
-                PendingTeleportViewError::OutsideVerticalLattice { maximum_exclusive, .. },
+                PendingTeleportViewError::OutsideVerticalLattice {
+                    maximum_exclusive, ..
+                },
             )) => assert_eq!(maximum_exclusive, 16),
             _ => panic!("out-of-lattice player must reject"),
         }

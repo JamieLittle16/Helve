@@ -39,6 +39,14 @@ MAX_COLLECTOR_METHODS = 32
 MAX_COLLECTOR_INVOKES = 256
 MAX_LOADER_LAMBDAS = 16
 MAX_LOADER_LAMBDA_INVOKES = 256
+MAX_REGISTRY_ROOT_OVERLOADS = 16
+MAX_REGISTRY_ROOT_TOTAL_INVOKES = 256
+REGISTRY_TASK_ROOTS = (
+    ("net.minecraft.resources.RegistryLoadTask", ("load", "registerElements")),
+    ("net.minecraft.resources.NetworkRegistryLoadTask", ("load",)),
+    ("net.minecraft.core.MappedRegistry", ("register",)),
+)
+
 COLLECTOR_CLASS = "net.minecraft.client.multiplayer.RegistryDataCollector"
 CONTENTS_CLASS = "net.minecraft.client.multiplayer.RegistryDataCollector$ContentsCollector"
 LOADER_CLASS = "net.minecraft.resources.RegistryDataLoader"
@@ -353,6 +361,75 @@ def registry_loader_overload_candidate(client: Path) -> dict:
     }
 
 
+
+def exact_registry_task_candidates(client: Path) -> list[dict]:
+    """Pin selected source-reached registry task and ID-map class methods.
+
+    A class being present does NOT prove it is used by the selected load,
+    and a method named register does NOT prove insertion-order semantics.
+    Preserve exact per-overload signatures, raw classfile fingerprints, and
+    bounded symbolic call edges; source/VAR/SEM review must close that chain.
+    """
+    candidates: list[dict] = []
+    with zipfile.ZipFile(client) as archive:
+        for qualified_name, method_names in REGISTRY_TASK_ROOTS:
+            path = qualified_name.replace(".", "/") + ".class"
+            if archive.namelist().count(path) != 1:
+                raise ValueError(f"registry task root must exist once: {qualified_name}")
+            raw = archive.read(path)
+            if not 4 <= len(raw) <= MAX_CLASS_BYTES or raw[:4] != b"\xca\xfe\xba\xbe":
+                raise ValueError(f"invalid registry task classfile: {qualified_name}")
+            result = subprocess.run(
+                ["javap", "-c", "-p", "-classpath", str(client), qualified_name],
+                capture_output=True, text=True, timeout=30, check=False,
+            )
+            if result.returncode or len(result.stdout) > 2_000_000:
+                raise ValueError(f"uninspectable registry task root: {qualified_name}")
+            lines = result.stdout.splitlines()
+            headers: list[tuple[int, str, str]] = []
+            for line_index, line in enumerate(lines):
+                found = re.fullmatch(
+                    r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;",
+                    line,
+                )
+                if found:
+                    headers.append((line_index, found.group(1), line))
+            selected = [
+                (start, name, declaration)
+                for start, name, declaration in headers
+                if name in method_names
+            ]
+            if not 1 <= len(selected) <= MAX_REGISTRY_ROOT_OVERLOADS:
+                raise ValueError(f"unbounded root methods: {qualified_name}")
+            if set(method_names) - {name for _, name, _ in selected}:
+                raise ValueError(f"required registry methods missing: {qualified_name}")
+            members: list[dict] = []
+            for start, name, declaration in selected:
+                end = next((i for i, _, _ in headers if i > start), len(lines))
+                [parsed] = handler_invocations(
+                    "\n".join(lines[start:end]),
+                    method_names=(name,),
+                    required_method=None,
+                )
+                members.append({
+                    "method_name": name,
+                    "declaration_sha256": hashlib.sha256(
+                        declaration.encode("utf-8")
+                    ).hexdigest(),
+                    "invoke_sites_candidate": parsed["invocations"],
+                })
+            if sum(len(m["invoke_sites_candidate"]) for m in members) > MAX_REGISTRY_ROOT_TOTAL_INVOKES:
+                raise ValueError(f"registry task root invoke cap exceeded: {qualified_name}")
+            candidates.append({
+                "class_name": qualified_name,
+                "classfile_sha256_candidate": hashlib.sha256(raw).hexdigest(),
+                "method_candidates": members,
+                "source_reviewed": False,
+                "insertion_order_proven": False,
+            })
+    return candidates
+
+
 def receiver_candidates(client: Path) -> list[dict]:
     """Read only bounded class identities and method names; no class execution."""
     with zipfile.ZipFile(client) as archive:
@@ -448,6 +525,7 @@ def discover(metadata: dict, cache: Path) -> dict:
         "client_registry_collector_candidate": collector_candidate(local),
         "client_inner_contents_candidate": inner_contents_candidate(local),
         "client_registry_loader_overload_candidate": registry_loader_overload_candidate(local),
+        "registry_task_root_candidates": exact_registry_task_candidates(local),
         "source_inspected": False,
         "client_handler_invocation_proven": False,
         "client_numeric_id_assignment_proven": False,

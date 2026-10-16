@@ -20,6 +20,9 @@ CLIENT_CLASS = "net/minecraft/client/multiplayer/ClientConfigurationPacketListen
 COLLECTOR_CLASS = "net/minecraft/client/multiplayer/RegistryDataCollector.class"
 CONTENTS_CLASS = "net/minecraft/client/multiplayer/RegistryDataCollector$ContentsCollector.class"
 LOADER_CLASS = "net/minecraft/resources/RegistryDataLoader.class"
+TASK_CLASS = "net/minecraft/resources/RegistryLoadTask.class"
+NETWORK_TASK_CLASS = "net/minecraft/resources/NetworkRegistryLoadTask.class"
+MAPPED_CLASS = "net/minecraft/core/MappedRegistry.class"
 BYTECODE = b"\xca\xfe\xba\xbe" + b"synthetic-jvm-test-class"
 JAVAP = """public class net.minecraft.client.multiplayer.ClientConfigurationPacketListenerImpl {
   public void handleRegistryData(net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket);
@@ -122,6 +125,48 @@ JAVAP_LOADER = """public class net.minecraft.resources.RegistryDataLoader {
 """
 
 
+
+JAVAP_TASK_ROOTS = {
+    "net.minecraft.resources.RegistryLoadTask": """public abstract class net.minecraft.resources.RegistryLoadTask {
+  public java.util.concurrent.CompletableFuture load(net.minecraft.resources.RegistryOps$RegistryInfoLookup, java.util.concurrent.Executor);
+    Code:
+       0: aload_0
+       1: invokevirtual #14 // Method registerElements:()V
+       4: areturn
+
+  private void registerElements();
+    Code:
+       0: aload_0
+       1: invokevirtual #15 // Method net/minecraft/core/MappedRegistry.register:(Ljava/lang/Object;)Ljava/lang/Object;
+       4: return
+
+  private void unrelated();
+    Code:
+       0: invokestatic #99 // Method net/minecraft/core/MappedRegistry.fake:()V
+}
+""",
+    "net.minecraft.resources.NetworkRegistryLoadTask": """public class net.minecraft.resources.NetworkRegistryLoadTask {
+  public java.util.concurrent.CompletableFuture load(net.minecraft.resources.RegistryOps$RegistryInfoLookup, java.util.concurrent.Executor);
+    Code:
+       0: invokestatic #10 // Method net/minecraft/util/Util.sequence:(Ljava/util/List;)Ljava/util/concurrent/CompletableFuture;
+       3: areturn
+}
+""",
+    "net.minecraft.core.MappedRegistry": """public class net.minecraft.core.MappedRegistry {
+  public java.lang.Object register(net.minecraft.resources.ResourceKey, java.lang.Object);
+    Code:
+       0: aload_0
+       1: invokevirtual #10 // Method java/util/List.add:(Ljava/lang/Object;)Z
+       4: areturn
+
+  private void unrelated();
+    Code:
+       0: invokestatic #99 // Method net/minecraft/core/MappedRegistry.fake:()V
+}
+""",
+}
+
+
 def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
     del kwargs
     if "-c" in args and probe.COLLECTOR_CLASS in args:
@@ -130,6 +175,8 @@ def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess
         return subprocess.CompletedProcess(args, 0, JAVAP_CONTENTS, "")
     if "-c" in args and probe.LOADER_CLASS in args:
         return subprocess.CompletedProcess(args, 0, JAVAP_LOADER, "")
+    if "-c" in args and args[-1] in JAVAP_TASK_ROOTS:
+        return subprocess.CompletedProcess(args, 0, JAVAP_TASK_ROOTS[args[-1]], "")
     return subprocess.CompletedProcess(
         args, 0, JAVAP_CODE if "-c" in args else JAVAP, ""
     )
@@ -360,6 +407,36 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "count exceeds cap"):
             probe.loader_async_lambda_candidates(excessive)
 
+    def test_actual_client_task_roots_are_exact_and_bounded(self) -> None:
+        roots = {TASK_CLASS: BYTECODE, NETWORK_TASK_CLASS: BYTECODE,
+                 MAPPED_CLASS: BYTECODE}
+        with tempfile.TemporaryDirectory() as tmp:
+            jar = Path(tmp) / "client.jar"
+            jar.write_bytes(jar_bytes(roots))
+            with patch.object(probe.subprocess, "run", side_effect=mock_javap):
+                records = probe.exact_registry_task_candidates(jar)
+            self.assertEqual(len(records), 3)
+            self.assertNotIn("MappedRegistry.fake", json.dumps(records))
+            for missing in (TASK_CLASS, NETWORK_TASK_CLASS, MAPPED_CLASS):
+                jar.write_bytes(jar_bytes({
+                    name: data for name, data in roots.items() if name != missing
+                }))
+                with patch.object(probe.subprocess, "run", side_effect=mock_javap):
+                    with self.assertRaisesRegex(ValueError, "exist once"):
+                        probe.exact_registry_task_candidates(jar)
+            jar.write_bytes(jar_bytes(roots))
+            def missing_required(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+                original = mock_javap(args, **kwargs)
+                if args[-1] == "net.minecraft.resources.RegistryLoadTask":
+                    original = subprocess.CompletedProcess(
+                        args, 0,
+                        original.stdout.replace("registerElements(", "renamed("), ""
+                    )
+                return original
+            with patch.object(probe.subprocess, "run", side_effect=missing_required):
+                with self.assertRaisesRegex(ValueError, "required registry methods missing"):
+                    probe.exact_registry_task_candidates(jar)
+
     def test_unobfuscated_metadata_has_exact_official_identity_fields(self) -> None:
         self.assertEqual(probe.required_client(meta())["size"], 123)
         for invalid in [
@@ -394,8 +471,15 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                 probe.identity_lock(lock)
 
     def test_discovery_emits_no_jar_or_bytecode_and_cannot_self_admit(self) -> None:
-        blob = jar_bytes({CLIENT_CLASS: BYTECODE, COLLECTOR_CLASS: BYTECODE,
-                         CONTENTS_CLASS: BYTECODE, LOADER_CLASS: BYTECODE})
+        blob = jar_bytes({
+            CLIENT_CLASS: BYTECODE,
+            COLLECTOR_CLASS: BYTECODE,
+            CONTENTS_CLASS: BYTECODE,
+            LOADER_CLASS: BYTECODE,
+            TASK_CLASS: BYTECODE,
+            NETWORK_TASK_CLASS: BYTECODE,
+            MAPPED_CLASS: BYTECODE,
+        })
 
         def fake_download(url: str, output: Path, sha1: str, size: int) -> None:
             del url, sha1, size
@@ -436,6 +520,16 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                       loader["selected_overload_invoke_sites_candidate"]["invocations"][0]
                       ["symbolic_target"])
         self.assertFalse(loader["client_registration_order_admitted"])
+        roots = result["registry_task_root_candidates"]
+        self.assertEqual([r["class_name"] for r in roots], [
+            "net.minecraft.resources.RegistryLoadTask",
+            "net.minecraft.resources.NetworkRegistryLoadTask",
+            "net.minecraft.core.MappedRegistry",
+        ])
+        self.assertTrue(all(not r["source_reviewed"]
+                            and not r["insertion_order_proven"] for r in roots))
+        self.assertIn("registerElements",
+                      [member["method_name"] for member in roots[0]["method_candidates"]])
         self.assertNotIn("synthetic-jvm-test-class", json.dumps(result))
         self.assertNotIn("public void", json.dumps(result))
 

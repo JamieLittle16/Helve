@@ -57,6 +57,15 @@ jobs:
           assert loader["selected_overload_invoke_sites_candidate"]["handler"] == "load"
           assert not loader["source_inspected"]
           assert not loader["client_registration_order_admitted"]
+          roots = result["registry_task_root_candidates"]
+          assert [root["class_name"] for root in roots] == [
+              "net.minecraft.resources.RegistryLoadTask",
+              "net.minecraft.resources.NetworkRegistryLoadTask",
+              "net.minecraft.core.MappedRegistry",
+          ]
+          assert all(root["method_candidates"] for root in roots)
+          assert all(not root["source_reviewed"] and not root["insertion_order_proven"]
+                     for root in roots)
           lambdas = loader["async_lambda_candidates"]
           assert 1 <= len(lambdas) <= 16
           assert all(not candidate["bootstrap_linkage_proven"] for candidate in lambdas)
@@ -111,6 +120,13 @@ jobs:
               print("    ", candidate["method_name"], "invoke sites:", len(candidate["invoke_sites_candidate"]))
               for edge in candidate["invoke_sites_candidate"]:
                   print("      ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
+          print("  candidate exact registry task and MappedRegistry roots (NOT ADMITTED):")
+          for root in result["registry_task_root_candidates"]:
+              print("   class:", root["class_name"])
+              for method in root["method_candidates"]:
+                  print("    method:", method["method_name"], "invokes:", len(method["invoke_sites_candidate"]))
+                  for edge in method["invoke_sites_candidate"]:
+                      print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
           PY
 
       - name: Upload only bounded source-free review metadata

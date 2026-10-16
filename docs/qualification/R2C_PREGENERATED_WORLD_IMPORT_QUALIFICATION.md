@@ -445,6 +445,46 @@ This does **not** select world identity, a player spawn or a
 production-loaded biome registry. Source VAR/SEM admission and the
 real R2B `WorldProjectionReady` handoff remain separate.
 
+## Gated server first-view import and batch composition
+
+The dormant `helve-server::r2c_disk_first_view` coordinator now
+connects the exact 26.2 two-chunk-buffered rounded view law to the
+single **canonical** multi-region loader
+`helve-world-load::visit_selected_pregenerated_world` introduced
+above. No second region-grouping or filesystem reader is installed.
+
+The caller supplies an explicit view centre, admitted view distance
+(2 through 32), finite requested positions and separate receipt
+storage. `plan_first_view_positions` can construct a nearest-first
+candidate request with a caller-selected cap of 1..4096; the request
+does not claim the saved chunks exist. The composition preflights
+view membership and an empty receipt destination before any I/O;
+the established loader rejects duplicates, sorts by signed region
+in place, and reads each selected region exactly once.
+
+For every source chunk, the existing `import_and_install_anvil_source`
+performs its bounded single-pass block/biome/light decode and
+authoritative resident install. Only real current source receipts
+enter the caller's collection. After a complete successful import,
+`prepare_initial_source_view` independently validates these
+receipts, sorts them nearest-first, and returns the ACK-aware batch
+state, which sends the source-selected cache centre first.
+
+A hermetic cross-region integration test writes two valid target-4903
+Anvil files at `r.-1.0.mca` and `r.0.0.mca`, imports their
+neighbouring stored chunks into **one** authoritative dimension,
+and proves both source receipts are current and ordered for batching.
+Malformed or absent source evidence is never silently manufactured.
+If a later region fails after earlier chunks were installed, the
+attempt has no batch controller or queued Play bytes; earlier
+authoritative resident chunks may remain. This is **not** a
+multi-region atomic transaction.
+
+This coordination is still source-gated and not invoked by the live
+R2B `WorldProjectionReady` transport. Client registry numeric IDs,
+heightmap semantics and complete outgoing world packet admission
+remain separate requirements for a stock-client R2C exit.
+
 ## Explicit non-claims at the current R2C.3 boundary
 
 A green current R2C.3 block-state boundary means Helve has:

@@ -40,6 +40,8 @@ ROOTS = (
      ("sequence", "lambda$sequence$0")),
     ("net.minecraft.resources.RegistryDataLoader",
      ("load", "lambda$load$0")),
+    ("net.minecraft.resources.RegistryLoadTask",
+     ("registerElements",)),
 )
 DECLARATION = re.compile(
     r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;"

@@ -249,3 +249,30 @@ assignment. The necessary independent VAR/SEM must establish full
 reachability of these candidates and the exact ordered list-to-insertion
 semantics, including failures and known-packs identity, before R2C
 biome-ID production admission.
+
+### Exact received-entry sequencing and registration callback frontier (unadmitted)
+
+The official stock client `NetworkRegistryLoadTask.load` consumes the
+received `NetworkedRegistryData.elements()` list through a `List.iterator`,
+schedules per-entry decoding futures, calls
+`net.minecraft.util.Util.sequence(List)`, and then attaches
+`CompletableFuture.thenAcceptAsync`. Its per-entry futures are pushed
+onto a list before this sequence call. `RegistryLoadTask.registerElements`
+has a `Stream.forEach` entrypoint; `MappedRegistry.register` contains
+`ObjectList.size`, `ObjectList.add`, and `Reference2IntMap.put` calls.
+
+The next official-client method-scoped probe fingerprints only the
+`NetworkRegistryLoadTask.lambda$load$N` and
+`net.minecraft.util.Util.sequence` / `lambda$sequence$N` methods.
+The client JAR's package name is `net.minecraft.util.Util`; the existing
+separate server-source Atlas plan refers to `net.minecraft.Util`.
+That difference must be reconciled against the independently pinned
+source corpus rather than silently treated as one identity.
+
+**Do not infer completion-order preservation from a function name or call
+site.** Proving that each decoded entry retains its input list index,
+that sequence returns values in original order, that the callback invokes
+`registerElements` in that order, and that duplicates/empty/error paths
+fail correctly still requires reviewed bytecode/source, exact
+invokedynamic bootstrap mapping and source-bound VAR/SEM with an
+independent admission gate. The 66-biome table remains a candidate.

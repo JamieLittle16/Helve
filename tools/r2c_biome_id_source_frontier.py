@@ -44,7 +44,7 @@ def load_plan(path: Path) -> tuple[tuple[str, tuple[str, ...]], ...]:
     data = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict) or set(data) != {
         "schema", "id", "target", "source_archive_sha256",
-        "status", "groups", "max_methods_per_type",
+        "status", "groups", "max_methods_per_type", "targeted_methods",
     }:
         raise BiomeIdSourceError("source plan keys differ from frozen schema")
     if (data["schema"] != 1 or data["id"] != PLAN_ID
@@ -52,6 +52,20 @@ def load_plan(path: Path) -> tuple[tuple[str, tuple[str, ...]], ...]:
         or data["status"] != "DISCOVERY_NOT_ADMISSION"
         or data["max_methods_per_type"] != 256):
         raise BiomeIdSourceError("source plan identity, bounds or admission status drifted")
+    # Util contains many unrelated helpers; only inspect the exact ordered
+    # future-sequencing delegate rather than broadening the 256-method cap.
+    if data["targeted_methods"] != [{
+        "type": "net.minecraft.Util",
+        "method": "sequence",
+        "max_overloads": 16,
+        "review_focus": (
+            "Prove ordered completion of the network registry List<CompletableFuture> "
+            "in Util.sequence, including exceptional completion and non-reordering; "
+            "independent proof of actual stock 26.2 client Configuration handler "
+            "invocation remains outstanding."
+        ),
+    }]:
+        raise BiomeIdSourceError("bounded Util.sequence source review target drifted")
     groups = data["groups"]
     if not isinstance(groups, list) or len(groups) != 4:
         raise BiomeIdSourceError("four finite lifecycle groups are required")
@@ -127,12 +141,72 @@ def exact_type_declarations(
     return results
 
 
+
+def exact_named_declarations(
+    conn: sqlite3.Connection,
+    qualified_name: str,
+    method_name: str,
+    *,
+    overload_cap: int = 16,
+) -> list[dict[str, object]]:
+    """Find a bounded concrete delegate without scanning every Util method."""
+    if not (1 <= overload_cap <= 16):
+        raise BiomeIdSourceError("named delegate overload cap exceeds review bounds")
+    if qualified_name != "net.minecraft.Util" or method_name != "sequence":
+        raise BiomeIdSourceError("unplanned named delegate")
+    try:
+        type_rows = conn.execute(projection._TYPE_SELECT, (qualified_name,)).fetchall()
+        if len(type_rows) != 1:
+            raise BiomeIdSourceError(
+                f"named delegate owner must resolve once: {qualified_name}"
+            )
+        rows = conn.execute(
+            """SELECT m.id,t.qualified_name,m.name,m.signature,m.param_count,
+                      m.start_line,m.end_line,f.path
+               FROM methods m
+               JOIN types t ON t.id=m.type_id
+               JOIN source_files f ON f.id=t.file_id
+               WHERE t.qualified_name=? AND m.name=?
+               ORDER BY m.start_line,m.id""",
+            (qualified_name, method_name),
+        ).fetchall()
+        if not rows or len(rows) > overload_cap:
+            raise BiomeIdSourceError(
+                f"named delegate missing or too broad: {qualified_name}#{method_name}"
+            )
+        result: list[dict[str, object]] = []
+        for index, row in enumerate(rows):
+            template = source_probe.record_template(
+                conn, row, f"INDEX-NET-R2C-BIOME-ID-ORDER-{index + 1:03d}"
+            )
+            source = template.get("source")
+            if (not isinstance(source, dict)
+                or source.get("type") != qualified_name
+                or not all(isinstance(source.get(field), str) and source[field]
+                           for field in ("signature", "normalized_sha256"))):
+                raise BiomeIdSourceError("incomplete named delegate fingerprint")
+            body_sha = source.get("body_sha256")
+            if body_sha is not None and not isinstance(body_sha, str):
+                raise BiomeIdSourceError("malformed named delegate body fingerprint")
+            result.append({
+                "signature": source["signature"],
+                "normalized_sha256": source["normalized_sha256"],
+                "body_sha256": body_sha,
+                "declaration_only": body_sha is None,
+                "hazard_leads": template["atlas_observed_hazards"],
+            })
+        return result
+    except sqlite3.Error as error:
+        raise BiomeIdSourceError(f"named delegate Atlas lookup failed: {error}") from error
+
+
 def inventory(
     conn: sqlite3.Connection,
     groups: tuple[tuple[str, tuple[str, ...]], ...],
     *,
     source_sha256: str,
     plan_sha256: str,
+    include_ordered_sequence: bool = False,
 ) -> dict[str, object]:
     if source_sha256 != SOURCE_SHA256:
         raise BiomeIdSourceError("pinned source identity mismatch")
@@ -150,6 +224,11 @@ def inventory(
         "source_archive_sha256": source_sha256,
         "source_review_plan_sha256": plan_sha256,
         "groups": rows,
+        "targeted_methods": ([{
+            "type": "net.minecraft.Util",
+            "method": "sequence",
+            "overloads": exact_named_declarations(conn, "net.minecraft.Util", "sequence"),
+        }] if include_ordered_sequence else []),
         "source_inspected": False,
         "client_assignment_proven": False,
         "production_admitted": False,
@@ -181,6 +260,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 conn, groups,
                 source_sha256=source_sha,
                 plan_sha256=hashlib.sha256(args.plan.read_bytes()).hexdigest(),
+                include_ordered_sequence=True,
             )
         finally:
             conn.close()

@@ -36,6 +36,12 @@ def mock_atlas() -> sqlite3.Connection:
           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
         );
+        INSERT INTO types VALUES (3, 'net.minecraft.Util', 1);
+        INSERT INTO methods VALUES (
+          3, 3, 'sequence', 'sequence(List futures)', 1, 20, 28,
+          'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+          'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'
+        );
     """)
     return connection
 
@@ -53,6 +59,9 @@ class BiomeSourceFrontierTests(unittest.TestCase):
             ],
         )
         self.assertEqual(len({name for _, roots in groups for name in roots}), 8)
+        plan = json.loads(frontier.DEFAULT_PLAN.read_text())
+        self.assertEqual(plan["targeted_methods"][0]["type"], "net.minecraft.Util")
+        self.assertEqual(plan["targeted_methods"][0]["method"], "sequence")
         self.assertEqual(
             groups[3][1],
             (
@@ -68,6 +77,11 @@ class BiomeSourceFrontierTests(unittest.TestCase):
             with self.assertRaises(frontier.BiomeIdSourceError):
                 frontier.load_plan(path)
             candidate["status"] = "DISCOVERY_NOT_ADMISSION"
+            candidate["targeted_methods"][0]["method"] = "sequenceAsync"
+            path.write_text(json.dumps(candidate))
+            with self.assertRaises(frontier.BiomeIdSourceError):
+                frontier.load_plan(path)
+            candidate["targeted_methods"][0]["method"] = "sequence"
             candidate["groups"][1]["types"].append("net.minecraft.core.MappedRegistry")
             path.write_text(json.dumps(candidate))
             with self.assertRaises(frontier.BiomeIdSourceError):
@@ -131,6 +145,46 @@ class BiomeSourceFrontierTests(unittest.TestCase):
             self.assertIsNone(candidate["body_sha256"])
             self.assertTrue(candidate["declaration_only"])
             self.assertEqual(candidate["normalized_sha256"], "a" * 64)
+        finally:
+            db.close()
+
+
+    def test_util_sequence_named_delegate_is_bounded_and_unadmitted(self) -> None:
+        db = mock_atlas()
+        try:
+            [method] = frontier.exact_named_declarations(
+                db, "net.minecraft.Util", "sequence"
+            )
+            self.assertEqual(method["signature"], "sequence(List futures)")
+            self.assertEqual(method["normalized_sha256"], "c" * 64)
+            self.assertEqual(method["body_sha256"], "d" * 64)
+            self.assertFalse(method["declaration_only"])
+            result = frontier.inventory(
+                db,
+                (("LOADED-REGISTRY-ID-ALLOCATION",
+                  ("net.minecraft.core.MappedRegistry",)),),
+                source_sha256=frontier.SOURCE_SHA256,
+                plan_sha256="e" * 64,
+                include_ordered_sequence=True,
+            )
+            self.assertEqual(result["targeted_methods"][0]["overloads"], [method])
+            self.assertFalse(result["source_inspected"])
+            self.assertFalse(result["client_assignment_proven"])
+            self.assertFalse(result["production_admitted"])
+            with self.assertRaises(frontier.BiomeIdSourceError):
+                frontier.exact_named_declarations(db, "net.minecraft.Util", "other")
+            with self.assertRaises(frontier.BiomeIdSourceError):
+                frontier.exact_named_declarations(
+                    db, "net.minecraft.Util", "sequence", overload_cap=17
+                )
+            db.execute("UPDATE methods SET body_sha256=NULL WHERE id=3")
+            [abstract] = frontier.exact_named_declarations(
+                db, "net.minecraft.Util", "sequence"
+            )
+            self.assertTrue(abstract["declaration_only"])
+            db.execute("DELETE FROM methods WHERE id=3")
+            with self.assertRaises(frontier.BiomeIdSourceError):
+                frontier.exact_named_declarations(db, "net.minecraft.Util", "sequence")
         finally:
             db.close()
 

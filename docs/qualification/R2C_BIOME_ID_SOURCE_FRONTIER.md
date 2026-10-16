@@ -56,6 +56,15 @@ That suggests a direct network-entry-order → numeric-ordinal law
 **conditional on** complete in-order resolution and invocation by
 the receiving client.
 
+The review inventory now includes an **exact-name, maximum 16-overload**
+Atlas lookup for `net.minecraft.Util#sequence` (a method-scoped
+`targeted_methods` entry in the review plan). This avoids inventorying
+hundreds of unrelated `Util` methods or weakening the existing
+256-method-per-root cap. Its signatures/body fingerprints and hazard leads
+are only declaration metadata. A missing, ambiguous or excessive delegate
+fails the local review inventory rather than silently dropping this
+essential in-order-future-completion proof obligation.
+
 The review must explicitly close `Util.sequence`'s ordering
 semantics, any registry rejection/duplicate-error branches, the
 packet listener's preparation of the networked registry data and,
@@ -84,6 +93,12 @@ the official source SHA-256 and Atlas lock, and freeze declaration
 signatures and fingerprints with observed hazard leads. The cap is
 256 methods per root type, and missing/ambiguous declarations fail.
 No official source body/excerpt is emitted or committed.
+
+The inventory's separate `targeted_methods` section identifies only
+the exact `Util.sequence` candidate signatures for focused local source
+inspection. It does **not** establish that the actual unmodified 26.2
+client invokes the common receiver; the server archive cannot close that
+last link.
 
 The output always says `source_inspected: false`,
 `client_assignment_proven: false` and

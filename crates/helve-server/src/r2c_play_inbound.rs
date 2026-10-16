@@ -198,17 +198,17 @@ mod tests {
     fn unrelated_gameplay_frame_remains_byte_for_byte_unclaimed() {
         let mut session = session();
         let mut batch = R2cChunkBatchState::new(1);
-        session.ingest_play(&[2, 28, 99]).unwrap();
+        session.ingest_play(&[2, 99, 99]).unwrap();
         assert_eq!(
             process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
-            R2cPlayInboundStep::Unclaimed { packet_id: 28 }
+            R2cPlayInboundStep::Unclaimed { packet_id: 99 }
         );
         assert_eq!(session.buffered_ingress(), 3);
         // Re-processing exposes the same packet identity and length:
         // neither handler can advance the driver on an unclaimed frame.
         assert_eq!(
             process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
-            R2cPlayInboundStep::Unclaimed { packet_id: 28 }
+            R2cPlayInboundStep::Unclaimed { packet_id: 99 }
         );
         assert_eq!(session.buffered_ingress(), 3);
         assert_eq!(batch.next_chunk_index(), 0);

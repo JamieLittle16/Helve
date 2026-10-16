@@ -614,10 +614,11 @@ mod tests {
     };
     use helve_world_contract::{BlockSection, SectionBlockPos};
     use helve_world_import::{
-        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection, ImportedChunkBlocks,
-        ImportedStoredBiomes, ImportedStoredChunk, ImportedStoredChunkWithBiomeLight,
-        ImportedStoredLight, ImportedStoredLightSection, StoredBlockEntityEvidence,
-        StoredChunkHeader, StoredChunkSourceMetadata, TARGET_DATA_VERSION_26_2,
+        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection,
+        ImportedBlockSection, ImportedChunkBlocks, ImportedStoredBiomes, ImportedStoredChunk,
+        ImportedStoredChunkWithBiomeLight, ImportedStoredLight, ImportedStoredLightSection,
+        StoredBlockEntityEvidence, StoredChunkHeader, StoredChunkSourceMetadata,
+        TARGET_DATA_VERSION_26_2,
     };
     use helve_world_load::{
         SourceChunkPublicationReceipt, SourceChunkReceiptError,
@@ -636,6 +637,7 @@ mod tests {
 
     use crate::r2b_server::R2bPlaySession;
     use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
+    use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
     use crate::r2c_initial_view::{InitialViewSelectionError, prepare_initial_source_view};
 
     use super::{
@@ -732,6 +734,41 @@ mod tests {
         position: ChunkPos,
         evidence: StoredBlockEntityEvidence,
     ) -> SourceChunkPublicationReceipt {
+        install_source_receipt_with_column_states(dim, position, evidence, None)
+    }
+
+    // Test-only structured import evidence: caller-selected valid global
+    // vanilla IDs populate two different source sections in one column.
+    // Ordinary receipt tests retain the original all-air fixture.
+    fn install_source_receipt_with_column_states(
+        dim: &mut ImportedDimension,
+        position: ChunkPos,
+        evidence: StoredBlockEntityEvidence,
+        column: Option<(BlockStateId, BlockStateId)>,
+    ) -> SourceChunkPublicationReceipt {
+        let mut sections = Vec::new();
+        if let Some((ground, leaves)) = column {
+            let mut lower = DirectBlockSection::filled(AIR, &GeneratedStateFacts);
+            let mut upper = DirectBlockSection::filled(AIR, &GeneratedStateFacts);
+            lower.replace(
+                SectionBlockPos::new(1, 3, 1).unwrap(),
+                ground,
+                &GeneratedStateFacts,
+            );
+            upper.replace(
+                SectionBlockPos::new(1, 15, 1).unwrap(),
+                leaves,
+                &GeneratedStateFacts,
+            );
+            sections.push(ImportedBlockSection {
+                section_y: -1,
+                section: lower,
+            });
+            sections.push(ImportedBlockSection {
+                section_y: 0,
+                section: upper,
+            });
+        }
         let imported = ImportedStoredChunkWithBiomeLight {
             stored: ImportedStoredChunk {
                 blocks: ImportedChunkBlocks {
@@ -740,7 +777,7 @@ mod tests {
                         data_version: TARGET_DATA_VERSION_26_2,
                         stored_section_count: 2,
                     },
-                    sections: Vec::new(),
+                    sections,
                 },
                 source: StoredChunkSourceMetadata {
                     region_timestamp: 10,
@@ -1125,6 +1162,146 @@ mod tests {
         ));
         // Failures never claim source publication authority.
         assert_eq!(stale.len(), 1);
+    }
+
+    #[test]
+    #[allow(
+        clippy::too_many_lines,
+        reason = "official runtime facts must survive the entire source receipt/heightmap/wire/batch/ACK path"
+    )]
+    fn official_heightmap_facts_reach_receipt_bound_chunk_packet() {
+        let Some(path) = std::env::var_os("HELVE_R2C_HEIGHTMAP_CANDIDATE") else {
+            // Ordinary hermetic CI cannot claim runtime-probe evidence.
+            return;
+        };
+        let bytes = std::fs::read(path).expect("official pinned runtime oracle bytes");
+        let facts = CandidateHeightmapFacts::from_oracle_bytes(&bytes)
+            .expect("all 32366 bytes must agree with independently generated mutation flags");
+        let selected_leaf = bytes
+            .iter()
+            .position(|&f| f & 0b1011 == 0b1011)
+            .expect("runtime contains motion-blocking leaves");
+        let selected_ground = bytes
+            .iter()
+            .position(|&f| f & 0b1011 == 0b0011)
+            .expect("runtime contains non-leaf motion-blocking ground");
+        let leaf = BlockStateId::new(u32::try_from(selected_leaf).unwrap()).unwrap();
+        let ground = BlockStateId::new(u32::try_from(selected_ground).unwrap()).unwrap();
+
+        let mut dim = ImportedDimension::new(
+            DimensionId(8),
+            DimensionRuntimeProfile::new(DimensionTypeId(4), -16, 32, true).unwrap(),
+        );
+        let center = ChunkPos { x: -3, z: 4 };
+        let receipt = install_source_receipt_with_column_states(
+            &mut dim,
+            center,
+            StoredBlockEntityEvidence::ExplicitlyEmpty,
+            Some((ground, leaf)),
+        );
+        let mut receipts = vec![receipt];
+        let mut state = prepare_initial_source_view(&dim, &mut receipts, center, 4)
+            .expect("current source fixture is inside selected view");
+        let limits = ConnectionLimits::new(16_384, 32_768, 65_536).unwrap();
+        let mut session = R2bPlaySession {
+            driver: ConnectionDriver::new(limits),
+            read_scratch: vec![0; 32].into_boxed_slice(),
+            teleport: TeleportTransaction::new(),
+            liveness: LivenessState::new(0, 0).unwrap(),
+        };
+        let read_ptr = session.read_scratch.as_ptr();
+        let mut scratch = Vec::with_capacity(16_384);
+        let projection_ptr = scratch.as_ptr();
+        state.on_tick();
+        let project = |index: usize, output: &mut Vec<u8>| {
+            append_chunk_with_light_packet_id(output);
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dim,
+                &receipts[index],
+                &facts,
+                66,
+                16_384,
+                output,
+            )
+            .map(|_| ())
+        };
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            Ok(ChunkBatchStep::CacheCenterQueued { x: -3, z: 4 })
+        ));
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            Ok(ChunkBatchStep::Started { count: 1 })
+        ));
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            Ok(ChunkBatchStep::ChunkQueued { index: 0, .. })
+        ));
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            Ok(ChunkBatchStep::Finished { count: 1 })
+        ));
+        assert_eq!(session.read_scratch.as_ptr(), read_ptr);
+        assert_eq!(scratch.as_ptr(), projection_ptr);
+        assert!(scratch.is_empty());
+
+        // One two-section 32-block column, bitsPerEntry=6, ten per long.
+        // Column x=1,z=1 is index 17 -> second word at bit 7*6.
+        // Top leaf is at absolute Y=15 => relative height 32.
+        // Lower non-leaf solid is at Y=-13 => relative height 4.
+        let mut surface = [0_u64; 26];
+        let mut motion = [0_u64; 26];
+        let mut without_leaves = [0_u64; 26];
+        surface[1] = 32_u64 << 42;
+        motion[1] = 32_u64 << 42;
+        without_leaves[1] = 4_u64 << 42;
+        let mut expected_heightmap_bytes = Vec::new();
+        append_heightmap_map_candidate(
+            &mut expected_heightmap_bytes,
+            32,
+            [&surface, &motion, &without_leaves],
+        )
+        .expect("exact independent expected three-map wire projection");
+
+        let mut reader = IngressBuffer::new(limits);
+        reader.push(session.pending_play_egress()).unwrap();
+        let cache_center = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(cache_center.packet_id(), 94);
+        let consumed = cache_center.stream_bytes();
+        reader.consume(consumed).unwrap();
+        let start = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(start.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_START));
+        let consumed = start.stream_bytes();
+        reader.consume(consumed).unwrap();
+        let chunk = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(chunk.packet_id(), i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
+        assert_eq!(&chunk.payload()[..4], &center.x.to_be_bytes());
+        assert_eq!(&chunk.payload()[4..8], &center.z.to_be_bytes());
+        assert_eq!(
+            &chunk.payload()[8..8 + expected_heightmap_bytes.len()],
+            expected_heightmap_bytes,
+        );
+        assert!(chunk.payload().len() > 8 + expected_heightmap_bytes.len());
+        let consumed = chunk.stream_bytes();
+        reader.consume(consumed).unwrap();
+        let finish = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(
+            finish.packet_id(),
+            i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+        );
+        assert_eq!(finish.payload(), [1]);
+        let consumed = finish.stream_bytes();
+        reader.consume(consumed).unwrap();
+        assert_eq!(reader.buffered_len(), 0);
+
+        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        assert_eq!(
+            session.process_one_r2c_chunk_batch_ack(&mut state),
+            Ok(ChunkBatchInboundStep::Received {
+                desired_per_tick: 9.0,
+            })
+        );
+        assert_eq!(state.unacknowledged_batches(), 0);
     }
 
     #[test]

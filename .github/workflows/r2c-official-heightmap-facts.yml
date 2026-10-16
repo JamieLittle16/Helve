@@ -9,6 +9,8 @@ on:
       - tools/tests/test_official_r2c_heightmap_facts.py
       - tools/tests/test_r2c_heightmap_candidate_bytes.py
       - crates/helve-server/src/r2c_heightmap_facts.rs
+      - crates/helve-server/src/r2c_section_candidate.rs
+      - crates/helve-server/src/r2c_initial_view.rs
       - crates/helve-server/src/lib.rs
       - vanilla/vanilla.lock.toml
       - .github/workflows/r2c-official-heightmap-facts.yml
@@ -75,6 +77,9 @@ jobs:
         run: |
           cargo test --locked -p helve-server --lib \
             r2c_heightmap_facts::tests::official_runtime_candidate_feeds_real_source_heightmap_reference \
+            -- --exact
+          cargo test --locked -p helve-server --lib \
+            r2c_section_candidate::tests::official_heightmap_facts_reach_receipt_bound_chunk_packet \
             -- --exact
 
       - name: Upload ephemeral source-free candidate facts

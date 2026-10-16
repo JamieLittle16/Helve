@@ -1,0 +1,81 @@
+name: R2C Official Client Ordering Method Shapes
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_client_order_semantic_frontier.py
+      - tools/tests/test_r2c_client_order_semantic_frontier.py
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-ordering-shapes.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ordering:
+    name: Source-free official 26.2 client ordered-registration branch inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25 for exact unobfuscated client method evidence
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Hermetic malicious-branch and order-violation tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_client_order_semantic_frontier.py' -v
+
+      - name: Inspect exact official 26.2 client ordered-registration bytecode
+        run: |
+          python3 tools/r2c_client_order_semantic_frontier.py \
+            --output /tmp/r2c-26.2-official-client-order-branch-candidates.json
+
+      - name: Fail closed on semantic and production authority
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          evidence = json.loads(
+              Path("/tmp/r2c-26.2-official-client-order-branch-candidates.json").read_text()
+          )
+          assert evidence["target"] == {"minecraft":"26.2","protocol":776,"data_version":4903}
+          assert not evidence["complete_semantic_review"]
+          assert not evidence["client_numeric_id_assignment_proven"]
+          assert not evidence["source_var_sem_admitted"]
+          assert not evidence["production_admitted"]
+          methods = evidence["review_method_shapes"]
+          assert len(methods) == 7
+          for record in methods:
+              assert record["ordered_callsite_witness_matches"]
+              assert not record["all_control_flow_paths_reviewed"]
+              assert not record["exception_and_duplicate_semantics_proven"]
+              assert len(record["conditional_branch_edges"]) <= 96
+              assert record["instruction_count"] <= 512
+              print(record["class_name"] + "#" + record["method_name"],
+                    "instructions", record["instruction_count"],
+                    "digest", record["instruction_shape_sha256"],
+                    "branch edges", record["conditional_branch_edges"],
+                    "exits", record["return_instruction_offsets"])
+              print(" exact ordered checkpoints:", [
+                  (edge["offset"], edge["expected_symbol"])
+                  for edge in record["required_ordered_invoke_checkpoints"]
+              ])
+          print("Method shapes fingerprinted, NOT independently source admitted")
+          PY
+
+      - name: Upload short-lived source-free method shape evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-official-client-order-branch-candidates
+          path: /tmp/r2c-26.2-official-client-order-branch-candidates.json
+          if-no-files-found: error
+          retention-days: 7

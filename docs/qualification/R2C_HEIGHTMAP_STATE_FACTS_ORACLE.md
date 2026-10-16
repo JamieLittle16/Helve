@@ -109,6 +109,35 @@ This makes an important independent data/algorithm cross-check,
 **not** a substitute for the remaining complete source-fingerprint
 and VAR/SEM admission.
 
+## Full packet-envelope integration using the official oracle
+
+The same dedicated Java-25 runtime workflow now also runs
+`r2c_section_candidate::tests::official_heightmap_facts_reach_receipt_bound_chunk_packet`
+with the **actual 32,366-byte ephemeral runtime table**. Its COLD
+fixture constructs a structured imported chunk with two verified
+vanilla state IDs selected directly from the official predicates:
+motion-blocking leaf above motion-blocking non-leaf ground in the
+same column. It installs the chunk into the authoritative
+`SemanticDimensionInstance`, retains the minted source receipt,
+prepares the source-selected initial view, and sends cache centre,
+batch start, source-receipted **complete** chunk-with-light body,
+and batch finish through the continuing R2B driver. It then
+consumes a genuine matching batch acknowledgement.
+
+The test independently checks exact big-endian heightmap wire words
+inside the framed chunk body. The selected column must have relative
+`WORLD_SURFACE=32`, `MOTION_BLOCKING=32`, and
+`MOTION_BLOCKING_NO_LEAVES=4`, with other columns empty. The
+rest of the packet and signed centre coordinates are checked at the
+frame boundary. This catches a swapped or approximated leaf-motion
+heightmap **inside actual packet assembly**, not only inside a
+standalone heightmap reference result.
+
+The fixture is a **structured COLD import**, not a captured or
+byte-decoded natural Anvil file, and the receiving official client is
+not launched. Consequently, even a successful full-envelope test
+does not itself close VAR/SEM source admission or the R2C milestone.
+
 ## Remaining source admission and integration
 
 Before promoting any table, establish complete exact fingerprint-pinned

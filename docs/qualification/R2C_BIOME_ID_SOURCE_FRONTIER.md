@@ -122,7 +122,7 @@ pregenerated world import, not R2D world generation.
 The pinned server-source ZIP does **not** contain the actual stock 26.2
 client Configuration listener. To remove that *discovery* blocker without
 committing Minecraft binaries, use the separately bounded official launcher
-manifest / mapping inventory:
+manifest / unobfuscated-class inventory:
 
 ```bash
 python3 -m unittest discover -s tools/tests -p 'test_r2c_official_client_registry_inventory.py' -v
@@ -130,11 +130,15 @@ python3 tools/r2c_official_client_registry_inventory.py \
   --output /tmp/r2c-26.2-client-registry-discovery.json
 ```
 
-The disposable downloader independently SHA-1/size-checks Mojang's official
-client JAR and official client mappings, records their SHA-256 **candidates**,
-and emits only bounded mapped Configuration listener/method names (no JAR,
-mappings text, client bytecode or Mojang source). A dedicated Actions workflow
-repeats the probe and uploads only that source-free review inventory.
+Minecraft 26.2 has **unobfuscated** official client classes and does not
+publish a separate `client_mappings` artifact. The disposable downloader
+checks the official client JAR's SHA-1/size, records the full SHA-256
+**candidate**, and uses Java 25 `javap -p` to enumerate a bounded set of
+readable Configuration listener class/method names. The source-free report
+also fingerprints the inspected raw classfiles. No client JAR, bytecode
+listing or Mojang source is committed or uploaded; the dedicated Actions
+workflow uploads only the JSON discovery report. See Mojang's
+[removal-of-obfuscation announcement](https://www.minecraft.net/en-us/article/removing-obfuscation-in-java-edition).
 
 This establishes where the **actual receiving-client** method review should
 begin. It does **not** inspect the implementation, prove ordered registration,

@@ -191,9 +191,13 @@ mod tests {
             R2cPlayInboundStep::Unclaimed { packet_id: 28 }
         );
         assert_eq!(session.buffered_ingress(), 3);
-        let front = session.driver.peek_frame().unwrap().unwrap();
-        assert_eq!(front.packet_id(), 28);
-        assert_eq!(front.payload(), &[99]);
+        // Re-processing exposes the same packet identity and length:
+        // neither handler can advance the driver on an unclaimed frame.
+        assert_eq!(
+            process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
+            R2cPlayInboundStep::Unclaimed { packet_id: 28 }
+        );
+        assert_eq!(session.buffered_ingress(), 3);
         assert_eq!(batch.next_chunk_index(), 0);
         assert_eq!(batch.unacknowledged_batches(), 0);
     }

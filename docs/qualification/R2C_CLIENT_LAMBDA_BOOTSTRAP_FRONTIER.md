@@ -54,6 +54,26 @@ The dedicated GitHub Actions workflow exercises hermetic negative tests
 and real Mojang client metadata; its downloadable JSON is ephemeral and
 all product authority flags are **forced false**.
 
+## Independently observed exact call-site-to-handle edges
+
+The dedicated official Java 25 client workflow for Minecraft 26.2
+successfully resolved these bytecode offsets via the classfile
+`BootstrapMethods` table, not by method-name association:
+
+| Root method | Offset | Actual LambdaMetafactory implementation |
+| --- | ---: | --- |
+| `NetworkRegistryLoadTask.load` | 194 | `REF_invokeVirtual NetworkRegistryLoadTask.lambda$load$2` |
+| `Util.sequence` | 63 | `REF_invokeStatic Util.lambda$sequence$0` |
+| `Util.lambda$sequence$0` | 6 | `REF_invokeVirtual CompletableFuture.join` |
+| `RegistryDataLoader.load(LoaderFactory,...)` | 4 | `REF_invokeStatic RegistryDataLoader.lambda$load$0` |
+| `RegistryDataLoader.lambda$load$0` | 113 | `REF_invokeStatic RegistryDataLoader.lambda$load$2` |
+
+The CI script asserts these exact resolved edges fail-closed, rather
+than merely printing candidate handles. This verifies the callback
+linkage structural fact for the official client artifact, but **does
+not authorize** the downstream semantic law: we still need bytecode
+branch/exception review and independent source admission.
+
 ## What this still cannot certify
 
 Even a fully resolved lambda bootstrap does not itself prove:

@@ -17,6 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import r2c_official_client_registry_inventory as probe
 
 CLIENT_CLASS = "net/minecraft/client/multiplayer/ClientConfigurationPacketListenerImpl.class"
+COLLECTOR_CLASS = "net/minecraft/client/multiplayer/RegistryDataCollector.class"
 BYTECODE = b"\xca\xfe\xba\xbe" + b"synthetic-jvm-test-class"
 JAVAP = """public class net.minecraft.client.multiplayer.ClientConfigurationPacketListenerImpl {
   public void handleRegistryData(net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket);
@@ -46,8 +47,29 @@ JAVAP_CODE = """public class net.minecraft.client.multiplayer.ClientConfiguratio
 """
 
 
+JAVAP_COLLECTOR = """public class net.minecraft.client.multiplayer.RegistryDataCollector {
+  public void appendContents(net.minecraft.resources.ResourceKey key, java.util.List entries);
+    Code:
+       0: aload_0
+       1: invokevirtual #12 // Method java/util/HashMap.computeIfAbsent:(Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;
+       4: return
+
+  public void collectGameRegistries();
+    Code:
+       0: invokestatic #15 // Method net/minecraft/resources/NetworkRegistryLoadTask.load:()V
+       3: return
+
+  public void unrelated();
+    Code:
+       0: invokestatic #99 // Method net/minecraft/core/MappedRegistry.fake:()V
+}
+"""
+
+
 def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
     del kwargs
+    if "-c" in args and probe.COLLECTOR_CLASS in args:
+        return subprocess.CompletedProcess(args, 0, JAVAP_COLLECTOR, "")
     return subprocess.CompletedProcess(
         args, 0, JAVAP_CODE if "-c" in args else JAVAP, ""
     )
@@ -150,6 +172,35 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "bounded call-site"):
             probe.handler_invocations(flooding)
 
+
+    def test_collector_is_exact_class_only_and_cannot_reach_unrelated_methods(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            jar = Path(tmp) / "client.jar"
+            jar.write_bytes(jar_bytes({COLLECTOR_CLASS: BYTECODE}))
+            with patch.object(probe.subprocess, "run", side_effect=mock_javap):
+                collector = probe.collector_candidate(jar)
+            self.assertEqual(len(collector["method_call_sites_candidate"]), 2)
+            self.assertNotIn("MappedRegistry.fake", json.dumps(collector))
+            jar.write_bytes(jar_bytes({CLIENT_CLASS: BYTECODE}))
+            with self.assertRaisesRegex(ValueError, "missing the exact registry collector"):
+                probe.collector_candidate(jar)
+            jar.write_bytes(jar_bytes({COLLECTOR_CLASS: BYTECODE}))
+            no_append = JAVAP_COLLECTOR.replace("appendContents(", "different(")
+            with patch.object(
+                probe.subprocess, "run",
+                return_value=subprocess.CompletedProcess([], 0, no_append, ""),
+            ), self.assertRaisesRegex(ValueError, "bounded appendContents"):
+                probe.collector_candidate(jar)
+            empty_body = JAVAP_COLLECTOR.replace(
+                "       1: invokevirtual #12 // Method java/util/HashMap.computeIfAbsent:(Ljava/lang/Object;Ljava/util/function/Function;)Ljava/lang/Object;",
+                "       1: nop",
+            )
+            with patch.object(
+                probe.subprocess, "run",
+                return_value=subprocess.CompletedProcess([], 0, empty_body, ""),
+            ), self.assertRaisesRegex(ValueError, "no inspectable appendContents"):
+                probe.collector_candidate(jar)
+
     def test_unobfuscated_metadata_has_exact_official_identity_fields(self) -> None:
         self.assertEqual(probe.required_client(meta())["size"], 123)
         for invalid in [
@@ -184,7 +235,7 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                 probe.identity_lock(lock)
 
     def test_discovery_emits_no_jar_or_bytecode_and_cannot_self_admit(self) -> None:
-        blob = jar_bytes({CLIENT_CLASS: BYTECODE})
+        blob = jar_bytes({CLIENT_CLASS: BYTECODE, COLLECTOR_CLASS: BYTECODE})
 
         def fake_download(url: str, output: Path, sha1: str, size: int) -> None:
             del url, sha1, size
@@ -203,6 +254,15 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
         self.assertFalse(result["client_numeric_id_assignment_proven"])
         self.assertFalse(result["production_admitted"])
         self.assertEqual(len(result["client_configuration_listener_candidates"]), 1)
+        collector = result["client_registry_collector_candidate"]
+        self.assertEqual(collector["class_name"], probe.COLLECTOR_CLASS)
+        self.assertEqual(
+            [method["handler"] for method in collector["method_call_sites_candidate"]],
+            ["appendContents", "collectGameRegistries"],
+        )
+        self.assertIn("HashMap.computeIfAbsent",
+                      collector["method_call_sites_candidate"][0]["invocations"][0]
+                      ["symbolic_target"])
         self.assertNotIn("synthetic-jvm-test-class", json.dumps(result))
         self.assertNotIn("public void", json.dumps(result))
 

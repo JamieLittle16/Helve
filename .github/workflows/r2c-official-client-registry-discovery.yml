@@ -52,6 +52,11 @@ jobs:
           assert len(result["client_configuration_listener_candidates"]) <= 16
           assert result["official_executable_unobfuscated"]
           assert result["client_artifact"]["official_size_bytes"] > 0
+          collector = result["client_registry_collector_candidate"]
+          assert collector["class_name"] == "net.minecraft.client.multiplayer.RegistryDataCollector"
+          assert len(collector["method_call_sites_candidate"]) <= 32
+          assert any(m["handler"] == "appendContents" and m["invocations"]
+                     for m in collector["method_call_sites_candidate"])
           listeners = [candidate for candidate in result["client_configuration_listener_candidates"]
                        if candidate["class_name"].endswith(".ClientConfigurationPacketListenerImpl")]
           assert len(listeners) == 1
@@ -65,6 +70,12 @@ jobs:
                   print("  handler:", handler["handler"], "invoke sites:", len(handler["invocations"]))
                   for edge in handler["invocations"]:
                       print("   ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
+          collector = result["client_registry_collector_candidate"]
+          print("  receiver-reached collector:", collector["class_name"])
+          for method in collector["method_call_sites_candidate"]:
+              print("    collector method:", method["handler"], "invoke sites:", len(method["invocations"]))
+              for edge in method["invocations"]:
+                  print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
           PY
 
       - name: Upload only bounded source-free review metadata

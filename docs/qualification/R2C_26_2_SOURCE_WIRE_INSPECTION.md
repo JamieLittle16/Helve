@@ -218,6 +218,50 @@ The centre is for the **initial fixed pregenerated-world window**;
 player movement and ongoing view tracking belong to later runtime
 work. This wire step alone does not enable chunk publication.
 
+## Source-selected first pregenerated-world view
+
+The pinned official 26.2 source archive independently identifies:
+
+- `server/level/ChunkTrackingView.java`, raw SHA-256
+  `c9a62c48d091da001fb403e6529bb45e06f74ebcfd97a24169d56428b0458c00`;
+- `server/network/PlayerChunkSender.java`, raw SHA-256
+  `eac549258221448bfbd27a0c562dc270221545101d3e2410cf8734b74066b290`;
+- `world/level/ChunkPos.java`, raw SHA-256
+  `273e24f3c1be01e1a0041cb8c69ac2044d6fab4c1ec334072cd85b51160d58e8`.
+
+`ChunkTrackingView.Positioned` iterates a buffered round-corner
+view. With `includeNeighbors=true`, the exact membership law is
+`max(0, abs(x - center.x) - 2)^2 + max(0, abs(z - center.z) - 2)^2
+< viewDistance^2`. `ChunkMap` admits view distances 2 through
+32. `PlayerChunkSender.collectChunksToSend` selects pending chunks
+by squared distance to the player's chunk before each ACK-paced
+batch; readiness of chunks is checked separately.
+
+`r2c_initial_view::prepare_initial_source_view` now applies that
+membership rule to an **already imported, receipt-backed** caller
+`Vec`, with no extra allocation. It filters the original vector,
+sorts the surviving receipts by squared distance (breaking equal
+distances by x/z for deterministic candidate tests), rejects duplicate
+positions and foreign dimensions, and verifies each source receipt
+against the live authoritative dimension **before creating the batch
+state**. The batch state is initialized with the same source-selected
+centre, so the first 26.2 cache-centre packet precedes batch start.
+
+That validation does not replace per-chunk freshness checks at the
+eventual transmission boundary; unload or mutation can invalidate a
+receipt after this COLD selection. Unit tests cover the strict
+round-corner radius, extreme signed coordinates, duplicates, foreign
+dimensions, missing chunks, and stale receipts. The existing
+receipt-backed two-chunk wire test now exercises real source-view
+selection from deliberately reverse-ordered imported receipts,
+followed by centre/start/chunks/finish/ack on the original R2B driver.
+
+This is **not** a live product path: client biome assignments,
+heightmap state facts, outer chunk wire and publication lifecycle
+must pass their independent admission gates before initial-view
+selection may drive an unmodified client. These raw hashes are review
+anchors rather than completed independent VAR/SEM records.
+
 ## What still blocks production R2C
 
 - The pinned source archive is a **server-source corpus**. The precise

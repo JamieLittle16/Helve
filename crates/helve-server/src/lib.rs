@@ -41,6 +41,14 @@ mod r2c_configured_biomes;
     )
 )]
 mod r2c_heightmap_facts;
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "initial pregenerated-world view selection awaits final R2C client source admission"
+    )
+)]
+mod r2c_initial_view;
 mod r2c_publication;
 mod r2c_section_candidate;
 

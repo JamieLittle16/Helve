@@ -166,8 +166,9 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
             self.assertNotIn("synthetic-class", json.dumps(records))
             self.assertNotIn("MappedRegistry.wrong", json.dumps(records))
             jar.write_bytes(jar_bytes("net.minecraft.util.Util"))
-            with self.assertRaisesRegex(ValueError, "missing exact client class"):
-                probe.inspect_client(jar)
+            with patch.object(probe.subprocess, "run", side_effect=fake_javap):
+                with self.assertRaisesRegex(ValueError, "missing exact client class"):
+                    probe.inspect_client(jar)
             jar.write_bytes(jar_bytes())
             client_meta = {"downloads": {"client": {
                 "url": "https://example.invalid/client.jar",

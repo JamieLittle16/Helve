@@ -181,3 +181,18 @@ prove whether the collector preserves the ordered list, how and when the
 final builder invokes network loading, any pending known-pack interaction,
 and how errors or duplicates are handled; no production ID assignment is
 asserted without complete VAR/SEM and independent gate.
+
+### Actual client inner contents collector (unadmitted)
+
+After the verified receiving handler and outer collector call sites, the
+exact next delegate is `RegistryDataCollector$ContentsCollector.append`.
+The official 26.2 client source-free probe now independently hashes that
+nested classfile, verifies its named append method, and records its
+bounded symbolic invoke sites. The referenced
+`net.minecraft.resources.RegistryDataLoader` classfile is fingerprinted
+separately, closing another exact *discovery* identity requirement.
+
+Whether list insertion is lossless/in-order, whether duplicate registries
+are rejected or replaced, and how `RegistryDataLoader.load` ultimately
+registers the entries **remain independent source-review obligations**.
+The probe must never change client-ID or production-admission flags.

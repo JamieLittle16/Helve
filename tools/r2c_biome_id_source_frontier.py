@@ -53,12 +53,13 @@ def load_plan(path: Path) -> tuple[tuple[str, tuple[str, ...]], ...]:
         or data["max_methods_per_type"] != 256):
         raise BiomeIdSourceError("source plan identity, bounds or admission status drifted")
     groups = data["groups"]
-    if not isinstance(groups, list) or len(groups) != 3:
-        raise BiomeIdSourceError("three finite lifecycle groups are required")
+    if not isinstance(groups, list) or len(groups) != 4:
+        raise BiomeIdSourceError("four finite lifecycle groups are required")
     expected = (
         "LOADED-REGISTRY-ID-ALLOCATION",
         "CONFIGURATION-BIOME-ENTRY-PUBLICATION",
         "BIOME-CONTAINER-ID-BINDING",
+        "NETWORK-REGISTRY-RECEIVE-AND-ORDERED-REGISTRATION",
     )
     seen: set[str] = set()
     result: list[tuple[str, tuple[str, ...]]] = []
@@ -152,7 +153,7 @@ def inventory(
         "source_inspected": False,
         "client_assignment_proven": False,
         "production_admitted": False,
-        "remaining_gate": "exact registry allocation, network packing and client ID assignment VAR/SEM",
+        "remaining_gate": "exact registry allocation, network packing, common receive-registration ordering and actual client Configuration invocation VAR/SEM",
     }
 
 

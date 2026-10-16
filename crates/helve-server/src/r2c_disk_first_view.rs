@@ -415,7 +415,7 @@ mod tests {
                 minimum,
                 maximum_exclusive,
             }) => {
-                assert_eq!(y, 320.0);
+                assert_eq!(y.to_bits(), 320.0_f64.to_bits());
                 assert_eq!(minimum, -64);
                 assert_eq!(maximum_exclusive, 320);
             }
@@ -425,7 +425,7 @@ mod tests {
         match plan_pending_teleport_first_view(&out_of_range, test_overworld_lattice(), 2, 1) {
             Err(PendingTeleportViewError::ChunkCoordinateOutOfRange { x, z }) => {
                 assert!(x > f64::from(i32::MAX));
-                assert_eq!(z, 0.0);
+                assert_eq!(z.to_bits(), 0.0_f64.to_bits());
             }
             other => panic!("expected out-of-range chunk centre: {other:?}"),
         }

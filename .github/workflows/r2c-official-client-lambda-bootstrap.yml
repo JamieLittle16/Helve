@@ -56,6 +56,7 @@ jobs:
               "net.minecraft.resources.NetworkRegistryLoadTask",
               "net.minecraft.util.Util",
               "net.minecraft.resources.RegistryDataLoader",
+              "net.minecraft.resources.RegistryLoadTask",
           ]
           # These exact offsets and LambdaMetafactory implementations were
           # observed on the independently checked official 26.2 client JAR.
@@ -85,6 +86,36 @@ jobs:
           require_handle("net.minecraft.resources.RegistryDataLoader",
                          "lambda$load$0", 113, "REF_invokeStatic",
                          "RegistryDataLoader.lambda$load$2:")
+          assert [m["method_name"] for r in result["rooted_class_bootstraps"]
+                  if r["class_name"] == "net.minecraft.resources.RegistryLoadTask"
+                  for m in r["selected_methods"]] == [
+                      "registerElements", "lambda$registerElements$0"
+                  ]
+          require_handle("net.minecraft.resources.RegistryLoadTask",
+                         "registerElements", 9, "REF_invokeVirtual",
+                         "RegistryLoadTask.lambda$registerElements$0:")
+          [task_root] = [r for r in result["rooted_class_bootstraps"]
+                         if r["class_name"] == "net.minecraft.resources.RegistryLoadTask"]
+          require_handle("net.minecraft.resources.RegistryLoadTask",
+                         "lambda$registerElements$0", 6, "REF_invokeVirtual",
+                         "RegistryLoadTask.lambda$registerElements$1:")
+          require_handle("net.minecraft.resources.RegistryLoadTask",
+                         "lambda$registerElements$0", 16, "REF_invokeVirtual",
+                         "RegistryLoadTask.lambda$registerElements$2:")
+          assert task_root["success_error_dispatch_callsite_shapes_pinned"]
+          assert not task_root["full_register_or_error_semantics_proven"]
+          callbacks = task_root["register_consumer_delegate_invocations_candidate"]
+          assert [entry["handler"] for entry in callbacks] == [
+              "lambda$registerElements$0",
+              "lambda$registerElements$1",
+              "lambda$registerElements$2",
+          ]
+          for callback in callbacks:
+              assert 1 <= len(callback["invocations"]) <= 96
+              print("Client registration delegate", callback["handler"])
+              for edge in callback["invocations"]:
+                  print("   ", edge["bytecode_offset"], edge["opcode"],
+                        edge["symbolic_target"])
           for root in result["rooted_class_bootstraps"]:
               print("Root:", root["class_name"])
               for method in root["selected_methods"]:

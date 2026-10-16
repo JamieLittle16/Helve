@@ -40,6 +40,8 @@ ROOTS = (
      ("sequence", "lambda$sequence$0")),
     ("net.minecraft.resources.RegistryDataLoader",
      ("load", "lambda$load$0")),
+    ("net.minecraft.resources.RegistryLoadTask",
+     ("registerElements", "lambda$registerElements$0")),
 )
 DECLARATION = re.compile(
     r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;"
@@ -169,6 +171,45 @@ def inspect_verbose(verbose: str, class_name: str) -> list[dict]:
     return output
 
 
+
+# Pin only source-free method-local invoke-site identities. These checks
+# are necessary to distinguish decode-success registration from per-entry
+# error-map accumulation; they DO NOT certify the full JVM operand stack,
+# Map error propagation, duplicate handling or source/VAR/SEM admission.
+REGISTER_DELEGATE_SITES = {
+    "lambda$registerElements$0": (
+        (6, "invokedynamic", "InvokeDynamic #1:accept:"),
+        (11, "invokevirtual", "Either.ifLeft:"),
+        (16, "invokedynamic", "InvokeDynamic #2:accept:"),
+        (21, "invokevirtual", "Either.ifRight:"),
+    ),
+    "lambda$registerElements$1": (
+        (13, "invokeinterface", "WritableRegistry.register:"),
+    ),
+    "lambda$registerElements$2": (
+        (9, "invokeinterface", "Map.put:"),
+    ),
+}
+
+
+def require_registration_delegate_sites(callbacks: list[dict]) -> None:
+    """Reject wrong consumer methods, moved calls or error-side registration."""
+    if [entry["handler"] for entry in callbacks] != list(REGISTER_DELEGATE_SITES):
+        raise ValueError("client registry success/error delegate identities drifted")
+    for entry in callbacks:
+        expected = REGISTER_DELEGATE_SITES[entry["handler"]]
+        observed = entry["invocations"]
+        if len(observed) != len(expected):
+            raise ValueError("client registry delegate call count drifted")
+        for invoke, (offset, opcode, token) in zip(observed, expected):
+            if (invoke["bytecode_offset"] != offset
+                or invoke["opcode"] != opcode
+                or token not in invoke["symbolic_target"]):
+                raise ValueError(
+                    "client registry Either success/error dispatch call changed"
+                )
+
+
 def inspect_client(client: Path) -> list[dict]:
     records: list[dict] = []
     with zipfile.ZipFile(client) as archive:
@@ -186,11 +227,26 @@ def inspect_client(client: Path) -> list[dict]:
             )
             if process.returncode or len(process.stdout) > MAX_VERBOSE_CHARS:
                 raise ValueError(f"could not bound official client verbose class: {class_name}")
-            records.append({
+            item = {
                 "class_name": class_name,
                 "classfile_sha256_candidate": hashlib.sha256(raw).hexdigest(),
                 "selected_methods": inspect_verbose(process.stdout, class_name),
-            })
+            }
+            if class_name == "net.minecraft.resources.RegistryLoadTask":
+                callbacks = client_probe.handler_invocations(
+                    process.stdout,
+                    method_names=(
+                        "lambda$registerElements$0",
+                        "lambda$registerElements$1",
+                        "lambda$registerElements$2",
+                    ),
+                    required_method="lambda$registerElements$0",
+                )
+                require_registration_delegate_sites(callbacks)
+                item["register_consumer_delegate_invocations_candidate"] = callbacks
+                item["success_error_dispatch_callsite_shapes_pinned"] = True
+                item["full_register_or_error_semantics_proven"] = False
+            records.append(item)
     return records
 
 

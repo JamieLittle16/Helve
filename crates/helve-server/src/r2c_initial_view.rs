@@ -129,7 +129,9 @@ where
             });
         }
     }
-    receipts.retain(|receipt| in_initial_view(center, receipt.installed().handle.position, view_distance));
+    receipts.retain(|receipt| {
+        in_initial_view(center, receipt.installed().handle.position, view_distance)
+    });
     // One sort on the already-filtered COLD list, no temporary ID vector.
     receipts.sort_unstable_by_key(|receipt| {
         let pos = receipt.installed().handle.position;
@@ -149,10 +151,7 @@ where
         let position = receipt.installed().handle.position;
         receipt
             .resolve_explicitly_empty(dimension)
-            .map_err(|error| InitialViewSelectionError::InvalidReceipt {
-                position,
-                error,
-            })?;
+            .map_err(|error| InitialViewSelectionError::InvalidReceipt { position, error })?;
     }
     Ok(R2cChunkBatchState::new_with_initial_cache_center(
         receipts.len(),
@@ -182,21 +181,33 @@ mod tests {
 
     #[test]
     fn extreme_coordinates_do_not_overflow_or_select_foreign_world() {
-        let center = ChunkPos { x: i32::MIN, z: i32::MAX };
+        let center = ChunkPos {
+            x: i32::MIN,
+            z: i32::MAX,
+        };
         assert!(in_initial_view(center, center, 32));
         assert!(!in_initial_view(
             center,
-            ChunkPos { x: i32::MAX, z: i32::MIN },
+            ChunkPos {
+                x: i32::MAX,
+                z: i32::MIN
+            },
             32,
         ));
         assert!(in_initial_view(
             center,
-            ChunkPos { x: i32::MIN + 33, z: i32::MAX },
+            ChunkPos {
+                x: i32::MIN + 33,
+                z: i32::MAX
+            },
             32,
         ));
         assert!(!in_initial_view(
             center,
-            ChunkPos { x: i32::MIN + 34, z: i32::MAX },
+            ChunkPos {
+                x: i32::MIN + 34,
+                z: i32::MAX
+            },
             32,
         ));
     }

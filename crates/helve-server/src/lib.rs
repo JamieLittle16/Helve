@@ -57,6 +57,14 @@ mod r2c_heightmap_facts;
     )
 )]
 mod r2c_initial_view;
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "retained Play ingress dispatch is staged until source-admitted live R2C publication"
+    )
+)]
+mod r2c_play_inbound;
 mod r2c_publication;
 mod r2c_section_candidate;
 

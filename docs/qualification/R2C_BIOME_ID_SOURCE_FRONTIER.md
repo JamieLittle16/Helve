@@ -164,3 +164,20 @@ the client actually assigns the loaded registry IDs. The exact method
 descriptors, call-site order, relevant branch/error paths and reached
 network-registry registration delegates must be reviewed and admitted
 independently before issue #285 can close.
+
+### Receiver-reached client collector (unadmitted)
+
+The observed stock-client `handleRegistryData` implementation passes the
+received `packet.registry()` key and `packet.entries()` list directly to
+`net.minecraft.client.multiplayer.RegistryDataCollector.appendContents`.
+The next independent probe fingerprints the actual official client
+`RegistryDataCollector.class` and enumerates a **bounded** set of
+collector/content/registry/load methods' invoke sites. This is a fixed
+receiver-reached class, not a broad search for calls that happen to
+mention registries elsewhere.
+
+The probe is still source-free bytecode *discovery*. A later review must
+prove whether the collector preserves the ordered list, how and when the
+final builder invokes network loading, any pending known-pack interaction,
+and how errors or duplicates are handled; no production ID assignment is
+asserted without complete VAR/SEM and independent gate.

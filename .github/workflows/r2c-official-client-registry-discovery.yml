@@ -1,0 +1,60 @@
+name: R2C Official Client Registry Discovery
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/tests/test_r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-registry-discovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    name: Exact official 26.2 client receiver artifact discovery (unadmitted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Hermetic receiver/metadata negative tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_official_client_registry_inventory.py' -v
+
+      - name: Fetch official client and mappings into disposable scratch
+        run: |
+          python3 tools/r2c_official_client_registry_inventory.py \
+            --output /tmp/r2c-26.2-client-registry-discovery.json
+
+      - name: Gate every authority claim to false
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("/tmp/r2c-26.2-client-registry-discovery.json").read_text())
+          assert result["target"] == {"minecraft": "26.2", "protocol": 776, "data_version": 4903}
+          assert not result["source_inspected"]
+          assert not result["client_handler_invocation_proven"]
+          assert not result["client_numeric_id_assignment_proven"]
+          assert not result["production_admitted"]
+          assert len(result["client_configuration_listener_candidates"]) <= 16
+          assert result["artifacts"]["client"]["official_size_bytes"] > 0
+          assert result["artifacts"]["client_mappings"]["official_size_bytes"] > 0
+          print("Official client SHA-256 candidates and class identities discovered, NOT ADMITTED")
+          for candidate in result["client_configuration_listener_candidates"]:
+              print(candidate["mapped_class"], candidate["registry_related_method_names"])
+          PY
+
+      - name: Upload only bounded source-free review metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-official-client-receiver-candidate
+          path: /tmp/r2c-26.2-client-registry-discovery.json
+          if-no-files-found: error
+          retention-days: 7

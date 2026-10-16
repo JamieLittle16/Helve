@@ -38,6 +38,8 @@ MAX_INVOKES_PER_HANDLER = 96
 MAX_COLLECTOR_METHODS = 32
 MAX_COLLECTOR_INVOKES = 256
 COLLECTOR_CLASS = "net.minecraft.client.multiplayer.RegistryDataCollector"
+CONTENTS_CLASS = "net.minecraft.client.multiplayer.RegistryDataCollector$ContentsCollector"
+LOADER_CLASS = "net.minecraft.resources.RegistryDataLoader"
 HANDLER_NAMES = ("handleRegistryData", "handleConfigurationFinished", "handleSelectKnownPacks")
 
 
@@ -185,6 +187,43 @@ def collector_candidate(client: Path) -> dict:
     }
 
 
+
+def inner_contents_candidate(client: Path) -> dict:
+    """Follow the exact ContentsCollector.append delegate and fingerprint loader.
+
+    Named class identities come from the preceding official-client call-site
+    inventory, not a broad arbitrary jar scan. Store only symbolic invocation
+    candidates; branch/field semantics still require manual source review.
+    """
+    paths = tuple(name.replace(".", "/") + ".class"
+                  for name in (CONTENTS_CLASS, LOADER_CLASS))
+    with zipfile.ZipFile(client) as archive:
+        contents: list[bytes] = []
+        for path in paths:
+            if archive.namelist().count(path) != 1:
+                raise ValueError(f"missing or duplicated exact client delegate: {path}")
+            raw = archive.read(path)
+            if not 4 <= len(raw) <= MAX_CLASS_BYTES or raw[:4] != b"\xca\xfe\xba\xbe":
+                raise ValueError(f"invalid client delegate classfile: {path}")
+            contents.append(raw)
+    result = subprocess.run(
+        ["javap", "-c", "-p", "-classpath", str(client), CONTENTS_CLASS],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    if result.returncode or len(result.stdout) > 2_000_000:
+        raise ValueError("client inner contents appendix cannot be inspected")
+    calls = handler_invocations(
+        result.stdout, method_names=("append",), required_method="append"
+    )
+    return {
+        "class_name": CONTENTS_CLASS,
+        "classfile_sha256_candidate": hashlib.sha256(contents[0]).hexdigest(),
+        "append_invoke_sites_candidate": calls,
+        "registry_loader_class_name": LOADER_CLASS,
+        "registry_loader_classfile_sha256_candidate": hashlib.sha256(contents[1]).hexdigest(),
+    }
+
+
 def receiver_candidates(client: Path) -> list[dict]:
     """Read only bounded class identities and method names; no class execution."""
     with zipfile.ZipFile(client) as archive:
@@ -278,6 +317,7 @@ def discover(metadata: dict, cache: Path) -> dict:
         },
         "client_configuration_listener_candidates": receiver_candidates(local),
         "client_registry_collector_candidate": collector_candidate(local),
+        "client_inner_contents_candidate": inner_contents_candidate(local),
         "source_inspected": False,
         "client_handler_invocation_proven": False,
         "client_numeric_id_assignment_proven": False,

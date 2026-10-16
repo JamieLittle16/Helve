@@ -41,7 +41,7 @@ ROOTS = (
     ("net.minecraft.resources.RegistryDataLoader",
      ("load", "lambda$load$0")),
     ("net.minecraft.resources.RegistryLoadTask",
-     ("registerElements",)),
+     ("registerElements", "lambda$registerElements$0")),
 )
 DECLARATION = re.compile(
     r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;"

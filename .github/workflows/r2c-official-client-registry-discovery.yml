@@ -66,6 +66,14 @@ jobs:
           assert all(root["method_candidates"] for root in roots)
           assert all(not root["source_reviewed"] and not root["insertion_order_proven"]
                      for root in roots)
+          ordering = result["sequence_order_frontier_candidates"]
+          assert [entry["class_name"] for entry in ordering] == [
+              "net.minecraft.resources.NetworkRegistryLoadTask",
+              "net.minecraft.util.Util",
+          ]
+          assert all(not entry["source_reviewed"]
+                     and not entry["completion_order_proven"]
+                     and not entry["registration_order_proven"] for entry in ordering)
           lambdas = loader["async_lambda_candidates"]
           assert 1 <= len(lambdas) <= 16
           assert all(not candidate["bootstrap_linkage_proven"] for candidate in lambdas)
@@ -127,6 +135,13 @@ jobs:
                   print("    method:", method["method_name"], "invokes:", len(method["invoke_sites_candidate"]))
                   for edge in method["invoke_sites_candidate"]:
                       print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
+          print("  client Util.sequence and network registry callback candidates (NOT ADMITTED):")
+          for root in result["sequence_order_frontier_candidates"]:
+              print("    class:", root["class_name"])
+              for method in root["method_candidates"]:
+                  print("      method:", method["method_name"])
+                  for edge in method["invoke_sites_candidate"]:
+                      print("        ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
           PY
 
       - name: Upload only bounded source-free review metadata

@@ -187,6 +187,37 @@ grant authority to its synthetic tests. The source-matching selected
 Configuration branch and `R2C-BIOMES` gate must still be verified
 before it can be used to publish native Play chunks.
 
+## Initial source-selected chunk-cache centre before batches
+
+The same pinned server ZIP also includes:
+
+- `server/level/ChunkMap.java` SHA-256
+  `4552bca35931b989948d879ad319762ddfffba539a52faffd07e2170c7c9b9c5`;
+- `network/protocol/game/ClientboundSetChunkCacheCenterPacket.java` SHA-256
+  `02f1d994ad9380df652015881785f9aa6fb846ecaf1a58d08ce71b96de10ce49`.
+
+`ChunkMap.applyChunkTrackingView` sends
+`ClientboundSetChunkCacheCenterPacket` **when the positioned view's
+centre changes**, before marking the new view's chunks pending.
+The clientbound packet's ID is **94**, followed by X and Z as signed
+VarInts. It is a separate packet, not part of
+`ClientboundLevelChunkWithLightPacket` or the start/finish batch
+envelope.
+
+The dormant `R2cChunkBatchState::new_with_initial_cache_center`
+now takes a caller-supplied, source-selected `ChunkPos` and admits
+that packet **first**, through the original R2B driver, before any
+chunk-batch start/chunk/finish. The one-packet admission uses the
+existing reusable caller scratch, preserves its prefix and original
+size on success and backpressure, and only marks the centre sent
+after egress admission. It does not invent a view centre by choosing
+the first stored chunk, and it does not modify the generic
+centre-less synthetic test constructor.
+
+The centre is for the **initial fixed pregenerated-world window**;
+player movement and ongoing view tracking belong to later runtime
+work. This wire step alone does not enable chunk publication.
+
 ## What still blocks production R2C
 
 - The pinned source archive is a **server-source corpus**. The precise
@@ -198,9 +229,12 @@ before it can be used to publish native Play chunks.
   empty block entities, initial light/heightmap code path and the observed
   publication lifecycle; run the pinned Atlas gate. The raw-file hashes here
   are review anchors, not independently approved VAR/SEM records.
-- Integrate an acknowledgement-aware batch cursor on the retained
-  `R2bPlaySession`, size its packet/egress buffers for actual selected
-  chunks, and join a stock 26.2 client with a pinned pregenerated world.
+- Activate the already-tested acknowledgement-aware batching,
+  retained-driver wide Play limits, source-selected initial cache centre,
+  and receipt-backed chunk projection in the product runtime **only
+  after** biome-ID, heightmap predicate, and selected Configuration
+  admission. Join an unmodified 26.2 client with a pinned pregenerated
+  world as the completion evidence.
 - R2D world generation is **not** a dependency of the first R2C demo.
 
 **No official Java source bytes or packet captures are stored here.**

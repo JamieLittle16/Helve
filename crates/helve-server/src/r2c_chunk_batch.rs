@@ -11,8 +11,10 @@ use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
 use helve_publication_core::{PublicationCursor, PublicationStep};
 use helve_target_26_2::r2c_play_wire::{
     CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START, ChunkBatchWireError,
-    MAX_REMOTE_CHUNKS_PER_BATCH, decode_chunk_batch_ack, normalize_remote_chunk_rate,
+    MAX_REMOTE_CHUNKS_PER_BATCH, append_set_chunk_cache_center, decode_chunk_batch_ack,
+    normalize_remote_chunk_rate,
 };
+use helve_types::ChunkPos;
 
 use crate::r2b_server::R2bPlaySession;
 
@@ -46,6 +48,7 @@ pub(crate) struct R2cChunkBatchState {
     selected: usize,
     cursor: PublicationCursor,
     phase: BatchPhase,
+    pending_center: Option<ChunkPos>,
     desired_per_tick: f32,
     quota: f32,
     unacknowledged: u8,
@@ -58,6 +61,7 @@ pub(crate) enum ChunkBatchStep {
     Complete,
     WaitingForTick,
     WaitingForAcknowledgement,
+    CacheCenterQueued { x: i32, z: i32 },
     Started { count: u8 },
     ChunkQueued { index: usize, body_bytes: usize },
     Finished { count: u8 },
@@ -102,11 +106,25 @@ impl R2cChunkBatchState {
             selected,
             cursor: PublicationCursor::new(),
             phase: BatchPhase::Ready,
+            pending_center: None,
             desired_per_tick: INITIAL_RATE,
             quota: 0.0,
             unacknowledged: 0,
             max_unacknowledged: 1,
         }
+    }
+
+    /// One initial-world selection at an explicit source-known chunk-cache
+    /// center. Unlike the legacy generic test constructor, this emits the
+    /// 26.2 clientbound center update before any batch-start packet.
+    ///
+    /// The caller selects the center from the admitted player/view position;
+    /// it is not inferred from unsorted receipts or an arbitrary chunk.
+    #[must_use]
+    pub(crate) const fn new_with_initial_cache_center(selected: usize, center: ChunkPos) -> Self {
+        let mut state = Self::new(selected);
+        state.pending_center = Some(center);
+        state
     }
 
     #[must_use]
@@ -151,7 +169,7 @@ impl R2cChunkBatchState {
 }
 
 impl R2bPlaySession {
-    /// Admit at most one start, receipt-projected chunk or finish frame through
+    /// Admit at most one cache-center, start, chunk or finish frame through
     /// the identical R2B Play driver. Retry unchanged on bounded backpressure.
     ///
     /// The callback must append one *complete* current-source checked packet
@@ -161,13 +179,31 @@ impl R2bPlaySession {
     /// # Errors
     ///
     /// Propagates source or egress rejection without advancing the phase,
-    /// chunk cursor, outstanding count or queued wire bytes.
+    /// chunk cursor, pending center, outstanding count or queued wire bytes.
     pub(crate) fn service_r2c_chunk_batch_one<E>(
         &mut self,
         state: &mut R2cChunkBatchState,
         scratch: &mut Vec<u8>,
         append_chunk: impl FnOnce(usize, &mut Vec<u8>) -> Result<(), E>,
     ) -> Result<ChunkBatchStep, DriverError<E>> {
+        if let Some(center) = state.pending_center {
+            // A center packet has 1 ID byte + 2 signed VarInts (at most
+            // 5 bytes each). Append to the *same* caller-owned scratch
+            // for this attempt and restore its original prefix whether
+            // or not the sole egress owner admits the framed packet.
+            // No additional packet list, queue, or owned body is created.
+            let original_len = scratch.len();
+            append_set_chunk_cache_center(scratch, center.x, center.z);
+            let admission = self.driver.queue_frame::<E>(&scratch[original_len..]);
+            scratch.truncate(original_len);
+            admission?;
+            state.pending_center = None;
+            return Ok(ChunkBatchStep::CacheCenterQueued {
+                x: center.x,
+                z: center.z,
+            });
+        }
+
         match state.phase {
             BatchPhase::Ready => {
                 if state.cursor.next_index() == state.selected {
@@ -273,6 +309,7 @@ mod tests {
     use helve_connection_driver::{ConnectionDriver, DriverError};
     use helve_session_core::LivenessState;
     use helve_target_26_2::r2b::TeleportTransaction;
+    use helve_types::ChunkPos;
 
     use super::{
         ChunkBatchInboundError, ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState,
@@ -303,6 +340,86 @@ mod tests {
             u8::try_from(index).expect("small synthetic selection"),
         ]);
         Ok(())
+    }
+
+    #[test]
+    fn cache_center_precedes_first_batch_and_retries_without_losing_scratch_or_state() {
+        let mut conn = session(16);
+        let read_ptr = conn.read_scratch.as_ptr();
+        let mut scratch = Vec::with_capacity(32);
+        scratch.push(0xee);
+        let scratch_ptr = scratch.as_ptr();
+        let mut state =
+            R2cChunkBatchState::new_with_initial_cache_center(1, ChunkPos { x: -3, z: 4 });
+        assert_eq!(state.next_chunk_index(), 0);
+        assert_eq!(state.unacknowledged_batches(), 0);
+
+        // Entire same-driver egress is occupied by an unrelated control.
+        conn.driver.queue_frame::<()>(&[0x72; 15]).unwrap();
+        let before = conn.pending_play_egress().to_vec();
+        assert!(matches!(
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
+            Err(DriverError::Buffer(
+                ConnectionBufferError::EgressLimitExceeded { .. }
+            ))
+        ));
+        assert_eq!(conn.pending_play_egress(), before);
+        assert_eq!(state.pending_center, Some(ChunkPos { x: -3, z: 4 }));
+        assert_eq!(state.next_chunk_index(), 0);
+        assert_eq!(state.unacknowledged_batches(), 0);
+        assert_eq!(scratch, [0xee]);
+        assert_eq!(scratch.as_ptr(), scratch_ptr);
+        assert_eq!(conn.read_scratch.as_ptr(), read_ptr);
+        conn.consume_play_written(before.len()).unwrap();
+
+        assert_eq!(
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
+            Ok(ChunkBatchStep::CacheCenterQueued { x: -3, z: 4 })
+        );
+        assert_eq!(scratch, [0xee]);
+        assert_eq!(scratch.as_ptr(), scratch_ptr);
+        assert_eq!(conn.read_scratch.as_ptr(), read_ptr);
+        assert_eq!(state.pending_center, None);
+        assert_eq!(state.unacknowledged_batches(), 0);
+        assert_eq!(state.next_chunk_index(), 0);
+        // One signed x VarInt, then positive z VarInt, 26.2 center ID=94.
+        assert_eq!(
+            conn.pending_play_egress(),
+            [7, 94, 0xfd, 0xff, 0xff, 0xff, 0x0f, 4]
+        );
+
+        // The center packet neither consumes quota nor starts a batch.
+        assert_eq!(
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
+            Ok(ChunkBatchStep::WaitingForTick)
+        );
+        state.on_tick();
+        assert_eq!(
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
+            Ok(ChunkBatchStep::Started { count: 1 })
+        );
+        assert_eq!(
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
+            Ok(ChunkBatchStep::ChunkQueued {
+                index: 0,
+                body_bytes: 2
+            })
+        );
+        assert_eq!(
+            conn.service_r2c_chunk_batch_one(&mut state, &mut scratch, synthetic_chunk),
+            Ok(ChunkBatchStep::Finished { count: 1 })
+        );
+        // Exact center, start, test-only synthetic chunk, finish ordering.
+        assert_eq!(
+            conn.pending_play_egress(),
+            [
+                7, 94, 0xfd, 0xff, 0xff, 0xff, 0x0f, 4, 1, 12, 2, 45, 0, 2, 11, 1,
+            ]
+        );
+        assert_eq!(state.next_chunk_index(), 1);
+        assert_eq!(state.unacknowledged_batches(), 1);
+        assert_eq!(scratch.as_ptr(), scratch_ptr);
+        assert_eq!(conn.read_scratch.as_ptr(), read_ptr);
     }
 
     #[test]

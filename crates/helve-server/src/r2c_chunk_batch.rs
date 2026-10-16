@@ -9,12 +9,12 @@
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
 use helve_publication_core::{PublicationCursor, PublicationStep};
-use helve_types::ChunkPos;
 use helve_target_26_2::r2c_play_wire::{
     CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START, ChunkBatchWireError,
     MAX_REMOTE_CHUNKS_PER_BATCH, append_set_chunk_cache_center, decode_chunk_batch_ack,
     normalize_remote_chunk_rate,
 };
+use helve_types::ChunkPos;
 
 use crate::r2b_server::R2bPlaySession;
 
@@ -121,10 +121,7 @@ impl R2cChunkBatchState {
     /// The caller selects the center from the admitted player/view position;
     /// it is not inferred from unsorted receipts or an arbitrary chunk.
     #[must_use]
-    pub(crate) const fn new_with_initial_cache_center(
-        selected: usize,
-        center: ChunkPos,
-    ) -> Self {
+    pub(crate) const fn new_with_initial_cache_center(selected: usize, center: ChunkPos) -> Self {
         let mut state = Self::new(selected);
         state.pending_center = Some(center);
         state
@@ -352,10 +349,8 @@ mod tests {
         let mut scratch = Vec::with_capacity(32);
         scratch.push(0xee);
         let scratch_ptr = scratch.as_ptr();
-        let mut state = R2cChunkBatchState::new_with_initial_cache_center(
-            1,
-            ChunkPos { x: -3, z: 4 },
-        );
+        let mut state =
+            R2cChunkBatchState::new_with_initial_cache_center(1, ChunkPos { x: -3, z: 4 });
         assert_eq!(state.next_chunk_index(), 0);
         assert_eq!(state.unacknowledged_batches(), 0);
 
@@ -418,8 +413,7 @@ mod tests {
         assert_eq!(
             conn.pending_play_egress(),
             [
-                7, 94, 0xfd, 0xff, 0xff, 0xff, 0x0f, 4,
-                1, 12, 2, 45, 0, 2, 11, 1,
+                7, 94, 0xfd, 0xff, 0xff, 0xff, 0x0f, 4, 1, 12, 2, 45, 0, 2, 11, 1,
             ]
         );
         assert_eq!(state.next_chunk_index(), 1);

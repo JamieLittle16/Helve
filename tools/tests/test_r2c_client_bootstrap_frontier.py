@@ -76,6 +76,28 @@ def verbose_fixture(class_name: str) -> str:
     )
 
 
+
+def registration_consumer_fixture() -> str:
+    return """public class net.minecraft.resources.RegistryLoadTask {
+  public void registerElements(java.util.stream.Stream);
+    descriptor: (Ljava/util/stream/Stream;)V
+    Code:
+       0: aload_1
+       1: invokedynamic #101,  0 // InvokeDynamic #0:accept:(Lnet/minecraft/resources/RegistryLoadTask;)Ljava/util/function/Consumer;
+       6: invokeinterface #102,  2 // InterfaceMethod java/util/stream/Stream.forEach:(Ljava/util/function/Consumer;)V
+      11: return
+}
+BootstrapMethods:
+  0: #120 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(...)
+    Method arguments:
+      #128 (Ljava/lang/Object;)V
+      #129 REF_invokeVirtual net/minecraft/resources/RegistryLoadTask.lambda$registerElements$0:(Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)V
+      #130 (Ljava/lang/Object;)V
+InnerClasses:
+  public static final #200= #201 of #202;
+"""
+
+
 def jar_bytes(missing: str | None = None) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w") as archive:
@@ -88,12 +110,26 @@ def jar_bytes(missing: str | None = None) -> bytes:
 
 def fake_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
     del kwargs
+    if args[-1] == "net.minecraft.resources.RegistryLoadTask":
+        return subprocess.CompletedProcess(args, 0, registration_consumer_fixture(), "")
     return subprocess.CompletedProcess(args, 0, verbose_fixture(args[-1]), "")
 
 
 class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
     def test_each_exact_method_links_to_its_bootstrap_method_handle(self) -> None:
         for class_name, _ in probe.ROOTS:
+            if class_name == "net.minecraft.resources.RegistryLoadTask":
+                with self.subTest(class_name=class_name):
+                    [consumer] = probe.inspect_verbose(
+                        registration_consumer_fixture(), class_name
+                    )
+                    self.assertEqual(consumer["method_name"], "registerElements")
+                    [edge] = consumer["bootstrap_method_handle_links_candidate"]
+                    self.assertEqual(edge["bootstrap_index"], 0)
+                    self.assertEqual(edge["bytecode_offset"], 1)
+                    self.assertIn("RegistryLoadTask.lambda$registerElements$0:",
+                                  edge["impl_handle_target_candidate"])
+                continue
             with self.subTest(class_name=class_name):
                 result = probe.inspect_verbose(verbose_fixture(class_name), class_name)
                 self.assertEqual(len(result), 2)
@@ -162,7 +198,7 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
             jar.write_bytes(jar_bytes())
             with patch.object(probe.subprocess, "run", side_effect=fake_javap):
                 records = probe.inspect_client(jar)
-            self.assertEqual(len(records), 3)
+            self.assertEqual(len(records), 4)
             self.assertNotIn("synthetic-class", json.dumps(records))
             self.assertNotIn("MappedRegistry.wrong", json.dumps(records))
             jar.write_bytes(jar_bytes("net.minecraft.util.Util"))

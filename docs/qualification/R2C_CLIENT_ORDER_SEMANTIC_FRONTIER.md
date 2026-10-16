@@ -1,0 +1,79 @@
+# R2C — official 26.2 receiving-client ordering and branch-shape review
+
+**Status: source-free JVM method review candidate; no VAR/SEM admission.**
+This review follows the official Mojang client artifact and the
+receiving-client call graph already established in PRs #331–#338.
+The official artifact is checked against Mojang's exact 26.2 SHA-1/size,
+and its full SHA-256 candidate is included in ephemeral evidence.
+
+## Exact bounded method roots
+
+The new `tools/r2c_client_order_semantic_frontier.py` inspects exactly
+seven methods, with no broad discovery of unrelated classes:
+
+1. `RegistryDataCollector$ContentsCollector.append`: accumulated entry
+   lists use `Map.computeIfAbsent` then `List.addAll`.
+2. `NetworkRegistryLoadTask.load`: receives `NetworkedRegistryData.elements`,
+   calls `List.iterator`, appends decoding futures to a list, calls
+   `net.minecraft.util.Util.sequence`, and attaches
+   `CompletableFuture.thenAcceptAsync`.
+3. `NetworkRegistryLoadTask.lambda$load$2`: constructs a
+   `List.stream`, invokes `registerElements`, and registers tags.
+4. `net.minecraft.util.Util.sequence`: distinguishes empty and nonempty
+   lists, checks input size, and in the multiple-future case invokes
+   `CompletableFuture.allOf` and `thenApply`.
+5. `Util.lambda$sequence$0`: calls `List.stream`, `Stream.map`
+   (independently bootstrap-bound to `CompletableFuture.join` in #338),
+   and `Stream.toList`.
+6. `RegistryLoadTask.registerElements`: invokes `Stream.forEach`.
+7. `MappedRegistry.register`: contains the dense-ID operations
+   `ObjectList.size`, `ObjectList.add`, and `Reference2IntMap.put`.
+
+Every call-order witness must be present in its *own named method*, and
+must appear in the expected relative order. The probe fingerprints the
+exact selected declaration and **all parsed instruction rows**, not only
+a subset of invoked methods, and records every explicit conditional jump
+edge and the return/throw offsets. All instruction and branch counts are
+bounded; truncated, malformed, ambiguous, missing or reordered evidence
+fails closed. No classfile, source, disassembly or full instruction listing
+is committed or archived. The short-lived CI artifact contains only
+fingerprints, branch offsets, and concise symbolic call checkpoints.
+
+## Interpret the evidence carefully
+
+Structural call ordering is **necessary but not sufficient** to establish
+the numeric client biome ID law. In particular:
+
+- Branch reachability, loop dataflow, exception tables and all JVM stack
+  transitions must be reviewed to prove the incoming list is consumed
+  once, without reordering or omissions.
+- The empty/singleton/multiple-future cases of `Util.sequence`,
+  exceptional completion of `allOf`, and `join` error propagation
+  must be checked independently.
+- The callback confirmed in PR #338 must be shown to receive the ordered
+  sequence result and to register entries in that order. `Stream.forEach`
+  and `List.stream` are evidence, but not by themselves complete
+  registration correctness.
+- Verify duplicate key/value behavior and potential partially populated
+  registry on exceptional registration.
+- Confirm the actual selected known-pack set and receiving-client biome
+  registry are identical to the Configuration publication and the chunk
+  palette's ID source.
+- Pin VAR and SEM findings against exact independently reviewed source
+  artifacts, and satisfy Helve's independent gate before enabling live
+  chunk publication.
+
+This probe explicitly emits `complete_semantic_review: false`,
+`client_numeric_id_assignment_proven: false`,
+`source_var_sem_admitted: false`, and `production_admitted: false`.
+These flags are asserted in CI. Nothing in this work changes the
+hot-path registry, world owner, outbound queue, session driver, source
+gate, or live Play packet emission.
+
+The official **client** refers to `net.minecraft.util.Util`;
+the earlier source ZIP/Atlas plan targets `net.minecraft.Util`. Do
+not merge these identities or treat the server-source declaration as
+sufficient proof of actual receiving-client behavior.
+
+The 32,366-state heightmap facts generator and exact outer
+chunk/light/Play wire source groups remain separate R2C gates.

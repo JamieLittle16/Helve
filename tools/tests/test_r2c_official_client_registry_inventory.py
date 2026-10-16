@@ -97,6 +97,12 @@ JAVAP_LOADER = """public class net.minecraft.resources.RegistryDataLoader {
        4: invokestatic #13 // Method net/minecraft/resources/RegistryLoadTask.registerElements:(Ljava/util/List;)V
        7: areturn
 
+  public static java.util.concurrent.CompletableFuture load(net.minecraft.resources.RegistryDataLoader$LoaderFactory, java.util.List, java.util.List, java.util.concurrent.Executor);
+    Code:
+       0: invokestatic #18 // Method net/minecraft/resources/RegistryLoadTask.createLookup:()V
+       3: invokestatic #19 // Method net/minecraft/resources/NetworkRegistryLoadTask.load:()V
+       6: areturn
+
   public static void unrelated();
     Code:
        0: invokestatic #98 // Method net/minecraft/core/MappedRegistry.wrong:()V
@@ -276,6 +282,11 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                 evidence = probe.registry_loader_overload_candidate(jar)
             self.assertEqual(len(evidence["selected_overload_invoke_sites_candidate"]
                                  ["invocations"]), 2)
+            self.assertEqual(len(evidence["factory_overload_invoke_sites_candidate"]
+                                 ["invocations"]), 2)
+            self.assertIn("NetworkRegistryLoadTask.load",
+                          evidence["factory_overload_invoke_sites_candidate"]["invocations"][1]
+                          ["symbolic_target"])
             self.assertNotIn("MappedRegistry.fake", json.dumps(evidence))
             self.assertNotIn("MappedRegistry.wrong", json.dumps(evidence))
             self.assertFalse(evidence["source_inspected"])

@@ -472,7 +472,6 @@ mod tests {
             return;
         };
 
-
         let oracle = std::fs::read(path).expect("source-pinned official 26.2 oracle");
         let facts = CandidateHeightmapFacts::from_oracle_bytes(&oracle)
             .expect("actual oracle IDs match qualified generated state facts");

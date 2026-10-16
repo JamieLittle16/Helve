@@ -18,11 +18,55 @@ implication.
 
 A separate, bounded plan at
 `vanilla/reviews/network/r2c-biome-id-source-frontier.json`
-contains three distinct non-overlapping proof obligations:
+contains four distinct non-overlapping proof obligations:
 
 1. Loaded registry insertion and `byId`/`getId` ID allocation;
 2. Selected default known-packs branch and ordered Configuration emission;
-3. Bound biome paletted-container identity from the loaded registry.
+3. Bound biome paletted-container identity from the loaded registry;
+4. Shared network registry reception and ordered registration of the
+   serialized entry list, *without* claiming that the actual 26.2
+   client Configuration handler is already source-qualified.
+
+### Newly identified common network-receive law (unadmitted)
+
+The pinned official Java 26.2 server-source archive (SHA-256
+`1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750`)
+contains shared registry-loading implementations **in addition to**
+the server's registry packet emitter:
+
+- `src/net/minecraft/resources/NetworkRegistryLoadTask.java`:
+  SHA-256 `dc9d281b179da141bb2faaa3707a58e3a213ce8a837703ee7e6557a6c1b49404`;
+- `src/net/minecraft/resources/RegistryLoadTask.java`:
+  SHA-256 `64803b037a94786e138723ff9fd9eed7bbfe1313b7fc2499700eb65931e650c2`;
+- `src/net/minecraft/core/MappedRegistry.java`:
+  SHA-256 `d5351583e7fe0eadb7587ec1ccbb1b0340662dc62cada04a37d6303239d3e86f`;
+- `src/net/minecraft/network/protocol/configuration/ClientboundRegistryDataPacket.java`:
+  SHA-256 `5fcce02e360a61fefdb057f39067185876030e311804210c23dad3bec7d37409`.
+
+These are raw-file review anchors, **not** verified Atlas
+declaration fingerprints or admitted VAR/SEM.
+
+The packet codec serializes an ordered list of packed entries.
+`NetworkRegistryLoadTask.load` iterates that list and schedules
+per-entry value decoding, then calls `Util.sequence` and
+`registerElements`; `RegistryLoadTask.registerElements` registers
+the resulting stream sequentially, and `MappedRegistry.register`
+assigns each value its current `byId.size()` before insertion.
+That suggests a direct network-entry-order → numeric-ordinal law
+**conditional on** complete in-order resolution and invocation by
+the receiving client.
+
+The review must explicitly close `Util.sequence`'s ordering
+semantics, any registry rejection/duplicate-error branches, the
+packet listener's preparation of the networked registry data and,
+critically, the *actual stock client Configuration handler* invoking
+this shared loader. The last handler is **not supplied** by this
+server-source archive. None of those missing links can be filled by
+assuming that server-side classes imply client-side execution.
+
+This expanded discovery directly narrows issue #285, but the status
+remains `DISCOVERY_NOT_ADMISSION` and client numeric ID authority
+remains **unqualified**.
 
 To prepare source-free declaration fingerprints from the pinned local source
 archive and disposable Atlas database, run:

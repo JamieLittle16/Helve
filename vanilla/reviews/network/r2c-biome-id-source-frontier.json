@@ -33,6 +33,14 @@
       "types": [
         "net.minecraft.world.level.chunk.PalettedContainerFactory"
       ]
+    },
+    {
+      "id": "NETWORK-REGISTRY-RECEIVE-AND-ORDERED-REGISTRATION",
+      "review_focus": "Inspect the shared network registry loading path: packet entries stay ordered through asynchronous value resolution, sequence collection, sequential registerElements, and MappedRegistry insertion-ID allocation. This is evidence of the shared registry mechanism, NOT a proof that the 26.2 stock client Configuration handler invokes it without reordering.",
+      "types": [
+        "net.minecraft.resources.NetworkRegistryLoadTask",
+        "net.minecraft.resources.RegistryLoadTask"
+      ]
     }
   ]
 }

@@ -309,6 +309,98 @@ where
         .map_err(DiskFirstViewError::FinalView)
 }
 
+/// One immutable COLD saved-world request for a continuing R2B player.
+///
+/// The profile is an explicit caller-supplied *candidate*, not proof of the
+/// Configuration dimension/pack or of the persisted save's identity.
+#[derive(Clone, Copy)]
+pub(crate) struct PendingTeleportDiskFirstViewRequest<'a> {
+    pub(crate) world: &'a Path,
+    pub(crate) profile: DimensionRuntimeProfile,
+    pub(crate) view_distance: i32,
+    pub(crate) max_chunks: usize,
+    pub(crate) limits: PregeneratedRegionLimits,
+}
+
+/// Pre-publication binding failures retain separate alignment and disk causes.
+#[derive(Debug)]
+pub(crate) enum PendingTeleportDiskImportError<E> {
+    ProfileMismatch {
+        selected: DimensionRuntimeProfile,
+        resident: DimensionRuntimeProfile,
+    },
+    Player(PendingTeleportViewError),
+    Source(DiskFirstViewError<E>),
+}
+
+/// Bind the actual retained R2B teleport to exactly one selected saved-world
+/// import, using the *existing* single-authority dimension and loader.
+///
+/// All player/profile checks run before filesystem access and before semantic
+/// installation. On success the receipts remain in caller-owned nearest-first
+/// order and the returned state is the existing ACK-aware publication cursor.
+/// A failed source import can still leave individually verified chunks resident,
+/// as documented by `import_disk_first_view`, but never emits Play bytes.
+///
+/// The explicit selected profile must later be *independently* bound to the
+/// world save, Configuration dimension, pack fingerprint, and official 26.2
+/// biome/heightmap/outer-wire evidence. This function does not grant source
+/// admission and does not enable a live publisher.
+///
+/// # Errors
+///
+/// Rejects selected/resident profile drift or invalid player view before I/O,
+/// or retains the original typed bounded source-import error.
+pub(crate) fn import_pending_teleport_disk_first_view<R, SB, D, BD, MakeEmpty>(
+    session: &R2bPlaySession,
+    request: PendingTeleportDiskFirstViewRequest<'_>,
+    dimension: &mut SemanticDimensionInstance<BlockStateId, SB::Section, u16, BD::Section>,
+    importer: &mut StoredBlockImporter<'_, R, SB, D>,
+    biome_decoder: &mut BD,
+    receipts: &mut Vec<SourceChunkPublicationReceipt>,
+    make_empty_section: MakeEmpty,
+) -> Result<(ChunkPos, R2cChunkBatchState), PendingTeleportDiskImportError<D::Error>>
+where
+    R: BlockStateResolver<State = BlockStateId>,
+    SB: ImportedBlockSectionBuilder<BlockStateId>,
+    SB::Section: BlockSection<BlockStateId>,
+    D: ChunkPayloadDecoder,
+    BD: SectionBiomeDecoder,
+    BD::Section: BiomeSection<u16>,
+    MakeEmpty: FnMut() -> SB::Section,
+{
+    let resident = dimension.profile();
+    if resident != request.profile {
+        return Err(PendingTeleportDiskImportError::ProfileMismatch {
+            selected: request.profile,
+            resident,
+        });
+    }
+    let (center, mut requested) = plan_pending_teleport_first_view(
+        session,
+        request.profile,
+        request.view_distance,
+        request.max_chunks,
+    )
+    .map_err(PendingTeleportDiskImportError::Player)?;
+    let state = import_disk_first_view(
+        DiskFirstViewRequest {
+            world: request.world,
+            requested: &mut requested,
+            center,
+            view_distance: request.view_distance,
+            limits: request.limits,
+        },
+        dimension,
+        importer,
+        biome_decoder,
+        receipts,
+        make_empty_section,
+    )
+    .map_err(PendingTeleportDiskImportError::Source)?;
+    Ok((center, state))
+}
+
 #[cfg(test)]
 mod tests {
     use helve_types::ChunkPos;
@@ -564,6 +656,130 @@ mod tests {
             });
             section
         }
+    }
+
+    #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one source import checks three fail-closed preflights and the retained-session success path"
+    )]
+    fn pending_teleport_import_checks_profile_and_source_before_residency() {
+        use super::{
+            PendingTeleportDiskFirstViewRequest, PendingTeleportDiskImportError,
+            PendingTeleportViewError, import_pending_teleport_disk_first_view,
+        };
+
+        let world = WorldFixture::new();
+        world.write(-1, 31, -1, 0);
+        let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
+        let other = DimensionRuntimeProfile::new(DimensionTypeId(4), 0, 16, true).unwrap();
+        let mut dimension: SemanticDimensionInstance<
+            BlockStateId,
+            DirectBlockSection<BlockStateId>,
+            u16,
+            DirectBiomeSection<u16>,
+        > = SemanticDimensionInstance::new(DimensionId(2), profile);
+        let resolver = Target262BlockStateResolver;
+        let mut block_builder = BlockBuilder;
+        let mut block_scratch = BlockSectionDecodeScratch::new();
+        let mut decompressor = UncompressedChunkPayloadDecoder;
+        let mut importer = StoredBlockImporter::new(
+            ChunkPayloadLimits::new(32 * SECTOR, 32 * SECTOR),
+            NbtLimits::new(512, 4096, 4096, 32).unwrap(),
+            &mut decompressor,
+            &resolver,
+            &mut block_builder,
+            &mut block_scratch,
+        );
+        let keys = ["minecraft:plains"];
+        let registry = OrderedBiomeRegistry::new(4903, &keys).unwrap();
+        let mut biome_builder = BiomeBuilder;
+        let mut biome_scratch = BiomeDecodeScratch::new();
+        let mut biome_decoder =
+            ExactBiomeDecoder::new(&registry, &mut biome_builder, &mut biome_scratch);
+        let mut receipts = Vec::new();
+        let request = |selected_profile| PendingTeleportDiskFirstViewRequest {
+            world: &world.root,
+            profile: selected_profile,
+            view_distance: 2,
+            max_chunks: 1,
+            limits: PregeneratedRegionLimits {
+                region: RegionLimits::new(8 * SECTOR, SECTOR),
+                max_external_bytes: 8 * SECTOR,
+            },
+        };
+
+        let session = retained_session_with_teleport(-0.1, 8.0, 0.0);
+        match import_pending_teleport_disk_first_view(
+            &session,
+            request(other),
+            &mut dimension,
+            &mut importer,
+            &mut biome_decoder,
+            &mut receipts,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        ) {
+            Err(PendingTeleportDiskImportError::ProfileMismatch { selected, resident }) => {
+                assert_eq!(selected, other);
+                assert_eq!(resident, profile);
+            }
+            _ => panic!("wrong selected lattice must reject"),
+        }
+        let bad_y = retained_session_with_teleport(-0.1, 20.0, 0.0);
+        match import_pending_teleport_disk_first_view(
+            &bad_y,
+            request(profile),
+            &mut dimension,
+            &mut importer,
+            &mut biome_decoder,
+            &mut receipts,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        ) {
+            Err(PendingTeleportDiskImportError::Player(
+                PendingTeleportViewError::OutsideVerticalLattice {
+                    maximum_exclusive, ..
+                },
+            )) => assert_eq!(maximum_exclusive, 16),
+            _ => panic!("out-of-lattice player must reject"),
+        }
+        let absent = retained_session_with_teleport(64.0, 8.0, 0.0);
+        match import_pending_teleport_disk_first_view(
+            &absent,
+            request(profile),
+            &mut dimension,
+            &mut importer,
+            &mut biome_decoder,
+            &mut receipts,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        ) {
+            Err(PendingTeleportDiskImportError::Source(DiskFirstViewError::Disk(_))) => {}
+            _ => panic!("missing saved region must not fall back to synthetic world"),
+        }
+        assert_eq!(dimension.resident_chunk_count(), 0);
+        assert!(receipts.is_empty());
+        assert_eq!(session.queued_egress(), 0);
+
+        let original_reader = session.read_scratch.as_ptr();
+        let (center, state) = import_pending_teleport_disk_first_view(
+            &session,
+            request(profile),
+            &mut dimension,
+            &mut importer,
+            &mut biome_decoder,
+            &mut receipts,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        )
+        .expect("real negative-region source joins the actual teleport");
+        assert_eq!(center, ChunkPos { x: -1, z: 0 });
+        assert_eq!(receipts.len(), 1);
+        assert_eq!(receipts[0].installed().handle.position, center);
+        assert_eq!(dimension.resident_chunk_count(), 1);
+        assert!(receipts[0].resolve_explicitly_empty(&dimension).is_ok());
+        assert_eq!(state.next_chunk_index(), 0);
+        assert_eq!(state.unacknowledged_batches(), 0);
+        assert_eq!(session.read_scratch.as_ptr(), original_reader);
+        assert!(session.teleport_transaction().awaiting().is_some());
+        assert_eq!(session.queued_egress(), 0);
     }
 
     #[test]

@@ -223,9 +223,7 @@ where
 mod tests {
     use helve_types::ChunkPos;
 
-    use super::{
-        DiskFirstViewError, MAX_REQUESTED_CHUNKS, plan_first_view_positions,
-    };
+    use super::{DiskFirstViewError, MAX_REQUESTED_CHUNKS, plan_first_view_positions};
 
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
     use helve_types::{DimensionId, DimensionTypeId};

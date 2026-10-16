@@ -203,8 +203,11 @@ The observed client `RegistryDataCollector.loadNewElementsAndTags` invokes
 `RegistryDataLoader.load(Map, ResourceProvider, List, List, Executor)`.
 The source-free official client probe now selects **that exact five-argument
 overload**, fingerprinting its signature separately and enumerating only
-its symbolic JVM invoke sites. Other overloads of `load` and unrelated
-class methods must not be used as evidence of the selected path.
+its symbolic JVM invoke sites. Official bytecode shows it delegates to
+a **distinct four-argument loader-factory overload**; the probe now
+independently selects that exact overload and inventories its calls too.
+Unrelated overloads of `load` and unrelated class methods must not be
+used as evidence of the selected path.
 
 This remains discovery of code structure, not review of branches,
 exceptions, asynchronous completion, actual list insertion or numeric ID

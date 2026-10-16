@@ -24,10 +24,16 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Java 25 for unobfuscated class declaration inspection
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
       - name: Hermetic receiver/metadata negative tests
         run: python3 -m unittest discover -s tools/tests -p 'test_r2c_official_client_registry_inventory.py' -v
 
-      - name: Fetch official client and mappings into disposable scratch
+      - name: Fetch official unobfuscated client into disposable scratch
         run: |
           python3 tools/r2c_official_client_registry_inventory.py \
             --output /tmp/r2c-26.2-client-registry-discovery.json
@@ -44,11 +50,11 @@ jobs:
           assert not result["client_numeric_id_assignment_proven"]
           assert not result["production_admitted"]
           assert len(result["client_configuration_listener_candidates"]) <= 16
-          assert result["artifacts"]["client"]["official_size_bytes"] > 0
-          assert result["artifacts"]["client_mappings"]["official_size_bytes"] > 0
-          print("Official client SHA-256 candidates and class identities discovered, NOT ADMITTED")
+          assert result["official_executable_unobfuscated"]
+          assert result["client_artifact"]["official_size_bytes"] > 0
+          print("Official unobfuscated client JAR/class SHA-256 candidates discovered, NOT ADMITTED")
           for candidate in result["client_configuration_listener_candidates"]:
-              print(candidate["mapped_class"], candidate["registry_related_method_names"])
+              print(candidate["class_name"], candidate["registry_related_method_names"])
           PY
 
       - name: Upload only bounded source-free review metadata

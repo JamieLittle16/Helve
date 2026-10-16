@@ -46,6 +46,7 @@ jobs:
               'LOADED-REGISTRY-ID-ALLOCATION',
               'CONFIGURATION-BIOME-ENTRY-PUBLICATION',
               'BIOME-CONTAINER-ID-BINDING',
+              'NETWORK-REGISTRY-RECEIVE-AND-ORDERED-REGISTRATION',
           ]
           print('R2C biome ID source gap remains explicitly UNADMITTED')
           PY

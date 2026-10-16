@@ -88,7 +88,7 @@ where
     BD::Section: BiomeSection<Biome>,
     MakeEmpty: FnMut() -> SB::Section,
 {
-    let imported = importer
+    let decoded = importer
         .import_region_chunk_with_biomes(
             source.region,
             source.local_x,
@@ -97,11 +97,11 @@ where
             biome_decoder,
         )
         .map_err(AnvilSourceAdmissionError::Decode)?;
-    imported
+    decoded
         .block_entities
         .require_explicitly_empty()
         .map_err(AnvilSourceAdmissionError::BlockEntities)?;
-    install_source_biome_chunk_with_receipt(dimension, imported, make_empty_section)
+    install_source_biome_chunk_with_receipt(dimension, decoded, make_empty_section)
         .map_err(AnvilSourceAdmissionError::Install)
 }
 

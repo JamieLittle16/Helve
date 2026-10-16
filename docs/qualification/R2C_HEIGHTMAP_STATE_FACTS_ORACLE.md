@@ -73,6 +73,42 @@ source/runtime commitments, and uploads a seven-day ephemeral output.
 **The generated candidate is not committed and no table is wired into
 production by this workflow.**
 
+## Cross-oracle COLD projector integration (source-gated)
+
+`tools/r2c_heightmap_candidate_bytes.py` validates the precise
+official runtime JSON contract, all four source-file review anchors,
+server/source hashes against `vanilla.lock.toml`, every state record,
+and the explicit **false** source/production admission flags. It emits
+only the 32,366-byte proposed fact array as an ephemeral workflow
+artifact—not a committed or admissible production generated table.
+
+A deliberately **dormant** server-local `CandidateHeightmapFacts` borrows
+this byte array directly and implements the existing
+`HeightmapStateFacts<BlockStateId>` contract in the COLD reference
+projection. Construction scans the candidate exactly once and
+independently cross-checks every non-air and fluid-nonempty bit against
+the previously source/runtime-qualified `STATE_MUTATION_FLAGS`
+generated data. It rejects missing/excessive entries, invalid upper
+bits, inconsistent non-air/fluid facts, and impossible air/motion or
+air/leaves combinations. After validation, each fact access is just a
+dense indexed read, with no extra registry map, per-world copy, or
+HOT-path bookkeeping.
+
+The dedicated official-runtime GitHub workflow now additionally
+runs an opt-in Rust integration test using the **actual** downloaded
+official probe table. This selects motion-blocking leaf and non-leaf
+states by their observed flags rather than handwritten IDs, builds
+a two-section Helve chunk, and verifies that
+`ClientHeightmaps::derive` computes exact topmost heights for
+world-surface, motion-blocking, and no-leaves. The ordinary Rust CI
+continues to test malformed and contradictory *synthetic* tables;
+the official integration test is only enabled when its ephemeral
+environment-provided fact table is present.
+
+This makes an important independent data/algorithm cross-check,
+**not** a substitute for the remaining complete source-fingerprint
+and VAR/SEM admission.
+
 ## Remaining source admission and integration
 
 Before promoting any table, establish complete exact fingerprint-pinned

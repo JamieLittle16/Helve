@@ -378,6 +378,45 @@ world. Source-admitted client biome numeric IDs, exact heightmap
 predicates, outer chunk publication and the product runtime's region
 file enumeration remain separate explicit obligations.
 
+## Bounded selected-region file ingress
+
+`helve-world-load::visit_pregenerated_region` now offers the
+production-compiled **COLD filesystem boundary** for an already-selected
+finite group of chunks in one pregenerated Anvil region:
+
+- caller supplies the semantic centre/view's selected absolute chunk
+  positions, explicit maximum region/inline/external file sizes and
+  exact region coordinates; duplicate or foreign positions fail
+  before any filesystem access;
+- only `world/region/r.<x>.<z>.mca` is opened, read under its explicit
+  byte cap and validated once by the established `RegionView` source
+  contract; no arbitrary recursive world traversal or guessed chunks;
+- a fixed 1024-bit stack bitset preflights duplicate slot positions
+  with no hash table or heap allocation;
+- one region byte allocation is reused across the entire selected
+  group; external `c.<x>.<z>.mcc` bytes are fetched only for
+  source records explicitly marked external, under separate bounds,
+  and released after each synchronous visitor;
+- the callback receives only `SelectedAnvilSource`, the **same**
+  caller-borrowed handle accepted by
+  `import_and_install_anvil_source` from PR #319;
+- malformed headers, missing selected slots, symlinks, oversized
+  files and callback failures remain explicit errors. Per-chunk
+  semantic admission is transactional; a group of multiple valid
+  chunks is **not** claimed to install atomically.
+
+Hermetic filesystem tests cover requested-order callbacks, no region
+file re-read, separate external payloads, missing/truncated regions,
+unresolved chunk positions, duplicate/foreign requests, and refusal
+of linked region files.
+
+The actual live R2B `WorldProjectionReady` route still does
+**not** invoke this reader. Its integration with source-bound
+Configuration biomes, actual generated heightmap facts and
+Play publisher remains gated on independent client-ID and world-wire
+VAR/SEM admission. The absence of a second chunk/image owner
+and any HOT world cost is deliberate.
+
 ## Explicit non-claims at the current R2C.3 boundary
 
 A green current R2C.3 block-state boundary means Helve has:

@@ -17,9 +17,13 @@ mod light;
 mod receipt;
 mod semantic;
 mod stored_biomes;
+mod world_files;
 
 pub use anvil_source::{
     AnvilSourceAdmissionError, SelectedAnvilSource, import_and_install_anvil_source,
+};
+pub use world_files::{
+    PregeneratedRegionError, PregeneratedRegionLimits, visit_pregenerated_region,
 };
 pub use receipt::{
     ExplicitlyEmptyImportedSource, SourceChunkPublicationReceipt, SourceChunkReceiptError,

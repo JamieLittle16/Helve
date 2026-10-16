@@ -88,7 +88,21 @@ jobs:
                          "RegistryDataLoader.lambda$load$2:")
           assert [m["method_name"] for r in result["rooted_class_bootstraps"]
                   if r["class_name"] == "net.minecraft.resources.RegistryLoadTask"
-                  for m in r["selected_methods"]] == ["registerElements"]
+                  for m in r["selected_methods"]] == [
+                      "registerElements", "lambda$registerElements$0"
+                  ]
+          require_handle("net.minecraft.resources.RegistryLoadTask",
+                         "registerElements", 9, "REF_invokeVirtual",
+                         "RegistryLoadTask.lambda$registerElements$0:")
+          [task_root] = [r for r in result["rooted_class_bootstraps"]
+                         if r["class_name"] == "net.minecraft.resources.RegistryLoadTask"]
+          callback = task_root["register_consumer_callback_invocations_candidate"]
+          assert callback["handler"] == "lambda$registerElements$0"
+          assert 1 <= len(callback["invocations"]) <= 96
+          print("Client registry registration callback invoke sites:")
+          for edge in callback["invocations"]:
+              print("   ", edge["bytecode_offset"], edge["opcode"],
+                    edge["symbolic_target"])
           for root in result["rooted_class_bootstraps"]:
               print("Root:", root["class_name"])
               for method in root["selected_methods"]:

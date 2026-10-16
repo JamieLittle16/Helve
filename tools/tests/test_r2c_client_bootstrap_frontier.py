@@ -208,6 +208,15 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
             with patch.object(probe.subprocess, "run", side_effect=fake_javap):
                 records = probe.inspect_client(jar)
             self.assertEqual(len(records), 4)
+            [consumer] = [r for r in records if
+                          r["class_name"] == "net.minecraft.resources.RegistryLoadTask"]
+            self.assertEqual(
+                consumer["register_consumer_callback_invocations_candidate"]["handler"],
+                "lambda$registerElements$0",
+            )
+            self.assertEqual(
+                len(consumer["register_consumer_callback_invocations_candidate"]["invocations"]), 1
+            )
             self.assertNotIn("synthetic-class", json.dumps(records))
             self.assertNotIn("MappedRegistry.wrong", json.dumps(records))
             jar.write_bytes(jar_bytes("net.minecraft.util.Util"))

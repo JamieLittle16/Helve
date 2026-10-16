@@ -4,7 +4,8 @@
 Java 26.2 is shipped unobfuscated and has no client_mappings download. Fetch
 only the official client JAR from the Mojang launcher manifest, check official
 SHA-1/size, and emit SHA-256 class/artifact fingerprints plus bounded method
-names from javap. No JAR, bytecode listing or original source is emitted.
+names and symbolic invoke-site metadata from javap. No JAR, bytecode
+listing or original source is emitted.
 This is discovery, NOT reviewed client invocation or numeric-ID admission.
 """
 

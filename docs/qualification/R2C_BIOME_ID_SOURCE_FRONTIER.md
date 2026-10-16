@@ -196,3 +196,16 @@ Whether list insertion is lossless/in-order, whether duplicate registries
 are rejected or replaced, and how `RegistryDataLoader.load` ultimately
 registers the entries **remain independent source-review obligations**.
 The probe must never change client-ID or production-admission flags.
+
+### Stock-client selected RegistryDataLoader.load overload (unadmitted)
+
+The observed client `RegistryDataCollector.loadNewElementsAndTags` invokes
+`RegistryDataLoader.load(Map, ResourceProvider, List, List, Executor)`.
+The source-free official client probe now selects **that exact five-argument
+overload**, fingerprinting its signature separately and enumerating only
+its symbolic JVM invoke sites. Other overloads of `load` and unrelated
+class methods must not be used as evidence of the selected path.
+
+This remains discovery of code structure, not review of branches,
+exceptions, asynchronous completion, actual list insertion or numeric ID
+assignment. Complete VAR/SEM and source gate remain mandatory.

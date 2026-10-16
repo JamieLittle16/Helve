@@ -188,11 +188,19 @@ def inspect_client(client: Path) -> list[dict]:
             )
             if process.returncode or len(process.stdout) > MAX_VERBOSE_CHARS:
                 raise ValueError(f"could not bound official client verbose class: {class_name}")
-            records.append({
+            item = {
                 "class_name": class_name,
                 "classfile_sha256_candidate": hashlib.sha256(raw).hexdigest(),
                 "selected_methods": inspect_verbose(process.stdout, class_name),
-            })
+            }
+            if class_name == "net.minecraft.resources.RegistryLoadTask":
+                [callback] = client_probe.handler_invocations(
+                    process.stdout,
+                    method_names=("lambda$registerElements$0",),
+                    required_method="lambda$registerElements$0",
+                )
+                item["register_consumer_callback_invocations_candidate"] = callback
+            records.append(item)
     return records
 
 

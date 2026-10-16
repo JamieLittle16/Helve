@@ -33,6 +33,8 @@ KIND = "r2c-official-unobfuscated-client-receiver-artifact-discovery-v1"
 MAX_CANDIDATES = 16
 MAX_METHODS_PER_CANDIDATE = 64
 MAX_CLASS_BYTES = 1_048_576
+MAX_INVOKES_PER_HANDLER = 96
+HANDLER_NAMES = ("handleRegistryData", "handleConfigurationFinished", "handleSelectKnownPacks")
 
 
 def required_client(meta: dict) -> dict:
@@ -53,6 +55,72 @@ def required_client(meta: dict) -> dict:
         raise ValueError("invalid official client metadata identity")
     return asset
 
+
+
+def handler_invocations(disassembly: str) -> list[dict]:
+    """Summarize exact javap call *sites*, not source/bytecode or call proof.
+
+    Method boundaries are taken from javap declarations, not a substring
+    search across the whole class: an unrelated lambda cannot masquerade as
+    handleRegistryData. Keep bytecode indexes and opcode for human review of
+    dispatch and error paths, but never persist instruction listings.
+    """
+    found: dict[str, list[dict]] = {}
+    current: str | None = None
+    in_code = False
+    for line in disassembly.splitlines():
+        declaration = re.fullmatch(r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\);", line)
+        if declaration:
+            name = declaration.group(1)
+            current = name if name in HANDLER_NAMES else None
+            if current is not None:
+                if current in found:
+                    raise ValueError(f"ambiguous client handler overload: {current}")
+                found[current] = []
+            in_code = False
+            continue
+        if line.strip() == "Code:":
+            in_code = current is not None
+            continue
+        if not in_code:
+            continue
+        insn = re.match(
+            r"^\s*(\d+):\s+(invokevirtual|invokestatic|invokeinterface|invokespecial|invokedynamic)\s+#\d+",
+            line,
+        )
+        if insn is None:
+            continue
+        if "// " not in line:
+            raise ValueError("javap invocation without symbolic constant-pool target")
+        target = line.split("// ", 1)[1].strip()
+        if not target or len(target) > 512:
+            raise ValueError("empty or excessive symbolic invoke target")
+        calls = found[current]
+        calls.append({
+            "bytecode_offset": int(insn.group(1)),
+            "opcode": insn.group(2),
+            "symbolic_target": target,
+        })
+        if len(calls) > MAX_INVOKES_PER_HANDLER:
+            raise ValueError("client registry handler exceeds bounded call-site limit")
+    if "handleRegistryData" not in found or not found["handleRegistryData"]:
+        raise ValueError("actual client handler has no inspectable handleRegistryData invokes")
+    return [{"handler": name, "invocations": found[name]}
+            for name in HANDLER_NAMES if name in found]
+
+
+def inspect_handler_invocations(client: Path, class_name: str) -> list[dict]:
+    """Disassemble one pinned official class, emitting *only* bounded invoke edges."""
+    result = subprocess.run(
+        ["javap", "-c", "-p", "-classpath", str(client), class_name],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    if result.returncode:
+        raise ValueError(f"javap invocation inspection failed for {class_name}: "
+                         f"{result.stderr[:400]}")
+    if len(result.stdout) > 2_000_000:
+        raise ValueError("client receiver disassembly exceeds bounded review")
+    return handler_invocations(result.stdout)
 
 def receiver_candidates(client: Path) -> list[dict]:
     """Read only bounded class identities and method names; no class execution."""
@@ -92,6 +160,11 @@ def receiver_candidates(client: Path) -> list[dict]:
                 "class_name": class_name,
                 "classfile_sha256_candidate": hashlib.sha256(bytecode).hexdigest(),
                 "registry_related_method_names": sorted(relevant),
+                "client_handler_invoke_sites_candidate": (
+                    inspect_handler_invocations(client, class_name)
+                    if class_name.endswith(".ClientConfigurationPacketListenerImpl")
+                    else []
+                ),
             })
         if not any(any("registry" in method.lower()
                        for method in candidate["registry_related_method_names"])

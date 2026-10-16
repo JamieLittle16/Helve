@@ -635,7 +635,7 @@ mod tests {
     };
 
     use crate::r2b_server::R2bPlaySession;
-    use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState};
+    use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
     use crate::r2c_initial_view::{
         InitialViewSelectionError, prepare_initial_source_view,
     };

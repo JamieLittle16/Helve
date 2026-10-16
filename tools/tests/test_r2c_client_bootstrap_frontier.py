@@ -86,6 +86,13 @@ def registration_consumer_fixture() -> str:
        1: invokedynamic #101,  0 // InvokeDynamic #0:accept:(Lnet/minecraft/resources/RegistryLoadTask;)Ljava/util/function/Consumer;
        6: invokeinterface #102,  2 // InterfaceMethod java/util/stream/Stream.forEach:(Ljava/util/function/Consumer;)V
       11: return
+  private void lambda$registerElements$0(net.minecraft.resources.RegistryLoadTask$PendingRegistration);
+    descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)V
+    Code:
+       0: aload_0
+       1: aload_1
+       2: invokevirtual #103 // Method net/minecraft/core/MappedRegistry.register:(Ljava/lang/Object;)Ljava/lang/Object;
+       5: return
 }
 BootstrapMethods:
   0: #120 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(...)
@@ -120,10 +127,12 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
         for class_name, _ in probe.ROOTS:
             if class_name == "net.minecraft.resources.RegistryLoadTask":
                 with self.subTest(class_name=class_name):
-                    [consumer] = probe.inspect_verbose(
+                    [consumer, callback] = probe.inspect_verbose(
                         registration_consumer_fixture(), class_name
                     )
                     self.assertEqual(consumer["method_name"], "registerElements")
+                    self.assertEqual(callback["method_name"], "lambda$registerElements$0")
+                    self.assertEqual(callback["bootstrap_method_handle_links_candidate"], [])
                     [edge] = consumer["bootstrap_method_handle_links_candidate"]
                     self.assertEqual(edge["bootstrap_index"], 0)
                     self.assertEqual(edge["bytecode_offset"], 1)

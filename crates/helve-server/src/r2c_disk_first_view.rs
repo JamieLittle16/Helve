@@ -372,7 +372,27 @@ mod tests {
     }
 
     #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one test checks source-backed cross-region disk import through exact official wire and ACK"
+    )]
     fn source_chunks_from_two_disk_regions_feed_one_nearest_first_batch() {
+        use helve_connection_core::{ConnectionLimits, IngressBuffer};
+        use helve_connection_driver::ConnectionDriver;
+        use helve_session_core::LivenessState;
+        use helve_target_26_2::r2b::TeleportTransaction;
+        use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
+        use helve_target_26_2::r2c_play_wire::{
+            CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
+            CLIENTBOUND_CHUNK_WITH_LIGHT, append_chunk_with_light_packet_id,
+        };
+        use helve_world_chunk::HeightmapStateFacts;
+
+        use crate::r2b_server::R2bPlaySession;
+        use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
+        use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
+        use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
+
         let world = WorldFixture::new();
         // At the origin the selected fixed view straddles signed
         // Anvil region -1 and 0, without inventing a third region.
@@ -452,30 +472,12 @@ mod tests {
             return;
         };
 
-        use helve_connection_core::{ConnectionLimits, IngressBuffer};
-        use helve_connection_driver::ConnectionDriver;
-        use helve_session_core::LivenessState;
-        use helve_target_26_2::r2b::TeleportTransaction;
-        use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
-        use helve_target_26_2::r2c_play_wire::{
-            CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
-            CLIENTBOUND_CHUNK_WITH_LIGHT, append_chunk_with_light_packet_id,
-        };
-        use helve_world_chunk::HeightmapStateFacts;
-
-        use crate::r2b_server::R2bPlaySession;
-        use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
-        use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
-        use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
 
         let oracle = std::fs::read(path).expect("source-pinned official 26.2 oracle");
         let facts = CandidateHeightmapFacts::from_oracle_bytes(&oracle)
             .expect("actual oracle IDs match qualified generated state facts");
-        let stone = helve_world_import::resolve_target_26_2_block_state(
-            "minecraft:stone",
-            &[],
-        )
-        .expect("exact saved stone identity");
+        let stone = helve_world_import::resolve_target_26_2_block_state("minecraft:stone", &[])
+            .expect("exact saved stone identity");
         let predicate = facts.properties(stone);
         assert!(predicate.non_air());
         assert!(predicate.blocks_motion());

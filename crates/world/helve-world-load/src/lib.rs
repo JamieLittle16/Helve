@@ -24,6 +24,7 @@ pub use anvil_source::{
 };
 pub use world_files::{
     PregeneratedRegionError, PregeneratedRegionLimits, visit_pregenerated_region,
+    visit_selected_pregenerated_world,
 };
 pub use receipt::{
     ExplicitlyEmptyImportedSource, SourceChunkPublicationReceipt, SourceChunkReceiptError,

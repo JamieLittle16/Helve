@@ -15,9 +15,9 @@
 use helve_world_contract::{BiomeSection, BlockSection};
 use helve_world_import::{
     BlockStateResolver, ChunkPayloadDecoder, EmptyBlockEntityEvidenceError, ExternalChunkPayload,
-    ImportedBlockSectionBuilder, RegionView, SectionBiomeDecoder, StoredBlockImporter,
-    StoredChunkImportError,
+    ImportedBlockSectionBuilder, RegionView, StoredBlockImporter, StoredChunkImportError,
 };
+use helve_world_import::stored_biomes::SectionBiomeDecoder;
 use helve_world_runtime::SemanticDimensionInstance;
 
 use crate::{

@@ -309,6 +309,99 @@ where
         .map_err(DiskFirstViewError::FinalView)
 }
 
+
+/// One immutable COLD saved-world request for a continuing R2B player.
+///
+/// The profile is an explicit caller-supplied *candidate*, not proof of the
+/// Configuration dimension/pack or of the persisted save's identity.
+pub(crate) struct PendingTeleportDiskFirstViewRequest<'a> {
+    pub(crate) world: &'a Path,
+    pub(crate) profile: DimensionRuntimeProfile,
+    pub(crate) view_distance: i32,
+    pub(crate) max_chunks: usize,
+    pub(crate) limits: PregeneratedRegionLimits,
+}
+
+/// Pre-publication binding failures retain separate alignment and disk causes.
+#[derive(Debug)]
+pub(crate) enum PendingTeleportDiskImportError<E> {
+    ProfileMismatch {
+        selected: DimensionRuntimeProfile,
+        resident: DimensionRuntimeProfile,
+    },
+    Player(PendingTeleportViewError),
+    Source(DiskFirstViewError<E>),
+}
+
+/// Bind the actual retained R2B teleport to exactly one selected saved-world
+/// import, using the *existing* single-authority dimension and loader.
+///
+/// All player/profile checks run before filesystem access and before semantic
+/// installation. On success the receipts remain in caller-owned nearest-first
+/// order and the returned state is the existing ACK-aware publication cursor.
+/// A failed source import can still leave individually verified chunks resident,
+/// as documented by `import_disk_first_view`, but never emits Play bytes.
+///
+/// The explicit selected profile must later be *independently* bound to the
+/// world save, Configuration dimension, pack fingerprint, and official 26.2
+/// biome/heightmap/outer-wire evidence. This function does not grant source
+/// admission and does not enable a live publisher.
+///
+/// # Errors
+///
+/// Rejects selected/resident profile drift or invalid player view before I/O,
+/// or retains the original typed bounded source-import error.
+pub(crate) fn import_pending_teleport_disk_first_view<R, SB, D, BD, MakeEmpty>(
+    session: &R2bPlaySession,
+    request: PendingTeleportDiskFirstViewRequest<'_>,
+    dimension: &mut SemanticDimensionInstance<BlockStateId, SB::Section, u16, BD::Section>,
+    importer: &mut StoredBlockImporter<'_, R, SB, D>,
+    biome_decoder: &mut BD,
+    receipts: &mut Vec<SourceChunkPublicationReceipt>,
+    make_empty_section: MakeEmpty,
+) -> Result<(ChunkPos, R2cChunkBatchState), PendingTeleportDiskImportError<D::Error>>
+where
+    R: BlockStateResolver<State = BlockStateId>,
+    SB: ImportedBlockSectionBuilder<BlockStateId>,
+    SB::Section: BlockSection<BlockStateId>,
+    D: ChunkPayloadDecoder,
+    BD: SectionBiomeDecoder,
+    BD::Section: BiomeSection<u16>,
+    MakeEmpty: FnMut() -> SB::Section,
+{
+    let resident = dimension.profile();
+    if resident != request.profile {
+        return Err(PendingTeleportDiskImportError::ProfileMismatch {
+            selected: request.profile,
+            resident,
+        });
+    }
+    let (center, mut requested) = plan_pending_teleport_first_view(
+        session,
+        request.profile,
+        request.view_distance,
+        request.max_chunks,
+    )
+    .map_err(PendingTeleportDiskImportError::Player)?;
+    let state = import_disk_first_view(
+        DiskFirstViewRequest {
+            world: request.world,
+            requested: &mut requested,
+            center,
+            view_distance: request.view_distance,
+            limits: request.limits,
+        },
+        dimension,
+        importer,
+        biome_decoder,
+        receipts,
+        make_empty_section,
+    )
+    .map_err(PendingTeleportDiskImportError::Source)?;
+    Ok((center, state))
+}
+
+
 #[cfg(test)]
 mod tests {
     use helve_types::ChunkPos;

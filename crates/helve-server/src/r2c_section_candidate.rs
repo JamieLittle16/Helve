@@ -614,11 +614,11 @@ mod tests {
     };
     use helve_world_contract::{BlockSection, SectionBlockPos};
     use helve_world_import::{
-        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection, ImportedBlockSection,
-        ImportedChunkBlocks,
-        ImportedStoredBiomes, ImportedStoredChunk, ImportedStoredChunkWithBiomeLight,
-        ImportedStoredLight, ImportedStoredLightSection, StoredBlockEntityEvidence,
-        StoredChunkHeader, StoredChunkSourceMetadata, TARGET_DATA_VERSION_26_2,
+        ChunkCompression, EmptyBlockEntityEvidenceError, ImportedBiomeSection,
+        ImportedBlockSection, ImportedChunkBlocks, ImportedStoredBiomes, ImportedStoredChunk,
+        ImportedStoredChunkWithBiomeLight, ImportedStoredLight, ImportedStoredLightSection,
+        StoredBlockEntityEvidence, StoredChunkHeader, StoredChunkSourceMetadata,
+        TARGET_DATA_VERSION_26_2,
     };
     use helve_world_load::{
         SourceChunkPublicationReceipt, SourceChunkReceiptError,
@@ -637,8 +637,8 @@ mod tests {
 
     use crate::r2b_server::R2bPlaySession;
     use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
-    use crate::r2c_initial_view::{InitialViewSelectionError, prepare_initial_source_view};
     use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
+    use crate::r2c_initial_view::{InitialViewSelectionError, prepare_initial_source_view};
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
@@ -1216,7 +1216,12 @@ mod tests {
         let project = |index: usize, output: &mut Vec<u8>| {
             append_chunk_with_light_packet_id(output);
             append_receipt_bound_empty_chunk_body_candidate(
-                &dim, &receipts[index], &facts, 66, 16_384, output,
+                &dim,
+                &receipts[index],
+                &facts,
+                66,
+                16_384,
+                output,
             )
             .map(|_| ())
         };
@@ -1280,7 +1285,10 @@ mod tests {
         let consumed = chunk.stream_bytes();
         reader.consume(consumed).unwrap();
         let finish = reader.peek_frame().unwrap().unwrap();
-        assert_eq!(finish.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED));
+        assert_eq!(
+            finish.packet_id(),
+            i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+        );
         assert_eq!(finish.payload(), [1]);
         let consumed = finish.stream_bytes();
         reader.consume(consumed).unwrap();

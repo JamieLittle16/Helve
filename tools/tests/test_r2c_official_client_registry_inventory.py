@@ -18,6 +18,8 @@ import r2c_official_client_registry_inventory as probe
 
 CLIENT_CLASS = "net/minecraft/client/multiplayer/ClientConfigurationPacketListenerImpl.class"
 COLLECTOR_CLASS = "net/minecraft/client/multiplayer/RegistryDataCollector.class"
+CONTENTS_CLASS = "net/minecraft/client/multiplayer/RegistryDataCollector$ContentsCollector.class"
+LOADER_CLASS = "net/minecraft/resources/RegistryDataLoader.class"
 BYTECODE = b"\xca\xfe\xba\xbe" + b"synthetic-jvm-test-class"
 JAVAP = """public class net.minecraft.client.multiplayer.ClientConfigurationPacketListenerImpl {
   public void handleRegistryData(net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket);
@@ -66,10 +68,29 @@ JAVAP_COLLECTOR = """public class net.minecraft.client.multiplayer.RegistryDataC
 """
 
 
+JAVAP_CONTENTS = """public class net.minecraft.client.multiplayer.RegistryDataCollector$ContentsCollector {
+  public void append(net.minecraft.resources.ResourceKey key, java.util.List entries);
+    Code:
+       0: aload_0
+       1: getfield #13 // Field contents:Ljava/util/Map;
+       4: aload_1
+       5: aload_2
+       6: invokeinterface #14,  3 // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+      11: return
+
+  public void unrelated();
+    Code:
+       0: invokestatic #99 // Method net/minecraft/core/MappedRegistry.fake:()V
+}
+"""
+
+
 def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
     del kwargs
     if "-c" in args and probe.COLLECTOR_CLASS in args:
         return subprocess.CompletedProcess(args, 0, JAVAP_COLLECTOR, "")
+    if "-c" in args and probe.CONTENTS_CLASS in args:
+        return subprocess.CompletedProcess(args, 0, JAVAP_CONTENTS, "")
     return subprocess.CompletedProcess(
         args, 0, JAVAP_CODE if "-c" in args else JAVAP, ""
     )
@@ -201,6 +222,30 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
             ), self.assertRaisesRegex(ValueError, "no inspectable appendContents"):
                 probe.collector_candidate(jar)
 
+
+    def test_exact_nested_append_and_loader_classes_are_both_required(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            jar = Path(tmp) / "client.jar"
+            jar.write_bytes(jar_bytes({CONTENTS_CLASS: BYTECODE, LOADER_CLASS: BYTECODE}))
+            with patch.object(probe.subprocess, "run", side_effect=mock_javap):
+                observed = probe.inner_contents_candidate(jar)
+            self.assertEqual(observed["classfile_sha256_candidate"],
+                             hashlib.sha256(BYTECODE).hexdigest())
+            self.assertNotIn("MappedRegistry.fake", json.dumps(observed))
+            jar.write_bytes(jar_bytes({CONTENTS_CLASS: BYTECODE}))
+            with self.assertRaisesRegex(ValueError, "missing or duplicated"):
+                probe.inner_contents_candidate(jar)
+            jar.write_bytes(jar_bytes({CONTENTS_CLASS: b"wrong", LOADER_CLASS: BYTECODE}))
+            with self.assertRaisesRegex(ValueError, "invalid client delegate"):
+                probe.inner_contents_candidate(jar)
+            jar.write_bytes(jar_bytes({CONTENTS_CLASS: BYTECODE, LOADER_CLASS: BYTECODE}))
+            wrong = JAVAP_CONTENTS.replace("public void append(", "public void other(")
+            with patch.object(
+                probe.subprocess, "run",
+                return_value=subprocess.CompletedProcess([], 0, wrong, ""),
+            ), self.assertRaisesRegex(ValueError, "no inspectable append"):
+                probe.inner_contents_candidate(jar)
+
     def test_unobfuscated_metadata_has_exact_official_identity_fields(self) -> None:
         self.assertEqual(probe.required_client(meta())["size"], 123)
         for invalid in [
@@ -235,7 +280,8 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                 probe.identity_lock(lock)
 
     def test_discovery_emits_no_jar_or_bytecode_and_cannot_self_admit(self) -> None:
-        blob = jar_bytes({CLIENT_CLASS: BYTECODE, COLLECTOR_CLASS: BYTECODE})
+        blob = jar_bytes({CLIENT_CLASS: BYTECODE, COLLECTOR_CLASS: BYTECODE,
+                         CONTENTS_CLASS: BYTECODE, LOADER_CLASS: BYTECODE})
 
         def fake_download(url: str, output: Path, sha1: str, size: int) -> None:
             del url, sha1, size
@@ -262,6 +308,12 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
         )
         self.assertIn("HashMap.computeIfAbsent",
                       collector["method_call_sites_candidate"][0]["invocations"][0]
+                      ["symbolic_target"])
+        inner = result["client_inner_contents_candidate"]
+        self.assertEqual(inner["class_name"], probe.CONTENTS_CLASS)
+        self.assertEqual(inner["registry_loader_class_name"], probe.LOADER_CLASS)
+        self.assertEqual(len(inner["append_invoke_sites_candidate"]), 1)
+        self.assertIn("Map.put", inner["append_invoke_sites_candidate"][0]["invocations"][0]
                       ["symbolic_target"])
         self.assertNotIn("synthetic-jvm-test-class", json.dumps(result))
         self.assertNotIn("public void", json.dumps(result))

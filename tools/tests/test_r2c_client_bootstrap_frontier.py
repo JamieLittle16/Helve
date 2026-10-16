@@ -91,19 +91,22 @@ def registration_consumer_fixture() -> str:
     Code:
        0: aload_0
        1: aload_1
-       2: invokevirtual #103 // Method com/mojang/datafixers/util/Either.ifLeft:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
-       5: return
+       6: invokedynamic #111,  0 // InvokeDynamic #1:accept:(Lnet/minecraft/resources/RegistryLoadTask;Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)Ljava/util/function/Consumer;
+      11: invokevirtual #103 // Method com/mojang/datafixers/util/Either.ifLeft:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
+      16: invokedynamic #112,  0 // InvokeDynamic #2:accept:(Lnet/minecraft/resources/RegistryLoadTask;Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)Ljava/util/function/Consumer;
+      21: invokevirtual #106 // Method com/mojang/datafixers/util/Either.ifRight:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
+      25: return
   private void lambda$registerElements$1(net.minecraft.resources.RegistryLoadTask$PendingRegistration, java.lang.Object);
     descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Object;)V
     Code:
        0: aload_0
-       1: invokevirtual #104 // Method net/minecraft/core/MappedRegistry.register:(Ljava/lang/Object;)Ljava/lang/Object;
+      13: invokeinterface #104,  4 // InterfaceMethod net/minecraft/core/WritableRegistry.register:(Lnet/minecraft/resources/ResourceKey;Ljava/lang/Object;Lnet/minecraft/core/RegistrationInfo;)Lnet/minecraft/core/Holder$Reference;
        4: return
   private void lambda$registerElements$2(net.minecraft.resources.RegistryLoadTask$PendingRegistration, java.lang.Exception);
     descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Exception;)V
     Code:
        0: aload_0
-       1: invokevirtual #105 // Method java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+       9: invokeinterface #105,  3 // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
        4: return
 }
 BootstrapMethods:
@@ -111,6 +114,16 @@ BootstrapMethods:
     Method arguments:
       #128 (Ljava/lang/Object;)V
       #129 REF_invokeVirtual net/minecraft/resources/RegistryLoadTask.lambda$registerElements$0:(Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)V
+      #130 (Ljava/lang/Object;)V
+  1: #120 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(...)
+    Method arguments:
+      #128 (Ljava/lang/Object;)V
+      #129 REF_invokeVirtual net/minecraft/resources/RegistryLoadTask.lambda$registerElements$1:(Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Object;)V
+      #130 (Ljava/lang/Object;)V
+  2: #120 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(...)
+    Method arguments:
+      #128 (Ljava/lang/Object;)V
+      #129 REF_invokeVirtual net/minecraft/resources/RegistryLoadTask.lambda$registerElements$2:(Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Exception;)V
       #130 (Ljava/lang/Object;)V
 InnerClasses:
   public static final #200= #201 of #202;
@@ -144,7 +157,11 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
                     )
                     self.assertEqual(consumer["method_name"], "registerElements")
                     self.assertEqual(callback["method_name"], "lambda$registerElements$0")
-                    self.assertEqual(callback["bootstrap_method_handle_links_candidate"], [])
+                    self.assertEqual(
+                        [e["impl_handle_target_candidate"].split(":")[0].split(".")[-1]
+                         for e in callback["bootstrap_method_handle_links_candidate"]],
+                        ["lambda$registerElements$1", "lambda$registerElements$2"],
+                    )
                     [edge] = consumer["bootstrap_method_handle_links_candidate"]
                     self.assertEqual(edge["bootstrap_index"], 0)
                     self.assertEqual(edge["bytecode_offset"], 1)
@@ -168,6 +185,33 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
                 self.assertEqual(secondary["impl_handle_kind"], "REF_invokeVirtual")
                 self.assertIn("CompletableFuture.join",
                               secondary["impl_handle_target_candidate"])
+
+    def test_register_delegate_requires_success_and_error_separation(self) -> None:
+        from copy import deepcopy
+        with tempfile.TemporaryDirectory() as tmp:
+            jar = Path(tmp) / "client.jar"
+            jar.write_bytes(jar_bytes())
+            with patch.object(probe.subprocess, "run", side_effect=fake_javap):
+                [item] = [x for x in probe.inspect_client(jar)
+                          if x["class_name"] == "net.minecraft.resources.RegistryLoadTask"]
+        callbacks = item["register_consumer_delegate_invocations_candidate"]
+        for index in (0, 1, 2):
+            modified = deepcopy(callbacks)
+            modified[index]["invocations"][0]["bytecode_offset"] += 1
+            with self.subTest(index=index), self.assertRaisesRegex(ValueError, "call changed"):
+                probe.require_registration_delegate_sites(modified)
+        wrong_side = deepcopy(callbacks)
+        wrong_side[2]["invocations"][0]["symbolic_target"] = (
+            "InterfaceMethod net/minecraft/core/WritableRegistry.register:()V"
+        )
+        with self.assertRaisesRegex(ValueError, "call changed"):
+            probe.require_registration_delegate_sites(wrong_side)
+        extra_registration = deepcopy(callbacks)
+        extra_registration[2]["invocations"].append(
+            extra_registration[1]["invocations"][0]
+        )
+        with self.assertRaisesRegex(ValueError, "call count drifted"):
+            probe.require_registration_delegate_sites(extra_registration)
 
     def test_fail_closed_on_missing_bootstrap_or_non_lambda(self) -> None:
         name = "net.minecraft.util.Util"
@@ -229,7 +273,9 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
                  "lambda$registerElements$2"],
             )
             self.assertEqual([len(callback["invocations"]) for callback in callbacks],
-                             [1, 1, 1])
+                             [4, 1, 1])
+            self.assertTrue(consumer["success_error_dispatch_callsite_shapes_pinned"])
+            self.assertFalse(consumer["full_register_or_error_semantics_proven"])
             self.assertNotIn("synthetic-class", json.dumps(records))
             self.assertNotIn("MappedRegistry.wrong", json.dumps(records))
             jar.write_bytes(jar_bytes("net.minecraft.util.Util"))

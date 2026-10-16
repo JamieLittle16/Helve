@@ -262,6 +262,23 @@ def registry_loader_overload_candidate(client: Path) -> dict:
     [sites] = handler_invocations(
         method, method_names=("load",), required_method="load"
     )
+    factory_overloads = [
+        (i, lines[i]) for i in headers
+        if " load(" in lines[i]
+        and "net.minecraft.resources.RegistryDataLoader$LoaderFactory" in lines[i]
+        and lines[i].count("java.util.List") >= 2
+        and "java.util.concurrent.Executor" in lines[i]
+        and "net.minecraft.server.packs.resources.ResourceProvider" not in lines[i]
+    ]
+    if len(factory_overloads) != 1:
+        raise ValueError("receiver-reached loader factory overload must resolve exactly once")
+    factory_start, factory_signature = factory_overloads[0]
+    factory_end = next((i for i in headers if i > factory_start), len(lines))
+    [factory_sites] = handler_invocations(
+        "\n".join(lines[factory_start:factory_end]),
+        method_names=("load",),
+        required_method="load",
+    )
     path = LOADER_CLASS.replace(".", "/") + ".class"
     with zipfile.ZipFile(client) as archive:
         if archive.namelist().count(path) != 1:
@@ -276,6 +293,10 @@ def registry_loader_overload_candidate(client: Path) -> dict:
             signature.encode("utf-8")
         ).hexdigest(),
         "selected_overload_invoke_sites_candidate": sites,
+        "factory_overload_signature_sha256": hashlib.sha256(
+            factory_signature.encode("utf-8")
+        ).hexdigest(),
+        "factory_overload_invoke_sites_candidate": factory_sites,
         "source_inspected": False,
         "client_registration_order_admitted": False,
     }

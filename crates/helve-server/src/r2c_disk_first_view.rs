@@ -25,8 +25,9 @@ use helve_world_load::{
     SourceChunkPublicationReceipt, import_and_install_anvil_source,
     visit_selected_pregenerated_world,
 };
-use helve_world_runtime::SemanticDimensionInstance;
+use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
 
+use crate::r2b_server::R2bPlaySession;
 use crate::r2c_chunk_batch::R2cChunkBatchState;
 use crate::r2c_initial_view::{
     InitialViewSelectionError, in_initial_view, prepare_initial_source_view,
@@ -112,6 +113,95 @@ pub(crate) fn plan_first_view_positions(
     });
     requested.truncate(max_chunks);
     Ok(requested)
+}
+
+/// COLD player/world alignment errors before reading any selected region.
+#[derive(Debug)]
+pub(crate) enum PendingTeleportViewError {
+    /// The retained R2B session no longer has a destination to bind.
+    MissingTeleport,
+    /// NaN or infinity is never a source-valid player position.
+    NonFiniteTeleport,
+    /// The selected, independently qualified dimension lattice excludes the
+    /// requested teleport Y; publishing saved chunks would not fix it.
+    OutsideVerticalLattice {
+        y: f64,
+        minimum: i32,
+        maximum_exclusive: i32,
+    },
+    /// The source player position cannot be represented as a signed chunk
+    /// coordinate; saturating float-to-integer conversion is forbidden.
+    ChunkCoordinateOutOfRange { x: f64, z: f64 },
+    /// The ordinary bounded first-view selector rejected the request.
+    Request(DiskFirstViewError<()>),
+}
+
+/// Derive the COLD initial view from the *actual pending R2B teleport*.
+///
+/// The caller supplies the separately source-qualified dimension profile and
+/// R2B view distance; those facts are NOT inferred from a world save or
+/// guessed from a receipt. This candidate does not itself admit either fact.
+///
+/// Minecraft block-to-chunk coordinates use floor(x / 16), *not* Rust's
+/// truncation toward zero. Negative fractional block positions therefore
+/// select the correct negative chunk, including across signed Anvil regions.
+///
+/// No driver, teleport transaction, first-view receipt, or egress byte is
+/// mutated. The resulting centre and request must be retained together as
+/// one immutable pre-publication selection and passed to the already-existing
+/// `import_disk_first_view`, never separately recomputed.
+///
+/// **Admission limit:** the coordinate rule must be tied to the official
+/// selected 26.2 client/player source law before live world publication.
+/// The selected bootstrap dimension/pack, source-save dimension and profile
+/// still require their independent identity checks.
+///
+/// # Errors
+///
+/// Rejects absent/non-finite/out-of-lattice/unrepresentable teleport
+/// coordinates and invalid finite first-view bounds before filesystem I/O.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
+)]
+pub(crate) fn plan_pending_teleport_first_view(
+    session: &R2bPlaySession,
+    profile: DimensionRuntimeProfile,
+    view_distance: i32,
+    max_chunks: usize,
+) -> Result<(ChunkPos, Vec<ChunkPos>), PendingTeleportViewError> {
+    let pending = session
+        .teleport_transaction()
+        .awaiting()
+        .ok_or(PendingTeleportViewError::MissingTeleport)?;
+    if !(pending.x.is_finite() && pending.y.is_finite() && pending.z.is_finite()) {
+        return Err(PendingTeleportViewError::NonFiniteTeleport);
+    }
+    if pending.y < f64::from(profile.min_block_y())
+        || pending.y >= f64::from(profile.max_block_y_exclusive())
+    {
+        return Err(PendingTeleportViewError::OutsideVerticalLattice {
+            y: pending.y,
+            minimum: profile.min_block_y(),
+            maximum_exclusive: profile.max_block_y_exclusive(),
+        });
+    }
+    let x = (pending.x / 16.0).floor();
+    let z = (pending.z / 16.0).floor();
+    if x < f64::from(i32::MIN)
+        || x > f64::from(i32::MAX)
+        || z < f64::from(i32::MIN)
+        || z > f64::from(i32::MAX)
+    {
+        return Err(PendingTeleportViewError::ChunkCoordinateOutOfRange { x, z });
+    }
+    let center = ChunkPos {
+        x: x as i32,
+        z: z as i32,
+    };
+    let requested = plan_first_view_positions(center, view_distance, max_chunks)
+        .map_err(PendingTeleportViewError::Request)?;
+    Ok((center, requested))
 }
 
 /// Borrowed and finite initial-view request, grouped without owning another
@@ -242,6 +332,111 @@ mod tests {
 
     use super::{DiskFirstViewRequest, import_disk_first_view};
     use helve_world_load::PregeneratedRegionLimits;
+
+    fn retained_session_with_teleport(x: f64, y: f64, z: f64) -> crate::R2bPlaySession {
+        use helve_connection_core::ConnectionLimits;
+        use helve_connection_driver::ConnectionDriver;
+        use helve_session_core::LivenessState;
+        use helve_target_26_2::r2b::TeleportTransaction;
+
+        let mut session = crate::R2bPlaySession {
+            driver: ConnectionDriver::new(ConnectionLimits::new(65_535, 131_072, 262_144).unwrap()),
+            read_scratch: vec![0_u8; 64].into_boxed_slice(),
+            teleport: TeleportTransaction::new(),
+            liveness: LivenessState::new(0, 0).unwrap(),
+        };
+        session.teleport.issue(x, y, z, 0.0, 0.0);
+        session
+    }
+
+    fn test_overworld_lattice() -> DimensionRuntimeProfile {
+        DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true).unwrap()
+    }
+
+    #[test]
+    fn initial_request_is_bound_to_actual_pending_r2b_teleport_not_spawn_origin() {
+        let session =
+            retained_session_with_teleport(10.390_952_126_751_907, 84.0, -5.815_159_807_324_014);
+        let read_scratch = session.read_scratch.as_ptr();
+        let (center, positions) =
+            super::plan_pending_teleport_first_view(&session, test_overworld_lattice(), 10, 9)
+                .unwrap();
+        assert_eq!(center, ChunkPos { x: 0, z: -1 });
+        assert_eq!(positions.len(), 9);
+        assert_eq!(positions[0], center);
+        assert_eq!(session.queued_egress(), 0);
+        assert_eq!(session.buffered_ingress(), 0);
+        assert_eq!(session.read_scratch.as_ptr(), read_scratch);
+        assert!(session.teleport_transaction().awaiting().is_some());
+    }
+
+    #[test]
+    fn negative_coordinates_use_floor_not_zero_truncation() {
+        for (x, z, expected) in [
+            (-0.000_001, -0.000_001, ChunkPos { x: -1, z: -1 }),
+            (-16.0, -16.0, ChunkPos { x: -1, z: -1 }),
+            (-16.000_001, -16.000_001, ChunkPos { x: -2, z: -2 }),
+            (16.0, 16.0, ChunkPos { x: 1, z: 1 }),
+        ] {
+            let session = retained_session_with_teleport(x, 70.0, z);
+            let (center, positions) =
+                super::plan_pending_teleport_first_view(&session, test_overworld_lattice(), 2, 1)
+                    .unwrap();
+            assert_eq!(center, expected);
+            assert_eq!(positions, [expected]);
+        }
+    }
+
+    #[test]
+    fn missing_invalid_or_wrong_lattice_teleport_is_rejected_before_selection() {
+        use super::{PendingTeleportViewError, plan_pending_teleport_first_view};
+
+        let session = crate::R2bPlaySession {
+            driver: helve_connection_driver::ConnectionDriver::new(
+                helve_connection_core::ConnectionLimits::new(65_535, 131_072, 262_144).unwrap(),
+            ),
+            read_scratch: vec![0_u8; 64].into_boxed_slice(),
+            teleport: helve_target_26_2::r2b::TeleportTransaction::new(),
+            liveness: helve_session_core::LivenessState::new(0, 0).unwrap(),
+        };
+        assert!(matches!(
+            plan_pending_teleport_first_view(&session, test_overworld_lattice(), 2, 1),
+            Err(PendingTeleportViewError::MissingTeleport)
+        ));
+        let invalid = retained_session_with_teleport(f64::NAN, 70.0, 0.0);
+        assert!(matches!(
+            plan_pending_teleport_first_view(&invalid, test_overworld_lattice(), 2, 1),
+            Err(PendingTeleportViewError::NonFiniteTeleport)
+        ));
+        let high = retained_session_with_teleport(0.0, 320.0, 0.0);
+        match plan_pending_teleport_first_view(&high, test_overworld_lattice(), 2, 1) {
+            Err(PendingTeleportViewError::OutsideVerticalLattice {
+                y,
+                minimum,
+                maximum_exclusive,
+            }) => {
+                assert_eq!(y.to_bits(), 320.0_f64.to_bits());
+                assert_eq!(minimum, -64);
+                assert_eq!(maximum_exclusive, 320);
+            }
+            other => panic!("expected selected dimension vertical error: {other:?}"),
+        }
+        let out_of_range = retained_session_with_teleport(f64::MAX, 70.0, 0.0);
+        match plan_pending_teleport_first_view(&out_of_range, test_overworld_lattice(), 2, 1) {
+            Err(PendingTeleportViewError::ChunkCoordinateOutOfRange { x, z }) => {
+                assert!(x > f64::from(i32::MAX));
+                assert_eq!(z.to_bits(), 0.0_f64.to_bits());
+            }
+            other => panic!("expected out-of-range chunk centre: {other:?}"),
+        }
+        let ordinary = retained_session_with_teleport(0.0, 70.0, 0.0);
+        assert!(matches!(
+            plan_pending_teleport_first_view(&ordinary, test_overworld_lattice(), 1, 9),
+            Err(PendingTeleportViewError::Request(
+                super::DiskFirstViewError::InvalidViewDistance { actual: 1 }
+            ))
+        ));
+    }
 
     static NEXT_WORLD: AtomicU64 = AtomicU64::new(1);
     const SECTOR: usize = 4096;

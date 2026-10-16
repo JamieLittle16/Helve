@@ -340,9 +340,7 @@ mod tests {
         use helve_target_26_2::r2b::TeleportTransaction;
 
         let mut session = crate::R2bPlaySession {
-            driver: ConnectionDriver::new(
-                ConnectionLimits::new(65_535, 131_072, 262_144).unwrap(),
-            ),
+            driver: ConnectionDriver::new(ConnectionLimits::new(65_535, 131_072, 262_144).unwrap()),
             read_scratch: vec![0_u8; 64].into_boxed_slice(),
             teleport: TeleportTransaction::new(),
             liveness: LivenessState::new(0, 0).unwrap(),
@@ -357,19 +355,12 @@ mod tests {
 
     #[test]
     fn initial_request_is_bound_to_actual_pending_r2b_teleport_not_spawn_origin() {
-        let session = retained_session_with_teleport(
-            10.390_952_126_751_907,
-            84.0,
-            -5.815_159_807_324_014,
-        );
+        let session =
+            retained_session_with_teleport(10.390_952_126_751_907, 84.0, -5.815_159_807_324_014);
         let read_scratch = session.read_scratch.as_ptr();
-        let (center, positions) = super::plan_pending_teleport_first_view(
-            &session,
-            test_overworld_lattice(),
-            10,
-            9,
-        )
-        .unwrap();
+        let (center, positions) =
+            super::plan_pending_teleport_first_view(&session, test_overworld_lattice(), 10, 9)
+                .unwrap();
         assert_eq!(center, ChunkPos { x: 0, z: -1 });
         assert_eq!(positions.len(), 9);
         assert_eq!(positions[0], center);
@@ -388,13 +379,9 @@ mod tests {
             (16.0, 16.0, ChunkPos { x: 1, z: 1 }),
         ] {
             let session = retained_session_with_teleport(x, 70.0, z);
-            let (center, positions) = super::plan_pending_teleport_first_view(
-                &session,
-                test_overworld_lattice(),
-                2,
-                1,
-            )
-            .unwrap();
+            let (center, positions) =
+                super::plan_pending_teleport_first_view(&session, test_overworld_lattice(), 2, 1)
+                    .unwrap();
             assert_eq!(center, expected);
             assert_eq!(positions, [expected]);
         }
@@ -423,7 +410,11 @@ mod tests {
         ));
         let high = retained_session_with_teleport(0.0, 320.0, 0.0);
         match plan_pending_teleport_first_view(&high, test_overworld_lattice(), 2, 1) {
-            Err(PendingTeleportViewError::OutsideVerticalLattice { y, minimum, maximum_exclusive }) => {
+            Err(PendingTeleportViewError::OutsideVerticalLattice {
+                y,
+                minimum,
+                maximum_exclusive,
+            }) => {
                 assert_eq!(y, 320.0);
                 assert_eq!(minimum, -64);
                 assert_eq!(maximum_exclusive, 320);

@@ -37,6 +37,8 @@ MAX_CLASS_BYTES = 1_048_576
 MAX_INVOKES_PER_HANDLER = 96
 MAX_COLLECTOR_METHODS = 32
 MAX_COLLECTOR_INVOKES = 256
+MAX_LOADER_LAMBDAS = 16
+MAX_LOADER_LAMBDA_INVOKES = 256
 COLLECTOR_CLASS = "net.minecraft.client.multiplayer.RegistryDataCollector"
 CONTENTS_CLASS = "net.minecraft.client.multiplayer.RegistryDataCollector$ContentsCollector"
 LOADER_CLASS = "net.minecraft.resources.RegistryDataLoader"
@@ -67,7 +69,7 @@ def handler_invocations(
     disassembly: str,
     *,
     method_names: tuple[str, ...] = HANDLER_NAMES,
-    required_method: str = "handleRegistryData",
+    required_method: str | None = "handleRegistryData",
 ) -> list[dict]:
     """Summarize exact javap call *sites*, not source/bytecode or call proof.
 
@@ -122,7 +124,9 @@ def handler_invocations(
         })
         if len(calls) > MAX_INVOKES_PER_HANDLER:
             raise ValueError("client registry handler exceeds bounded call-site limit")
-    if required_method not in found or not found[required_method]:
+    if required_method is not None and (
+        required_method not in found or not found[required_method]
+    ):
         raise ValueError(
             f"actual client handler has no inspectable {required_method} invokes"
         )
@@ -225,6 +229,51 @@ def inner_contents_candidate(client: Path) -> dict:
 
 
 
+
+def loader_async_lambda_candidates(disassembly: str) -> list[dict]:
+    """Bound compiler-generated loader lambdas, without asserting bootstrap links.
+
+    Method-name matching alone cannot prove which Supplier or thenCompose
+    callback is installed by invokedynamic. This is finite discovery for
+    subsequent exact bootstrap resolution, not a source-admission decision.
+    """
+    declarations: dict[str, str] = {}
+    for line in disassembly.splitlines():
+        header = re.fullmatch(
+            r"  (?:[^;{}]+ )?(lambda\$load\$[0-9]+)\([^;]*\)(?: throws [^;]+)?;",
+            line,
+        )
+        if header is None:
+            continue
+        name = header.group(1)
+        if name in declarations:
+            raise ValueError(f"ambiguous loader lambda declaration: {name}")
+        declarations[name] = line
+        if len(declarations) > MAX_LOADER_LAMBDAS:
+            raise ValueError("client loader async lambda count exceeds cap")
+    if not declarations:
+        raise ValueError("client async loader has no generated load lambdas")
+    method_names = tuple(sorted(declarations))
+    sites = handler_invocations(
+        disassembly, method_names=method_names, required_method=None
+    )
+    if len(sites) != len(method_names):
+        raise ValueError("loader lambda method bodies are missing")
+    if sum(len(method["invocations"]) for method in sites) > MAX_LOADER_LAMBDA_INVOKES:
+        raise ValueError("loader lambda invocation count exceeds cap")
+    return [
+        {
+            "method_name": method["handler"],
+            "declaration_sha256": hashlib.sha256(
+                declarations[method["handler"]].encode("utf-8")
+            ).hexdigest(),
+            "invoke_sites_candidate": method["invocations"],
+            "bootstrap_linkage_proven": False,
+        }
+        for method in sites
+    ]
+
+
 def registry_loader_overload_candidate(client: Path) -> dict:
     """Resolve *one* five-argument loader actually invoked by the collector.
 
@@ -286,6 +335,7 @@ def registry_loader_overload_candidate(client: Path) -> dict:
         raw = archive.read(path)
     if not 4 <= len(raw) <= MAX_CLASS_BYTES or raw[:4] != b"\xca\xfe\xba\xbe":
         raise ValueError("official RegistryDataLoader classfile is malformed")
+    lambda_candidates = loader_async_lambda_candidates(result.stdout)
     return {
         "class_name": LOADER_CLASS,
         "classfile_sha256_candidate": hashlib.sha256(raw).hexdigest(),
@@ -297,6 +347,7 @@ def registry_loader_overload_candidate(client: Path) -> dict:
             factory_signature.encode("utf-8")
         ).hexdigest(),
         "factory_overload_invoke_sites_candidate": factory_sites,
+        "async_lambda_candidates": lambda_candidates,
         "source_inspected": False,
         "client_registration_order_admitted": False,
     }

@@ -57,6 +57,10 @@ jobs:
           assert loader["selected_overload_invoke_sites_candidate"]["handler"] == "load"
           assert not loader["source_inspected"]
           assert not loader["client_registration_order_admitted"]
+          lambdas = loader["async_lambda_candidates"]
+          assert 1 <= len(lambdas) <= 16
+          assert all(not candidate["bootstrap_linkage_proven"] for candidate in lambdas)
+          assert all(len(candidate["invoke_sites_candidate"]) <= 96 for candidate in lambdas)
           assert loader["factory_overload_invoke_sites_candidate"]["handler"] == "load"
           assert loader["factory_overload_invoke_sites_candidate"]["invocations"]
           inner = result["client_inner_contents_candidate"]
@@ -102,6 +106,11 @@ jobs:
           print("  selected LoaderFactory overload call sites:")
           for edge in loader["factory_overload_invoke_sites_candidate"]["invocations"]:
               print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
+          print("  source-free load async lambda candidates (bootstrap UNPROVEN):")
+          for candidate in loader["async_lambda_candidates"]:
+              print("    ", candidate["method_name"], "invoke sites:", len(candidate["invoke_sites_candidate"]))
+              for edge in candidate["invoke_sites_candidate"]:
+                  print("      ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
           PY
 
       - name: Upload only bounded source-free review metadata

@@ -212,3 +212,22 @@ used as evidence of the selected path.
 This remains discovery of code structure, not review of branches,
 exceptions, asynchronous completion, actual list insertion or numeric ID
 assignment. Complete VAR/SEM and source gate remain mandatory.
+
+### Compiler-generated async loader lambdas (discovery only)
+
+Following the stock 26.2 client's specific
+`RegistryDataLoader.load(LoaderFactory, List, List, Executor)` overload,
+the official bytecode calls `CompletableFuture.supplyAsync` and
+`thenCompose`. The next bounded probe enumerates the declaring loader's
+unique `lambda$load$N` methods, fingerprints each exact declaration, and
+reports only each candidate's invocation offsets/opcodes and truncated,
+full-hashed symbolic targets. This avoids guessing registration order
+from a generic method-name search.
+
+**Important:** a compiler-generated lambda method *existing* is not proof
+that it is the target of either invokedynamic bootstrap. Until the exact
+`BootstrapMethods` method-handle linkage, bytecode branches, error paths,
+and decoded-entry registration are independently source reviewed, the
+report always marks `bootstrap_linkage_proven: false`. None of this work
+promotes the 66-entry runtime-crosschecked biome-ID candidate, supplies
+VAR/SEM, or enables live chunk publication.

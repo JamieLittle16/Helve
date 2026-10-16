@@ -35,6 +35,9 @@ MAX_CANDIDATES = 16
 MAX_METHODS_PER_CANDIDATE = 64
 MAX_CLASS_BYTES = 1_048_576
 MAX_INVOKES_PER_HANDLER = 96
+MAX_COLLECTOR_METHODS = 32
+MAX_COLLECTOR_INVOKES = 256
+COLLECTOR_CLASS = "net.minecraft.client.multiplayer.RegistryDataCollector"
 HANDLER_NAMES = ("handleRegistryData", "handleConfigurationFinished", "handleSelectKnownPacks")
 
 
@@ -58,7 +61,12 @@ def required_client(meta: dict) -> dict:
 
 
 
-def handler_invocations(disassembly: str) -> list[dict]:
+def handler_invocations(
+    disassembly: str,
+    *,
+    method_names: tuple[str, ...] = HANDLER_NAMES,
+    required_method: str = "handleRegistryData",
+) -> list[dict]:
     """Summarize exact javap call *sites*, not source/bytecode or call proof.
 
     Method boundaries are taken from javap declarations, not a substring
@@ -79,7 +87,7 @@ def handler_invocations(disassembly: str) -> list[dict]:
             continue
         if declaration:
             name = declaration.group(1)
-            current = name if name in HANDLER_NAMES else None
+            current = name if name in method_names else None
             if current is not None:
                 if current in found:
                     raise ValueError(f"ambiguous client handler overload: {current}")
@@ -112,10 +120,12 @@ def handler_invocations(disassembly: str) -> list[dict]:
         })
         if len(calls) > MAX_INVOKES_PER_HANDLER:
             raise ValueError("client registry handler exceeds bounded call-site limit")
-    if "handleRegistryData" not in found or not found["handleRegistryData"]:
-        raise ValueError("actual client handler has no inspectable handleRegistryData invokes")
+    if required_method not in found or not found[required_method]:
+        raise ValueError(
+            f"actual client handler has no inspectable {required_method} invokes"
+        )
     return [{"handler": name, "invocations": found[name]}
-            for name in HANDLER_NAMES if name in found]
+            for name in method_names if name in found]
 
 
 def inspect_handler_invocations(client: Path, class_name: str) -> list[dict]:
@@ -130,6 +140,50 @@ def inspect_handler_invocations(client: Path, class_name: str) -> list[dict]:
     if len(result.stdout) > 2_000_000:
         raise ValueError("client receiver disassembly exceeds bounded review")
     return handler_invocations(result.stdout)
+
+
+def collector_candidate(client: Path) -> dict:
+    """Trace only receiver-reached RegistryDataCollector, not an invented loader."""
+    path = COLLECTOR_CLASS.replace(".", "/") + ".class"
+    with zipfile.ZipFile(client) as archive:
+        try:
+            raw = archive.read(path)
+        except KeyError as error:
+            raise ValueError("official client is missing the exact registry collector") from error
+    if not 4 <= len(raw) <= MAX_CLASS_BYTES or raw[:4] != b"\xca\xfe\xba\xbe":
+        raise ValueError("invalid official registry collector classfile")
+    result = subprocess.run(
+        ["javap", "-c", "-p", "-classpath", str(client), COLLECTOR_CLASS],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    if result.returncode or len(result.stdout) > 2_000_000:
+        raise ValueError("unbounded or uninspectable official client registry collector")
+    methods: set[str] = set()
+    for line in result.stdout.splitlines():
+        declaration = re.fullmatch(
+            r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;", line
+        )
+        if declaration is not None:
+            name = declaration.group(1)
+            if name == "appendContents" or any(
+                token in name.lower()
+                for token in ("collect", "registr", "build", "load", "tag", "resource", "contents")
+            ):
+                methods.add(name)
+    if "appendContents" not in methods or len(methods) > MAX_COLLECTOR_METHODS:
+        raise ValueError("client collector review lacks bounded appendContents delegate")
+    ordered = ("appendContents", *sorted(methods - {"appendContents"}))
+    edges = handler_invocations(
+        result.stdout, method_names=ordered, required_method="appendContents"
+    )
+    if sum(len(method["invocations"]) for method in edges) > MAX_COLLECTOR_INVOKES:
+        raise ValueError("client collector method-call frontier exceeds total bound")
+    return {
+        "class_name": COLLECTOR_CLASS,
+        "classfile_sha256_candidate": hashlib.sha256(raw).hexdigest(),
+        "method_call_sites_candidate": edges,
+    }
+
 
 def receiver_candidates(client: Path) -> list[dict]:
     """Read only bounded class identities and method names; no class execution."""
@@ -223,6 +277,7 @@ def discover(metadata: dict, cache: Path) -> dict:
             "official_size_bytes": asset["size"],
         },
         "client_configuration_listener_candidates": receiver_candidates(local),
+        "client_registry_collector_candidate": collector_candidate(local),
         "source_inspected": False,
         "client_handler_invocation_proven": False,
         "client_numeric_id_assignment_proven": False,

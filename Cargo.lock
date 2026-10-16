@@ -216,6 +216,7 @@ dependencies = [
 name = "helve-world-load"
 version = "0.0.0"
 dependencies = [
+ "helve-generated",
  "helve-types",
  "helve-world-chunk",
  "helve-world-contract",

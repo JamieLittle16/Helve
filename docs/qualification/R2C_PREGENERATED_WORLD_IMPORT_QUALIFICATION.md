@@ -340,6 +340,44 @@ Re-run affected evidence when any of these changes materially:
 - whole-import benchmark workload/harness;
 - target hardware/toolchain for a numerical baseline.
 
+## R2C Anvil-to-authoritative-source-receipt composition
+
+The `helve-world-load::import_and_install_anvil_source` COLD
+entrypoint now composes existing source-reviewed mechanisms without
+creating a second world representation:
+
+1. borrow one already validated `RegionView` and (if required)
+   separately bounded external `.mcc` bytes;
+2. decode the exact target 4903 blocks, saved quart-biomes and initial
+   light in **one** `StoredBlockImporter` transaction using the
+   caller's statically selected decoder/section builder and biome
+   resolver;
+3. require an **explicitly present and empty** saved block-entity
+   list for this narrow first-visibility profile, before mutating
+   residency;
+4. move the decoded sections straight into the authoritative
+   `SemanticDimensionInstance` using the existing transactional
+   `install_source_biome_chunk_with_receipt`, returning its genuine
+   `SourceChunkPublicationReceipt`.
+
+This connection introduces no second NBT pass, retained duplicate
+section copy, world directory, target packet dependency or extra
+HOT mutation bookkeeping. Incomplete saved evidence and unsupported
+block entities never authorize an empty packet entity list.
+
+Hermetic integration tests build actual serialized Anvil sector,
+location and chunk-record bytes with schema-correct 4903 NBT and
+source-resolved `minecraft:stone`/`minecraft:plains` identities.
+They verify a pristine installed source receipt and unchanged
+residency after absent empty-entity evidence, a wrong `DataVersion`,
+or duplicate chunk admission.
+
+**This is not yet a production world-file traversal or an unmodified
+client demo.** These hermetic bytes are not a captured natural Anvil
+world. Source-admitted client biome numeric IDs, exact heightmap
+predicates, outer chunk publication and the product runtime's region
+file enumeration remain separate explicit obligations.
+
 ## Explicit non-claims at the current R2C.3 boundary
 
 A green current R2C.3 block-state boundary means Helve has:

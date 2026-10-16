@@ -13,11 +13,11 @@
 #![forbid(unsafe_code)]
 
 mod anvil_source;
-mod world_files;
 mod light;
 mod receipt;
 mod semantic;
 mod stored_biomes;
+mod world_files;
 
 pub use anvil_source::{
     AnvilSourceAdmissionError, SelectedAnvilSource, import_and_install_anvil_source,

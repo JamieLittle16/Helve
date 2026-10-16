@@ -57,6 +57,34 @@ jobs:
               "net.minecraft.util.Util",
               "net.minecraft.resources.RegistryDataLoader",
           ]
+          # These exact offsets and LambdaMetafactory implementations were
+          # observed on the independently checked official 26.2 client JAR.
+          # A drifting call site must fail rather than silently invent an
+          # ordered-entry authority.
+          def require_handle(class_name, method_name, offset, kind, target):
+              [root] = [x for x in result["rooted_class_bootstraps"]
+                        if x["class_name"] == class_name]
+              [method] = [x for x in root["selected_methods"]
+                          if x["method_name"] == method_name]
+              [edge] = [x for x in method["bootstrap_method_handle_links_candidate"]
+                        if x["bytecode_offset"] == offset]
+              assert edge["impl_handle_kind"] == kind
+              assert target in edge["impl_handle_target_candidate"]
+          require_handle("net.minecraft.resources.NetworkRegistryLoadTask",
+                         "load", 194, "REF_invokeVirtual",
+                         "NetworkRegistryLoadTask.lambda$load$2:")
+          require_handle("net.minecraft.util.Util",
+                         "sequence", 63, "REF_invokeStatic",
+                         "Util.lambda$sequence$0:")
+          require_handle("net.minecraft.util.Util",
+                         "lambda$sequence$0", 6, "REF_invokeVirtual",
+                         "CompletableFuture.join:")
+          require_handle("net.minecraft.resources.RegistryDataLoader",
+                         "load", 4, "REF_invokeStatic",
+                         "RegistryDataLoader.lambda$load$0:")
+          require_handle("net.minecraft.resources.RegistryDataLoader",
+                         "lambda$load$0", 113, "REF_invokeStatic",
+                         "RegistryDataLoader.lambda$load$2:")
           for root in result["rooted_class_bootstraps"]:
               print("Root:", root["class_name"])
               for method in root["selected_methods"]:

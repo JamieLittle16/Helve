@@ -109,13 +109,11 @@ where
 mod tests {
     use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
     use helve_types::{ChunkPos, DimensionId, DimensionTypeId};
-    use helve_world_contract::{
-        BLOCK_SECTION_CELLS, BlockSection, ImportedBiomeSectionBuilder, SectionBiomePos,
-        SectionBlockPos,
-    };
+    use helve_world_contract::{BLOCK_SECTION_CELLS, BlockSection, SectionBlockPos};
     use helve_world_import::{
         BiomeDecodeScratch, BlockSectionDecodeScratch, ChunkPayloadLimits,
-        ExactBiomeDecoder, ImportedBlockSectionBuilder, NbtLimits, OrderedBiomeRegistry,
+        ExactBiomeDecoder, ImportedBiomeSectionBuilder, ImportedBlockSectionBuilder, NbtLimits,
+        OrderedBiomeRegistry,
         RegionLimits, RegionView, Target262BlockStateResolver, TagType,
         UncompressedChunkPayloadDecoder,
     };

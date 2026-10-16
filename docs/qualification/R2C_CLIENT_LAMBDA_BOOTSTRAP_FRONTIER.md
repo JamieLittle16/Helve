@@ -74,6 +74,44 @@ linkage structural fact for the official client artifact, but **does
 not authorize** the downstream semantic law: we still need bytecode
 branch/exception review and independent source admission.
 
+## Official-client registration success/error consumer chain
+
+After independently resolving the network completion callback, the
+stock 26.2 client was probed at the exact downstream
+`RegistryLoadTask.registerElements(Stream)` method. The classfile
+`BootstrapMethods` confirms:
+
+| Method | Bytecode offset | Confirmed JVM edge |
+| --- | ---: | --- |
+| `RegistryLoadTask.registerElements` | 9 | `REF_invokeVirtual RegistryLoadTask.lambda$registerElements$0` |
+| `RegistryLoadTask.lambda$registerElements$0` | 6 | `REF_invokeVirtual RegistryLoadTask.lambda$registerElements$1` |
+| `RegistryLoadTask.lambda$registerElements$0` | 16 | `REF_invokeVirtual RegistryLoadTask.lambda$registerElements$2` |
+
+The precise selected callback call sites, recorded separately from
+bootstrap linkage, are:
+
+- `lambda$registerElements$0`: invokedynamic at offsets 6 and
+  16, `Either.ifLeft` at offset 11, `Either.ifRight` at offset 21.
+- `lambda$registerElements$1`: interface invocation
+  `WritableRegistry.register(ResourceKey, Object, RegistrationInfo)`
+  at offset 13.
+- `lambda$registerElements$2`: `Map.put` at offset 9; no
+  `WritableRegistry.register` call site in this method.
+
+These **actual verified Java client call sites** are asserted against
+hard-coded offsets, exact opcode kinds and receiver owner names in a
+dedicated CI path. A future changed success/error dispatch or a
+registration invocation in the error callback fails closed instead of
+being treated as compatible. The success method calls the
+`WritableRegistry` interface, *not* `MappedRegistry` directly:
+concrete receiver/type reachability and its ID allocation still
+require separate semantic review. This avoids a false source claim.
+
+This is a necessary success-vs-error dispatch witness, **not** proof
+that the `Either` branches always execute without exceptional
+interleavings, or that a nonempty error map aborts the final registry,
+nor VAR/SEM admission. No source, JAR or disassembly is checked in.
+
 ## What this still cannot certify
 
 Even a fully resolved lambda bootstrap does not itself prove:

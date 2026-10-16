@@ -5,6 +5,7 @@ on:
     paths:
       - tools/r2c_client_order_semantic_frontier.py
       - tools/tests/test_r2c_client_order_semantic_frontier.py
+      - tools/tests/R2cClientSequenceJdkOracle.java
       - tools/r2c_official_client_registry_inventory.py
       - tools/official_state_data.py
       - vanilla/vanilla.lock.toml
@@ -30,6 +31,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "25"
+
+      - name: JDK 25 ordering and exceptional-completion control oracle
+        run: |
+          mkdir -p /tmp/r2c-client-order-jdk
+          javac -d /tmp/r2c-client-order-jdk tools/tests/R2cClientSequenceJdkOracle.java
+          java -cp /tmp/r2c-client-order-jdk R2cClientSequenceJdkOracle
 
       - name: Hermetic malicious-branch and order-violation tests
         run: python3 -m unittest discover -s tools/tests -p 'test_r2c_client_order_semantic_frontier.py' -v

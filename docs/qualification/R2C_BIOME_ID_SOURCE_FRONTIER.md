@@ -145,3 +145,22 @@ begin. It does **not** inspect the implementation, prove ordered registration,
 bind a complete artifact hash into the canonical lock, or authorize the 66 ID
 candidate. Complete client-handler bytecode/source inspection, independently
 reviewed VAR/SEM and an exact client+known-pack gate remain required.
+
+### Stock-client method-call frontier from unobfuscated bytecode (unadmitted)
+
+The next independent official-client probe inspects **only** the actual
+`ClientConfigurationPacketListenerImpl` method bodies for
+`handleRegistryData`, `handleConfigurationFinished` and
+`handleSelectKnownPacks` via local `javap -c -p`. It records bounded
+symbolic invoke targets, opcodes and bytecode offsets (no disassembly,
+JAR or source text). Only calls found inside the **named method** qualify
+as discovery; unrelated methods and lambdas cannot satisfy the probe.
+Missing/duplicate handler declarations, absent symbolic invoke targets or
+excessive call sites fail closed.
+
+These are bytecode *call-site candidates* for manual review, not
+proof that the delegated code preserves entry order, nor proof that
+the client actually assigns the loaded registry IDs. The exact method
+descriptors, call-site order, relevant branch/error paths and reached
+network-registry registration delegates must be reviewed and admitted
+independently before issue #285 can close.

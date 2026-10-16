@@ -636,9 +636,7 @@ mod tests {
 
     use crate::r2b_server::R2bPlaySession;
     use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
-    use crate::r2c_initial_view::{
-        InitialViewSelectionError, prepare_initial_source_view,
-    };
+    use crate::r2c_initial_view::{InitialViewSelectionError, prepare_initial_source_view};
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
@@ -1007,10 +1005,10 @@ mod tests {
             .map(|_| ())
         };
 
-        assert_eq!(
+        assert!(matches!(
             session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
             Ok(ChunkBatchStep::CacheCenterQueued { x: 2, z: 3 })
-        );
+        ));
         assert!(matches!(
             session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
             Ok(ChunkBatchStep::Started { count: 2 })
@@ -1080,8 +1078,7 @@ mod tests {
 
     #[test]
     fn first_view_preflight_rejects_duplicate_foreign_empty_and_stale_receipts() {
-        let (mut dim, first) =
-            imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let (mut dim, first) = imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
         let center = first.installed().handle.position;
 
         let mut repeated = vec![first, first];
@@ -1099,12 +1096,7 @@ mod tests {
 
         let mut outside = vec![first];
         assert!(matches!(
-            prepare_initial_source_view(
-                &dim,
-                &mut outside,
-                ChunkPos { x: 40, z: 40 },
-                2,
-            ),
+            prepare_initial_source_view(&dim, &mut outside, ChunkPos { x: 40, z: 40 }, 2,),
             Err(InitialViewSelectionError::EmptyView)
         ));
         assert!(outside.is_empty());

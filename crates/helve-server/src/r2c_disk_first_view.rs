@@ -372,7 +372,27 @@ mod tests {
     }
 
     #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one test checks source-backed cross-region disk import through exact official wire and ACK"
+    )]
     fn source_chunks_from_two_disk_regions_feed_one_nearest_first_batch() {
+        use helve_connection_core::{ConnectionLimits, IngressBuffer};
+        use helve_connection_driver::ConnectionDriver;
+        use helve_session_core::LivenessState;
+        use helve_target_26_2::r2b::TeleportTransaction;
+        use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
+        use helve_target_26_2::r2c_play_wire::{
+            CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
+            CLIENTBOUND_CHUNK_WITH_LIGHT, append_chunk_with_light_packet_id,
+        };
+        use helve_world_chunk::HeightmapStateFacts;
+
+        use crate::r2b_server::R2bPlaySession;
+        use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
+        use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
+        use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
+
         let world = WorldFixture::new();
         // At the origin the selected fixed view straddles signed
         // Anvil region -1 and 0, without inventing a third region.
@@ -409,7 +429,7 @@ mod tests {
         let center = ChunkPos { x: 0, z: 0 };
         let mut selected = vec![center, ChunkPos { x: -1, z: 0 }];
         let mut receipts = Vec::new();
-        let state = import_disk_first_view(
+        let mut state = import_disk_first_view(
             DiskFirstViewRequest {
                 world: &world.root,
                 requested: &mut selected,
@@ -444,6 +464,128 @@ mod tests {
         for receipt in &receipts {
             assert!(receipt.resolve_explicitly_empty(&dimension).is_ok());
         }
+
+        // The ordinary hermetic test proves disk import and source-receipt
+        // integrity. Only the dedicated pinned *official* runtime workflow
+        // can additionally authorize these candidate heightmap test bytes.
+        let Some(path) = std::env::var_os("HELVE_R2C_HEIGHTMAP_CANDIDATE") else {
+            return;
+        };
+
+        let oracle = std::fs::read(path).expect("source-pinned official 26.2 oracle");
+        let facts = CandidateHeightmapFacts::from_oracle_bytes(&oracle)
+            .expect("actual oracle IDs match qualified generated state facts");
+        let stone = helve_world_import::resolve_target_26_2_block_state("minecraft:stone", &[])
+            .expect("exact saved stone identity");
+        let predicate = facts.properties(stone);
+        assert!(predicate.non_air());
+        assert!(predicate.blocks_motion());
+        assert!(!predicate.leaves());
+        assert!(!predicate.fluid_non_empty());
+
+        // 16 fully solid source blocks per column, therefore all three
+        // 26.2 maps must have exactly relative height 16. The independent
+        // expected bits are packed manually, 5 bits x 12 lanes/long.
+        let mut words = [0_u64; 22];
+        for column in 0..256_usize {
+            words[column / 12] |= 16_u64 << ((column % 12) * 5);
+        }
+        let mut expected_maps = Vec::new();
+        append_heightmap_map_candidate(&mut expected_maps, 16, [&words; 3])
+            .expect("independent expected exact map bytes");
+
+        let limits = ConnectionLimits::new(65_535, 131_072, 262_144).unwrap();
+        let mut session = R2bPlaySession {
+            driver: ConnectionDriver::new(limits),
+            read_scratch: vec![0_u8; 64].into_boxed_slice(),
+            teleport: TeleportTransaction::new(),
+            liveness: LivenessState::new(0, 0).unwrap(),
+        };
+        let original_reader = session.read_scratch.as_ptr();
+        let mut scratch = Vec::with_capacity(65_536);
+        let original_scratch = scratch.as_ptr();
+        state.on_tick();
+        let project = |index: usize, output: &mut Vec<u8>| {
+            append_chunk_with_light_packet_id(output);
+            append_receipt_bound_empty_chunk_body_candidate(
+                &dimension,
+                &receipts[index],
+                &facts,
+                66, // candidate only; client numeric biome admission still open
+                65_535,
+                output,
+            )
+            .map(|_| ())
+        };
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            Ok(ChunkBatchStep::CacheCenterQueued { x: 0, z: 0 })
+        ));
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            Ok(ChunkBatchStep::Started { count: 2 })
+        ));
+        for index in 0..2 {
+            assert!(matches!(
+                session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+                Ok(ChunkBatchStep::ChunkQueued { index: actual, .. }) if actual == index
+            ));
+        }
+        assert!(matches!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            Ok(ChunkBatchStep::Finished { count: 2 })
+        ));
+        assert_eq!(scratch.as_ptr(), original_scratch);
+        assert_eq!(session.read_scratch.as_ptr(), original_reader);
+        assert!(scratch.is_empty());
+        assert_eq!(state.next_chunk_index(), 2);
+        assert_eq!(state.unacknowledged_batches(), 1);
+
+        let mut wire = IngressBuffer::new(limits);
+        wire.push(session.pending_play_egress()).unwrap();
+        let center_frame = wire.peek_frame().unwrap().unwrap();
+        assert_eq!(center_frame.packet_id(), 94);
+        assert_eq!(center_frame.payload(), [0, 0]);
+        let taken = center_frame.stream_bytes();
+        wire.consume(taken).unwrap();
+        let start = wire.peek_frame().unwrap().unwrap();
+        assert_eq!(start.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_START));
+        let taken = start.stream_bytes();
+        wire.consume(taken).unwrap();
+
+        for expected in [center, ChunkPos { x: -1, z: 0 }] {
+            let packet = wire.peek_frame().unwrap().unwrap();
+            assert_eq!(packet.packet_id(), i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
+            assert_eq!(&packet.payload()[..4], &expected.x.to_be_bytes());
+            assert_eq!(&packet.payload()[4..8], &expected.z.to_be_bytes());
+            assert_eq!(
+                &packet.payload()[8..8 + expected_maps.len()],
+                expected_maps,
+                "saved source and independent heightmap projection must match"
+            );
+            assert!(packet.payload().len() > 8 + expected_maps.len());
+            let taken = packet.stream_bytes();
+            wire.consume(taken).unwrap();
+        }
+        let finish = wire.peek_frame().unwrap().unwrap();
+        assert_eq!(
+            finish.packet_id(),
+            i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+        );
+        assert_eq!(finish.payload(), [2]);
+        let taken = finish.stream_bytes();
+        wire.consume(taken).unwrap();
+        assert_eq!(wire.buffered_len(), 0);
+
+        // Real 26.2 float32 rate acknowledgement: 9.0 chunks/tick.
+        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        assert_eq!(
+            session.process_one_r2c_chunk_batch_ack(&mut state),
+            Ok(ChunkBatchInboundStep::Received {
+                desired_per_tick: 9.0,
+            })
+        );
+        assert_eq!(state.unacknowledged_batches(), 0);
     }
 
     #[test]

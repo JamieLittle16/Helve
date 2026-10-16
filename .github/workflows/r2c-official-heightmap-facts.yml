@@ -11,6 +11,7 @@ on:
       - crates/helve-server/src/r2c_heightmap_facts.rs
       - crates/helve-server/src/r2c_section_candidate.rs
       - crates/helve-server/src/r2c_initial_view.rs
+      - crates/helve-server/src/r2c_disk_first_view.rs
       - crates/helve-server/src/lib.rs
       - vanilla/vanilla.lock.toml
       - .github/workflows/r2c-official-heightmap-facts.yml
@@ -80,6 +81,9 @@ jobs:
             -- --exact
           cargo test --locked -p helve-server --lib \
             r2c_section_candidate::tests::official_heightmap_facts_reach_receipt_bound_chunk_packet \
+            -- --exact
+          cargo test --locked -p helve-server --lib \
+            r2c_disk_first_view::tests::source_chunks_from_two_disk_regions_feed_one_nearest_first_batch \
             -- --exact
 
       - name: Upload ephemeral source-free candidate facts

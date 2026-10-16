@@ -485,6 +485,38 @@ R2B `WorldProjectionReady` transport. Client registry numeric IDs,
 heightmap semantics and complete outgoing world packet admission
 remain separate requirements for a stock-client R2C exit.
 
+## Official oracle: disk-backed two-region first-view packet test
+
+The dedicated `R2C Official Heightmap Facts` workflow now runs
+`r2c_disk_first_view::tests::source_chunks_from_two_disk_regions_feed_one_nearest_first_batch`
+with **actual official 26.2 runtime heightmap facts** for all 32,366
+vanilla block states, cross-checked against Helve's independent
+generated state-data table.
+
+This extends the earlier structured import-to-packet test across
+real, temporary on-disk `r.-1.0.mca` and `r.0.0.mca` files.
+`import_disk_first_view` loads the two source-backed saved columns,
+sorts receipts nearest-first from the centre, then passes them to the
+continuing R2B `ConnectionDriver` with no duplicate egress owner.
+The test verifies each emitted framed chunk's signed X/Z, exact
+three-map packed heightmap words (16 blocks of stone in every
+column), initial cache centre, batch start, batch finish and the
+transactional serverbound chunk-batch ACK.
+
+No copied serialized chunk image is kept; the scratch allocation
+and original R2B read-scratch pointer remain stable across the
+batch. The test asserts that the source-resolved `minecraft:stone`
+ID has the expected official non-air/motion/non-leaf/non-fluid facts.
+Ordinary hermetic Rust CI still validates the disk/import half
+without accepting synthetic heightmap bytes as official.
+
+**This remains a candidate-level integration test**, not stock
+client visual proof: the NBT data is serialized by the test rather
+than copied from a naturally generated world, the candidate biome
+registry count is not an independently client-admitted ordinal
+mapping, and world-wire/heightmap VAR/SEM promotion has not occurred.
+Live `WorldProjectionReady` publication remains disabled.
+
 ## Explicit non-claims at the current R2C.3 boundary
 
 A green current R2C.3 block-state boundary means Helve has:

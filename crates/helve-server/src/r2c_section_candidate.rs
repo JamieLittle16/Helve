@@ -636,6 +636,9 @@ mod tests {
 
     use crate::r2b_server::R2bPlaySession;
     use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState};
+    use crate::r2c_initial_view::{
+        InitialViewSelectionError, prepare_initial_source_view,
+    };
 
     use super::{
         ChunkAndLightCandidateError, ChunkDataCandidateError, EmptyChunkBodyCandidateError,
@@ -966,7 +969,18 @@ mod tests {
             ChunkPos { x: -7, z: 11 },
             StoredBlockEntityEvidence::ExplicitlyEmpty,
         );
-        let receipts = [first, second];
+        // Deliberately feed reverse-distance receipts: source selection
+        // must reorder them without copying chunk state or packet bytes.
+        let mut receipts = vec![second, first];
+        let center = ChunkPos { x: 2, z: 3 };
+        let mut state = prepare_initial_source_view(&dim, &mut receipts, center, 16)
+            .expect("two current source receipts lie within rounded initial view");
+        assert_eq!(state.next_chunk_index(), 0);
+        assert_eq!(receipts[0].installed().handle.position, center);
+        assert_eq!(
+            receipts[1].installed().handle.position,
+            ChunkPos { x: -7, z: 11 }
+        );
         let limits = ConnectionLimits::new(16_384, 32_768, 65_536).unwrap();
         let mut session = R2bPlaySession {
             driver: ConnectionDriver::new(limits),
@@ -975,7 +989,6 @@ mod tests {
             liveness: LivenessState::new(0, 0).unwrap(),
         };
         let read_ptr = session.read_scratch.as_ptr();
-        let mut state = R2cChunkBatchState::new(receipts.len());
         let mut scratch = Vec::with_capacity(16_384);
         scratch.push(0xe7);
         let projection_ptr = scratch.as_ptr();
@@ -994,6 +1007,10 @@ mod tests {
             .map(|_| ())
         };
 
+        assert_eq!(
+            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
+            Ok(ChunkBatchStep::CacheCenterQueued { x: 2, z: 3 })
+        );
         assert!(matches!(
             session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project_receipt),
             Ok(ChunkBatchStep::Started { count: 2 })
@@ -1017,6 +1034,12 @@ mod tests {
 
         let mut reader = IngressBuffer::new(limits);
         reader.push(session.pending_play_egress()).unwrap();
+        let cache_center = reader.peek_frame().unwrap().unwrap();
+        assert_eq!(cache_center.packet_id(), 94);
+        assert_eq!(cache_center.payload(), [2, 3]);
+        let consumed = cache_center.stream_bytes();
+        reader.consume(consumed).unwrap();
+
         let start = reader.peek_frame().unwrap().unwrap();
         assert_eq!(start.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_START));
         assert!(start.payload().is_empty());
@@ -1053,6 +1076,63 @@ mod tests {
         assert_eq!(state.unacknowledged_batches(), 0);
         assert_eq!(session.read_scratch.as_ptr(), read_ptr);
         assert_eq!(scratch.as_ptr(), projection_ptr);
+    }
+
+    #[test]
+    fn first_view_preflight_rejects_duplicate_foreign_empty_and_stale_receipts() {
+        let (mut dim, first) =
+            imported_source_receipt(StoredBlockEntityEvidence::ExplicitlyEmpty);
+        let center = first.installed().handle.position;
+
+        let mut repeated = vec![first, first];
+        assert!(matches!(
+            prepare_initial_source_view(&dim, &mut repeated, center, 4),
+            Err(InitialViewSelectionError::DuplicateReceipt { position })
+                if position == center
+        ));
+        let mut only = vec![first];
+        assert!(matches!(
+            prepare_initial_source_view(&dim, &mut only, center, 1),
+            Err(InitialViewSelectionError::InvalidViewDistance { actual: 1 })
+        ));
+        assert_eq!(only.len(), 1);
+
+        let mut outside = vec![first];
+        assert!(matches!(
+            prepare_initial_source_view(
+                &dim,
+                &mut outside,
+                ChunkPos { x: 40, z: 40 },
+                2,
+            ),
+            Err(InitialViewSelectionError::EmptyView)
+        ));
+        assert!(outside.is_empty());
+
+        let foreign_dim = ImportedDimension::new(
+            DimensionId(14),
+            DimensionRuntimeProfile::new(DimensionTypeId(4), -16, 32, true).unwrap(),
+        );
+        let mut foreign = vec![first];
+        assert!(matches!(
+            prepare_initial_source_view(&foreign_dim, &mut foreign, center, 4),
+            Err(InitialViewSelectionError::ForeignDimension {
+                position,
+                actual: DimensionId(8),
+                expected: DimensionId(14),
+            }) if position == center
+        ));
+        assert_eq!(foreign.len(), 1);
+
+        dim.unload_chunk(first.installed().handle).unwrap();
+        let mut stale = vec![first];
+        assert!(matches!(
+            prepare_initial_source_view(&dim, &mut stale, center, 4),
+            Err(InitialViewSelectionError::InvalidReceipt { position, .. })
+                if position == center
+        ));
+        // Failures never claim source publication authority.
+        assert_eq!(stale.len(), 1);
     }
 
     #[test]

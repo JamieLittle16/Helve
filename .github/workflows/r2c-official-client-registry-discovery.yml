@@ -1,0 +1,66 @@
+name: R2C Official Client Registry Discovery
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/tests/test_r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-registry-discovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    name: Exact official 26.2 client receiver artifact discovery (unadmitted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25 for unobfuscated class declaration inspection
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Hermetic receiver/metadata negative tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_official_client_registry_inventory.py' -v
+
+      - name: Fetch official unobfuscated client into disposable scratch
+        run: |
+          python3 tools/r2c_official_client_registry_inventory.py \
+            --output /tmp/r2c-26.2-client-registry-discovery.json
+
+      - name: Gate every authority claim to false
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          result = json.loads(Path("/tmp/r2c-26.2-client-registry-discovery.json").read_text())
+          assert result["target"] == {"minecraft": "26.2", "protocol": 776, "data_version": 4903}
+          assert not result["source_inspected"]
+          assert not result["client_handler_invocation_proven"]
+          assert not result["client_numeric_id_assignment_proven"]
+          assert not result["production_admitted"]
+          assert len(result["client_configuration_listener_candidates"]) <= 16
+          assert result["official_executable_unobfuscated"]
+          assert result["client_artifact"]["official_size_bytes"] > 0
+          print("Official unobfuscated client JAR/class SHA-256 candidates discovered, NOT ADMITTED")
+          for candidate in result["client_configuration_listener_candidates"]:
+              print(candidate["class_name"], candidate["registry_related_method_names"])
+          PY
+
+      - name: Upload only bounded source-free review metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-official-client-receiver-candidate
+          path: /tmp/r2c-26.2-client-registry-discovery.json
+          if-no-files-found: error
+          retention-days: 7

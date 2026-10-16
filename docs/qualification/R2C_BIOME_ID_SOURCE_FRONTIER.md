@@ -116,3 +116,32 @@ separate exact client code/source or equally authoritative evidence.
 `OrderedBiomeRegistry` or 26.2 Play chunk publication until that last
 qualification is complete. The first R2C demo continues to rely on
 pregenerated world import, not R2D world generation.
+
+## Independent actual-client artifact acquisition (candidate only)
+
+The pinned server-source ZIP does **not** contain the actual stock 26.2
+client Configuration listener. To remove that *discovery* blocker without
+committing Minecraft binaries, use the separately bounded official launcher
+manifest / unobfuscated-class inventory:
+
+```bash
+python3 -m unittest discover -s tools/tests -p 'test_r2c_official_client_registry_inventory.py' -v
+python3 tools/r2c_official_client_registry_inventory.py \
+  --output /tmp/r2c-26.2-client-registry-discovery.json
+```
+
+Minecraft 26.2 has **unobfuscated** official client classes and does not
+publish a separate `client_mappings` artifact. The disposable downloader
+checks the official client JAR's SHA-1/size, records the full SHA-256
+**candidate**, and uses Java 25 `javap -p` to enumerate a bounded set of
+readable Configuration listener class/method names. The source-free report
+also fingerprints the inspected raw classfiles. No client JAR, bytecode
+listing or Mojang source is committed or uploaded; the dedicated Actions
+workflow uploads only the JSON discovery report. See Mojang's
+[removal-of-obfuscation announcement](https://www.minecraft.net/en-us/article/removing-obfuscation-in-java-edition).
+
+This establishes where the **actual receiving-client** method review should
+begin. It does **not** inspect the implementation, prove ordered registration,
+bind a complete artifact hash into the canonical lock, or authorize the 66 ID
+candidate. Complete client-handler bytecode/source inspection, independently
+reviewed VAR/SEM and an exact client+known-pack gate remain required.

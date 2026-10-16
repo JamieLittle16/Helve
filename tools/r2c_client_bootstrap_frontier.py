@@ -194,12 +194,22 @@ def inspect_client(client: Path) -> list[dict]:
                 "selected_methods": inspect_verbose(process.stdout, class_name),
             }
             if class_name == "net.minecraft.resources.RegistryLoadTask":
-                [callback] = client_probe.handler_invocations(
+                callbacks = client_probe.handler_invocations(
                     process.stdout,
-                    method_names=("lambda$registerElements$0",),
+                    method_names=(
+                        "lambda$registerElements$0",
+                        "lambda$registerElements$1",
+                        "lambda$registerElements$2",
+                    ),
                     required_method="lambda$registerElements$0",
                 )
-                item["register_consumer_callback_invocations_candidate"] = callback
+                if [entry["handler"] for entry in callbacks] != [
+                    "lambda$registerElements$0",
+                    "lambda$registerElements$1",
+                    "lambda$registerElements$2",
+                ]:
+                    raise ValueError("client registration success/error delegates missing")
+                item["register_consumer_delegate_invocations_candidate"] = callbacks
             records.append(item)
     return records
 

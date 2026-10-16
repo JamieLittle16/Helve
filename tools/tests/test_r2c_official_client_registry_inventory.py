@@ -103,6 +103,18 @@ JAVAP_LOADER = """public class net.minecraft.resources.RegistryDataLoader {
        3: invokestatic #19 // Method net/minecraft/resources/NetworkRegistryLoadTask.load:()V
        6: areturn
 
+  private static java.util.Map lambda$load$0(java.util.List tasks);
+    Code:
+       0: aload_0
+       1: invokestatic #22 // Method net/minecraft/resources/NetworkRegistryLoadTask.load:(Ljava/util/List;)Ljava/util/Map;
+       4: areturn
+
+  private static java.util.concurrent.CompletableFuture lambda$load$1(java.util.Map registries);
+    Code:
+       0: aload_0
+       1: invokestatic #23 // Method net/minecraft/resources/RegistryLoadTask.registerElements:(Ljava/util/Map;)Ljava/util/concurrent/CompletableFuture;
+       4: areturn
+
   public static void unrelated();
     Code:
        0: invokestatic #98 // Method net/minecraft/core/MappedRegistry.wrong:()V
@@ -289,6 +301,12 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                           ["symbolic_target"])
             self.assertNotIn("MappedRegistry.fake", json.dumps(evidence))
             self.assertNotIn("MappedRegistry.wrong", json.dumps(evidence))
+            self.assertEqual(
+                [entry["method_name"] for entry in evidence["async_lambda_candidates"]],
+                ["lambda$load$0", "lambda$load$1"],
+            )
+            self.assertTrue(all(not entry["bootstrap_linkage_proven"]
+                                for entry in evidence["async_lambda_candidates"]))
             self.assertFalse(evidence["source_inspected"])
             modified = JAVAP_LOADER.replace(
                 "net.minecraft.server.packs.resources.ResourceProvider",
@@ -313,6 +331,34 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                 probe.subprocess, "run", side_effect=mock_javap,
             ), self.assertRaisesRegex(ValueError, "missing or duplicated"):
                 probe.registry_loader_overload_candidate(jar)
+
+    def test_loader_lambdas_fail_closed_without_exact_declarations(self) -> None:
+        candidates = probe.loader_async_lambda_candidates(JAVAP_LOADER)
+        self.assertEqual(len(candidates), 2)
+        self.assertEqual(candidates[0]["method_name"], "lambda$load$0")
+        self.assertEqual(
+            candidates[0]["invoke_sites_candidate"][0]["bytecode_offset"], 1
+        )
+        without = JAVAP_LOADER.replace("lambda$load$0", "lambda$other$0").replace(
+            "lambda$load$1", "lambda$other$1"
+        )
+        with self.assertRaisesRegex(ValueError, "no generated load lambdas"):
+            probe.loader_async_lambda_candidates(without)
+        duplicated = JAVAP_LOADER.replace(
+            "  public static void unrelated();",
+            "  private static void lambda$load$0();"
+        )
+        with self.assertRaisesRegex(ValueError, "ambiguous"):
+            probe.loader_async_lambda_candidates(duplicated)
+        excessive = JAVAP_LOADER.replace(
+            "  public static void unrelated();",
+            "\n".join(
+                "  private static void lambda$load$" + str(i) + "();"
+                for i in range(2, 20)
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "count exceeds cap"):
+            probe.loader_async_lambda_candidates(excessive)
 
     def test_unobfuscated_metadata_has_exact_official_identity_fields(self) -> None:
         self.assertEqual(probe.required_client(meta())["size"], 123)

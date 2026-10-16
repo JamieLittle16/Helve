@@ -70,7 +70,13 @@ def handler_invocations(disassembly: str) -> list[dict]:
     current: str | None = None
     in_code = False
     for line in disassembly.splitlines():
-        declaration = re.fullmatch(r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\);", line)
+        declaration = re.fullmatch(
+            r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;", line
+        )
+        if line == "  static {};" or line == "}":
+            current = None
+            in_code = False
+            continue
         if declaration:
             name = declaration.group(1)
             current = name if name in HANDLER_NAMES else None

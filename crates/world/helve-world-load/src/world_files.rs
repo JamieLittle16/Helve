@@ -200,3 +200,214 @@ pub fn visit_pregenerated_region<E>(
     }
     Ok(selected.len())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    use helve_types::ChunkPos;
+    use helve_world_import::RegionLimits;
+
+    use super::{
+        PregeneratedRegionError, PregeneratedRegionLimits, visit_pregenerated_region,
+    };
+
+    static NEXT_WORLD: AtomicU64 = AtomicU64::new(0);
+    const SECTOR: usize = 4096;
+
+    struct TestWorld {
+        root: PathBuf,
+    }
+
+    impl TestWorld {
+        fn new() -> Self {
+            let number = NEXT_WORLD.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "helve-r2c-pregenerated-files-{}-{number}",
+                std::process::id()
+            ));
+            fs::create_dir_all(root.join("region")).unwrap();
+            Self { root }
+        }
+
+        fn path(&self) -> &Path {
+            &self.root
+        }
+
+        fn write_region(&self, region: &[u8]) {
+            fs::write(self.root.join("region/r.0.0.mca"), region).unwrap();
+        }
+
+        fn write_external(&self, bytes: &[u8]) {
+            fs::write(self.root.join("region/c.0.0.mcc"), bytes).unwrap();
+        }
+    }
+
+    impl Drop for TestWorld {
+        fn drop(&mut self) {
+            fs::remove_dir_all(&self.root).unwrap();
+        }
+    }
+
+    fn limits() -> PregeneratedRegionLimits {
+        PregeneratedRegionLimits {
+            region: RegionLimits::new(8 * SECTOR, SECTOR),
+            max_external_bytes: 16,
+        }
+    }
+
+    fn region(records: &[(u8, &[u8])]) -> Vec<u8> {
+        let mut region = vec![0_u8; (records.len() + 2) * SECTOR];
+        for (slot, &(compression, payload)) in records.iter().enumerate() {
+            let offset = 2 + slot;
+            let location = (u32::try_from(offset).unwrap() << 8) | 1;
+            region[slot * 4..slot * 4 + 4].copy_from_slice(&location.to_be_bytes());
+            region[SECTOR + slot * 4..SECTOR + slot * 4 + 4]
+                .copy_from_slice(&u32::try_from(slot + 10).unwrap().to_be_bytes());
+            let start = offset * SECTOR;
+            region[start..start + 4]
+                .copy_from_slice(&u32::try_from(payload.len() + 1).unwrap().to_be_bytes());
+            region[start + 4] = compression;
+            region[start + 5..start + 5 + payload.len()].copy_from_slice(payload);
+        }
+        region
+    }
+
+    #[test]
+    fn selected_chunks_share_one_borrowed_region_snapshot_in_requested_order() {
+        let world = TestWorld::new();
+        world.write_region(&region(&[(3, b"first"), (3, b"second")]));
+        let selected = [ChunkPos { x: 1, z: 0 }, ChunkPos { x: 0, z: 0 }];
+        let mut observed = Vec::new();
+        let count = visit_pregenerated_region(
+            world.path(),
+            0,
+            0,
+            &selected,
+            limits(),
+            |source| {
+                let chunk = source.region.chunk(source.local_x, source.local_z).unwrap().unwrap();
+                observed.push((chunk.position, chunk.inline_payload.unwrap().to_vec()));
+                assert!(source.external_payload.is_none());
+                // Once the whole region is in memory, subsequent selected
+                // chunks do not re-open/re-read its file.
+                if source.local_x == 1 {
+                    fs::remove_file(world.path().join("region/r.0.0.mca")).unwrap();
+                }
+                Ok::<_, ()>(())
+            },
+        )
+        .unwrap();
+        assert_eq!(count, 2);
+        assert_eq!(
+            observed,
+            vec![
+                (ChunkPos { x: 1, z: 0 }, b"second".to_vec()),
+                (ChunkPos { x: 0, z: 0 }, b"first".to_vec())
+            ]
+        );
+    }
+
+    #[test]
+    fn external_record_requires_its_own_bounded_file_and_never_uses_padding() {
+        let world = TestWorld::new();
+        world.write_region(&region(&[(0x80 | 3, b"padding")]));
+        let pos = [ChunkPos { x: 0, z: 0 }];
+        assert!(matches!(
+            visit_pregenerated_region(
+                world.path(), 0, 0, &pos, limits(), |_| Ok::<_, ()>(())
+            ),
+            Err(PregeneratedRegionError::Io(_))
+        ));
+        world.write_external(b"real-external");
+        assert_eq!(
+            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |source| {
+                assert_eq!(source.external_payload.unwrap().bytes, b"real-external");
+                assert!(source.region.chunk(0, 0).unwrap().unwrap().inline_payload.is_none());
+                Ok::<_, ()>(())
+            })
+            .unwrap(),
+            1
+        );
+        world.write_external(&[0; 17]);
+        assert!(matches!(
+            visit_pregenerated_region(
+                world.path(), 0, 0, &pos, limits(), |_| Ok::<_, ()>(())
+            ),
+            Err(PregeneratedRegionError::FileExceedsLimit { limit: 16 })
+        ));
+    }
+
+    #[test]
+    fn invalid_selection_fails_before_ever_opening_files_or_visiting_chunks() {
+        let world = TestWorld::new();
+        let mut calls = 0;
+        let duplicate = [ChunkPos { x: 0, z: 0 }, ChunkPos { x: 0, z: 0 }];
+        assert!(matches!(
+            visit_pregenerated_region(world.path(), 0, 0, &duplicate, limits(), |_| {
+                calls += 1;
+                Ok::<_, ()>(())
+            }),
+            Err(PregeneratedRegionError::DuplicatePosition { .. })
+        ));
+        let foreign = [ChunkPos { x: 32, z: 0 }];
+        assert!(matches!(
+            visit_pregenerated_region(world.path(), 0, 0, &foreign, limits(), |_| {
+                calls += 1;
+                Ok::<_, ()>(())
+            }),
+            Err(PregeneratedRegionError::ForeignPosition { .. })
+        ));
+        assert_eq!(calls, 0);
+        assert_eq!(
+            visit_pregenerated_region(world.path(), 0, 0, &[], limits(), |_| {
+                calls += 1;
+                Ok::<_, ()>(())
+            }).unwrap(),
+            0
+        );
+        assert_eq!(calls, 0);
+    }
+
+    #[test]
+    fn missing_selected_chunk_and_bad_region_framing_never_enter_caller() {
+        let world = TestWorld::new();
+        world.write_region(&region(&[(3, b"first")]));
+        let pos = [ChunkPos { x: 3, z: 0 }];
+        assert!(matches!(
+            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |_| {
+                panic!("absent chunk must not be visited");
+                #[allow(unreachable_code)]
+                Ok::<_, ()>(())
+            }),
+            Err(PregeneratedRegionError::MissingChunk { .. })
+        ));
+        world.write_region(&[0; 16]);
+        assert!(matches!(
+            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |_| {
+                panic!("invalid region must not reach callback");
+                #[allow(unreachable_code)]
+                Ok::<_, ()>(())
+            }),
+            Err(PregeneratedRegionError::Region(_))
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symbolic_linked_region_file_is_rejected_before_read() {
+        use std::os::unix::fs::symlink;
+
+        let world = TestWorld::new();
+        let source = world.path().join("source.mca");
+        fs::write(&source, region(&[(3, b"first")])).unwrap();
+        symlink(&source, world.path().join("region/r.0.0.mca")).unwrap();
+        let pos = [ChunkPos { x: 0, z: 0 }];
+        assert!(matches!(
+            visit_pregenerated_region(world.path(), 0, 0, &pos, limits(), |_| Ok::<_, ()>(())),
+            Err(PregeneratedRegionError::InvalidSourceFile)
+        ));
+    }
+}

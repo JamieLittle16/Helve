@@ -54,6 +54,61 @@ jobs:
           assert not evidence["production_admitted"]
           methods = evidence["review_method_shapes"]
           assert len(methods) == 7
+          # Independent, exact stock 26.2 method-code fingerprints observed
+          # on the Mojang SHA/size-checked client. Change requires new
+          # semantic review, not a silently regenerated digest.
+          fingerprints = {
+              ("net.minecraft.client.multiplayer.RegistryDataCollector$ContentsCollector", "append"):
+                  ("a916750de199b35bbdbcbf6c3516f9753a318c1341277c18e2722e536f04880f", 10),
+              ("net.minecraft.resources.NetworkRegistryLoadTask", "load"):
+                  ("8c30f1dd27891927fed0bd2b61e31441761fbf118083bf6e30232063e48fcbdf", 84),
+              ("net.minecraft.resources.NetworkRegistryLoadTask", "lambda$load$2"):
+                  ("3d426be2f28fe1eaaedd2297a511bb6a34ae8cab92c80a5a649f37c2001097a6", 14),
+              ("net.minecraft.util.Util", "sequence"):
+                  ("f4e5055aa9b4908703db727f2b121b8cfc388a0d9ab54d777174f707b7746236", 28),
+              ("net.minecraft.util.Util", "lambda$sequence$0"):
+                  ("43b1b1094c7b3c27081d7218fa80da26a2ff0f6f8dca8dc0745900b7ac0a6348", 6),
+              ("net.minecraft.resources.RegistryLoadTask", "registerElements"):
+                  ("81818ebc5666b4817e914364c3797112c45c558173e6d95afc003cad109a3197", 21),
+              ("net.minecraft.core.MappedRegistry", "register"):
+                  ("64a2dcaac37de02425535021b5c37f2fd4081e2e7db695be3c00766989f52840", 119),
+          }
+          assert len(fingerprints) == len(methods)
+          for record in methods:
+              key = record["class_name"], record["method_name"]
+              expected_hash, expected_count = fingerprints[key]
+              assert record["instruction_shape_sha256"] == expected_hash, key
+              assert record["instruction_count"] == expected_count, key
+          method_map = {
+              (m["class_name"], m["method_name"]): m for m in methods
+          }
+          def branch_edges(cls, name):
+              return [(edge["from"], edge["opcode"], edge["to"])
+                      for edge in method_map[(cls, name)]["conditional_branch_edges"]]
+          assert branch_edges("net.minecraft.util.Util", "sequence") == [
+              (6, "ifeq", 16), (23, "if_icmpne", 44)
+          ]
+          assert method_map[("net.minecraft.util.Util", "sequence")]["return_instruction_offsets"] == [
+              15, 43, 71
+          ]
+          assert branch_edges("net.minecraft.resources.NetworkRegistryLoadTask", "load") == [
+              (18, "ifnonnull", 26),
+              (89, "ifeq", 187),
+              (130, "ifeq", 160),
+              (157, "goto", 184),
+              (184, "goto", 82),
+          ]
+          assert branch_edges("net.minecraft.core.MappedRegistry", "register") == [
+              (28, "ifeq", 54),
+              (64, "ifeq", 90),
+              (94, "ifnull", 147),
+              (114, "ifnonnull", 138),
+              (144, "goto", 168),
+          ]
+          assert method_map[("net.minecraft.core.MappedRegistry", "register")]["return_instruction_offsets"] == [
+              53, 89, 137, 275
+          ]
+
           for record in methods:
               assert record["ordered_callsite_witness_matches"]
               assert not record["all_control_flow_paths_reviewed"]

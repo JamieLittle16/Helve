@@ -9,21 +9,21 @@
 
 use helve_connection_driver::DriverError;
 
-use crate::r2b_server::{
-    R2bPlayError, R2bPlayInbound, R2bPlayProcess, R2bPlaySession,
-};
-use crate::r2c_chunk_batch::{
-    ChunkBatchInboundError, ChunkBatchInboundStep, R2cChunkBatchState,
-};
+use crate::r2b_server::{R2bPlayError, R2bPlayInbound, R2bPlayProcess, R2bPlaySession};
+use crate::r2c_chunk_batch::{ChunkBatchInboundError, ChunkBatchInboundStep, R2cChunkBatchState};
 
 /// Exactly one complete continuing-Play frame, or no committed frame.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum R2cPlayInboundStep {
     Incomplete,
     Control(R2bPlayInbound),
-    ChunkBatchAcknowledged { desired_per_tick: f32 },
+    ChunkBatchAcknowledged {
+        desired_per_tick: f32,
+    },
     /// A complete unowned frame is *not* consumed.
-    Unclaimed { packet_id: i32 },
+    Unclaimed {
+        packet_id: i32,
+    },
 }
 
 /// Source-owned control and batch-ack failures remain distinguishable.
@@ -84,19 +84,13 @@ mod tests {
     use helve_session_core::LivenessState;
     use helve_target_26_2::r2b::{TeleportAckResult, TeleportTransaction};
 
-    use super::{
-        R2cPlayInboundError, R2cPlayInboundStep, process_one_r2c_play_inbound,
-    };
+    use super::{R2cPlayInboundError, R2cPlayInboundStep, process_one_r2c_play_inbound};
     use crate::r2b_server::{R2bPlayError, R2bPlayInbound, R2bPlaySession};
-    use crate::r2c_chunk_batch::{
-        ChunkBatchInboundError, ChunkBatchStep, R2cChunkBatchState,
-    };
+    use crate::r2c_chunk_batch::{ChunkBatchInboundError, ChunkBatchStep, R2cChunkBatchState};
 
     fn session() -> R2bPlaySession {
         R2bPlaySession {
-            driver: ConnectionDriver::new(
-                ConnectionLimits::new(65_535, 131_072, 262_144).unwrap(),
-            ),
+            driver: ConnectionDriver::new(ConnectionLimits::new(65_535, 131_072, 262_144).unwrap()),
             read_scratch: vec![0_u8; 64].into_boxed_slice(),
             teleport: TeleportTransaction::new(),
             liveness: LivenessState::new(0, 0).unwrap(),
@@ -138,12 +132,14 @@ mod tests {
 
         // Serverbound teleport confirmation (ID 0, teleport 1), followed by
         // source-reviewed float32 chunk batch ACK (ID 12, 9.0f32).
-        session.ingest_play(&[2, 0, 1, 5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        session
+            .ingest_play(&[2, 0, 1, 5, 12, 0x41, 0x10, 0, 0])
+            .unwrap();
         assert_eq!(
             process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
-            R2cPlayInboundStep::Control(
-                R2bPlayInbound::TeleportAcknowledgement(TeleportAckResult::Accepted)
-            )
+            R2cPlayInboundStep::Control(R2bPlayInbound::TeleportAcknowledgement(
+                TeleportAckResult::Accepted
+            ))
         );
         assert!(session.teleport_transaction().awaiting().is_none());
         assert_eq!(batch.unacknowledged_batches(), 1);

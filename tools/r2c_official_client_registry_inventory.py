@@ -34,10 +34,13 @@ MAX_METHODS_PER_CANDIDATE = 64
 
 def required_asset(meta: dict, key: str) -> dict:
     """Reject malformed or missing *official metadata* before any download."""
-    asset = meta.get("downloads", {}).get(key)
+    downloads = meta.get("downloads")
+    if not isinstance(downloads, dict):
+        raise ValueError("official 26.2 metadata downloads are missing")
+    asset = downloads.get(key)
     if not isinstance(asset, dict):
         raise ValueError(f"official 26.2 metadata has no {key}")
-    if (set(asset) < {"url", "sha1", "size"}
+    if (not {"url", "sha1", "size"}.issubset(asset)
         or not isinstance(asset["url"], str)
         or not asset["url"].startswith("https://")
         or not isinstance(asset["sha1"], str)

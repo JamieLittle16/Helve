@@ -12,11 +12,15 @@
 
 #![forbid(unsafe_code)]
 
+mod anvil_source;
 mod light;
 mod receipt;
 mod semantic;
 mod stored_biomes;
 
+pub use anvil_source::{
+    AnvilSourceAdmissionError, SelectedAnvilSource, import_and_install_anvil_source,
+};
 pub use receipt::{
     ExplicitlyEmptyImportedSource, SourceChunkPublicationReceipt, SourceChunkReceiptError,
 };

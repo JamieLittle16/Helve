@@ -52,6 +52,13 @@ jobs:
           assert len(result["client_configuration_listener_candidates"]) <= 16
           assert result["official_executable_unobfuscated"]
           assert result["client_artifact"]["official_size_bytes"] > 0
+          loader = result["client_registry_loader_overload_candidate"]
+          assert loader["class_name"] == "net.minecraft.resources.RegistryDataLoader"
+          assert loader["selected_overload_invoke_sites_candidate"]["handler"] == "load"
+          assert not loader["source_inspected"]
+          assert not loader["client_registration_order_admitted"]
+          assert loader["factory_overload_invoke_sites_candidate"]["handler"] == "load"
+          assert loader["factory_overload_invoke_sites_candidate"]["invocations"]
           inner = result["client_inner_contents_candidate"]
           assert inner["class_name"] == "net.minecraft.client.multiplayer.RegistryDataCollector$ContentsCollector"
           assert inner["registry_loader_class_name"] == "net.minecraft.resources.RegistryDataLoader"
@@ -88,6 +95,13 @@ jobs:
               print("    inner append method:", method["handler"])
               for edge in method["invocations"]:
                   print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
+          loader = result["client_registry_loader_overload_candidate"]
+          print("  selected 5-arg RegistryDataLoader.load call sites:")
+          for edge in loader["selected_overload_invoke_sites_candidate"]["invocations"]:
+              print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
+          print("  selected LoaderFactory overload call sites:")
+          for edge in loader["factory_overload_invoke_sites_candidate"]["invocations"]:
+              print("     ", edge["bytecode_offset"], edge["opcode"], edge["symbolic_target"])
           PY
 
       - name: Upload only bounded source-free review metadata

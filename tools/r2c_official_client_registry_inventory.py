@@ -224,6 +224,84 @@ def inner_contents_candidate(client: Path) -> dict:
     }
 
 
+
+def registry_loader_overload_candidate(client: Path) -> dict:
+    """Resolve *one* five-argument loader actually invoked by the collector.
+
+    Check method-signature identity before inspecting body: the same class can
+    contain other methods named load, whose calls do not establish the selected
+    receiving-client route. This is a source-free invocation inventory only.
+    """
+    result = subprocess.run(
+        ["javap", "-c", "-p", "-classpath", str(client), LOADER_CLASS],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    if result.returncode or len(result.stdout) > 2_000_000:
+        raise ValueError("official registry loader disassembly is unavailable or unbounded")
+    lines = result.stdout.splitlines()
+    headers = [
+        i for i, line in enumerate(lines)
+        if re.fullmatch(
+            r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;",
+            line,
+        ) is not None
+    ]
+    selected = [
+        (i, lines[i]) for i in headers
+        if " load(" in lines[i]
+        and "java.util.Map" in lines[i]
+        and "net.minecraft.server.packs.resources.ResourceProvider" in lines[i]
+        and lines[i].count("java.util.List") >= 2
+        and "java.util.concurrent.Executor" in lines[i]
+    ]
+    if len(selected) != 1:
+        raise ValueError("actual client collector loader overload must resolve exactly once")
+    start, signature = selected[0]
+    end = next((i for i in headers if i > start), len(lines))
+    method = "\n".join(lines[start:end])
+    [sites] = handler_invocations(
+        method, method_names=("load",), required_method="load"
+    )
+    factory_overloads = [
+        (i, lines[i]) for i in headers
+        if " load(" in lines[i]
+        and "net.minecraft.resources.RegistryDataLoader$LoaderFactory" in lines[i]
+        and lines[i].count("java.util.List") >= 2
+        and "java.util.concurrent.Executor" in lines[i]
+        and "net.minecraft.server.packs.resources.ResourceProvider" not in lines[i]
+    ]
+    if len(factory_overloads) != 1:
+        raise ValueError("receiver-reached loader factory overload must resolve exactly once")
+    factory_start, factory_signature = factory_overloads[0]
+    factory_end = next((i for i in headers if i > factory_start), len(lines))
+    [factory_sites] = handler_invocations(
+        "\n".join(lines[factory_start:factory_end]),
+        method_names=("load",),
+        required_method="load",
+    )
+    path = LOADER_CLASS.replace(".", "/") + ".class"
+    with zipfile.ZipFile(client) as archive:
+        if archive.namelist().count(path) != 1:
+            raise ValueError("official RegistryDataLoader class is missing or duplicated")
+        raw = archive.read(path)
+    if not 4 <= len(raw) <= MAX_CLASS_BYTES or raw[:4] != b"\xca\xfe\xba\xbe":
+        raise ValueError("official RegistryDataLoader classfile is malformed")
+    return {
+        "class_name": LOADER_CLASS,
+        "classfile_sha256_candidate": hashlib.sha256(raw).hexdigest(),
+        "selected_overload_signature_sha256": hashlib.sha256(
+            signature.encode("utf-8")
+        ).hexdigest(),
+        "selected_overload_invoke_sites_candidate": sites,
+        "factory_overload_signature_sha256": hashlib.sha256(
+            factory_signature.encode("utf-8")
+        ).hexdigest(),
+        "factory_overload_invoke_sites_candidate": factory_sites,
+        "source_inspected": False,
+        "client_registration_order_admitted": False,
+    }
+
+
 def receiver_candidates(client: Path) -> list[dict]:
     """Read only bounded class identities and method names; no class execution."""
     with zipfile.ZipFile(client) as archive:
@@ -318,6 +396,7 @@ def discover(metadata: dict, cache: Path) -> dict:
         "client_configuration_listener_candidates": receiver_candidates(local),
         "client_registry_collector_candidate": collector_candidate(local),
         "client_inner_contents_candidate": inner_contents_candidate(local),
+        "client_registry_loader_overload_candidate": registry_loader_overload_candidate(local),
         "source_inspected": False,
         "client_handler_invocation_proven": False,
         "client_numeric_id_assignment_proven": False,

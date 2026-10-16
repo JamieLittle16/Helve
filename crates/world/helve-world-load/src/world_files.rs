@@ -211,9 +211,77 @@ pub fn visit_pregenerated_region<E>(
     Ok(selected.len())
 }
 
+/// Walk a caller-selected pregenerated first-view chunk set across all
+/// required region files, keeping only the original file visitor and one
+/// authoritative resident directory.
+///
+/// The caller owns `selected`: coordinates are sorted **in place** by
+/// signed region and local chunk position once, so each `.mca` is validated
+/// and read just once. No region dictionary, per-world shadow cache or
+/// per-chunk path discovery occurs. The supplied callback may mint
+/// `SourceChunkPublicationReceipt` objects in the caller's collection;
+/// after installation, use the existing source-view selector to reorder
+/// those receipts by distance to the actual player centre.
+///
+/// All exact duplicate chunk coordinates are rejected before any file
+/// input or callback, including duplicates originally separated by
+/// different regions in the unsorted input. Missing region files or
+/// chunks reject explicitly: no synthetic air/biomes or unqualified
+/// new-world generation is substituted.
+///
+/// Successful source receipts from earlier groups remain resident if
+/// a later region fails. The operation makes no claim of global
+/// all-or-nothing world admission or source authority for the client
+/// biome ID and final Play packet contract.
+///
+/// # Errors
+///
+/// Propagates the exact selected-region file or caller admission failure,
+/// or rejects duplicate source positions before file I/O.
+pub fn visit_selected_pregenerated_world<E>(
+    world: &Path,
+    selected: &mut [ChunkPos],
+    limits: PregeneratedRegionLimits,
+    mut visit: impl for<'a, 'r> FnMut(SelectedAnvilSource<'a, 'r>) -> Result<(), E>,
+) -> Result<usize, PregeneratedRegionError<E>> {
+    selected.sort_unstable_by_key(|pos| {
+        (
+            pos.x.div_euclid(REGION_AXIS),
+            pos.z.div_euclid(REGION_AXIS),
+            pos.x,
+            pos.z,
+        )
+    });
+    for pair in selected.windows(2) {
+        if pair[0] == pair[1] {
+            return Err(PregeneratedRegionError::DuplicatePosition {
+                position: pair[0],
+            });
+        }
+    }
+
+    let mut total = 0_usize;
+    for group in selected.chunk_by(|left, right| {
+        left.x.div_euclid(REGION_AXIS) == right.x.div_euclid(REGION_AXIS)
+            && left.z.div_euclid(REGION_AXIS) == right.z.div_euclid(REGION_AXIS)
+    }) {
+        let first = group[0];
+        total += visit_pregenerated_region(
+            world,
+            first.x.div_euclid(REGION_AXIS),
+            first.z.div_euclid(REGION_AXIS),
+            group,
+            limits,
+            &mut visit,
+        )?;
+    }
+    Ok(total)
+}
+
 #[cfg(test)]
 mod tests {
     use std::fs;
+    use std::io;
     use std::path::{Path, PathBuf};
     use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -222,6 +290,7 @@ mod tests {
 
     use super::{
         PregeneratedRegionError, PregeneratedRegionLimits, visit_pregenerated_region,
+        visit_selected_pregenerated_world,
     };
 
     static NEXT_WORLD: AtomicU64 = AtomicU64::new(0);
@@ -283,6 +352,96 @@ mod tests {
             region[start + 5..start + 5 + payload.len()].copy_from_slice(payload);
         }
         region
+    }
+
+    #[test]
+    fn multi_region_first_view_including_negative_coordinates_reads_each_region() {
+        let world = TestWorld::new();
+        world.write_region(&region(&[(3, b"origin")]));
+        fs::write(
+            world.path().join("region/r.-1.0.mca"),
+            region(&[(3, b"negative")]),
+        )
+        .unwrap();
+        fs::write(
+            world.path().join("region/r.1.0.mca"),
+            region(&[(3, b"positive")]),
+        )
+        .unwrap();
+
+        // Deliberately non-grouped input, including a signed negative region.
+        let mut selected = [
+            ChunkPos { x: 32, z: 0 },
+            ChunkPos { x: 0, z: 0 },
+            ChunkPos { x: -32, z: 0 },
+        ];
+        let mut observed = Vec::new();
+        let count = visit_selected_pregenerated_world(
+            world.path(),
+            &mut selected,
+            limits(),
+            |source| {
+                let chunk = source.region.chunk(source.local_x, source.local_z)
+                    .unwrap().unwrap();
+                observed.push((chunk.position, chunk.inline_payload.unwrap().to_vec()));
+                Ok::<_, ()>(())
+            },
+        )
+        .unwrap();
+        assert_eq!(count, 3);
+        assert_eq!(
+            selected,
+            [
+                ChunkPos { x: -32, z: 0 },
+                ChunkPos { x: 0, z: 0 },
+                ChunkPos { x: 32, z: 0 },
+            ]
+        );
+        assert_eq!(
+            observed,
+            vec![
+                (ChunkPos { x: -32, z: 0 }, b"negative".to_vec()),
+                (ChunkPos { x: 0, z: 0 }, b"origin".to_vec()),
+                (ChunkPos { x: 32, z: 0 }, b"positive".to_vec()),
+            ]
+        );
+    }
+
+    #[test]
+    fn multi_region_selection_rejects_duplicate_before_any_disk_or_callback() {
+        let world = TestWorld::new();
+        let mut selected = [
+            ChunkPos { x: 32, z: 0 },
+            ChunkPos { x: 0, z: 0 },
+            ChunkPos { x: 32, z: 0 },
+        ];
+        let mut visited = 0;
+        assert!(matches!(
+            visit_selected_pregenerated_world(world.path(), &mut selected, limits(), |_| {
+                visited += 1;
+                Ok::<_, ()>(())
+            }),
+            Err(PregeneratedRegionError::DuplicatePosition {
+                position: ChunkPos { x: 32, z: 0 }
+            })
+        ));
+        assert_eq!(visited, 0);
+    }
+
+    #[test]
+    fn later_missing_region_never_invents_chunks_or_reverts_prior_residency() {
+        let world = TestWorld::new();
+        world.write_region(&region(&[(3, b"only-first")]));
+        let mut selected = [ChunkPos { x: 0, z: 0 }, ChunkPos { x: 32, z: 0 }];
+        let mut visited = 0;
+        assert!(matches!(
+            visit_selected_pregenerated_world(world.path(), &mut selected, limits(), |_| {
+                visited += 1;
+                Ok::<_, ()>(())
+            }),
+            Err(PregeneratedRegionError::Io(io::ErrorKind::NotFound))
+        ));
+        assert_eq!(visited, 1, "earlier region work is not globally rolled back");
     }
 
     #[test]

@@ -5,7 +5,11 @@ on:
     paths:
       - tools/official_r2c_heightmap_facts.py
       - tools/official_state_data.py
+      - tools/r2c_heightmap_candidate_bytes.py
       - tools/tests/test_official_r2c_heightmap_facts.py
+      - tools/tests/test_r2c_heightmap_candidate_bytes.py
+      - crates/helve-server/src/r2c_heightmap_facts.rs
+      - crates/helve-server/src/lib.rs
       - vanilla/vanilla.lock.toml
       - .github/workflows/r2c-official-heightmap-facts.yml
   workflow_dispatch:
@@ -33,6 +37,7 @@ jobs:
       - name: Hermetic heightmap oracle tests
         run: |
           python3 -m unittest discover -s tools/tests -p 'test_official_r2c_heightmap_facts.py' -v
+          python3 -m unittest discover -s tools/tests -p 'test_r2c_heightmap_candidate_bytes.py' -v
 
       - name: Probe official pinned server
         run: |
@@ -58,10 +63,26 @@ jobs:
           print("Official dense heightmap candidate PASS; production admission remains blocked")
           PY
 
+      - name: Convert source-checked candidate to exact dense borrowed bytes
+        run: |
+          python3 tools/r2c_heightmap_candidate_bytes.py \
+            --input /tmp/26.2-heightmap-state-facts-candidate.json \
+            --output /tmp/26.2-heightmap-state-facts-candidate.bin
+
+      - name: Independently cross-check official facts against generated Rust state data
+        env:
+          HELVE_R2C_HEIGHTMAP_CANDIDATE: /tmp/26.2-heightmap-state-facts-candidate.bin
+        run: |
+          cargo test --locked -p helve-server --lib \
+            r2c_heightmap_facts::tests::official_runtime_candidate_feeds_real_source_heightmap_reference \
+            -- --exact
+
       - name: Upload ephemeral source-free candidate facts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: r2c-26.2-official-heightmap-facts-candidate
-          path: /tmp/26.2-heightmap-state-facts-candidate.json
+          path: |
+            /tmp/26.2-heightmap-state-facts-candidate.json
+            /tmp/26.2-heightmap-state-facts-candidate.bin
           if-no-files-found: error
           retention-days: 7

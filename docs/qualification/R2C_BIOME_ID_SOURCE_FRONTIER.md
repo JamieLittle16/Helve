@@ -231,3 +231,21 @@ and decoded-entry registration are independently source reviewed, the
 report always marks `bootstrap_linkage_proven: false`. None of this work
 promotes the 66-entry runtime-crosschecked biome-ID candidate, supplies
 VAR/SEM, or enables live chunk publication.
+
+### Exact client registry task and ID-map method frontier (discovery only)
+
+The actual official 26.2 client `RegistryDataLoader.lambda$load$0`
+candidate invokes `RegistryLoadTask.load(RegistryInfoLookup, Executor)`,
+with `CompletableFuture.allOf` and `thenApplyAsync` calls also present
+in its body. A strictly bounded classfile/declaration probe now targets
+`RegistryLoadTask`, `NetworkRegistryLoadTask`, and `MappedRegistry`
+in the *same* SHA/size-checked official client artifact. It inventories
+the `load`, `registerElements`, and `register` methods and fingerprint
+identities separately, without exporting bytecode or Mojang source.
+
+A method name or call site alone is **not** evidence of a particular
+iteration law, future completion order, duplicate handling, or numeric ID
+assignment. The necessary independent VAR/SEM must establish full
+reachability of these candidates and the exact ordered list-to-insertion
+semantics, including failures and known-packs identity, before R2C
+biome-ID production admission.

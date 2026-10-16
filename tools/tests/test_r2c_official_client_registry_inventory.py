@@ -23,6 +23,7 @@ LOADER_CLASS = "net/minecraft/resources/RegistryDataLoader.class"
 TASK_CLASS = "net/minecraft/resources/RegistryLoadTask.class"
 NETWORK_TASK_CLASS = "net/minecraft/resources/NetworkRegistryLoadTask.class"
 MAPPED_CLASS = "net/minecraft/core/MappedRegistry.class"
+UTIL_CLASS = "net/minecraft/util/Util.class"
 BYTECODE = b"\xca\xfe\xba\xbe" + b"synthetic-jvm-test-class"
 JAVAP = """public class net.minecraft.client.multiplayer.ClientConfigurationPacketListenerImpl {
   public void handleRegistryData(net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket);
@@ -150,6 +151,12 @@ JAVAP_TASK_ROOTS = {
     Code:
        0: invokestatic #10 // Method net/minecraft/util/Util.sequence:(Ljava/util/List;)Ljava/util/concurrent/CompletableFuture;
        3: areturn
+
+  private void lambda$load$0(java.util.List values);
+    Code:
+       0: aload_0
+       1: invokevirtual #11 // Method net/minecraft/resources/RegistryLoadTask.registerElements:(Ljava/util/stream/Stream;)V
+       4: return
 }
 """,
     "net.minecraft.core.MappedRegistry": """public class net.minecraft.core.MappedRegistry {
@@ -167,6 +174,32 @@ JAVAP_TASK_ROOTS = {
 }
 
 
+JAVAP_UTIL = """public class net.minecraft.util.Util {
+  public static java.util.concurrent.CompletableFuture sequence(java.util.List<java.util.concurrent.CompletableFuture<java.lang.Object>> input);
+    Code:
+       0: aload_0
+       1: invokeinterface #10,  1 // InterfaceMethod java/util/List.toArray:()[Ljava/lang/Object;
+       4: invokestatic #11 // Method java/util/concurrent/CompletableFuture.allOf:([Ljava/util/concurrent/CompletableFuture;)Ljava/util/concurrent/CompletableFuture;
+       7: invokedynamic #12 // InvokeDynamic #0:apply:(Ljava/util/List;)Ljava/util/function/Function;
+      12: invokevirtual #13 // Method java/util/concurrent/CompletableFuture.thenApply:(Ljava/util/function/Function;)Ljava/util/concurrent/CompletableFuture;
+      15: areturn
+
+  private static java.util.List lambda$sequence$0(java.util.List input, java.lang.Object done);
+    Code:
+       0: aload_0
+       1: invokeinterface #14,  1 // InterfaceMethod java/util/List.stream:()Ljava/util/stream/Stream;
+       4: invokedynamic #15 // InvokeDynamic #1:apply:()Ljava/util/function/Function;
+       9: invokeinterface #16,  2 // InterfaceMethod java/util/stream/Stream.map:(Ljava/util/function/Function;)Ljava/util/stream/Stream;
+      14: invokeinterface #17,  1 // InterfaceMethod java/util/stream/Stream.toList:()Ljava/util/List;
+      19: areturn
+
+  private static void unrelated();
+    Code:
+       0: invokestatic #99 // Method net/minecraft/core/MappedRegistry.fake:()V
+}
+"""
+
+
 def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
     del kwargs
     if "-c" in args and probe.COLLECTOR_CLASS in args:
@@ -177,6 +210,8 @@ def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess
         return subprocess.CompletedProcess(args, 0, JAVAP_LOADER, "")
     if "-c" in args and args[-1] in JAVAP_TASK_ROOTS:
         return subprocess.CompletedProcess(args, 0, JAVAP_TASK_ROOTS[args[-1]], "")
+    if "-c" in args and args[-1] == "net.minecraft.util.Util":
+        return subprocess.CompletedProcess(args, 0, JAVAP_UTIL, "")
     return subprocess.CompletedProcess(
         args, 0, JAVAP_CODE if "-c" in args else JAVAP, ""
     )
@@ -437,6 +472,42 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "required registry methods missing"):
                     probe.exact_registry_task_candidates(jar)
 
+    def test_util_sequence_and_network_callback_fail_closed(self) -> None:
+        roots = {NETWORK_TASK_CLASS: BYTECODE, UTIL_CLASS: BYTECODE}
+        with tempfile.TemporaryDirectory() as tmp:
+            jar = Path(tmp) / "client.jar"
+            jar.write_bytes(jar_bytes(roots))
+            with patch.object(probe.subprocess, "run", side_effect=mock_javap):
+                candidates = probe.sequence_order_frontier_candidates(jar)
+            self.assertEqual(len(candidates), 2)
+            self.assertNotIn("MappedRegistry.fake", json.dumps(candidates))
+            for absent in (NETWORK_TASK_CLASS, UTIL_CLASS):
+                jar.write_bytes(jar_bytes({n: d for n, d in roots.items() if n != absent}))
+                with patch.object(probe.subprocess, "run", side_effect=mock_javap):
+                    with self.assertRaisesRegex(ValueError, "missing exact"):
+                        probe.sequence_order_frontier_candidates(jar)
+            jar.write_bytes(jar_bytes(roots))
+            def no_sequence(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+                original = mock_javap(args, **kwargs)
+                if args[-1] == "net.minecraft.util.Util":
+                    original = subprocess.CompletedProcess(
+                        args, 0, original.stdout.replace(" sequence(", " shifted("), ""
+                    )
+                return original
+            with patch.object(probe.subprocess, "run", side_effect=no_sequence):
+                with self.assertRaisesRegex(ValueError, "Util.sequence declaration missing"):
+                    probe.sequence_order_frontier_candidates(jar)
+            def no_callback(args: list[str], **kwargs: object) -> subprocess.CompletedProcess:
+                original = mock_javap(args, **kwargs)
+                if args[-1] == "net.minecraft.resources.NetworkRegistryLoadTask":
+                    original = subprocess.CompletedProcess(
+                        args, 0, original.stdout.replace("lambda$load$0", "lambda$wrong$0"), ""
+                    )
+                return original
+            with patch.object(probe.subprocess, "run", side_effect=no_callback):
+                with self.assertRaisesRegex(ValueError, "completion callback declarations missing"):
+                    probe.sequence_order_frontier_candidates(jar)
+
     def test_unobfuscated_metadata_has_exact_official_identity_fields(self) -> None:
         self.assertEqual(probe.required_client(meta())["size"], 123)
         for invalid in [
@@ -479,6 +550,7 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
             TASK_CLASS: BYTECODE,
             NETWORK_TASK_CLASS: BYTECODE,
             MAPPED_CLASS: BYTECODE,
+            UTIL_CLASS: BYTECODE,
         })
 
         def fake_download(url: str, output: Path, sha1: str, size: int) -> None:
@@ -530,6 +602,15 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                             and not r["insertion_order_proven"] for r in roots))
         self.assertIn("registerElements",
                       [member["method_name"] for member in roots[0]["method_candidates"]])
+        ordering = result["sequence_order_frontier_candidates"]
+        self.assertEqual(len(ordering), 2)
+        self.assertEqual(ordering[0]["method_candidates"][0]["method_name"],
+                         "lambda$load$0")
+        self.assertEqual(ordering[1]["class_name"], "net.minecraft.util.Util")
+        self.assertIn("sequence",
+                      [method["method_name"] for method in ordering[1]["method_candidates"]])
+        self.assertTrue(all(not root["completion_order_proven"]
+                            and not root["registration_order_proven"] for root in ordering))
         self.assertNotIn("synthetic-jvm-test-class", json.dumps(result))
         self.assertNotIn("public void", json.dumps(result))
 

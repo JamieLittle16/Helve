@@ -278,20 +278,16 @@ pub(crate) fn service_one_source_admitted_chunk(
     _admission: &R2cSourceAdmission,
 ) -> Result<ChunkBatchStep, DriverError<ReceiptBoundBodyCandidateError>> {
     session.service_r2c_chunk_batch_one(batch, scratch, |index, output| {
-        let receipt = receipts
-            .get(index)
-            .ok_or(ReceiptBoundBodyCandidateError::MissingReceipt {
-                index,
-                available: receipts.len(),
-            })?;
+        let receipt =
+            receipts
+                .get(index)
+                .ok_or(ReceiptBoundBodyCandidateError::MissingReceipt {
+                    index,
+                    available: receipts.len(),
+                })?;
         append_chunk_with_light_packet_id(output);
         append_receipt_bound_empty_chunk_body_candidate(
-            dimension,
-            receipt,
-            facts,
-            66,
-            65_535,
-            output,
+            dimension, receipt, facts, 66, 65_535, output,
         )
         .map(|_| ())
     })

@@ -795,7 +795,7 @@ mod tests {
         use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
         use helve_target_26_2::r2c_play_wire::{
             CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
-            CLIENTBOUND_CHUNK_WITH_LIGHT, append_chunk_with_light_packet_id,
+            CLIENTBOUND_CHUNK_WITH_LIGHT,
         };
         use helve_world_chunk::HeightmapStateFacts;
 
@@ -805,7 +805,6 @@ mod tests {
         use crate::r2c_cold_demo_import::{
             R2cSourceAdmission, service_one_source_admitted_chunk,
         };
-        use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
 
         let world = WorldFixture::new();
         // At the origin the selected fixed view straddles signed

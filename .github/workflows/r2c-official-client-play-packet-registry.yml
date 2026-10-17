@@ -57,6 +57,29 @@ jobs:
           assert not packet["ordered_ordinal_assignment_proven"]
           assert not packet["play_bundle_and_direction_law_admitted"]
           assert packet["target_field_reference_count"] >= 5
+          # Independent, exact stock-client SHA/size-verified 26.2 JVM
+          # identities. A modified collector cannot bless new ordinals by
+          # merely changing its own EXPECTED_ORDINALS values.
+          assert packet["complete_builder_argument_order_for_five_types_candidate"] == {
+              "CLIENTBOUND_CHUNK_BATCH_FINISHED": 11,
+              "CLIENTBOUND_CHUNK_BATCH_START": 12,
+              "CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT": 45,
+              "CLIENTBOUND_SET_CHUNK_CACHE_CENTER": 94,
+              "SERVERBOUND_CHUNK_BATCH_RECEIVED": 11,
+          }
+          assert packet["builder_append_to_numeric_id_law_proven"] is False
+          assert packet["serverbound_ack_builder_index_vs_wire_candidate_discrepancy"] is True
+          methods={m["method_name"]:m for m in packet["selected_registration_methods"]}
+          assert set(methods)=={"lambda$static$2","lambda$static$1"}
+          assert methods["lambda$static$2"]["instruction_count"] == 429
+          assert methods["lambda$static$2"]["all_instructions_sha256"] == (
+              "83b3c511b46a3575a4fbf0779ee145b01519404f5516ac83cb2aefdd13a81b21"
+          )
+          assert methods["lambda$static$1"]["instruction_count"] == 211
+          assert methods["lambda$static$1"]["all_instructions_sha256"] == (
+              "e317857a535331f9aa6a6827ed55d67fa2b723103400d45d9ad48dc60b54122a"
+          )
+
           all_fields=[
               edge["field"] for method in packet["selected_registration_methods"]
               for edge in method["packet_field_references"]

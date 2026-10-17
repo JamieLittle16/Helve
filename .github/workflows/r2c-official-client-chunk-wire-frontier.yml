@@ -1,0 +1,149 @@
+name: R2C Official Client Chunk Wire Frontier
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_client_chunk_wire_frontier.py
+      - tools/tests/test_r2c_client_chunk_wire_frontier.py
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-chunk-wire-frontier.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    name: Exact 26.2 client chunk-with-light packet codec candidates (not admitted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25 for exact Mojang client
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Hermetic negative tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_client_chunk_wire_frontier.py' -v
+
+      - name: Inspect actual 26.2 client packet classes
+        run: |
+          python3 tools/r2c_client_chunk_wire_frontier.py \
+            --output /tmp/r2c-26.2-client-chunk-wire-candidates.json
+
+      - name: Fail closed on wrong target, incomplete classes or any authority claim
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          doc=json.loads(Path("/tmp/r2c-26.2-client-chunk-wire-candidates.json").read_text())
+          assert doc["target"] == {"minecraft":"26.2","protocol":776,"data_version":4903}
+          for key in ("packet_type_identity_admitted","serialized_field_order_admitted",
+                      "source_var_sem_admitted","production_admitted"):
+              assert doc[key] is False
+          classes=doc["wire_codec_candidates"]
+          assert [item["class_name"] for item in classes] == [
+              "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket",
+              "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData",
+              "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData",
+          ]
+          # Exact source-free identities observed from Mojang's own SHA/size
+          # checked unobfuscated 26.2 client. A drift cannot silently
+          # turn candidate packet order into Helve's production authority.
+          pinned = {
+              "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket": (
+                  "19dc8da92e1fce46d65e84e227b910950d71a3fc2b7c8bcc007360df1c2134ad",
+                  "8a135a847d6b82b9f061cd8b3f3d41a6bb5a0d21de8ab4fb04cf62cd6b56da1e",
+                  [(2,"getfield","Field x:I"),
+                   (5,"invokevirtual","writeInt:"),
+                   (11,"getfield","Field z:I"),
+                   (14,"invokevirtual","writeInt:"),
+                   (19,"getfield","Field chunkData:"),
+                   (23,"invokevirtual","ClientboundLevelChunkPacketData.write:"),
+                   (27,"getfield","Field lightData:"),
+                   (31,"invokevirtual","ClientboundLightUpdatePacketData.write:")],
+              ),
+              "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData": (
+                  "7bbd72318995b2206bd25a7ee137cb1b892d5c40d1e829132af91757f1db5654",
+                  "a97282c84d5c63540a60ce1d5c35f7d376b752afb418979dcb73d08e69004c58",
+                  [(0,"getstatic","HEIGHTMAPS_STREAM_CODEC:"),
+                   (5,"getfield","Field heightmaps:"),
+                   (8,"invokeinterface","StreamCodec.encode:"),
+                   (15,"getfield","Field buffer:"),
+                   (19,"invokevirtual","writeVarInt:"),
+                   (25,"getfield","Field buffer:"),
+                   (28,"invokevirtual","writeBytes:"),
+                   (32,"getstatic","BlockEntityInfo.LIST_STREAM_CODEC:"),
+                   (37,"getfield","Field blockEntitiesData:"),
+                   (40,"invokeinterface","StreamCodec.encode:")],
+              ),
+              "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData": (
+                  "2f00e4382a7a61ef29b6dc79196aeccbcbc9ce3e97d5b9ef89b8d5a44991cda7",
+                  "50d06dd25636394a6da5ff4603b4e036abbdd8d8cc0e71e1d61682d205101ad3",
+                  [(2,"getfield","Field skyYMask:"),
+                   (5,"invokevirtual","writeBitSet:"),
+                   (10,"getfield","Field blockYMask:"),
+                   (13,"invokevirtual","writeBitSet:"),
+                   (18,"getfield","Field emptySkyYMask:"),
+                   (21,"invokevirtual","writeBitSet:"),
+                   (26,"getfield","Field emptyBlockYMask:"),
+                   (29,"invokevirtual","writeBitSet:"),
+                   (34,"getfield","Field skyUpdates:"),
+                   (37,"getstatic","DATA_LAYER_STREAM_CODEC:"),
+                   (40,"invokevirtual","writeCollection:"),
+                   (45,"getfield","Field blockUpdates:"),
+                   (48,"getstatic","DATA_LAYER_STREAM_CODEC:"),
+                   (51,"invokevirtual","writeCollection:")],
+              ),
+          }
+          assert len(pinned)==len(classes)
+          for item in classes:
+              class_sha, method_sha, required = pinned[item["class_name"]]
+              assert item["classfile_sha256_candidate"] == class_sha
+              [writer] = [m for m in item["candidate_methods"] if m["name"]=="write"]
+              assert writer["instruction_shape_sha256"] == method_sha
+              actual = writer["symbols"]
+              assert len(actual) == len(required)
+              for edge,(offset,opcode,target) in zip(actual,required):
+                  assert edge["offset"]==offset
+                  assert edge["opcode"]==opcode
+                  assert target in edge["symbol_candidate"], (item["class_name"],edge)
+          [envelope] = [item for item in classes if item["class_name"].endswith(
+              ".ClientboundLevelChunkWithLightPacket"
+          )]
+          [packet_type] = [m for m in envelope["candidate_methods"] if m["name"]=="type"]
+          assert packet_type["instruction_shape_sha256"] == (
+              "61078b42055dd53016766f0b10a12b6221c714788dc03c2d1f6b51664060020c"
+          )
+          assert len(packet_type["symbols"]) == 1
+          assert packet_type["symbols"][0]["symbol_candidate"].find(
+              "GamePacketTypes.CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT:"
+          ) != -1
+          for item in classes:
+              assert not item["outer_packet_wire_semantics_source_admitted"]
+              assert len(item["classfile_sha256_candidate"]) == 64
+              assert any(m["name"]=="write" for m in item["candidate_methods"])
+              print("Official class:",item["class_name"],
+                    "SHA",item["classfile_sha256_candidate"])
+              for m in item["candidate_methods"]:
+                  print(" method",m["name"],"sha",m["instruction_shape_sha256"])
+                  for symbol in m["symbols"]:
+                      print("  ",symbol["offset"],symbol["opcode"],symbol["symbol_candidate"])
+          print("Client packet code inspected, outer wire source admission remains FALSE")
+          PY
+
+      - name: Retain only short-lived source-free packet call candidates
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-client-chunk-wire-method-candidates
+          path: /tmp/r2c-26.2-client-chunk-wire-candidates.json
+          retention-days: 7
+          if-no-files-found: error

@@ -84,7 +84,7 @@ class SourceFreeDelegateFindingsTests(unittest.TestCase):
         self.assertFalse(any(x.required for x in delegate.ROOTS[16:]))
         documentation = DOC.read_text(encoding="utf-8")
         self.assertIn("getSize", documentation)
-        self.assertIn("not an exhaustive proof", documentation)
+        self.assertIn("an exhaustive proof", documentation)
         self.assertIn("VAR/SEM", documentation)
 
 

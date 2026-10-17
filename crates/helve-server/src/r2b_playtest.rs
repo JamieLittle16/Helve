@@ -904,11 +904,12 @@ fn service_admitted_play_publication(
     sender: &mut SourceAdmittedPlayPublisher<'_>,
     now_ms: u64,
 ) -> Result<(), R2bPlaytestError> {
-    let queued = sender
-        .service(session, world, now_ms)
-        .map_err(|error| R2bPlaytestError::WorldPublish {
-            reason: format!("{error:?}"),
-        })?;
+    let queued =
+        sender
+            .service(session, world, now_ms)
+            .map_err(|error| R2bPlaytestError::WorldPublish {
+                reason: format!("{error:?}"),
+            })?;
     if queued != 0 {
         write_play_once(transport, session)?;
     }

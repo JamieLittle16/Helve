@@ -91,7 +91,7 @@ class DelegateSourceReviewTests(unittest.TestCase):
                 "UPDATE methods SET body_sha256=? WHERE id=1",
                 (hashlib.sha256(b"").hexdigest(),),
             )
-            java = b"public abstract int register(final int x);\\n"
+            java = b"public abstract int register(final int x);\n"
             buf = io.BytesIO()
             with zipfile.ZipFile(buf, "w") as archive:
                 archive.writestr("src/net/minecraft/Test.java", java)

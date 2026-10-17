@@ -795,14 +795,14 @@ mod tests {
         use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
         use helve_target_26_2::r2c_play_wire::{
             CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
-            CLIENTBOUND_CHUNK_WITH_LIGHT, append_chunk_with_light_packet_id,
+            CLIENTBOUND_CHUNK_WITH_LIGHT,
         };
         use helve_world_chunk::HeightmapStateFacts;
 
         use crate::r2b_server::R2bPlaySession;
         use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
+        use crate::r2c_cold_demo_import::{R2cSourceAdmission, service_one_source_admitted_chunk};
         use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
-        use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
 
         let world = WorldFixture::new();
         // At the origin the selected fixed view straddles signed
@@ -928,34 +928,58 @@ mod tests {
         let mut scratch = Vec::with_capacity(65_536);
         let original_scratch = scratch.as_ptr();
         state.on_tick();
-        let project = |index: usize, output: &mut Vec<u8>| {
-            append_chunk_with_light_packet_id(output);
-            append_receipt_bound_empty_chunk_body_candidate(
-                &dimension,
-                &receipts[index],
-                &facts,
-                66, // candidate only; client numeric biome admission still open
-                65_535,
-                output,
-            )
-            .map(|_| ())
-        };
+        // The positive source-admission witness exists in *tests only*.
+        // Production uses an uninhabited capability, so none of these
+        // candidate packets can be sent by the actual binary.
+        let admission = R2cSourceAdmission;
         assert!(matches!(
-            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            service_one_source_admitted_chunk(
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
+            ),
             Ok(ChunkBatchStep::CacheCenterQueued { x: 0, z: 0 })
         ));
         assert!(matches!(
-            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            service_one_source_admitted_chunk(
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
+            ),
             Ok(ChunkBatchStep::Started { count: 2 })
         ));
         for index in 0..2 {
             assert!(matches!(
-                session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+                service_one_source_admitted_chunk(
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
+            ),
                 Ok(ChunkBatchStep::ChunkQueued { index: actual, .. }) if actual == index
             ));
         }
         assert!(matches!(
-            session.service_r2c_chunk_batch_one(&mut state, &mut scratch, project),
+            service_one_source_admitted_chunk(
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
+            ),
             Ok(ChunkBatchStep::Finished { count: 2 })
         ));
         assert_eq!(scratch.as_ptr(), original_scratch);

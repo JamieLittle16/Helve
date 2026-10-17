@@ -239,8 +239,8 @@ pub enum R2bPlaytestExit {
 }
 
 /// Opt-in, **non-publishing** first world preview for one R2B development session.
-/// The selected world path is a validated local Anvil root; optional COLD
-/// projection inspection never sends a Play world packet.
+/// The selected save root follows the exact official 26.2 namespaced
+/// Overworld layout; optional COLD inspection never sends a Play packet.
 #[derive(Clone, Debug)]
 pub struct R2cColdWorldPlan {
     world: PathBuf,
@@ -271,14 +271,27 @@ pub enum R2cColdWorldPlanError {
 }
 
 impl R2cColdWorldPlan {
-    /// Validates the selected Anvil `world/region` directory before opening
-    /// a listening socket, without reading or trusting any saved chunk bytes.
+    /// Check the official 26.2 namespaced Overworld source directory and
+    /// root save metadata before binding the network socket. The region
+    /// visitor still takes a dimension directory containing `region/`;
+    /// changing that generic importer's contract would duplicate work.
+    /// This identity check is necessary, not the final level.dat profile or
+    /// selected-pack source admission, and never authorizes publication.
     ///
     /// # Errors
-    /// Fails closed on missing/invalid/symlink world and region directories.
+    /// Fails closed on missing, nonregular or symlinked components.
     pub fn new(world: PathBuf) -> Result<Self, R2cColdWorldPlanError> {
-        let region = world.join("region");
-        for (component, path) in [("world", world.as_path()), ("region", region.as_path())] {
+        let dimensions = world.join("dimensions");
+        let namespace = dimensions.join("minecraft");
+        let overworld = namespace.join("overworld");
+        let region = overworld.join("region");
+        for (component, path) in [
+            ("world", world.as_path()),
+            ("dimensions", dimensions.as_path()),
+            ("minecraft", namespace.as_path()),
+            ("overworld", overworld.as_path()),
+            ("region", region.as_path()),
+        ] {
             let metadata =
                 fs::symlink_metadata(path).map_err(|error| R2cColdWorldPlanError::Io {
                     operation: component,
@@ -291,6 +304,21 @@ impl R2cColdWorldPlan {
                 return Err(R2cColdWorldPlanError::NotDirectory { component });
             }
         }
+        let level = world.join("level.dat");
+        let metadata = fs::symlink_metadata(&level).map_err(|error| R2cColdWorldPlanError::Io {
+            operation: "level.dat",
+            kind: error.kind(),
+        })?;
+        if metadata.file_type().is_symlink() {
+            return Err(R2cColdWorldPlanError::Symlink {
+                component: "level.dat",
+            });
+        }
+        if !metadata.is_file() {
+            return Err(R2cColdWorldPlanError::NotFile {
+                component: "level.dat",
+            });
+        }
         Ok(Self {
             world,
             heightmap_candidate: None,
@@ -300,6 +328,13 @@ impl R2cColdWorldPlan {
     #[must_use]
     pub fn world(&self) -> &Path {
         &self.world
+    }
+
+    /// The generic Anvil visitor expects the selected dimension root,
+    /// whereas the CLI selects a complete official 26.2 save root.
+    #[must_use]
+    pub(crate) fn overworld_source_root(&self) -> PathBuf {
+        self.world.join("dimensions/minecraft/overworld")
     }
 
     /// Load and validate a separate source-unadmitted 26.2 heightmap state
@@ -595,10 +630,11 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     // cannot emit Play chunks until separate client/source VAR/SEM admission.
     // Without the flag, the original R2B behavior remains byte-identical.
     let mut cold_view = if let Some(plan) = plan {
+        let overworld = plan.overworld_source_root();
         let imported = crate::r2c_cold_demo_import::import_selected_cold_world(
             &session,
             &image.configuration,
-            plan.world(),
+            &overworld,
         )
         .map_err(|reason| R2bPlaytestError::WorldPlan { reason })?;
         eprintln!(

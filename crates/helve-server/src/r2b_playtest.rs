@@ -12,7 +12,9 @@ use std::io::{self, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
+use crate::r2c_cold_demo_import::ColdImportedView;
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
+use crate::r2c_play_inbound::{R2cPlayInboundError, R2cPlayInboundStep};
 use std::time::{Duration, Instant};
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
@@ -394,6 +396,8 @@ pub enum R2bPlaytestError {
     DiscardInvariant,
     /// Opt-in world preview could not be bound to the actual outstanding teleport.
     WorldPlan { reason: String },
+    /// Transactional R2C ingress failure in the explicit saved-world mode.
+    WorldInbound(R2cPlayInboundError),
     /// A diagnostic counter overflowed.
     AccountingOverflow,
 }
@@ -590,7 +594,7 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     // its receipts live through the original R2B Play service loop; they
     // cannot emit Play chunks until separate client/source VAR/SEM admission.
     // Without the flag, the original R2B behavior remains byte-identical.
-    let _cold_view = if let Some(plan) = plan {
+    let mut cold_view = if let Some(plan) = plan {
         let imported = crate::r2c_cold_demo_import::import_selected_cold_world(
             &session,
             &image.configuration,
@@ -624,12 +628,47 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             .awaiting()
             .map(|pending| pending.id)
     );
-    serve_world_projection_wait(transport, &mut session)
+    serve_world_projection_wait(transport, &mut session, cold_view.as_mut())
+}
+
+/// One event on the original R2B driver; the optional world owner can
+/// additionally claim a source-bound batch ACK without moving frame bytes.
+enum WorldPlayIngress {
+    Incomplete,
+    Control(R2bPlayInbound),
+    ChunkBatchAcknowledged,
+    Unclaimed,
+}
+
+fn process_one_world_play_ingress(
+    session: &mut R2bPlaySession,
+    cold_view: Option<&mut ColdImportedView>,
+    now_ms: u64,
+) -> Result<WorldPlayIngress, R2bPlaytestError> {
+    if let Some(world) = cold_view {
+        return match world
+            .process_one_play_inbound(session, now_ms)
+            .map_err(R2bPlaytestError::WorldInbound)?
+        {
+            R2cPlayInboundStep::Incomplete => Ok(WorldPlayIngress::Incomplete),
+            R2cPlayInboundStep::Control(event) => Ok(WorldPlayIngress::Control(event)),
+            R2cPlayInboundStep::ChunkBatchAcknowledged { .. } => {
+                Ok(WorldPlayIngress::ChunkBatchAcknowledged)
+            }
+            R2cPlayInboundStep::Unclaimed { .. } => Ok(WorldPlayIngress::Unclaimed),
+        };
+    }
+    match session.process_one_play_control(now_ms)? {
+        R2bPlayProcess::Incomplete => Ok(WorldPlayIngress::Incomplete),
+        R2bPlayProcess::Committed(event) => Ok(WorldPlayIngress::Control(event)),
+        R2bPlayProcess::Unclaimed { .. } => Ok(WorldPlayIngress::Unclaimed),
+    }
 }
 
 fn serve_world_projection_wait(
     transport: &mut TcpStream,
     session: &mut R2bPlaySession,
+    mut cold_view: Option<&mut ColdImportedView>,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
     let origin = Instant::now();
     let mut teleport_acknowledged = false;
@@ -641,23 +680,29 @@ fn serve_world_projection_wait(
             return Ok(R2bPlaytestExit::ClockInvalid);
         };
         for _ in 0..ACTIONS_PER_SERVICE {
-            match session.process_one_play_control(now_ms)? {
-                R2bPlayProcess::Incomplete => break,
-                R2bPlayProcess::Committed(R2bPlayInbound::TeleportAcknowledgement(result)) => {
+            match process_one_world_play_ingress(session, cold_view.as_deref_mut(), now_ms)? {
+                WorldPlayIngress::Incomplete => break,
+                WorldPlayIngress::Control(R2bPlayInbound::TeleportAcknowledgement(result)) => {
                     if result != TeleportAckResult::Accepted {
                         return Ok(R2bPlaytestExit::InvalidTeleportAcknowledgement(result));
                     }
                     teleport_acknowledged = true;
                 }
-                R2bPlayProcess::Committed(R2bPlayInbound::KeepAliveAccepted { .. }) => {
+                WorldPlayIngress::Control(R2bPlayInbound::KeepAliveAccepted { .. }) => {
                     accepted_keep_alives = accepted_keep_alives
                         .checked_add(1)
                         .ok_or(R2bPlaytestError::AccountingOverflow)?;
                 }
-                R2bPlayProcess::Committed(R2bPlayInbound::KeepAliveRejected { .. }) => {
+                WorldPlayIngress::Control(R2bPlayInbound::KeepAliveRejected { .. }) => {
                     return Ok(R2bPlaytestExit::InvalidKeepAlive);
                 }
-                R2bPlayProcess::Unclaimed { .. } => {
+                WorldPlayIngress::ChunkBatchAcknowledged => {
+                    // No finished batch is ever queued until source admission;
+                    // this becomes reachable only after the real sender is
+                    // independently admitted. The existing batch state has
+                    // already transactionally consumed the ACK.
+                }
+                WorldPlayIngress::Unclaimed => {
                     discard_one_complete_play_frame(session)?;
                     discarded_world_frames = discarded_world_frames
                         .checked_add(1)

@@ -549,16 +549,54 @@ mod tests {
         }
 
         fn write(&self, region_x: i32, slot: usize, x: i32, z: i32) {
-            let nbt = saved_chunk_nbt(x, z);
-            let mut bytes = vec![0_u8; 3 * SECTOR];
-            let pointer = (2_u32 << 8) | 1;
-            bytes[slot * 4..slot * 4 + 4].copy_from_slice(&pointer.to_be_bytes());
-            bytes[SECTOR + slot * 4..SECTOR + slot * 4 + 4].copy_from_slice(&17_u32.to_be_bytes());
-            bytes[2 * SECTOR..2 * SECTOR + 4]
-                .copy_from_slice(&u32::try_from(nbt.len() + 1).unwrap().to_be_bytes());
-            bytes[2 * SECTOR + 4] = 3;
-            bytes[2 * SECTOR + 5..2 * SECTOR + 5 + nbt.len()].copy_from_slice(&nbt);
-            fs::write(self.root.join(format!("region/r.{region_x}.0.mca")), bytes).unwrap();
+            self.write_region(region_x, 0, &[(slot, x, z)]);
+        }
+
+        /// One exact Anvil region writer shared by the original one-chunk
+        /// fixtures and the finite nine-chunk cross-region wire test.
+        /// This is test-only uncompressed NBT, not a product importer.
+        fn write_region(&self, region_x: i32, region_z: i32, chunks: &[(usize, i32, i32)]) {
+            assert!(!chunks.is_empty() && chunks.len() <= 255);
+            let mut bytes = vec![0_u8; (2 + chunks.len()) * SECTOR];
+            for (index, &(slot, x, z)) in chunks.iter().enumerate() {
+                assert!(slot < 1024);
+                let nbt = saved_chunk_nbt(x, z);
+                assert!(nbt.len() + 5 <= SECTOR);
+                assert_eq!(&bytes[slot * 4..slot * 4 + 4], &[0, 0, 0, 0]);
+                let sector = index + 2;
+                let pointer = (u32::try_from(sector).unwrap() << 8) | 1;
+                bytes[slot * 4..slot * 4 + 4].copy_from_slice(&pointer.to_be_bytes());
+                bytes[SECTOR + slot * 4..SECTOR + slot * 4 + 4]
+                    .copy_from_slice(&17_u32.to_be_bytes());
+                let offset = sector * SECTOR;
+                bytes[offset..offset + 4]
+                    .copy_from_slice(&u32::try_from(nbt.len() + 1).unwrap().to_be_bytes());
+                bytes[offset + 4] = 3;
+                bytes[offset + 5..offset + 5 + nbt.len()].copy_from_slice(&nbt);
+            }
+            fs::write(
+                self.root
+                    .join(format!("region/r.{region_x}.{region_z}.mca")),
+                bytes,
+            )
+            .unwrap();
+        }
+
+        fn write_chunks(&self, positions: &[ChunkPos]) {
+            let mut groups = std::collections::BTreeMap::new();
+            for position in positions {
+                let region_x = position.x.div_euclid(32);
+                let region_z = position.z.div_euclid(32);
+                let slot = usize::try_from(position.x.rem_euclid(32)).unwrap()
+                    + usize::try_from(position.z.rem_euclid(32)).unwrap() * 32;
+                groups
+                    .entry((region_x, region_z))
+                    .or_insert_with(Vec::new)
+                    .push((slot, position.x, position.z));
+            }
+            for ((region_x, region_z), chunks) in groups {
+                self.write_region(region_x, region_z, &chunks);
+            }
         }
     }
 

@@ -25,7 +25,7 @@ use crate::r2b_server::R2bPlaySession;
 use helve_connection_driver::DriverError;
 use helve_target_26_2::r2c_play_wire::append_chunk_with_light_packet_id;
 
-use crate::r2c_chunk_batch::{ChunkBatchStep, R2cChunkBatchState};
+use crate::r2c_chunk_batch::{ChunkBatchStep, R2cBatchTickClock, R2cChunkBatchState};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_disk_first_view::{
     PendingTeleportDiskFirstViewRequest, import_pending_teleport_disk_first_view,
@@ -291,6 +291,110 @@ pub(crate) fn service_one_source_admitted_chunk(
         )
         .map(|_| ())
     })
+}
+
+/// A source-gated, allocation-bounded publication opportunity in the
+/// retained R2B Play service. The only per-connection outbound storage is the
+/// original driver plus one reused COLD scratch buffer. No packet vector,
+/// duplicate resident data or independent scheduler is introduced.
+///
+/// **Production has no constructible admission witness.** Merely compiling
+/// this ready-to-connect service does not make candidate chunks publishable.
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "R2C client/wire VAR/SEM admission remains pending")
+)]
+pub(crate) struct SourceAdmittedPlayPublisher<'a> {
+    admission: &'a R2cSourceAdmission,
+    facts: CandidateHeightmapFacts<'a>,
+    scratch: Vec<u8>,
+    clock: R2cBatchTickClock,
+}
+
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "R2C client/wire VAR/SEM admission remains pending")
+)]
+impl<'a> SourceAdmittedPlayPublisher<'a> {
+    const MAX_ACTIONS_PER_TICK: usize = 32;
+    const MAX_BODY_BYTES: usize = 65_535;
+
+    /// Validate the exact source-selected facts once and widen the **same**
+    /// driver to the already bounded legal Play frame limits. Requires the
+    /// separate uninhabited-in-production source admission capability.
+    ///
+    /// # Errors
+    /// A bad table, allocation failure or driver limit rejection aborts
+    /// activation before the first chunk publication.
+    pub(crate) fn new(
+        session: &mut R2bPlaySession,
+        facts_bytes: &'a [u8],
+        start_ms: u64,
+        admission: &'a R2cSourceAdmission,
+    ) -> Result<Self, String> {
+        let facts = CandidateHeightmapFacts::from_oracle_bytes(facts_bytes)
+            .map_err(|error| format!("R2C source facts rejected: {error:?}"))?;
+        let mut scratch = Vec::new();
+        scratch
+            .try_reserve_exact(Self::MAX_BODY_BYTES)
+            .map_err(|error| format!("R2C bounded projection scratch rejected: {error:?}"))?;
+        session
+            .widen_play_limits_for_chunks()
+            .map_err(|error| format!("R2C retained Play limits rejected: {error:?}"))?;
+        Ok(Self {
+            admission,
+            facts,
+            scratch,
+            clock: R2cBatchTickClock::new(start_ms),
+        })
+    }
+
+    /// Never sleep beyond the next R2C send tick or the earlier liveness
+    /// deadline. The caller performs one bounded Play ingress/control pass
+    /// before calling this method, and continues using the original socket.
+    pub(crate) fn next_wake_deadline_ms(&self, liveness_deadline_ms: u64) -> u64 {
+        self.clock.next_wake_deadline_ms(liveness_deadline_ms)
+    }
+
+    /// Issue at most 32 *individual* transactional publication admissions
+    /// per service opportunity. The internal 20-Hz clock replenishes quota
+    /// once, skipping any expired periods after delayed socket wake-up.
+    /// This services an in-progress batch without inventing new quota; ACK
+    /// state remains in `world.batch` and source receipts in `world.receipts`.
+    ///
+    /// # Errors
+    /// The existing source receipt or egress error is propagated; neither
+    /// cursor progress nor packet bytes are committed on rejection.
+    pub(crate) fn service(
+        &mut self,
+        session: &mut R2bPlaySession,
+        world: &mut ColdImportedView,
+        now_ms: u64,
+    ) -> Result<usize, DriverError<ReceiptBoundBodyCandidateError>> {
+        self.clock.poll_tick(now_ms, &mut world.batch);
+        let mut queued = 0_usize;
+        for _ in 0..Self::MAX_ACTIONS_PER_TICK {
+            let step = service_one_source_admitted_chunk(
+                session,
+                &world.dimension,
+                &world.receipts,
+                &mut world.batch,
+                &self.facts,
+                &mut self.scratch,
+                self.admission,
+            )?;
+            match step {
+                ChunkBatchStep::CacheCenterQueued { .. }
+                | ChunkBatchStep::Started { .. }
+                | ChunkBatchStep::ChunkQueued { .. }
+                | ChunkBatchStep::Finished { .. } => queued += 1,
+                ChunkBatchStep::Complete
+                | ChunkBatchStep::WaitingForTick
+                | ChunkBatchStep::WaitingForAcknowledgement => break,
+            }
+        }
+        Ok(queued)
+    }
 }
 
 /// Load the first finite world view into one retained semantic dimension.

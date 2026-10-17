@@ -20,6 +20,13 @@ const MOTION: u8 = 0b0010;
 const FLUID: u8 = 0b0100;
 const LEAVES: u8 = 0b1000;
 
+// Independently reproduced by two pinned Minecraft 26.2 runtime executions.
+// This is a COLD census consistency check, *not* a collision/shape source proof
+// or a cryptographic replacement for the exporter-side dense SHA-256 check.
+const FROZEN_OFFICIAL_CENSUS: [u32; 16] = [
+    3, 3924, 0, 16493, 0, 623, 0, 11015, 0, 0, 0, 154, 0, 0, 0, 154,
+];
+
 /// Strict source-identity, table-layout, and independent flag-check errors.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum HeightmapCandidateError {
@@ -33,6 +40,9 @@ pub(crate) enum HeightmapCandidateError {
     FluidMismatch { state: usize },
     /// An air state cannot block motion or belong to the leaves block class.
     ImpossibleAirProperties { state: usize, flags: u8 },
+    /// A COLD file claimed to be the frozen official oracle has a different
+    /// four-bit count; a matching histogram alone is not source admission.
+    OfficialCensusMismatch { flags: u8, actual: u32, expected: u32 },
 }
 
 /// Stack-only borrow of one complete immutable official runtime candidate.
@@ -57,12 +67,29 @@ pub(crate) struct CandidateHeightmapFacts<'a> {
 
 impl<'a> CandidateHeightmapFacts<'a> {
     pub(crate) fn from_oracle_bytes(flags: &'a [u8]) -> Result<Self, HeightmapCandidateError> {
+        Self::validate(flags, false)
+    }
+
+    /// Also check the independently reproduced 16-bin official 26.2 census.
+    /// The dense SHA-256 and source/SEM authority remain separate gates.
+    /// Ordinary synthetic facts should instead use `from_oracle_bytes`.
+    ///
+    /// # Errors
+    /// Rejects any table whose official four-bit distribution has drifted.
+    pub(crate) fn from_official_oracle_bytes(
+        flags: &'a [u8],
+    ) -> Result<Self, HeightmapCandidateError> {
+        Self::validate(flags, true)
+    }
+
+    fn validate(flags: &'a [u8], require_official_census: bool) -> Result<Self, HeightmapCandidateError> {
         if flags.len() != BLOCK_STATE_COUNT {
             return Err(HeightmapCandidateError::WrongCount {
                 actual: flags.len(),
                 expected: BLOCK_STATE_COUNT,
             });
         }
+        let mut census = [0_u32; 16];
         for (state, (&observed, &generated)) in
             flags.iter().zip(STATE_MUTATION_FLAGS.iter()).enumerate()
         {
@@ -86,6 +113,24 @@ impl<'a> CandidateHeightmapFacts<'a> {
                     state,
                     flags: observed,
                 });
+            }
+            if require_official_census {
+                census[usize::from(observed)] += 1;
+            }
+        }
+        if require_official_census {
+            for (index, (&actual, &expected)) in census
+                .iter()
+                .zip(FROZEN_OFFICIAL_CENSUS.iter())
+                .enumerate()
+            {
+                if actual != expected {
+                    return Err(HeightmapCandidateError::OfficialCensusMismatch {
+                        flags: u8::try_from(index).expect("four-bit census index"),
+                        actual,
+                        expected,
+                    });
+                }
             }
         }
         Ok(Self { flags })
@@ -177,6 +222,18 @@ mod tests {
     }
 
     #[test]
+    fn synthetic_tables_cannot_claim_the_official_census() {
+        let candidate = consistent_synthetic_oracle();
+        // Generic test fixtures remain valid; a development CLI claiming
+        // the pinned official oracle cannot silently adopt them.
+        CandidateHeightmapFacts::from_oracle_bytes(&candidate).unwrap();
+        assert!(matches!(
+            CandidateHeightmapFacts::from_official_oracle_bytes(&candidate),
+            Err(HeightmapCandidateError::OfficialCensusMismatch { .. })
+        ));
+    }
+
+    #[test]
     fn borrowed_dense_table_is_pointer_stable_and_reuses_existing_state_ids() {
         let flags = consistent_synthetic_oracle();
         let ptr = flags.as_ptr();
@@ -201,8 +258,21 @@ mod tests {
             return;
         };
         let bytes = std::fs::read(path).expect("official oracle candidate is present");
-        let facts = CandidateHeightmapFacts::from_oracle_bytes(&bytes)
-            .expect("official heightmap facts must match qualified mutation facts");
+        let facts = CandidateHeightmapFacts::from_official_oracle_bytes(&bytes)
+            .expect("official facts must match mutation flags and pinned 16-bin census");
+
+        // Motion/leaves edits can preserve independently qualified air/fluid
+        // bits. They must still fail the frozen COLD census check.
+        let mut altered = bytes.clone();
+        let non_leaf = altered
+            .iter()
+            .position(|&flags| flags == NON_AIR | MOTION)
+            .expect("official registry has non-leaf motion states");
+        altered[non_leaf] = NON_AIR | MOTION | LEAVES;
+        assert!(matches!(
+            CandidateHeightmapFacts::from_official_oracle_bytes(&altered),
+            Err(HeightmapCandidateError::OfficialCensusMismatch { .. })
+        ));
 
         // Select the necessary behavioural cases *by their oracle results*.
         // No block names, hand-picked vanilla IDs, or approximations.

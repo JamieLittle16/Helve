@@ -120,12 +120,14 @@ fn load_selected_r2c_plan(options: &Options) -> Result<Option<R2cColdWorldPlan>,
                 )
             })?;
             match options.r2c_heightmap_candidate.as_deref() {
-                Some(candidate) => plan.with_candidate_heightmap_file(candidate).map_err(|error| {
-                    format!(
-                        "R2C COLD heightmap candidate {} rejected: {error:?}",
-                        candidate.display()
-                    )
-                }),
+                Some(candidate) => plan
+                    .with_candidate_heightmap_file(candidate)
+                    .map_err(|error| {
+                        format!(
+                            "R2C COLD heightmap candidate {} rejected: {error:?}",
+                            candidate.display()
+                        )
+                    }),
                 None => Ok(plan),
             }
         })
@@ -312,7 +314,10 @@ fn options_from(arguments: impl IntoIterator<Item = String>) -> Result<Options, 
             if value.is_empty() {
                 return Err("--r2c-heightmap-candidate requires a non-empty file path".to_owned());
             }
-            if r2c_heightmap_candidate.replace(PathBuf::from(value)).is_some() {
+            if r2c_heightmap_candidate
+                .replace(PathBuf::from(value))
+                .is_some()
+            {
                 return Err("--r2c-heightmap-candidate may be supplied only once".to_owned());
             }
         } else if argument.starts_with('-') {
@@ -391,8 +396,21 @@ mod tests {
         };
         assert!(args(&["--r2c-world-plan=/tmp/world"]).is_err());
         assert!(args(&["--r2c-heightmap-candidate=/tmp/facts.bin"]).is_err());
-        assert!(args(&["--r2b-playtest-image=a", "--r2c-heightmap-candidate=/tmp/facts.bin"]).is_err());
-        assert!(args(&["--r2b-playtest-image=a", "--r2c-world-plan=/tmp/world", "--r2c-heightmap-candidate="]).is_err());
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-heightmap-candidate=/tmp/facts.bin"
+            ])
+            .is_err()
+        );
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-world-plan=/tmp/world",
+                "--r2c-heightmap-candidate="
+            ])
+            .is_err()
+        );
         assert!(args(&["--r1x-replay-image=a", "--r2c-world-plan=/tmp/world"]).is_err());
         assert!(args(&["--r2b-playtest-image=a", "--r2c-world-plan="]).is_err());
         assert!(
@@ -419,13 +437,15 @@ mod tests {
             audited.r2c_heightmap_candidate.as_deref(),
             Some(std::path::Path::new("/tmp/facts.bin"))
         );
-        assert!(args(&[
-            "--r2b-playtest-image=a",
-            "--r2c-world-plan=/tmp/world",
-            "--r2c-heightmap-candidate=/tmp/facts.bin",
-            "--r2c-heightmap-candidate=/tmp/other.bin",
-        ])
-        .is_err());
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-world-plan=/tmp/world",
+                "--r2c-heightmap-candidate=/tmp/facts.bin",
+                "--r2c-heightmap-candidate=/tmp/other.bin",
+            ])
+            .is_err()
+        );
         assert!(
             args(&["--r2b-playtest-image=a"])
                 .expect("existing R2B mode remains supported")

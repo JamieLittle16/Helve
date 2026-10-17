@@ -71,7 +71,6 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
             path=Path(temp)/"client.jar"
             path.write_bytes(jar_bytes(False))
             with self.assertRaisesRegex(ValueError,"missing/ambiguous"):
-                probe.inspect if False else None
                 with patch.object(probe.subprocess,"run",side_effect=mock_javap):
                     # Test the actual missing-class check without hitting network.
                     with patch.object(probe.official_client.official,"download",

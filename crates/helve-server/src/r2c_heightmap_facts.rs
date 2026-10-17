@@ -217,11 +217,42 @@ mod tests {
         let leaf = BlockStateId::new(u32::try_from(selected_leaf).unwrap()).unwrap();
         let ground = BlockStateId::new(u32::try_from(selected_ground).unwrap()).unwrap();
 
+        // Also exercise three branches selected from the *actual* 26.2
+        // 32,366-state candidate, never from hand-picked state IDs:
+        //  - fluid, but not collision-solid: both motion maps must count it;
+        //  - non-air, nonfluid, nonsolid: surface only;
+        //  - waterlogged leaves: motion yes, no-leaves never.
+        let exact_state = |flags: u8| {
+            let index = bytes
+                .iter()
+                .position(|&actual| actual == flags)
+                .expect("official 26.2 state registry must contain each exact predicate case");
+            BlockStateId::new(u32::try_from(index).unwrap()).unwrap()
+        };
+        let fluid_only = exact_state(NON_AIR | FLUID);
+        let surface_only = exact_state(NON_AIR);
+        let waterlogged_leaf = exact_state(NON_AIR | MOTION | FLUID | LEAVES);
+
         let generated = GeneratedStateFacts;
         let mut lower = DirectBlockSection::filled(AIR, &generated);
         let mut upper = DirectBlockSection::filled(AIR, &generated);
         lower.replace(SectionBlockPos::new(1, 2, 3).unwrap(), ground, &generated);
         upper.replace(SectionBlockPos::new(1, 13, 3).unwrap(), leaf, &generated);
+        upper.replace(
+            SectionBlockPos::new(4, 7, 5).unwrap(),
+            fluid_only,
+            &generated,
+        );
+        upper.replace(
+            SectionBlockPos::new(6, 5, 7).unwrap(),
+            surface_only,
+            &generated,
+        );
+        upper.replace(
+            SectionBlockPos::new(9, 3, 11).unwrap(),
+            waterlogged_leaf,
+            &generated,
+        );
 
         let core = LiveChunkCore::new(
             ChunkPos { x: 0, z: 0 },
@@ -244,5 +275,30 @@ mod tests {
             heights.relative_heights(ClientHeightmapKind::MotionBlockingNoLeaves)[column],
             3
         );
+
+        // min section = -1: upper-section local y+1 becomes y+17.
+        // The three distinct x/z columns must not contaminate one another.
+        for (x, z, surface, motion, no_leaves) in [
+            (4, 5, 24, 24, 24), // Fluid only: !blocksMotion, but fluid is nonempty.
+            (6, 7, 22, 0, 0),   // Surface only: neither motion nor fluid.
+            (9, 11, 20, 20, 0), // Waterlogged LeavesBlock excludes no-leaves.
+        ] {
+            let index = x + 16 * z;
+            assert_eq!(
+                heights.relative_heights(ClientHeightmapKind::WorldSurface)[index],
+                surface,
+                "world-surface source predicate drift at ({x},{z})",
+            );
+            assert_eq!(
+                heights.relative_heights(ClientHeightmapKind::MotionBlocking)[index],
+                motion,
+                "motion-blocking source predicate drift at ({x},{z})",
+            );
+            assert_eq!(
+                heights.relative_heights(ClientHeightmapKind::MotionBlockingNoLeaves)[index],
+                no_leaves,
+                "no-leaves source predicate drift at ({x},{z})",
+            );
+        }
     }
 }

@@ -45,7 +45,7 @@
   ],
   "targeted_methods": [
     {
-      "type": "net.minecraft.Util",
+      "type": "net.minecraft.util.Util",
       "method": "sequence",
       "max_overloads": 16,
       "review_focus": "Prove ordered completion of the network registry List<CompletableFuture> in Util.sequence, including exceptional completion and non-reordering; independent proof of actual stock 26.2 client Configuration handler invocation remains outstanding."

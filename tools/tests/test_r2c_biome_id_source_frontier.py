@@ -36,7 +36,7 @@ def mock_atlas() -> sqlite3.Connection:
           'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
         );
-        INSERT INTO types VALUES (3, 'net.minecraft.Util', 1);
+        INSERT INTO types VALUES (3, 'net.minecraft.util.Util', 1);
         INSERT INTO methods VALUES (
           3, 3, 'sequence', 'sequence(List futures)', 1, 20, 28,
           'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
@@ -60,7 +60,7 @@ class BiomeSourceFrontierTests(unittest.TestCase):
         )
         self.assertEqual(len({name for _, roots in groups for name in roots}), 8)
         plan = json.loads(frontier.DEFAULT_PLAN.read_text())
-        self.assertEqual(plan["targeted_methods"][0]["type"], "net.minecraft.Util")
+        self.assertEqual(plan["targeted_methods"][0]["type"], "net.minecraft.util.Util")
         self.assertEqual(plan["targeted_methods"][0]["method"], "sequence")
         self.assertEqual(
             groups[3][1],
@@ -82,6 +82,13 @@ class BiomeSourceFrontierTests(unittest.TestCase):
             with self.assertRaises(frontier.BiomeIdSourceError):
                 frontier.load_plan(path)
             candidate["targeted_methods"][0]["method"] = "sequence"
+            # The legacy owner was never in the pinned Atlas: reject stale
+            # plans instead of silently falling back to a guessed class.
+            candidate["targeted_methods"][0]["type"] = "net.minecraft.Util"
+            path.write_text(json.dumps(candidate))
+            with self.assertRaisesRegex(frontier.BiomeIdSourceError, "bounded Util.sequence"):
+                frontier.load_plan(path)
+            candidate["targeted_methods"][0]["type"] = "net.minecraft.util.Util"
             candidate["groups"][1]["types"].append("net.minecraft.core.MappedRegistry")
             path.write_text(json.dumps(candidate))
             with self.assertRaises(frontier.BiomeIdSourceError):
@@ -153,7 +160,7 @@ class BiomeSourceFrontierTests(unittest.TestCase):
         db = mock_atlas()
         try:
             [method] = frontier.exact_named_declarations(
-                db, "net.minecraft.Util", "sequence"
+                db, "net.minecraft.util.Util", "sequence"
             )
             self.assertEqual(method["signature"], "sequence(List futures)")
             self.assertEqual(method["normalized_sha256"], "c" * 64)
@@ -171,20 +178,29 @@ class BiomeSourceFrontierTests(unittest.TestCase):
             self.assertFalse(result["source_inspected"])
             self.assertFalse(result["client_assignment_proven"])
             self.assertFalse(result["production_admitted"])
+            # The historical pre-26.2 owner is not accepted, even if
+            # someone adds a synthetic alias to the Atlas.
+            with self.assertRaisesRegex(frontier.BiomeIdSourceError, "unplanned named delegate"):
+                frontier.exact_named_declarations(db, "net.minecraft.Util", "sequence")
             with self.assertRaises(frontier.BiomeIdSourceError):
-                frontier.exact_named_declarations(db, "net.minecraft.Util", "other")
+                frontier.exact_named_declarations(db, "net.minecraft.util.Util", "other")
             with self.assertRaises(frontier.BiomeIdSourceError):
                 frontier.exact_named_declarations(
-                    db, "net.minecraft.Util", "sequence", overload_cap=17
+                    db, "net.minecraft.util.Util", "sequence", overload_cap=17
                 )
             db.execute("UPDATE methods SET body_sha256=NULL WHERE id=3")
             [abstract] = frontier.exact_named_declarations(
-                db, "net.minecraft.Util", "sequence"
+                db, "net.minecraft.util.Util", "sequence"
             )
             self.assertTrue(abstract["declaration_only"])
+            # Multiple owner identities are as unsafe as no identity.
+            db.execute("INSERT INTO types VALUES (4, 'net.minecraft.util.Util', 1)")
+            with self.assertRaisesRegex(frontier.BiomeIdSourceError, "resolve once"):
+                frontier.exact_named_declarations(db, "net.minecraft.util.Util", "sequence")
+            db.execute("DELETE FROM types WHERE id=4")
             db.execute("DELETE FROM methods WHERE id=3")
             with self.assertRaises(frontier.BiomeIdSourceError):
-                frontier.exact_named_declarations(db, "net.minecraft.Util", "sequence")
+                frontier.exact_named_declarations(db, "net.minecraft.util.Util", "sequence")
         finally:
             db.close()
 

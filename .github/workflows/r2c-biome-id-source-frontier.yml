@@ -42,6 +42,17 @@ jobs:
           p = json.loads(Path('vanilla/reviews/network/r2c-biome-id-source-frontier.json').read_text())
           assert p['status'] == 'DISCOVERY_NOT_ADMISSION'
           assert p['id'] == 'REVIEW-NET-R2C-BIOME-IDS-26_2-001'
+          assert p['targeted_methods'] == [{
+              'type': 'net.minecraft.util.Util',
+              'method': 'sequence',
+              'max_overloads': 16,
+              'review_focus': (
+                  'Prove ordered completion of the network registry List<CompletableFuture> '
+                  'in Util.sequence, including exceptional completion and non-reordering; '
+                  'independent proof of actual stock 26.2 client Configuration handler '
+                  'invocation remains outstanding.'
+              ),
+          }]
           assert [group['id'] for group in p['groups']] == [
               'LOADED-REGISTRY-ID-ALLOCATION',
               'CONFIGURATION-BIOME-ENTRY-PUBLICATION',

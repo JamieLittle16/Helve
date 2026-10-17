@@ -354,7 +354,7 @@ impl<'a> SourceAdmittedPlayPublisher<'a> {
         start_ms: u64,
         admission: &'a R2cSourceAdmission,
     ) -> Result<Self, String> {
-        let facts = CandidateHeightmapFacts::from_oracle_bytes(facts_bytes)
+        let facts = CandidateHeightmapFacts::from_official_oracle_bytes(facts_bytes)
             .map_err(|error| format!("R2C source facts rejected: {error:?}"))?;
         let mut scratch = Vec::new();
         scratch

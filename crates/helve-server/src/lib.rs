@@ -25,6 +25,7 @@ mod r2b_server;
     )
 )]
 mod r2c_chunk_batch;
+mod r2c_cold_demo_import;
 #[cfg_attr(
     not(test),
     allow(
@@ -33,7 +34,6 @@ mod r2c_chunk_batch;
     )
 )]
 mod r2c_configured_biomes;
-mod r2c_cold_demo_import;
 #[cfg_attr(
     not(test),
     allow(

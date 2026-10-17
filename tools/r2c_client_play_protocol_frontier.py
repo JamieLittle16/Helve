@@ -60,7 +60,7 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
     packet=None
     entries=[]
     seen=set()
-    for offset,op,operand in rows:
+    for i,(offset,op,operand) in enumerate(rows):
         if op.startswith(("if","goto","jsr")) or op in ("tableswitch","lookupswitch"):
             raise ValueError("packet registration builder has non-linear control flow")
         field=GETSTATIC_TYPE.search(operand) if op=="getstatic" else None
@@ -85,7 +85,8 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
                 if packet is None:
                     raise ValueError(
                         f"registration call has no preceding packet type: "
-                        f"{direction}@{offset} {operand[:200]}"
+                        f"{direction}@{offset} {operand[:200]}; "
+                        f"prior_opcodes={[(o,k,r[:150]) for o,k,r in rows[max(0,i-6):i+1]]}"
                     )
                 name,loaded=packet
                 if is_bundle and name!="CLIENTBOUND_BUNDLE":

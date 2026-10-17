@@ -1032,6 +1032,15 @@ mod r2c_cold_plan_tests {
 
     static NEXT: AtomicU64 = AtomicU64::new(0);
 
+    fn official_overworld_directory(root: &std::path::Path) -> PathBuf {
+        let path = root.join("dimensions/minecraft/overworld");
+        fs::create_dir_all(&path).unwrap();
+        // This test covers bounded path identity only, not level.dat NBT
+        // admission. The full saved profile remains separately gated.
+        fs::write(root.join("level.dat"), b"not a source-admitted level.dat").unwrap();
+        path
+    }
+
     struct ScratchWorld(PathBuf);
 
     impl ScratchWorld {
@@ -1055,6 +1064,16 @@ mod r2c_cold_plan_tests {
     #[test]
     fn cold_world_root_is_explicit_and_requires_region_directory() {
         let dir = ScratchWorld::new();
+        // A legacy world/region path is not the real 26.2 Overworld.
+        fs::create_dir(dir.0.join("region")).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::Io {
+                operation: "dimensions",
+                ..
+            })
+        ));
+        let overworld = official_overworld_directory(&dir.0);
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.clone()),
             Err(R2cColdWorldPlanError::Io {
@@ -1062,29 +1081,25 @@ mod r2c_cold_plan_tests {
                 ..
             })
         ));
-        fs::create_dir(dir.0.join("region")).unwrap();
+        fs::create_dir(overworld.join("region")).unwrap();
         let selection = R2cColdWorldPlan::new(dir.0.clone()).unwrap();
         assert_eq!(selection.world(), dir.0.as_path());
-        // No saved world or region files are read or admitted by this preflight.
-        assert_eq!(
-            fs::read_dir(selection.world().join("region"))
-                .unwrap()
-                .count(),
-            0
-        );
+        assert_eq!(selection.overworld_source_root(), overworld);
+        assert_eq!(fs::read_dir(overworld.join("region")).unwrap().count(), 0);
     }
 
     #[test]
     fn invalid_world_components_are_rejected_before_network_listen() {
         let dir = ScratchWorld::new();
-        fs::write(dir.0.join("region"), b"not a region directory").unwrap();
+        let overworld = official_overworld_directory(&dir.0);
+        fs::write(overworld.join("region"), b"not a region directory").unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.clone()),
             Err(R2cColdWorldPlanError::NotDirectory {
                 component: "region"
             })
         ));
-        fs::remove_file(dir.0.join("region")).unwrap();
+        fs::remove_file(overworld.join("region")).unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.join("missing")),
             Err(R2cColdWorldPlanError::Io {
@@ -1099,7 +1114,8 @@ mod r2c_cold_plan_tests {
         use helve_generated::{BLOCK_STATE_COUNT, STATE_MUTATION_FLAGS};
 
         let world = ScratchWorld::new();
-        fs::create_dir(world.0.join("region")).unwrap();
+        let overworld = official_overworld_directory(&world.0);
+        fs::create_dir(overworld.join("region")).unwrap();
         let facts_path = world.0.join("facts.bin");
         let valid: Vec<u8> = STATE_MUTATION_FLAGS
             .iter()
@@ -1132,13 +1148,36 @@ mod r2c_cold_plan_tests {
         ));
     }
 
+    #[test]
+    fn missing_or_nonregular_level_dat_cannot_pass_cold_save_root_preflight() {
+        let dir = ScratchWorld::new();
+        let overworld = official_overworld_directory(&dir.0);
+        fs::create_dir(overworld.join("region")).unwrap();
+        fs::remove_file(dir.0.join("level.dat")).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::Io {
+                operation: "level.dat",
+                ..
+            })
+        ));
+        fs::create_dir(dir.0.join("level.dat")).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::NotFile {
+                component: "level.dat"
+            })
+        ));
+    }
+
     #[cfg(unix)]
     #[test]
     fn symlinked_world_or_region_is_not_treated_as_admitted_source() {
         use std::os::unix::fs::symlink;
         let dir = ScratchWorld::new();
+        let overworld = official_overworld_directory(&dir.0);
         fs::create_dir(dir.0.join("actual-region")).unwrap();
-        symlink(dir.0.join("actual-region"), dir.0.join("region")).unwrap();
+        symlink(dir.0.join("actual-region"), overworld.join("region")).unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.clone()),
             Err(R2cColdWorldPlanError::Symlink {

@@ -238,8 +238,16 @@ mod tests {
         let mut upper = DirectBlockSection::filled(AIR, &generated);
         lower.replace(SectionBlockPos::new(1, 2, 3).unwrap(), ground, &generated);
         upper.replace(SectionBlockPos::new(1, 13, 3).unwrap(), leaf, &generated);
-        upper.replace(SectionBlockPos::new(4, 7, 5).unwrap(), fluid_only, &generated);
-        upper.replace(SectionBlockPos::new(6, 5, 7).unwrap(), surface_only, &generated);
+        upper.replace(
+            SectionBlockPos::new(4, 7, 5).unwrap(),
+            fluid_only,
+            &generated,
+        );
+        upper.replace(
+            SectionBlockPos::new(6, 5, 7).unwrap(),
+            surface_only,
+            &generated,
+        );
         upper.replace(
             SectionBlockPos::new(9, 3, 11).unwrap(),
             waterlogged_leaf,

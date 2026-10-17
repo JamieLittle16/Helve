@@ -650,8 +650,7 @@ fn process_one_world_play_ingress(
             .process_one_play_inbound(session, now_ms)
             .map_err(|error| R2bPlaytestError::WorldInbound {
                 reason: format!("{error:?}"),
-            })?
-        {
+            })? {
             R2cPlayInboundStep::Incomplete => Ok(WorldPlayIngress::Incomplete),
             R2cPlayInboundStep::Control(event) => Ok(WorldPlayIngress::Control(event)),
             R2cPlayInboundStep::ChunkBatchAcknowledged { .. } => {

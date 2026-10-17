@@ -66,7 +66,7 @@ def inspect(disassembly: str) -> dict:
             raise ValueError("too many protocol registration instruction rows")
         if opcode=="getstatic" and "// Field " in operand:
             match=GETSTATIC_TYPE.search(operand)
-            if match:
+            if match and match.group(1) in FIELDS:
                 item={"method":current,"offset":offset,"field":match.group(1)}
                 matched.append(item)
                 if len(matched)>MAX_MATCHES:
@@ -85,7 +85,9 @@ def inspect(disassembly: str) -> dict:
         invocations=[
             {"offset":offset,"opcode":op,
              "owner_target_candidate":rest.split("// ",1)[1][:320]}
-            for offset,op,rest in rows if op.startswith("invoke") and "// " in rest
+            for offset,op,rest in rows
+            if op.startswith("invoke") and "// " in rest
+            and any(0<=offset-sel["offset"]<=56 for sel in selections)
         ]
         methods.append({
             "method_name":method,
@@ -94,8 +96,8 @@ def inspect(disassembly: str) -> dict:
                 "\n".join(f"{n}:{op} {rest}" for n,op,rest in rows).encode()
             ).hexdigest(),
             "packet_field_references":selections,
-            "bounded_invocation_sites_candidate":invocations[:256],
-            "all_invocation_sites_retained":len(invocations)<=256,
+            "bounded_nearby_invocation_sites_candidate":invocations,
+            "nearby_invocation_sites_retained":True,
         })
         if len(invocations)>256:
             raise ValueError("unbounded protocol-registration invoke sites")

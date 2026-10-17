@@ -1078,11 +1078,26 @@ mod tests {
             SourceAdmittedPlayPublisher::new(&mut session, &oracle, 100, &admission)
                 .expect("test-only receipt publisher reuses the original driver");
         assert_eq!(publication.next_wake_deadline_ms(800), 100);
-        assert_eq!(publication.service(&mut session, &mut retained, 99).unwrap(), 1);
+        assert_eq!(
+            publication
+                .service(&mut session, &mut retained, 99)
+                .unwrap(),
+            1
+        );
         // A cache-centre update is allowed even before a tick; the batch
         // START is still quota-gated.
-        assert_eq!(publication.service(&mut session, &mut retained, 100).unwrap(), 4);
-        assert_eq!(publication.service(&mut session, &mut retained, 100).unwrap(), 0);
+        assert_eq!(
+            publication
+                .service(&mut session, &mut retained, 100)
+                .unwrap(),
+            4
+        );
+        assert_eq!(
+            publication
+                .service(&mut session, &mut retained, 100)
+                .unwrap(),
+            0
+        );
         assert_eq!(publication.next_wake_deadline_ms(800), 150);
         // The two independently assembled source-bound publications agree
         // byte for byte, including cache centre, start, heightmaps, sections,

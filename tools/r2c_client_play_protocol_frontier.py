@@ -36,6 +36,55 @@ ROW=re.compile(r"^\s*(\d+):\s+([a-z][a-z_0-9]*)\b(.*)$")
 DECL=re.compile(r"^  [^{};]+\([^;]*\)(?: throws [^;]+)?;$")
 GETSTATIC_TYPE=re.compile(r"\bGamePacketTypes\.(CLIENTBOUND_[A-Z0-9_]+|SERVERBOUND_[A-Z0-9_]+):")
 
+REGISTER_CALL="ProtocolInfoBuilder.addPacket:"
+REGISTRATION_METHODS={
+    "lambda$static$2":"clientbound",
+    "lambda$static$1":"serverbound",
+}
+EXPECTED_ORDINALS={
+    "CLIENTBOUND_CHUNK_BATCH_FINISHED":11,
+    "CLIENTBOUND_CHUNK_BATCH_START":12,
+    "CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT":45,
+    "CLIENTBOUND_SET_CHUNK_CACHE_CENTER":94,
+    "SERVERBOUND_CHUNK_BATCH_RECEIVED":12,
+}
+
+def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)->list[dict]:
+    """Pair every packet-type getstatic with precisely one builder addPacket.
+
+    This counts ALL registrations in the named method, not only five targets.
+    A multi-packet preload, intervening branch, unexplained add or missing
+    registration fails. This pins the constructor *argument ordering*, not
+    the separate ProtocolInfoBuilder's finished numeric-ID law.
+    """
+    packet=None
+    entries=[]
+    for offset,op,operand in rows:
+        if op.startswith(("if","goto","jsr")) or op in ("tableswitch","lookupswitch"):
+            raise ValueError("packet registration builder has non-linear control flow")
+        field=GETSTATIC_TYPE.search(operand) if op=="getstatic" else None
+        if field:
+            if packet is not None:
+                raise ValueError("two packet types loaded before registration call")
+            name=field.group(1)
+            if not name.startswith(direction.upper()+"_"):
+                raise ValueError("packet direction mismatches named builder")
+            packet=(name,offset)
+        if op.startswith("invoke") and REGISTER_CALL in operand:
+            if packet is None:
+                raise ValueError("registration call has no preceding packet type")
+            name,loaded=packet
+            entries.append({
+                "field":name,"candidate_ordinal":len(entries),
+                "getstatic_offset":loaded,"add_packet_offset":offset,
+            })
+            packet=None
+            if len(entries)>MAX_ROWS//3:
+                raise ValueError("unbounded packet builder registrations")
+    if packet is not None or not entries:
+        raise ValueError("incomplete packet type registration chain")
+    return entries
+
 def inspect(disassembly: str) -> dict:
     if not 0 < len(disassembly) <= MAX_JAVAP:
         raise ValueError("unbounded official protocol packet registration disassembly")
@@ -89,7 +138,22 @@ def inspect(disassembly: str) -> dict:
             if op.startswith("invoke") and "// " in rest
             and any(0<=offset-sel["offset"]<=56 for sel in selections)
         ]
+        order=[]
+        if method in REGISTRATION_METHODS:
+            order=consecutive_registration_order(rows,REGISTRATION_METHODS[method])
+            present={entry["field"]:entry["candidate_ordinal"] for entry in order}
+            for name,ordinal in EXPECTED_ORDINALS.items():
+                if name in present and present[name]!=ordinal:
+                    raise ValueError(
+                        f"official client {name} builder index drift: "
+                        f"{present[name]} != {ordinal}"
+                    )
         methods.append({
+            "candidate_complete_add_packet_registrations":len(order),
+            "target_packet_ordinals_candidate":[
+                entry for entry in order if entry["field"] in FIELDS
+            ],
+            "no_conditional_builder_registration_observed":bool(order),
             "method_name":method,
             "instruction_count":len(rows),
             "all_instructions_sha256":hashlib.sha256(
@@ -101,7 +165,16 @@ def inspect(disassembly: str) -> dict:
         })
         if len(invocations)>256:
             raise ValueError("unbounded protocol-registration invoke sites")
+    joined={
+        item["field"]:item["candidate_ordinal"]
+        for method in methods
+        for item in method["target_packet_ordinals_candidate"]
+    }
+    if joined!=EXPECTED_ORDINALS:
+        raise ValueError("exact five official Play packet registration ordinals incomplete")
     return {
+        "complete_builder_argument_order_for_five_types_candidate":joined,
+        "builder_append_to_numeric_id_law_proven":False,
         "owner": OWNER,
         "selected_registration_methods": methods,
         "target_field_reference_count":len(matched),

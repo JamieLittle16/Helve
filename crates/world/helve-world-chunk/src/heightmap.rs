@@ -321,10 +321,7 @@ mod tests {
         // mask bits: 1 WORLD_SURFACE; 2 MOTION_BLOCKING;
         // 4 MOTION_BLOCKING_NO_LEAVES. Independently transcribed from
         // the exact 26.2 Heightmap.Types lambda predicates.
-        const EXPECTED: [u8; 16] = [
-            0, 1, 6, 7, 6, 7, 6, 7,
-            0, 1, 2, 3, 2, 3, 2, 3,
-        ];
+        const EXPECTED: [u8; 16] = [0, 1, 6, 7, 6, 7, 6, 7, 0, 1, 2, 3, 2, 3, 2, 3];
         for (flags, &expected) in EXPECTED.iter().enumerate() {
             let props = HeightmapStateProperties::new(
                 flags & 0b0001 != 0,

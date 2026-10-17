@@ -50,12 +50,66 @@ a bundle delimiter is itself inserted into the builder. Thus packet
 ordinal evaluation must count its position rather than silently
 subtracting a bundle entry.
 
+## Downstream numeric dispatch law directly observed
+
+The same official-client-only CI now follows actual call-site targets
+further, without guessing new packet classes:
+
+1. `ProtocolInfoBuilder.buildUnbound` copies the ordered `codecs`
+   list with `List.copyOf` at bytecode offset 4. Both nested `bind`
+   implementations feed that list into `buildPacketCodec`.
+2. `buildPacketCodec` iterates the list and invokes
+   `CodecEntry.addToBuilder` at bytecode offset 49.
+   `CodecEntry.addToBuilder` invokes `ProtocolCodecBuilder.add` at
+   offset 49, preserving the packet type alongside its stream codec.
+3. `ProtocolCodecBuilder.add` delegates to
+   `IdDispatchCodec$Builder.add` at offset 41, and `build` delegates
+   to `IdDispatchCodec$Builder.build` at offset 4.
+4. The *actual* `IdDispatchCodec$Builder.add` appends an entry to
+   its `entries` list at offset 13. The 49-instruction
+   `IdDispatchCodec$Builder.build` iterates that list
+   (offsets 18, 25 and 34), obtains the current
+   `Object2IntOpenHashMap.size` at offset 44, and calls
+   `putIfAbsent` with the packet type at offset 56. Its distinct
+   error branch creates an `IllegalStateException` for duplicate
+   packet types; it snapshots `entries` with `List.copyOf`
+   at offset 103 into the finished `IdDispatchCodec`.
+5. The exact `IdDispatchCodec.decode` reads a network VarInt at
+   bytecode offset 1, indexes `byId` with `List.get` at offset 41,
+   and invokes the chosen entry's decoder at offset 55. The matching
+   `encode` resolves the packet type through `toId.getOrDefault`
+   at offset 17, emits it with `VarInt.write` at offset 50 and
+   indexes the same `byId` table at offset 60 before encoding the
+   packet body.
+
+The relevant exact source-free method SHA-256 identities include:
+
+| Method | Instruction SHA-256 |
+| --- | --- |
+| `ProtocolInfoBuilder.buildPacketCodec` | `39caa1a45b1bb0212ef922b1700fad0a92661e5cb130baf8fdd59f56e50bfeb4` |
+| `ProtocolInfoBuilder$CodecEntry.addToBuilder` | `69488d19803f37955aac584fbbfd236631b05a10b17b9188efb375ca0d982593` |
+| `ProtocolCodecBuilder.add` | `ede86bfae070b2bac3b2ac53a8885648d44a995cd3c2c68fcec91afb1e3014ff` |
+| `ProtocolCodecBuilder.build` | `95dfd6fceb0869f43bfcaa92c13c5bae7dc48762eb77fcdd74ac09233cb66afc` |
+| `IdDispatchCodec$Builder.add` | `ee260d95f5e0bbe233fa4875ef4c40c8d91a20dfa007474a08e0158237308c83` |
+| `IdDispatchCodec$Builder.build` | `e20ada392294df45f305e29cef91f8a4f143cee33f7f05631f92817df0852fbc` |
+| `IdDispatchCodec.decode` | `8749bdfc2418e725da921046cda9b5a50bf8486a9621bcd934e05882e9986938` |
+| `IdDispatchCodec.encode` | `efe32a2a267cf7eb1cd25737f35534f4ae9cc2026a121e35d0a243ef88f4a8ea` |
+
+The dedicated workflow pins the `ProtocolInfoBuilder`,
+`ProtocolCodecBuilder`, `IdDispatchCodec` and builder classfile
+hashes plus these precise offsets and opcode relationships, checking
+the exact SHA/size verified Mojang client every run. This is
+particularly strong *candidate evidence* that list ordinal equals
+wire numeric ID for successful, nonduplicate registration.
+
 ## Remaining source-law proof
 
-This still does **not** establish that the ultimately bound Play
-`IdDispatchCodec` or other concrete dispatch code uses the list
-index unchanged as the numeric network packet ID. The independent
-source review must trace:
+The bounded official client bytecode inspection now reaches the
+finished `IdDispatchCodec` and both its VarInt read/write paths.
+These necessary JVM witnesses do **not** substitute for independent
+source/VAR/SEM evidence, a proof of all branch/exception/default-map
+behaviour, or a stock-client network trial. The remaining independent
+source review must certify:
 
 1. Exactly how the `ProtocolInfoBuilder` list is bound/finalized,
    including the observed method/delegate and bundle delimiter.

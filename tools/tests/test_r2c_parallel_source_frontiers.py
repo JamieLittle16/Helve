@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -147,6 +148,64 @@ class ParallelSourceFrontierTests(unittest.TestCase):
         forged["source"]["archive_sha256"] = "0" * 64
         with self.assertRaisesRegex(ValueError, "source gate invalid"):
             gate.exact_admitted_world_state_reuse(valid, forged)
+
+    def test_parallel_runner_reports_only_source_free_biome_failure(self) -> None:
+        source = Path("/tmp/source-only-fixture.zip")
+        db = Path("/tmp/atlas-only-fixture.sqlite")
+        lock = Path("/tmp/vanilla-only-fixture.toml")
+        out = Path("/tmp/bounded-biome-inventory.json")
+        examples = (
+            (
+                "R2C biome ID source discovery failed: missing, ambiguous or "
+                "excessive official type: net.minecraft.resources.RegistryDataLoader: "
+                "private official path/details follow",
+                "net.minecraft.resources.RegistryDataLoader",
+            ),
+            (
+                "R2C biome ID source discovery failed: named delegate owner must "
+                "resolve once: net.minecraft.Util",
+                "net.minecraft.Util",
+            ),
+            (
+                "R2C biome ID source discovery failed: named delegate missing or "
+                "too broad: net.minecraft.Util#sequence",
+                "net.minecraft.Util#sequence",
+            ),
+            (
+                "R2C biome ID source discovery failed: Atlas/source lock mismatch: "
+                "private local SHA/path information",
+                "Atlas metadata disagree",
+            ),
+        )
+        for stderr, expected in examples:
+            with self.subTest(expected=expected):
+                result = subprocess.CompletedProcess(
+                    args=[], returncode=2, stdout="private output", stderr=stderr
+                )
+                with patch.object(gate.subprocess, "run", return_value=result):
+                    with self.assertRaises(ValueError) as raised:
+                        gate.run_one(
+                            "biome_client_ids", gate.JOBS["biome_client_ids"][0],
+                            out, source, db, lock
+                        )
+                actual = str(raised.exception)
+                self.assertIn(expected, actual)
+                self.assertNotIn("private", actual)
+                self.assertIn("exit 2", actual)
+
+    def test_unknown_or_forged_child_stderr_is_never_forwarded(self) -> None:
+        for stderr in (
+            "R2C biome ID source discovery failed: custom Java official code secrets",
+            "Traceback: local private file with proprietary source excerpt",
+            "R2C biome ID source discovery failed: missing, ambiguous or "
+            "excessive official type: net.minecraft.unplanned.PrivateType: text",
+        ):
+            with self.subTest(stderr=stderr):
+                safe = gate.safe_source_failure("biome_client_ids", stderr)
+                self.assertIn("run tools/r2c_biome_id_source_frontier.py", safe)
+                self.assertNotIn("private", safe.lower())
+                self.assertNotIn("secrets", safe.lower())
+                self.assertNotIn("PrivateType", safe)
 
     def test_wrong_source_absent_db_and_subprocess_failure_reject(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

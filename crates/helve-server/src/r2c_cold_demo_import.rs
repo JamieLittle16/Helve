@@ -317,7 +317,10 @@ pub(crate) fn service_one_source_admitted_chunk(
 /// this ready-to-connect service does not make candidate chunks publishable.
 #[cfg_attr(
     not(test),
-    allow(dead_code, reason = "R2C client/wire VAR/SEM admission remains pending")
+    allow(
+        dead_code,
+        reason = "R2C client/wire VAR/SEM admission remains pending"
+    )
 )]
 pub(crate) struct SourceAdmittedPlayPublisher<'a> {
     admission: &'a R2cSourceAdmission,
@@ -328,7 +331,10 @@ pub(crate) struct SourceAdmittedPlayPublisher<'a> {
 
 #[cfg_attr(
     not(test),
-    allow(dead_code, reason = "R2C client/wire VAR/SEM admission remains pending")
+    allow(
+        dead_code,
+        reason = "R2C client/wire VAR/SEM admission remains pending"
+    )
 )]
 impl<'a> SourceAdmittedPlayPublisher<'a> {
     const MAX_ACTIONS_PER_TICK: usize = 32;

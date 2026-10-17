@@ -1087,13 +1087,27 @@ mod r2c_cold_plan_tests {
     use super::{R2cColdWorldPlan, R2cColdWorldPlanError};
 
     static NEXT: AtomicU64 = AtomicU64::new(0);
+    // Synthetic, checksum-correct gzip NBT: empty root, one Data compound,
+    // one DataVersion Int, and both TAG_End terminators.
+    const VALID_LEVEL_DAT_GZIP: [u8; 47] = [
+        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62,
+        0x60, 0xe0, 0x62, 0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06,
+        0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99, 0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0xea,
+        0x0c, 0x0c, 0x00, 0x73, 0xd9, 0x0f, 0xb5, 0x1e, 0x00, 0x00, 0x00,
+    ];
+    const OLD_LEVEL_DAT_GZIP: [u8; 47] = [
+        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62,
+        0x60, 0xe0, 0x62, 0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06,
+        0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99, 0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0x6a,
+        0x0c, 0x0c, 0x00, 0x44, 0xb3, 0xcd, 0xb4, 0x1e, 0x00, 0x00, 0x00,
+    ];
 
     fn official_overworld_directory(root: &std::path::Path) -> PathBuf {
         let path = root.join("dimensions/minecraft/overworld");
         fs::create_dir_all(&path).unwrap();
         // This test covers bounded path identity only, not level.dat NBT
         // admission. The full saved profile remains separately gated.
-        fs::write(root.join("level.dat"), b"not a source-admitted level.dat").unwrap();
+        fs::write(root.join("level.dat"), VALID_LEVEL_DAT_GZIP).unwrap();
         path
     }
 
@@ -1223,6 +1237,36 @@ mod r2c_cold_plan_tests {
             Err(R2cColdWorldPlanError::NotFile {
                 component: "level.dat"
             })
+        ));
+    }
+
+    #[test]
+    fn saved_root_rejects_old_corrupt_and_oversized_level_metadata() {
+        let dir = ScratchWorld::new();
+        let overworld = official_overworld_directory(&dir.0);
+        fs::create_dir(overworld.join("region")).unwrap();
+        R2cColdWorldPlan::new(dir.0.clone()).expect("pinned gzip NBT version 4903");
+
+        let path = dir.0.join("level.dat");
+        fs::write(&path, OLD_LEVEL_DAT_GZIP).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::LevelMetadata(_))
+        ));
+        let mut corrupted = VALID_LEVEL_DAT_GZIP;
+        corrupted[40] ^= 0x01;
+        fs::write(&path, corrupted).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::LevelMetadata(_))
+        ));
+        // Deliberately larger than the COLD cap. The production path rejects
+        // from metadata without allocating for untrusted source bytes.
+        let too_large = vec![0_u8; (super::MAX_R2C_LEVEL_FILE_BYTES + 1) as usize];
+        fs::write(&path, too_large).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::LevelFileTooLarge { .. })
         ));
     }
 

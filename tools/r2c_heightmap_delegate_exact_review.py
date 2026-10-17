@@ -87,6 +87,36 @@ def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+# Atlas stores SHA-256(empty) for methods without a Java body, not NULL.
+# This hash ALSO describes an empty executable body: the lexical source
+# declaration must distinguish them. A fingerprint alone cannot prove
+# executable source for abstract dispatch points.
+EMPTY_BODY_SHA256 = hashlib.sha256(b"").hexdigest()
+
+
+def has_executable_body(source_excerpt: bytes, atlas_body_sha256: str | None) -> bool:
+    """Distinguish abstract semicolon declarations from executable methods.
+
+    Atlas's method-body fingerprint is of the *interior* token stream;
+    abstract declarations and truly empty executable bodies both hash
+    as SHA-256(empty). Do not claim an abstract method body was inspected.
+    """
+    stripped = source_excerpt.strip()
+    declaration_only = (
+        atlas_body_sha256 in (None, EMPTY_BODY_SHA256)
+        and b"abstract" in stripped.split()
+        and stripped.endswith(b";")
+        and b"{" not in stripped
+    )
+    if declaration_only:
+        return False
+    if atlas_body_sha256 is None:
+        raise ReviewError("missing Atlas body hash for nonabstract method")
+    if atlas_body_sha256 == EMPTY_BODY_SHA256 and b"{" not in stripped:
+        raise ReviewError("empty Atlas body hash without an executable brace")
+    return True
+
+
 def resolve_roots(conn: sqlite3.Connection, roots: Sequence[Root] = ROOTS):
     selected: list[tuple[Root, sqlite3.Row]] = []
     missing: list[dict[str, str | int]] = []
@@ -146,6 +176,7 @@ def extract(
         if not 0 < info.file_size <= MAX_MEMBER_BYTES:
             raise ReviewError(f"Java source member outside byte bound: {path}")
         excerpt = closure._source_excerpt(archive, row, max_lines=MAX_METHOD_LINES, cache=cache)
+        executable = has_executable_body(excerpt, evidence["body_sha256"])
         total += len(excerpt)
         if total > MAX_EXCERPT_BYTES:
             raise ReviewError("heightmap delegate excerpts exceed frozen size cap")
@@ -157,7 +188,8 @@ def extract(
             "source_identity": f"{root.owner}#{row['signature']}",
             "normalized_sha256": evidence["normalized_sha256"],
             "body_sha256": evidence["body_sha256"],
-            "has_source_body": evidence["body_sha256"] is not None,
+            "has_source_body": executable,
+            "declaration_kind": "executable" if executable else "abstract",
             "atlas_hazards": source["atlas_observed_hazards"],
             "source_path": path,
             "start_line": int(row["start_line"]),

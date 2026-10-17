@@ -79,21 +79,43 @@ class DelegateSourceReviewTests(unittest.TestCase):
         finally:
             conn.close()
 
-    def test_abstract_declaration_never_fabricates_body_hash(self) -> None:
+    def test_abstract_declaration_recognized_with_atlas_empty_body_hash(self) -> None:
+        # Actual Atlas schema stores SHA-256(empty), NOT null, for
+        # abstract Java method declarations. A digest alone is not body
+        # evidence. Mirror the five-method operator receipt.
+        import hashlib
+
         conn = fake_atlas()
         try:
-            # Atlas indexes abstract declarations, which can have a
-            # normalized signature but no method body fingerprint.
-            conn.execute("UPDATE methods SET body_sha256=NULL WHERE id=1")
-            with zipfile.ZipFile(io.BytesIO(source_zip())) as archive:
+            conn.execute(
+                "UPDATE methods SET body_sha256=?,start_line=1,end_line=1 WHERE id=1",
+                (hashlib.sha256(b"").hexdigest(),),
+            )
+            java = b"public abstract int register(final int x);\n"
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as archive:
+                archive.writestr("src/net/minecraft/Test.java", java)
+            with zipfile.ZipFile(io.BytesIO(buf.getvalue())) as archive:
                 rows, missing = review.extract(conn, archive, (TEST_ROOT,))
             self.assertEqual(missing, [])
             self.assertEqual(len(rows), 1)
-            self.assertIsNone(rows[0]["body_sha256"])
+            self.assertEqual(rows[0]["body_sha256"], hashlib.sha256(b"").hexdigest())
             self.assertIs(rows[0]["has_source_body"], False)
+            self.assertEqual(rows[0]["declaration_kind"], "abstract")
             self.assertIs(rows[0]["delegate_semantics_admitted"], False)
         finally:
             conn.close()
+
+    def test_empty_executable_body_and_inconsistent_declarations_fail_closed(self) -> None:
+        empty = review.EMPTY_BODY_SHA256
+        self.assertTrue(review.has_executable_body(b"void f() {}", empty))
+        self.assertFalse(
+            review.has_executable_body(b"public abstract int f();", empty)
+        )
+        with self.assertRaisesRegex(review.ReviewError, "missing Atlas body hash"):
+            review.has_executable_body(b"void f() {}", None)
+        with self.assertRaisesRegex(review.ReviewError, "without an executable brace"):
+            review.has_executable_body(b"public int f();", empty)
 
     def test_missing_duplicate_zip_members_rejected(self) -> None:
         for scenario in ("missing", "duplicate"):

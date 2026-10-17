@@ -6,9 +6,10 @@ use std::time::Duration;
 
 use helve_server::{
     DEFAULT_R0_BIND_ADDRESS, HELVE_STATUS_JSON, PRODUCT_NAME, R0_ADMISSION_SESSION_SHA256,
-    R2bPlaytestImage, ServerSessionEpoch, load_r1x_image, load_r2b_playtest_image,
-    serve_r0_blocking_transport, serve_r1a_blocking_transport, serve_r1x_blocking_transport,
-    serve_r2b_playtest_blocking_transport,
+    R2bPlaytestImage, R2cColdWorldPlan, ServerSessionEpoch, load_r1x_image,
+    load_r2b_playtest_image, serve_r0_blocking_transport, serve_r1a_blocking_transport,
+    serve_r1x_blocking_transport, serve_r2b_playtest_blocking_transport,
+    serve_r2b_playtest_with_r2c_cold_plan,
 };
 use helve_target_26_2::{Target26_2R1xContext, generated};
 
@@ -16,6 +17,7 @@ const CONNECTION_TIMEOUT: Duration = Duration::from_secs(15);
 const LOGIN_SESSION_EPOCH_PREFIX: &str = "--login-session-epoch=";
 const R1X_REPLAY_IMAGE_PREFIX: &str = "--r1x-replay-image=";
 const R2B_PLAYTEST_IMAGE_PREFIX: &str = "--r2b-playtest-image=";
+const R2C_WORLD_PLAN_PREFIX: &str = "--r2c-world-plan=";
 const R1X_CAPTURE_SESSION_EPOCH_HEX: &str = "4d7f604f196a43b08987f0b2a27c2663";
 
 #[derive(Debug)]
@@ -25,6 +27,7 @@ struct Options {
     login_session_epoch: Option<ServerSessionEpoch>,
     r1x_replay_image: Option<PathBuf>,
     r2b_playtest_image: Option<PathBuf>,
+    r2c_world_plan: Option<PathBuf>,
 }
 
 fn main() -> ExitCode {
@@ -41,6 +44,7 @@ fn run() -> Result<(), String> {
     let options = options()?;
     let r1x_context = load_selected_r1x(&options)?;
     let r2b_playtest = load_selected_r2b(&options)?;
+    let r2c_world_plan = load_selected_r2c_plan(&options)?;
     let listener = TcpListener::bind(&options.bind_address)
         .map_err(|error| format!("could not bind {}: {error}", options.bind_address))?;
     let local_address = listener
@@ -64,6 +68,7 @@ fn run() -> Result<(), String> {
             &options,
             r1x_context.as_ref(),
             r2b_playtest.as_ref(),
+            r2c_world_plan.as_ref(),
         )?;
         if options.once {
             return Ok(());
@@ -101,6 +106,21 @@ fn load_selected_r2b(options: &Options) -> Result<Option<R2bPlaytestImage>, Stri
         .transpose()
 }
 
+fn load_selected_r2c_plan(options: &Options) -> Result<Option<R2cColdWorldPlan>, String> {
+    options
+        .r2c_world_plan
+        .as_ref()
+        .map(|path| {
+            R2cColdWorldPlan::new(path.clone()).map_err(|error| {
+                format!(
+                    "R2C COLD world-plan directory {} rejected: {error:?}",
+                    path.display()
+                )
+            })
+        })
+        .transpose()
+}
+
 fn announce(
     local_address: SocketAddr,
     options: &Options,
@@ -108,6 +128,12 @@ fn announce(
     r2b_playtest: Option<&R2bPlaytestImage>,
 ) {
     if r2b_playtest.is_some() {
+        if let Some(path) = options.r2c_world_plan.as_ref() {
+            println!(
+                "R2C COLD plan requested for {} | world directory preflight only | no chunk import | no chunk publication | source_admitted=false",
+                path.display()
+            );
+        }
         println!(
             "{PRODUCT_NAME} R2B playtest listening on {local_address} | Minecraft {} protocol {} | server brand {PRODUCT_NAME} | real Configuration | replay-free Play bootstrap | captured Play publication 0 | R2C world projection pending | production_admitted=false",
             generated::login_26_2::MINECRAFT_VERSION,
@@ -157,6 +183,7 @@ fn serve_connection(
     options: &Options,
     r1x_context: Option<&Target26_2R1xContext>,
     r2b_playtest: Option<&R2bPlaytestImage>,
+    r2c_world_plan: Option<&R2cColdWorldPlan>,
 ) -> Result<(), String> {
     if let Some(image) = r2b_playtest {
         let session_epoch = options
@@ -166,7 +193,12 @@ fn serve_connection(
             "R2B playtest",
             peer,
             options.once,
-            serve_r2b_playtest_blocking_transport(stream, session_epoch, image),
+            match r2c_world_plan {
+                Some(plan) => {
+                    serve_r2b_playtest_with_r2c_cold_plan(stream, session_epoch, image, plan)
+                }
+                None => serve_r2b_playtest_blocking_transport(stream, session_epoch, image),
+            },
         );
     }
     if let Some(context) = r1x_context {
@@ -220,13 +252,18 @@ where
 }
 
 fn options() -> Result<Options, String> {
+    options_from(env::args().skip(1))
+}
+
+fn options_from(arguments: impl IntoIterator<Item = String>) -> Result<Options, String> {
     let mut bind_address = None;
     let mut once = false;
     let mut login_session_epoch = None;
     let mut r1x_replay_image = None;
     let mut r2b_playtest_image = None;
+    let mut r2c_world_plan = None;
 
-    for argument in env::args().skip(1) {
+    for argument in arguments {
         if argument == "--once" {
             if once {
                 return Err("--once may be supplied only once".to_owned());
@@ -252,11 +289,22 @@ fn options() -> Result<Options, String> {
             if r2b_playtest_image.replace(PathBuf::from(value)).is_some() {
                 return Err("--r2b-playtest-image may be supplied only once".to_owned());
             }
+        } else if let Some(value) = argument.strip_prefix(R2C_WORLD_PLAN_PREFIX) {
+            if value.is_empty() {
+                return Err("--r2c-world-plan requires a non-empty path".to_owned());
+            }
+            if r2c_world_plan.replace(PathBuf::from(value)).is_some() {
+                return Err("--r2c-world-plan may be supplied only once".to_owned());
+            }
         } else if argument.starts_with('-') {
             return Err(format!("unknown option {argument:?}"));
         } else if bind_address.replace(argument).is_some() {
             return Err("at most one bind address may be supplied".to_owned());
         }
+    }
+
+    if r2c_world_plan.is_some() && r2b_playtest_image.is_none() {
+        return Err("--r2c-world-plan requires --r2b-playtest-image".to_owned());
     }
 
     if r1x_replay_image.is_some() && r2b_playtest_image.is_some() {
@@ -285,6 +333,7 @@ fn options() -> Result<Options, String> {
         login_session_epoch,
         r1x_replay_image,
         r2b_playtest_image,
+        r2c_world_plan,
     })
 }
 
@@ -292,7 +341,8 @@ fn options() -> Result<Options, String> {
 mod tests {
     use super::{
         DEFAULT_R0_BIND_ADDRESS, LOGIN_SESSION_EPOCH_PREFIX, PRODUCT_NAME,
-        R1X_CAPTURE_SESSION_EPOCH_HEX, R1X_REPLAY_IMAGE_PREFIX, R2B_PLAYTEST_IMAGE_PREFIX, options,
+        R1X_CAPTURE_SESSION_EPOCH_HEX, R1X_REPLAY_IMAGE_PREFIX, R2B_PLAYTEST_IMAGE_PREFIX,
+        R2C_WORLD_PLAN_PREFIX, options, options_from,
     };
 
     #[test]
@@ -306,11 +356,47 @@ mod tests {
     }
 
     #[test]
+    fn dry_run_world_plan_requires_r2b_and_cannot_be_duplicated() {
+        let args = |parts: &[&str]| {
+            options_from(
+                parts
+                    .iter()
+                    .map(|arg| (*arg).to_owned())
+                    .collect::<Vec<_>>(),
+            )
+        };
+        assert!(args(&["--r2c-world-plan=/tmp/world"]).is_err());
+        assert!(args(&["--r1x-replay-image=a", "--r2c-world-plan=/tmp/world"]).is_err());
+        assert!(args(&["--r2b-playtest-image=a", "--r2c-world-plan="]).is_err());
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-world-plan=/tmp/world",
+                "--r2c-world-plan=/tmp/other"
+            ])
+            .is_err()
+        );
+        let selected = args(&["--r2b-playtest-image=a", "--r2c-world-plan=/tmp/world"])
+            .expect("a single opt-in R2B COLD plan is valid");
+        assert_eq!(
+            selected.r2c_world_plan.as_deref(),
+            Some(std::path::Path::new("/tmp/world"))
+        );
+        assert!(
+            args(&["--r2b-playtest-image=a"])
+                .expect("existing R2B mode remains supported")
+                .r2c_world_plan
+                .is_none()
+        );
+    }
+
+    #[test]
     fn option_parser_shape_is_kept_out_of_protocol_semantics() {
         let _ = options as fn() -> Result<super::Options, String>;
         assert_eq!(LOGIN_SESSION_EPOCH_PREFIX, "--login-session-epoch=");
         assert_eq!(R1X_REPLAY_IMAGE_PREFIX, "--r1x-replay-image=");
         assert_eq!(R2B_PLAYTEST_IMAGE_PREFIX, "--r2b-playtest-image=");
+        assert_eq!(R2C_WORLD_PLAN_PREFIX, "--r2c-world-plan=");
         assert_eq!(R1X_CAPTURE_SESSION_EPOCH_HEX.len(), 32);
     }
 }

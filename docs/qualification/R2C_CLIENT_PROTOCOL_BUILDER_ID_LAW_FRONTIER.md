@@ -33,7 +33,7 @@ Its exact source-free method-shape witnesses include:
 | Method | Code SHA-256 | Direct observed call sites |
 | --- | --- | --- |
 | First `addPacket` overload | `f1a20e916c0dcd8c3f321e42e2aab8fd6a56300f1cb1177fb3a53a9271017a27` | read `codecs` at bci 1; allocate `CodecEntry` bci 4; initialize entry bci 11; `List.add` bci 14 |
-| Second `addPacket` overload | `1cd95818ae419881c72f65e3a9d584aec38a8a10cf804a8d22423a866c7dbaa` | same four offsets and receiver/entry names |
+| Second `addPacket` overload | `1cd95818ae419881c72f65e3a9d584aec38a8a10cf804a8d22423a866c7dbaa8` | same four offsets and receiver/entry names |
 | `withBundlePacket` | `01a8b43ca46c5e92a17c40aaff795558fe63820bbf55750a862723d52caf41fe` | bundle entry reaches `List.add` bci 28; `BundlerInfo.createForPacket` bci 38; `bundlerInfo` field store bci 41 |
 
 All six actual classfile SHA-256s, method-shape hashes and ordered

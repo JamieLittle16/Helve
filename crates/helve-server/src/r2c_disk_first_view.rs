@@ -801,10 +801,8 @@ mod tests {
 
         use crate::r2b_server::R2bPlaySession;
         use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
+        use crate::r2c_cold_demo_import::{R2cSourceAdmission, service_one_source_admitted_chunk};
         use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
-        use crate::r2c_cold_demo_import::{
-            R2cSourceAdmission, service_one_source_admitted_chunk,
-        };
 
         let world = WorldFixture::new();
         // At the origin the selected fixed view straddles signed
@@ -936,31 +934,51 @@ mod tests {
         let admission = R2cSourceAdmission;
         assert!(matches!(
             service_one_source_admitted_chunk(
-                &mut session, &dimension, &receipts, &mut state, &facts,
-                &mut scratch, &admission,
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
             ),
             Ok(ChunkBatchStep::CacheCenterQueued { x: 0, z: 0 })
         ));
         assert!(matches!(
             service_one_source_admitted_chunk(
-                &mut session, &dimension, &receipts, &mut state, &facts,
-                &mut scratch, &admission,
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
             ),
             Ok(ChunkBatchStep::Started { count: 2 })
         ));
         for index in 0..2 {
             assert!(matches!(
                 service_one_source_admitted_chunk(
-                &mut session, &dimension, &receipts, &mut state, &facts,
-                &mut scratch, &admission,
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
             ),
                 Ok(ChunkBatchStep::ChunkQueued { index: actual, .. }) if actual == index
             ));
         }
         assert!(matches!(
             service_one_source_admitted_chunk(
-                &mut session, &dimension, &receipts, &mut state, &facts,
-                &mut scratch, &admission,
+                &mut session,
+                &dimension,
+                &receipts,
+                &mut state,
+                &facts,
+                &mut scratch,
+                &admission,
             ),
             Ok(ChunkBatchStep::Finished { count: 2 })
         ));

@@ -19,10 +19,6 @@ use std::time::{Duration, Instant};
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
 use helve_generated::BLOCK_STATE_COUNT;
-use helve_world_import::{
-    ChunkCompression, ChunkPayloadDecoder, DeflateChunkPayloadDecoder, NbtLimits,
-    require_target_26_2_level_metadata,
-};
 use helve_target_26_2::{
     R1xContextError, Target26_2R1xContext,
     play_liveness::PLAY_LIVENESS_POLICY,
@@ -39,6 +35,10 @@ use helve_target_26_2::{
         TeleportAckResult, TeleportDestination, TickingStatePayload, TickingStepPayload,
         WorldBorderPayload,
     },
+};
+use helve_world_import::{
+    ChunkCompression, ChunkPayloadDecoder, DeflateChunkPayloadDecoder, NbtLimits,
+    require_target_26_2_level_metadata,
 };
 
 use crate::{
@@ -276,7 +276,10 @@ pub enum R2cColdWorldPlanError {
     },
     HeightmapCandidate(String),
     /// The selected saved-world `level.dat` grew or exceeded its COLD cap.
-    LevelFileTooLarge { observed: u64, maximum: u64 },
+    LevelFileTooLarge {
+        observed: u64,
+        maximum: u64,
+    },
     /// Gzip framing/checksum or bounded NBT saved-world version was rejected.
     LevelMetadata(String),
 }
@@ -338,7 +341,8 @@ impl R2cColdWorldPlan {
         }
         // The metadata length can race with a write: limit the actual read
         // independently. Never trust a file-size precheck to cap allocation.
-        let mut compressed = Vec::with_capacity(usize::try_from(metadata.len()).expect("bounded file length"));
+        let mut compressed =
+            Vec::with_capacity(usize::try_from(metadata.len()).expect("bounded file length"));
         File::open(&level)
             .map_err(|error| R2cColdWorldPlanError::Io {
                 operation: "level.dat",
@@ -359,18 +363,15 @@ impl R2cColdWorldPlan {
         }
         let mut decoder = DeflateChunkPayloadDecoder::new();
         let source = decoder
-            .decode(
-                ChunkCompression::Gzip,
-                &compressed,
-                MAX_R2C_LEVEL_NBT_BYTES,
-            )
-            .map_err(|error| R2cColdWorldPlanError::LevelMetadata(format!(
-                "bounded gzip level.dat rejected: {error:?}"
-            )))?;
-        let limits = NbtLimits::new(4096, 32768, 32768, 64)
-            .map_err(|error| R2cColdWorldPlanError::LevelMetadata(format!(
-                "level.dat NBT limits invalid: {error:?}"
-            )))?;
+            .decode(ChunkCompression::Gzip, &compressed, MAX_R2C_LEVEL_NBT_BYTES)
+            .map_err(|error| {
+                R2cColdWorldPlanError::LevelMetadata(format!(
+                    "bounded gzip level.dat rejected: {error:?}"
+                ))
+            })?;
+        let limits = NbtLimits::new(4096, 32768, 32768, 64).map_err(|error| {
+            R2cColdWorldPlanError::LevelMetadata(format!("level.dat NBT limits invalid: {error:?}"))
+        })?;
         require_target_26_2_level_metadata(source, limits).map_err(|error| {
             R2cColdWorldPlanError::LevelMetadata(format!(
                 "26.2 Data.DataVersion rejected: {error:?}"
@@ -1091,16 +1092,16 @@ mod r2c_cold_plan_tests {
     // Synthetic, checksum-correct gzip NBT: empty root, one Data compound,
     // one DataVersion Int, and both TAG_End terminators.
     const VALID_LEVEL_DAT_GZIP: [u8; 47] = [
-        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62,
-        0x60, 0xe0, 0x62, 0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06,
-        0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99, 0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0xea,
-        0x0c, 0x0c, 0x00, 0x73, 0xd9, 0x0f, 0xb5, 0x1e, 0x00, 0x00, 0x00,
+        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62, 0x60, 0xe0, 0x62,
+        0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06, 0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99,
+        0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0xea, 0x0c, 0x0c, 0x00, 0x73, 0xd9, 0x0f, 0xb5, 0x1e, 0x00,
+        0x00, 0x00,
     ];
     const OLD_LEVEL_DAT_GZIP: [u8; 47] = [
-        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62,
-        0x60, 0xe0, 0x62, 0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06,
-        0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99, 0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0x6a,
-        0x0c, 0x0c, 0x00, 0x44, 0xb3, 0xcd, 0xb4, 0x1e, 0x00, 0x00, 0x00,
+        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62, 0x60, 0xe0, 0x62,
+        0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06, 0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99,
+        0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0x6a, 0x0c, 0x0c, 0x00, 0x44, 0xb3, 0xcd, 0xb4, 0x1e, 0x00,
+        0x00, 0x00,
     ];
 
     fn official_overworld_directory(root: &std::path::Path) -> PathBuf {

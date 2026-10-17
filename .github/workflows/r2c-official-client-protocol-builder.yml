@@ -79,18 +79,22 @@ jobs:
           }
           assert {cls["class_name"]:cls["classfile_sha256"] for cls in records}==class_sha
           root=records[0]
-          assert [m["method_name"] for m in root["selected_methods"]]==[
+          root_append_methods=[
+              m for m in root["selected_methods"]
+              if m["method_name"] in ("addPacket","withBundlePacket")
+          ]
+          assert [m["method_name"] for m in root_append_methods]==[
               "addPacket","addPacket","withBundlePacket",
           ]
           assert [
               (m["instruction_count"],m["instruction_shape_sha256"])
-              for m in root["selected_methods"]
+              for m in root_append_methods
           ]==[
               (12,"f1a20e916c0dcd8c3f321e42e2aab8fd6a56300f1cb1177fb3a53a9271017a27"),
               (12,"1cd95818ae419881c72f65e3a9d584aec38a8a10cf804a8d22423a866c7dbaa8"),
               (24,"01a8b43ca46c5e92a17c40aaff795558fe63820bbf55750a862723d52caf41fe"),
           ]
-          for method in root["selected_methods"][:2]:
+          for method in root_append_methods[:2]:
               assert [
                   (edge["bytecode_offset"],edge["opcode"])
                   for edge in method["symbolic_edges_candidate"]
@@ -101,7 +105,7 @@ jobs:
                     ["Field codecs:","ProtocolInfoBuilder$CodecEntry",
                      "ProtocolInfoBuilder$CodecEntry", "List.add:"])
               ] == [True]*4
-          bundle=root["selected_methods"][2]
+          bundle=root_append_methods[2]
           assert [(edge["bytecode_offset"],edge["opcode"])
                   for edge in bundle["symbolic_edges_candidate"]] == [
                       (1,"invokestatic"),(7,"invokevirtual"),

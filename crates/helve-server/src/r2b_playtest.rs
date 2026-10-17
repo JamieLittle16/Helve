@@ -310,12 +310,11 @@ impl R2cColdWorldPlan {
         mut self,
         candidate_path: &Path,
     ) -> Result<Self, R2cColdWorldPlanError> {
-        let metadata = fs::symlink_metadata(candidate_path).map_err(|error| {
-            R2cColdWorldPlanError::Io {
+        let metadata =
+            fs::symlink_metadata(candidate_path).map_err(|error| R2cColdWorldPlanError::Io {
                 operation: "heightmap",
                 kind: error.kind(),
-            }
-        })?;
+            })?;
         if metadata.file_type().is_symlink() {
             return Err(R2cColdWorldPlanError::Symlink {
                 component: "heightmap",
@@ -335,21 +334,25 @@ impl R2cColdWorldPlan {
         // Fixed-size read, plus one trailing byte check if the file changed
         // after metadata preflight. No unbounded filesystem allocation.
         let mut bytes = vec![0_u8; BLOCK_STATE_COUNT].into_boxed_slice();
-        let mut reader = File::open(candidate_path).map_err(|error| {
-            R2cColdWorldPlanError::Io {
+        let mut reader = File::open(candidate_path).map_err(|error| R2cColdWorldPlanError::Io {
+            operation: "heightmap",
+            kind: error.kind(),
+        })?;
+        reader
+            .read_exact(&mut bytes)
+            .map_err(|error| R2cColdWorldPlanError::Io {
                 operation: "heightmap",
                 kind: error.kind(),
-            }
-        })?;
-        reader.read_exact(&mut bytes).map_err(|error| R2cColdWorldPlanError::Io {
-            operation: "heightmap",
-            kind: error.kind(),
-        })?;
+            })?;
         let mut extra = [0_u8; 1];
-        if reader.read(&mut extra).map_err(|error| R2cColdWorldPlanError::Io {
-            operation: "heightmap",
-            kind: error.kind(),
-        })? != 0 {
+        if reader
+            .read(&mut extra)
+            .map_err(|error| R2cColdWorldPlanError::Io {
+                operation: "heightmap",
+                kind: error.kind(),
+            })?
+            != 0
+        {
             return Err(R2cColdWorldPlanError::WrongHeightmapBytes {
                 observed: BLOCK_STATE_COUNT as u64 + 1,
                 expected: BLOCK_STATE_COUNT,

@@ -313,9 +313,9 @@ mod tests {
     /// heightmap Boolean laws independently of the lookup table or world scan.
     ///
     /// In particular, even a waterlogged motion-blocking leaf (0b1111)
-    /// cannot satisfy NO_LEAVES; an ordinary fluid (0b0101) satisfies both
+    /// cannot satisfy `NO_LEAVES`; an ordinary fluid (0b0101) satisfies both
     /// motion maps, and a non-air non-solid non-fluid block (0b0001) only
-    /// satisfies WORLD_SURFACE.
+    /// satisfies `WORLD_SURFACE`.
     #[test]
     fn source_pinned_three_client_heightmap_predicate_truth_table() {
         // mask bits: 1 WORLD_SURFACE; 2 MOTION_BLOCKING;

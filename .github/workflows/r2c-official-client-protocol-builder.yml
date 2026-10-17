@@ -80,6 +80,10 @@ jobs:
           found={cls["class_name"]:cls["classfile_sha256"] for cls in records}
           assert all(found.get(name)==sha for name,sha in class_sha.items())
           assert "net.minecraft.network.protocol.ProtocolCodecBuilder" in found
+          assert found.get("net.minecraft.network.protocol.ProtocolCodecBuilder") == (
+              "bd344893e334305216765d20497912600db813229cb4adadc90f549e374c7cd3"
+          )
+          assert "net.minecraft.network.codec.IdDispatchCodec$Builder" in found
           root=records[0]
           root_append_methods=[
               m for m in root["selected_methods"]
@@ -116,6 +120,27 @@ jobs:
                       (41,"putfield"),
                   ]
           assert "List.add:" in bundle["symbolic_edges_candidate"][5]["symbol_candidate"]
+          [codec] = [cls for cls in records if cls["class_name"] ==
+                     "net.minecraft.network.protocol.ProtocolCodecBuilder"]
+          assert [
+              (m["method_name"],m["instruction_count"],m["instruction_shape_sha256"])
+              for m in codec["selected_methods"]
+          ] == [
+              ("add",23,
+               "ede86bfae070b2bac3b2ac53a8885648d44a995cd3c2c68fcec91afb1e3014ff"),
+              ("build",4,
+               "95dfd6fceb0869f43bfcaa92c13c5bae7dc48762eb77fcdd74ac09233cb66afc"),
+          ]
+          assert any(
+              edge["bytecode_offset"]==41
+              and "IdDispatchCodec$Builder.add:" in edge["symbol_candidate"]
+              for edge in codec["selected_methods"][0]["symbolic_edges_candidate"]
+          )
+          assert any(
+              edge["bytecode_offset"]==4
+              and "IdDispatchCodec$Builder.build:" in edge["symbol_candidate"]
+              for edge in codec["selected_methods"][1]["symbolic_edges_candidate"]
+          )
           for cls in records:
               assert cls["builder_numeric_id_assignment_proven"] is False
               assert len(cls["classfile_sha256"])==64

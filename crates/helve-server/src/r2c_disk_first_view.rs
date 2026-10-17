@@ -1170,7 +1170,7 @@ mod tests {
         };
         use crate::r2c_play_inbound::R2cPlayInboundStep;
 
-        let profile = test_overworld_lattice();
+        let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
         let mut session = retained_session_with_teleport(0.25, 8.0, 0.25);
         let (center, positions) =
             super::plan_pending_teleport_first_view(&session, profile, 10, 9).unwrap();

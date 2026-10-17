@@ -76,7 +76,7 @@ def main() -> int:
             raise ValueError("repeat probe must be separately executed, not same input")
         if args.output.exists() or args.output.is_symlink():
             raise ValueError("candidate audit output must be fresh")
-        if args.output.resolve(strict=False).is_relative_to(candidate.official.Path(__file__).resolve().parents[1]):
+        if args.output.resolve(strict=False).is_relative_to(Path(__file__).resolve().parents[1]):
             raise ValueError("candidate audit must not be recorded inside repository")
         with args.lock.open("rb") as f:
             lock=tomllib.load(f)

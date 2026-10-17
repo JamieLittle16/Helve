@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 
 use crate::r2c_cold_demo_import::ColdImportedView;
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
-use crate::r2c_play_inbound::{R2cPlayInboundError, R2cPlayInboundStep};
+use crate::r2c_play_inbound::R2cPlayInboundStep;
 use std::time::{Duration, Instant};
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
@@ -397,7 +397,7 @@ pub enum R2bPlaytestError {
     /// Opt-in world preview could not be bound to the actual outstanding teleport.
     WorldPlan { reason: String },
     /// Transactional R2C ingress failure in the explicit saved-world mode.
-    WorldInbound(R2cPlayInboundError),
+    WorldInbound { reason: String },
     /// A diagnostic counter overflowed.
     AccountingOverflow,
 }
@@ -648,7 +648,9 @@ fn process_one_world_play_ingress(
     if let Some(world) = cold_view {
         return match world
             .process_one_play_inbound(session, now_ms)
-            .map_err(R2bPlaytestError::WorldInbound)?
+            .map_err(|error| R2bPlaytestError::WorldInbound {
+                reason: format!("{error:?}"),
+            })?
         {
             R2cPlayInboundStep::Incomplete => Ok(WorldPlayIngress::Incomplete),
             R2cPlayInboundStep::Control(event) => Ok(WorldPlayIngress::Control(event)),

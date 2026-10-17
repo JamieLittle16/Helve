@@ -54,7 +54,7 @@ source gate promotion.
    then registers packet codecs in list order. This yields clientbound
    `chunk_batch_finished = 11`, `chunk_batch_start = 12`,
    `level_chunk_with_light = 45`, `set_chunk_cache_center = 94`;
-   serverbound `chunk_batch_received = 12`. Clientbound keepalive is 44,
+   serverbound `chunk_batch_received = 11`. Clientbound keepalive is 44,
    independently matching Helve's previously admitted R2A generated ID.
 
 2. **Chunk payload.** `ClientboundLevelChunkWithLightPacket` writes signed
@@ -282,3 +282,12 @@ anchors rather than completed independent VAR/SEM records.
 - R2D world generation is **not** a dependency of the first R2C demo.
 
 **No official Java source bytes or packet captures are stored here.**
+
+## Pinned-source follow-up (17 October 2026)
+
+The exact 19-method first-pass review artifact and its **source-free** observations
+are recorded in [R2C_FIRST_PASS_PINNED_SOURCE_FINDINGS.md](R2C_FIRST_PASS_PINNED_SOURCE_FINDINGS.md).
+The observations establish a bounded, source-inspected registry-order and outer
+packet/batch chain, but do not complete client receive semantics, heightmap
+predicate admission, delegate closure or stock-client demo proof. The source
+text remains outside Git; the live R2C admission gate remains closed.

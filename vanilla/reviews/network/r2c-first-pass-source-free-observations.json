@@ -1,0 +1,203 @@
+{
+  "schema": 1,
+  "kind": "r2c-26_2-first-pass-source-free-observations-v1",
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "focus_sha256": "68881bbb15f77cefea774551d7f32735ba50dcaa4727960f2245689b751b3ee6",
+  "source_rich_local_review_file_sha256": "dfb70d1dea37f52bfd41037b7a5d078ff71194ae74198ff4db05a82018a26d9c",
+  "source_text_committed": false,
+  "commit_policy": "SOURCE_FREE_FIRST_PASS_INSPECTION_NOT_ADMISSION",
+  "first_pass_inspected": true,
+  "independent_human_source_review_complete": false,
+  "independent_atlas_gate_passed": false,
+  "delegate_closure_proven": false,
+  "client_biome_ids_admitted": false,
+  "heightmap_per_state_semantics_admitted": false,
+  "outer_wire_admitted": false,
+  "production_admitted": false,
+  "methods": [
+    {
+      "review_index": 1,
+      "group": "biome_priority",
+      "body_sha256": "db84c1d045aa4053e37fda3c6bbe4af7cefe5046fb917127ac5dc45fbed0ba45",
+      "source_excerpt_sha256": "2b38b4623bf5319d0a635d2b1406091608bcf3688775a4aaf6680d339f1e99ee"
+    },
+    {
+      "review_index": 2,
+      "group": "biome_priority",
+      "body_sha256": "6834b6aa6df8816719c205392b1428e2091c6bdba43870975ab34bcebae3448c",
+      "source_excerpt_sha256": "63e1b8c5db5ee36c510b420089861f178bf77e9c6b13a9bb8aded0f169bb4416"
+    },
+    {
+      "review_index": 3,
+      "group": "biome_priority",
+      "body_sha256": "0e7e3fa87f3687630b6f66590d2746abf06a3dd52d6c795e49d90d15918302b2",
+      "source_excerpt_sha256": "cc1bcc540787da707a05578f1441b591ee10237207fedb369fc747a7a2f8fa04"
+    },
+    {
+      "review_index": 4,
+      "group": "biome_priority",
+      "body_sha256": "ebfb8faf885bd3f848987d90d76c0ad1a9ab5d3086025f5e50e62611cae7077b",
+      "source_excerpt_sha256": "23c4b2b6771e25d2549b1dc9d337cde337fd386909e744b1cba6d979420eb6ba"
+    },
+    {
+      "review_index": 5,
+      "group": "biome_priority",
+      "body_sha256": "37c0f1be0c2c9a78a4df337a41df98d4fab1da4ec100d1a379021e5bb87cef22",
+      "source_excerpt_sha256": "f7a35e770ee5501da0b80b6516a05680572313a7d6ccbe981eab8bf0c17070f0"
+    },
+    {
+      "review_index": 6,
+      "group": "biome_priority",
+      "body_sha256": "8a4ff8201f2a585f34170a288d123e87616dc8bf885bce94bd799124d613acf0",
+      "source_excerpt_sha256": "356d17ef7c44d33d4475e2c7fc00c9c088cb69d586ecc4b44995206bc628dd76"
+    },
+    {
+      "review_index": 7,
+      "group": "biome_priority",
+      "body_sha256": "e6ce838436f70df58a63009c18bfe8722a8bf3504120df8e9232603f3f262d70",
+      "source_excerpt_sha256": "b5b1eb6ee94b859c3c094bf44b5a948a631b0e2d7b04b06df1c9da2512693cb2"
+    },
+    {
+      "review_index": 8,
+      "group": "biome_priority",
+      "body_sha256": "ff9aab1016f44e661e79b467beae95684ed75aafd8a7f8b3ef9f18a8fc31cd89",
+      "source_excerpt_sha256": "67260cece46f0eeb4b336b32e9b340799aa85f6e76df32d0bbde0f7de702a2b9"
+    },
+    {
+      "review_index": 9,
+      "group": "biome_priority",
+      "body_sha256": "47b4a6fdb2b798934bd49a51db89e07743ed71663dd7a40909c5cf0dcbb97e7f",
+      "source_excerpt_sha256": "a1b5b47f33b3b5323fdad5a25745769434e9eb1dabb36094965ca0a411fcd603"
+    },
+    {
+      "review_index": 10,
+      "group": "biome_priority",
+      "body_sha256": "34d09271fc8193617f0d7f9e22b67bd4f79784fa039d1662e19ae3d259cc3901",
+      "source_excerpt_sha256": "2477f98f37f6791f888dd9fffb4eac6e442a35aeeebac3cc1ce037bc3e0e0eb8"
+    },
+    {
+      "review_index": 11,
+      "group": "outer_wire_priority",
+      "body_sha256": "1b44c24dfefe344f01d9ac6a9b813491e6d8e3ca05d430b5c31c5a6192cd9918",
+      "source_excerpt_sha256": "61bc8fa4a42cb6077955bce0b14b18fbad7921a387552f8bccf684e01f3ce368"
+    },
+    {
+      "review_index": 12,
+      "group": "outer_wire_priority",
+      "body_sha256": "3e65a6cbd53ec9f015aeb1d27b4d80037ec425847df65b79e112722ee0c4151b",
+      "source_excerpt_sha256": "be63dfac537d58a2a7946e0c6d36e3db7cff947b8d478d1072b29342119d9013"
+    },
+    {
+      "review_index": 13,
+      "group": "outer_wire_priority",
+      "body_sha256": "301b54bda0182b88f20afbe248551d5fe261e337f55f8f53ebada2184a53b7d6",
+      "source_excerpt_sha256": "040e5084f3470a92ab4e5b5cabc0b6cf8792df62f1fb6610e465febdbda06cf1"
+    },
+    {
+      "review_index": 14,
+      "group": "outer_wire_priority",
+      "body_sha256": "ba4362c0be9a8ec404fd41c5d057925643311b072d85fcbe5ede5e281a78cca6",
+      "source_excerpt_sha256": "3cbd984ef4c92965f4d0cdcb563812f7558b6dc29d2a24dde5edbb7defd06173"
+    },
+    {
+      "review_index": 15,
+      "group": "outer_wire_priority",
+      "body_sha256": "3b91b0ba4af8e1fa1523faa7df5954b669a17dbe3829ea7b75e1ec55aa5a6fd7",
+      "source_excerpt_sha256": "83f328b4b662a3371db4aa1741da5ca59fa9ebf3341faf00e6d1b51e7d2b7cf3"
+    },
+    {
+      "review_index": 16,
+      "group": "outer_wire_priority",
+      "body_sha256": "45ca45c1557008f36283f634989d69c6effc350c68b161fb27e64c434409b6fe",
+      "source_excerpt_sha256": "b0915d313764d937e05fab4ddaafc91943b85807553e2a0fe46bffb640cd85e2"
+    },
+    {
+      "review_index": 17,
+      "group": "outer_wire_priority",
+      "body_sha256": "9d3c4a2790bad34d539aa156d877f4c2ad2f6c80ed17d5c209bd69f2e5123efe",
+      "source_excerpt_sha256": "b479e19c019f0b855910bb17cb1e60696ce79831a06aa632c13585f099958aaa"
+    },
+    {
+      "review_index": 18,
+      "group": "outer_wire_priority",
+      "body_sha256": "e068870637f26c7a443daf27bd1265aad2beab63c1795e656e9dc491b6090b47",
+      "source_excerpt_sha256": "e8219e2c18f29dc87e24a2538263e78a2bdbd4a2c02c2f2cc5b115d0378c2cf0"
+    },
+    {
+      "review_index": 19,
+      "group": "outer_wire_priority",
+      "body_sha256": "7f168dfb63b21f43cd99b3b1fbb4f842c8200c169bf024594d104a482df050c5",
+      "source_excerpt_sha256": "1b67c4f85900d41959f52a8cc7271e92ac340314b56d6766a4ef45559a617eda"
+    }
+  ],
+  "observations": [
+    {
+      "id": "R2C-FIRST-PASS-BIOME-REGISTRATION-ORDER",
+      "indices": [
+        1,
+        2,
+        3
+      ],
+      "finding": "MappedRegistry assigns a monotonically appended dense ID at successful registration and resolves byId/getId through that storage; duplicates are rejected."
+    },
+    {
+      "id": "R2C-FIRST-PASS-REGISTRY-DELIVERY",
+      "indices": [
+        4,
+        5,
+        6
+      ],
+      "finding": "Server registry synchronization produces a registry-key-and-ordered-entry-list packet; order and known-pack payload decisions depend on its delegated packing operations."
+    },
+    {
+      "id": "R2C-FIRST-PASS-NETWORK-ORDER",
+      "indices": [
+        8,
+        9,
+        10
+      ],
+      "finding": "Network loader iterates received entries in list order, sequence collects future results in original list order, and registerElements consumes the resulting stream serially under a registry write lock; completion timing alone does not reorder IDs."
+    },
+    {
+      "id": "R2C-FIRST-PASS-BIOME-FACTORY",
+      "indices": [
+        7
+      ],
+      "finding": "Biome paletted-container factory uses its stored defaultBiome and biomeStrategy. The strategy's actual holder-to-ID semantics are established separately by previously source-admitted world-state rules."
+    },
+    {
+      "id": "R2C-FIRST-PASS-CHUNK-OUTER",
+      "indices": [
+        11,
+        12,
+        13
+      ],
+      "finding": "Chunk-with-light packet binds its codec to write/read, obtains x/z from the chunk position and constructs chunk and light subpayloads; write emits x and z as two 32-bit signed integers followed by chunkData and lightData."
+    },
+    {
+      "id": "R2C-FIRST-PASS-CHUNK-READ",
+      "indices": [
+        14,
+        15,
+        16
+      ],
+      "finding": "Chunk data decoder reads heightmap codec, varint byte count with a 2097152 positive upper-limit check, section bytes and block entity list; block entity packed X/Z nibbles reconstruct world coordinates; light decoder consumes four bitsets then sky and block layer lists."
+    },
+    {
+      "id": "R2C-FIRST-PASS-BATCH-PACING",
+      "indices": [
+        17,
+        18,
+        19
+      ],
+      "finding": "Server sends batch start, each selected chunk, then finish with count; per-tick quota and unacknowledged limits gate publication; sendChunk constructs a chunk/light packet with null filters; acknowledged remote rate clamps to 0.01..64 and NaN maps to 0.01, unacknowledged count floors at zero and maximum becomes 10."
+    }
+  ],
+  "unresolved": [
+    "Client-only installation of received registries and selected known-pack profile, including true 66 numeric biome IDs, is not proved by server-source excerpts.",
+    "RegistrySynchronization.packRegistries/packRegistry delegate semantics and full 26.2 client registry ordering must be closed with independent source/observation review.",
+    "Per-state heightmap predicates for all 32,366 block-state IDs and the three relevant heightmap types require independent pinned-source closure.",
+    "Existing seven independently admitted inner chunk/light writer VARs may be reused, but packet outer envelope, selected world and block-entity-light lifecycle still need VAR/SEM admission.",
+    "PlayerChunkSender.collectChunksToSend, client receive/ACK lifecycle, actual stock-client visual observation and independent gate must be qualified before runtime activation."
+  ]
+}

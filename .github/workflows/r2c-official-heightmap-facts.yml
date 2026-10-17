@@ -134,6 +134,9 @@ jobs:
             r2c_heightmap_facts::tests::official_runtime_candidate_feeds_real_source_heightmap_reference \
             -- --exact
           cargo test --locked -p helve-server --lib \
+            r2b_playtest::tests::opt_in_dense_candidate_is_bounded_and_never_promoted_to_admission \
+            -- --exact
+          cargo test --locked -p helve-server --lib \
             r2c_section_candidate::tests::official_heightmap_facts_reach_receipt_bound_chunk_packet \
             -- --exact
           cargo test --locked -p helve-server --lib \

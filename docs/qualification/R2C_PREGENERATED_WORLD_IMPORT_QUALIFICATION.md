@@ -517,6 +517,42 @@ registry count is not an independently client-admitted ordinal
 mapping, and world-wire/heightmap VAR/SEM promotion has not occurred.
 Live `WorldProjectionReady` publication remains disabled.
 
+## Nine-chunk, four-region retained-driver source qualification
+
+The existing Rust integration fixture now also covers the actual fixed-size
+**nine-chunk first view** (not another chunk importer or packet codec).
+`nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch`
+creates one valid on-disk 26.2 DataVersion-4903 chunk at each of the nearest
+nine positions around the pending R2B teleport at the origin. The positions
+cross four signed Anvil region files, including negative X and negative Z.
+The fixture shares one bounded region writer with the original two-region
+test; source import still goes through
+`import_pending_teleport_disk_first_view` and the sole
+`SemanticDimensionInstance`. Every minted receipt is resolved against that
+same authoritative world before publication tests.
+
+Ordinary hermetic CI checks the nine-file-backed chunk selection, ordered
+receipts and zero driver egress before admission. The dedicated Java 25
+`R2C Official Heightmap Facts` workflow additionally executes the same
+test with the exact official 32,366-state runtime-produced four-bit table.
+The test-only `R2cSourceAdmission` then permits the *existing*, already
+written publisher to admit a single bounded nine-chunk batch through the
+original driver. Its test decoder checks the complete **12-frame** sequence:
+signed cache centre, batch start, nine receipt-bound chunk-with-light
+bodies in nearest-first order, and batch finish with count nine. It verifies
+all three independently encoded source-heightmap maps and a real serverbound
+float32 ACK, using the existing transactional ingress handler.
+
+This is end-to-end **Rust source import → original driver** evidence
+and does not establish that the official client renders the packets. It
+uses explicitly serialized test chunks, not a stock-client-generated
+pregenerated save or an official client connection. The production
+`R2cSourceAdmission` remains uninhabited. Receiving-client biome
+ordinals/known-pack semantics, complete 26.2 per-state heightmap
+VAR/SEM, outer Play/batching admission and nine-chunk visual observation
+remain independent required gates. This does not qualify a section-storage
+production winner or R2D world generation.
+
 ## Explicit non-claims at the current R2C.3 boundary
 
 A green current R2C.3 block-state boundary means Helve has:

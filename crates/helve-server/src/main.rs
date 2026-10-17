@@ -107,11 +107,18 @@ fn load_selected_r2b(options: &Options) -> Result<Option<R2bPlaytestImage>, Stri
 }
 
 fn load_selected_r2c_plan(options: &Options) -> Result<Option<R2cColdWorldPlan>, String> {
-    options.r2c_world_plan.as_ref().map(|path| {
-        R2cColdWorldPlan::new(path.clone()).map_err(|error| {
-            format!("R2C COLD world-plan directory {} rejected: {error:?}", path.display())
+    options
+        .r2c_world_plan
+        .as_ref()
+        .map(|path| {
+            R2cColdWorldPlan::new(path.clone()).map_err(|error| {
+                format!(
+                    "R2C COLD world-plan directory {} rejected: {error:?}",
+                    path.display()
+                )
+            })
         })
-    }).transpose()
+        .transpose()
 }
 
 fn announce(
@@ -187,9 +194,9 @@ fn serve_connection(
             peer,
             options.once,
             match r2c_world_plan {
-                Some(plan) => serve_r2b_playtest_with_r2c_cold_plan(
-                    stream, session_epoch, image, plan,
-                ),
+                Some(plan) => {
+                    serve_r2b_playtest_with_r2c_cold_plan(stream, session_epoch, image, plan)
+                }
                 None => serve_r2b_playtest_blocking_transport(stream, session_epoch, image),
             },
         );
@@ -351,24 +358,36 @@ mod tests {
     #[test]
     fn dry_run_world_plan_requires_r2b_and_cannot_be_duplicated() {
         let args = |parts: &[&str]| {
-            options_from(parts.iter().map(|arg| (*arg).to_owned()).collect::<Vec<_>>())
+            options_from(
+                parts
+                    .iter()
+                    .map(|arg| (*arg).to_owned())
+                    .collect::<Vec<_>>(),
+            )
         };
         assert!(args(&["--r2c-world-plan=/tmp/world"]).is_err());
         assert!(args(&["--r1x-replay-image=a", "--r2c-world-plan=/tmp/world"]).is_err());
         assert!(args(&["--r2b-playtest-image=a", "--r2c-world-plan="]).is_err());
-        assert!(args(&[
-            "--r2b-playtest-image=a", "--r2c-world-plan=/tmp/world",
-            "--r2c-world-plan=/tmp/other"
-        ]).is_err());
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-world-plan=/tmp/world",
+                "--r2c-world-plan=/tmp/other"
+            ])
+            .is_err()
+        );
         let selected = args(&["--r2b-playtest-image=a", "--r2c-world-plan=/tmp/world"])
             .expect("a single opt-in R2B COLD plan is valid");
         assert_eq!(
             selected.r2c_world_plan.as_deref(),
             Some(std::path::Path::new("/tmp/world"))
         );
-        assert!(args(&["--r2b-playtest-image=a"])
-            .expect("existing R2B mode remains supported")
-            .r2c_world_plan.is_none());
+        assert!(
+            args(&["--r2b-playtest-image=a"])
+                .expect("existing R2B mode remains supported")
+                .r2c_world_plan
+                .is_none()
+        );
     }
 
     #[test]

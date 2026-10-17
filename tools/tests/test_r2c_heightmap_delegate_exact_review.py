@@ -88,7 +88,7 @@ class DelegateSourceReviewTests(unittest.TestCase):
         conn = fake_atlas()
         try:
             conn.execute(
-                "UPDATE methods SET body_sha256=? WHERE id=1",
+                "UPDATE methods SET body_sha256=?,start_line=1,end_line=1 WHERE id=1",
                 (hashlib.sha256(b"").hexdigest(),),
             )
             java = b"public abstract int register(final int x);\n"

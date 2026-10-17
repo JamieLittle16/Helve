@@ -161,9 +161,7 @@ mod tests {
         let mut batch = R2cChunkBatchState::new(1);
         // Packet ID 12 belongs to a *different* serverbound Play type on
         // official protocol 776. It must not be decoded as a batch rate.
-        session
-            .ingest_play(&[5, 12, 0x41, 0x10, 0, 0])
-            .unwrap();
+        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
         assert_eq!(
             process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
             R2cPlayInboundStep::Unclaimed { packet_id: 12 }

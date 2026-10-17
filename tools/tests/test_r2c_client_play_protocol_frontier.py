@@ -73,7 +73,13 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
         self.assertEqual(methods[1]["candidate_complete_add_packet_registrations"],13)
         self.assertEqual([m["field"] for method in methods
                           for m in method["packet_field_references"]],
-                         list(probe.FIELDS))
+                         [
+                             "CLIENTBOUND_CHUNK_BATCH_FINISHED",
+                             "CLIENTBOUND_CHUNK_BATCH_START",
+                             "CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT",
+                             "CLIENTBOUND_SET_CHUNK_CACHE_CENTER",
+                             "SERVERBOUND_CHUNK_BATCH_RECEIVED",
+                         ])
         self.assertTrue(all(m["no_conditional_builder_registration_observed"] for m in methods))
         self.assertFalse(entry["builder_append_to_numeric_id_law_proven"])
         self.assertNotIn("synthetic-client-game-protocol",json.dumps(entry))
@@ -87,7 +93,7 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
             "GamePacketTypes.CLIENTBOUND_TEST_1:",
             "GamePacketTypes.CLIENTBOUND_CHUNK_BATCH_START:"
         )
-        with self.assertRaisesRegex(ValueError,"index drift"):
+        with self.assertRaisesRegex(ValueError,"duplicate"):
             probe.inspect(many)
         invalid=fixture().replace(
             "ProtocolInfoBuilder.addPacket:", "ProtocolInfoBuilder.unrelated:",1

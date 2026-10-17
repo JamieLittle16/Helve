@@ -107,6 +107,7 @@ def inspect(disassembly: str, class_name: str) -> dict:
         })
     return {
         "class_name": class_name,
+        "all_declared_method_names_candidate": sorted({name for _, name, _ in headers}),
         "selected_methods": records,
         "builder_numeric_id_assignment_proven": False,
     }

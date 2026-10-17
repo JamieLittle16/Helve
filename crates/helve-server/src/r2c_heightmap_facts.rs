@@ -126,10 +126,8 @@ impl<'a> CandidateHeightmapFacts<'a> {
             }
         }
         if require_official_census {
-            for (index, (&actual, &expected)) in census
-                .iter()
-                .zip(FROZEN_OFFICIAL_CENSUS.iter())
-                .enumerate()
+            for (index, (&actual, &expected)) in
+                census.iter().zip(FROZEN_OFFICIAL_CENSUS.iter()).enumerate()
             {
                 if actual != expected {
                     return Err(HeightmapCandidateError::OfficialCensusMismatch {

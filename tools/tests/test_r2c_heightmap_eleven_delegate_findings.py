@@ -43,7 +43,7 @@ class SourceFreeDelegateFindingsTests(unittest.TestCase):
 
         # Producer's original eleven exact method selections remain a prefix;
         # follow-up methods extend it, never replace or silently broaden it.
-        self.assertEqual(len(delegate.ROOTS), 18)
+        self.assertEqual(len(delegate.ROOTS), 23)
         self.assertEqual(
             [f"{root.owner.rsplit('.', 1)[-1]}#{root.method}" for root in delegate.ROOTS[:11]],
             [item["method"].split("(")[0] for item in observed],
@@ -81,7 +81,7 @@ class SourceFreeDelegateFindingsTests(unittest.TestCase):
             expected_required,
         )
         self.assertTrue(all(x.required for x in delegate.ROOTS[11:16]))
-        self.assertFalse(any(x.required for x in delegate.ROOTS[16:]))
+        self.assertFalse(any(x.required for x in delegate.ROOTS[16:18]))
         documentation = DOC.read_text(encoding="utf-8")
         self.assertIn("getSize", documentation)
         self.assertIn("an exhaustive proof", documentation)

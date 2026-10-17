@@ -64,8 +64,19 @@ ROOTS = (
     Root("net.minecraft.world.phys.shapes.VoxelShape", "max", 1, True, "bounds maximum axis"),
     Root("net.minecraft.world.phys.AABB", "AABB", 6, False, "bounds six-scalar constructor"),
     Root("net.minecraft.world.level.material.FlowingFluid", "isEmpty", 0, False, "possible concrete fluid override"),
+    # The five direct dispatch edges reached by the 17-method pinned pass.
+    # These methods are reviewed once, not recursively guessed via class names.
+    Root("net.minecraft.world.phys.shapes.DiscreteVoxelShape", "isEmpty", 0, True, "VoxelShape.isEmpty concrete discrete-shape predicate"),
+    Root("net.minecraft.world.phys.shapes.DiscreteVoxelShape", "firstFull", 1, True, "VoxelShape.min occupied lower index"),
+    Root("net.minecraft.world.phys.shapes.DiscreteVoxelShape", "lastFull", 1, True, "VoxelShape.max upper occupied index"),
+    Root("net.minecraft.world.phys.shapes.DiscreteVoxelShape", "getSize", 1, True, "VoxelShape.min axis discrete size"),
+    Root("net.minecraft.world.phys.shapes.VoxelShape", "get", 2, True, "VoxelShape.min/max coordinate lookup"),
+
 
 )
+
+# Qualify only the newly reached methods when earlier pinned excerpts are already reviewed.
+PENDING_DISCRETE_ROOTS = ROOTS[-5:]
 
 
 class ReviewError(ValueError):
@@ -183,6 +194,8 @@ def run(*, source_zip: Path, db: Path, lock: Path, output: Path,
         "review_methods": reviewed,
         "missing_optional_methods": missing,
         "method_count": len(reviewed),
+        "selection_scope": "pending-discrete" if tuple(roots) == PENDING_DISCRETE_ROOTS else "all",
+        "selected_root_count": len(roots),
         "all_delegate_calls_reviewed": False,
         "source_inspected": False,
         "heightmap_predicates_source_admitted": False,
@@ -207,9 +220,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--db", type=Path, default=closure.DEFAULT_DB)
     parser.add_argument("--lock", type=Path, default=closure.DEFAULT_LOCK)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--pending-only", action="store_true",
+        help="export only five newly reached DiscreteVoxelShape/VoxelShape methods",
+    )
     args = parser.parse_args(argv)
     try:
-        report = run(source_zip=args.source, db=args.db, lock=args.lock, output=args.output)
+        report = run(source_zip=args.source, db=args.db, lock=args.lock, output=args.output,
+                     roots=PENDING_DISCRETE_ROOTS if args.pending_only else ROOTS)
     except (ReviewError, closure.ClosureError, ValueError, TypeError, OSError,
             sqlite3.Error, zipfile.BadZipFile) as error:
         print(f"R2C heightmap delegate review rejected: {error}", file=sys.stderr)

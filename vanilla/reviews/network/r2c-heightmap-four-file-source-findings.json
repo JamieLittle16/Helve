@@ -1,0 +1,167 @@
+{
+  "schema": 1,
+  "kind": "r2c-26_2-four-file-heightmap-source-inspection-v1",
+  "target": {
+    "minecraft": "26.2",
+    "protocol": 776,
+    "data_version": 4903
+  },
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "commit_policy": "SOURCE_FREE_FIRST_PASS_INSPECTION_NOT_ADMISSION",
+  "contains_official_source_text": false,
+  "source_file_sha256": {
+    "Heightmap.java": "399cd25b1d00b9537a96486d01ef90f4095dfb5f01a5b007925a8893fac95801",
+    "BlockBehaviour.java": "598050c5e9c9064b8fc95f91c84d925695b573830eca129b81a964e1f171e572",
+    "FluidState.java": "f861b76280724832b3fe348895f6d33f125b15c146eea51bfbfc9fe30f2a0b7f",
+    "LeavesBlock.java": "327c0f09e58c457c4cd02d6bdbfb03242eedcba13263ba55727cc900d073ba39"
+  },
+  "review_scope": "human-first-pass-four-whole-files-no-delegate-closure",
+  "observations": [
+    {
+      "id": "R2C-HEIGHTMAP-CLIENT-THREE",
+      "file": "Heightmap.java",
+      "lines": [
+        146,
+        179
+      ],
+      "finding": "Only WORLD_SURFACE=1, MOTION_BLOCKING=4, MOTION_BLOCKING_NO_LEAVES=5 use CLIENT; worldgen/live-world entries are not sent."
+    },
+    {
+      "id": "R2C-HEIGHTMAP-STATE-FOUR-FLAGS",
+      "file": "Heightmap.java",
+      "lines": [
+        146,
+        156
+      ],
+      "finding": "WORLD_SURFACE uses non-air; MOTION_BLOCKING uses blocksMotion OR nonempty fluid; NO_LEAVES requires the same motion condition AND block not an instance of LeavesBlock."
+    },
+    {
+      "id": "R2C-HEIGHTMAP-SPATIAL",
+      "file": "Heightmap.java",
+      "lines": [
+        35,
+        143
+      ],
+      "finding": "Each map tracks 256 columns indexed x+16*z; highest matching y produces y+1 first-available height, represented relative to chunk minimum Y."
+    },
+    {
+      "id": "R2C-HEIGHTMAP-CACHE",
+      "file": "BlockBehaviour.java",
+      "lines": [
+        484,
+        549
+      ],
+      "finding": "BlockStateBase.initCache sets block-derived fluid state, chooses a static collision-shape cache only for nondynamic shapes, then stores calculateSolid() into legacySolid. blocksMotion is false for COBWEB and BAMBOO_SAPLING regardless of cached solidity."
+    },
+    {
+      "id": "R2C-HEIGHTMAP-SOLID-OVERRIDE",
+      "file": "BlockBehaviour.java",
+      "lines": [
+        484,
+        504
+      ],
+      "finding": "forceSolidOn precedes forceSolidOff; absent overrides, null cache and empty collision shape return false; nonempty cached shape tests its bounding box with size threshold 0.7291666666666666 OR vertical extent at least 1.0."
+    },
+    {
+      "id": "R2C-HEIGHTMAP-STATE-FLUID",
+      "file": "BlockBehaviour.java",
+      "lines": [
+        506,
+        507
+      ],
+      "finding": "The block-state fluid reference is initialized from the owning block's getFluidState(state), not inferred from an immutable block name or nonair bit."
+    },
+    {
+      "id": "R2C-HEIGHTMAP-FLUID-TYPE",
+      "file": "FluidState.java",
+      "lines": [
+        33,
+        47
+      ],
+      "finding": "FluidState.isEmpty delegates to the concrete owner Fluid.isEmpty; the owner method and concrete default need their own source closure."
+    },
+    {
+      "id": "R2C-HEIGHTMAP-LEAF-WATERLOGGED",
+      "file": "LeavesBlock.java",
+      "lines": [
+        139,
+        140
+      ],
+      "finding": "LeavesBlock.getFluidState returns the water source for WATERLOGGED and otherwise delegates to the generic block; NO_LEAVES excludes a leaf even when waterlogged."
+    }
+  ],
+  "source_delegate_closure": [
+    {
+      "target": "net.minecraft.world.level.material.Fluid#isEmpty()",
+      "reason": "FluidState.isEmpty dispatches to an owner implementation; concrete EMPTY and water behavior not proven by these files."
+    },
+    {
+      "target": "net.minecraft.world.phys.shapes.VoxelShape#bounds()",
+      "reason": "The exact collision-shape bounding box fed to calculateSolid comes from this delegate."
+    },
+    {
+      "target": "net.minecraft.world.phys.AABB#getSize()",
+      "reason": "Exact size threshold law depends on this numeric helper."
+    },
+    {
+      "target": "net.minecraft.world.phys.AABB#getYsize()",
+      "reason": "Vertical threshold uses bounding box Y extent."
+    },
+    {
+      "target": "net.minecraft.world.level.block.Block#hasDynamicShape()",
+      "reason": "The cache initialization path uses this predicate to decide whether to create shape cache."
+    },
+    {
+      "target": "net.minecraft.world.level.block.Block#getCollisionShape(...)",
+      "reason": "Block-specific collision shapes and property overrides determine cached solidity."
+    },
+    {
+      "target": "net.minecraft.world.level.block.Blocks#<clinit>()",
+      "reason": "The two named exceptions and registered default block-properties need exact class/static initialization identity."
+    },
+    {
+      "target": "BlockState.initCache callers / state registration",
+      "reason": "One-time cache initialization and exact canonical state ID epoch must be bound to the official 32,366-state runtime probe."
+    }
+  ],
+  "state_count": 32366,
+  "frozen_runtime_candidate_sha256": "6dc4edc0f6178490af9d79463eca0373b8b359e351d173ebc51cf6166d74c3eb",
+  "formula_semantics": {
+    "non_air": "not state.isAir()",
+    "blocks_motion": "state.blocksMotion() (includes cache and two exceptions)",
+    "fluid_non_empty": "not state.getFluidState().isEmpty()",
+    "leaves": "state.getBlock() is an instance of LeavesBlock",
+    "WORLD_SURFACE": "non_air",
+    "MOTION_BLOCKING": "blocks_motion or fluid_non_empty",
+    "MOTION_BLOCKING_NO_LEAVES": "(blocks_motion or fluid_non_empty) and not leaves"
+  },
+  "four_flag_truth_table_kinds_mask": [
+    0,
+    1,
+    6,
+    7,
+    6,
+    7,
+    6,
+    7,
+    0,
+    1,
+    2,
+    3,
+    2,
+    3,
+    2,
+    3
+  ],
+  "truth_table_mask_bits": {
+    "WORLD_SURFACE": 0,
+    "MOTION_BLOCKING": 1,
+    "MOTION_BLOCKING_NO_LEAVES": 2
+  },
+  "first_pass_source_inspected": true,
+  "all_reached_delegates_reviewed": false,
+  "independent_atlas_gate_passed": false,
+  "source_var_sem_admitted": false,
+  "client_biome_ids_admitted": false,
+  "production_admitted": false
+}

@@ -308,6 +308,39 @@ mod tests {
         assert_eq!(result.changed, result.old != block);
     }
 
+    /// Entire four-bit source predicate space, including combinations that the
+    /// official state registry never emits. This freezes the three client
+    /// heightmap Boolean laws independently of the lookup table or world scan.
+    ///
+    /// In particular, even a waterlogged motion-blocking leaf (0b1111)
+    /// cannot satisfy `NO_LEAVES`; an ordinary fluid (0b0101) satisfies both
+    /// motion maps, and a non-air non-solid non-fluid block (0b0001) only
+    /// satisfies `WORLD_SURFACE`.
+    #[test]
+    fn source_pinned_three_client_heightmap_predicate_truth_table() {
+        // mask bits: 1 WORLD_SURFACE; 2 MOTION_BLOCKING;
+        // 4 MOTION_BLOCKING_NO_LEAVES. Independently transcribed from
+        // the exact 26.2 Heightmap.Types lambda predicates.
+        const EXPECTED: [u8; 16] = [0, 1, 6, 7, 6, 7, 6, 7, 0, 1, 2, 3, 2, 3, 2, 3];
+        for (flags, &expected) in EXPECTED.iter().enumerate() {
+            let props = HeightmapStateProperties::new(
+                flags & 0b0001 != 0,
+                flags & 0b0010 != 0,
+                flags & 0b0100 != 0,
+                flags & 0b1000 != 0,
+            );
+            assert_eq!(
+                props.matching_kinds(),
+                expected,
+                "source heightmap predicate drift at four-bit state {flags:04b}",
+            );
+        }
+        assert_eq!(EXPECTED[0b0001], 1); // Tall grass/cobweb-like input
+        assert_eq!(EXPECTED[0b0101], 7); // Fluid-only motion
+        assert_eq!(EXPECTED[0b1011], 3); // Dry motion-blocking leaf
+        assert_eq!(EXPECTED[0b1111], 3); // Waterlogged motion-blocking leaf
+    }
+
     #[test]
     fn empty_columns_and_invalid_local_coordinates() {
         let heights = ClientHeightmaps::derive(&chunk(), &Facts);

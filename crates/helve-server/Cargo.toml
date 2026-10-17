@@ -24,6 +24,7 @@ helve-world-contract = { path = "../world/helve-world-contract" }
 helve-world-import = { path = "../world/helve-world-import" }
 helve-world-load = { path = "../world/helve-world-load" }
 helve-world-runtime = { path = "../world/helve-world-runtime" }
+helve-world-reference = { path = "../world/helve-world-reference" } # opt-in COLD demo baseline only; not section policy
 
 [dev-dependencies]
 helve-world-reference = { path = "../world/helve-world-reference" }

@@ -12,11 +12,7 @@ use std::io::{self, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
-use helve_types::DimensionTypeId;
-use helve_world_runtime::DimensionRuntimeProfile;
-
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
-use crate::r2c_disk_first_view::plan_pending_teleport_first_view;
 use std::time::{Duration, Instant};
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
@@ -506,24 +502,28 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
         R2bEntryOutcome::WorldProjectionReady(session) => session,
     };
 
-    if let Some(plan) = plan {
-        // This profile is the exact *fixed R2B playtest snapshot* selected
-        // above (overworld dimension type 0, -64..320, skylight). Its match
-        // to any external saved world is NOT qualified by this preview.
-        let profile = DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true)
-            .expect("fixed R2B playtest overworld profile is valid");
-        let (center, positions) = plan_pending_teleport_first_view(&session, profile, 10, 9)
-            .map_err(|error| R2bPlaytestError::WorldPlan {
-                reason: format!("{error:?}"),
-            })?;
+    // The opt-in development route now imports *actual* saved chunks into
+    // exactly one retained semantic dimension. The opaque imported owner and
+    // its receipts live through the original R2B Play service loop; they
+    // cannot emit Play chunks until separate client/source VAR/SEM admission.
+    // Without the flag, the original R2B behavior remains byte-identical.
+    let _cold_view = if let Some(plan) = plan {
+        let imported = crate::r2c_cold_demo_import::import_selected_cold_world(
+            &session,
+            &image.configuration,
+            plan.world(),
+        )
+        .map_err(|reason| R2bPlaytestError::WorldPlan { reason })?;
         eprintln!(
-            "R2C COLD world plan only | root={} | teleport_center=({}, {}) | selected_first_view={} | world_read=false | chunk_sent=false | source_admitted=false",
+            "R2C COLD import | root={} | resident_chunks={} | verified_source_receipts={} | world_read=true | chunk_sent=false | source_admitted=false",
             plan.world().display(),
-            center.x,
-            center.z,
-            positions.len()
+            imported.chunks(),
+            imported.receipts(),
         );
-    }
+        Some(imported)
+    } else {
+        None
+    };
 
     eprintln!(
         "R2B WorldProjectionReady | captured_play_publication=0 | pending_teleport={:?} | R2C_world_projection_pending=true",

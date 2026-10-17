@@ -861,9 +861,12 @@ fn serve_world_projection_wait(
             return Ok(R2bPlaytestExit::ClockInvalid);
         };
         let liveness_deadline_ms = session.liveness.next_deadline_ms(PLAY_LIVENESS_POLICY);
-        let deadline_ms = publisher.as_deref().map_or(liveness_deadline_ms, |sender| {
-            sender.next_wake_deadline_ms(liveness_deadline_ms)
-        });
+        let deadline_ms = match (publisher.as_deref(), cold_view.as_deref()) {
+            (Some(sender), Some(world)) => {
+                sender.next_wake_deadline_ms(world, liveness_deadline_ms)
+            }
+            _ => liveness_deadline_ms,
+        };
         let wait_ms = deadline_ms.saturating_sub(now_ms).max(1);
         transport
             .set_read_timeout(Some(Duration::from_millis(wait_ms)))

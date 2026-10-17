@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -173,6 +174,77 @@ def exact_admitted_world_state_reuse(
     return sorted(reused, key=lambda item: str(item["source"]))
 
 
+# Only committed public declaration names and fixed error categories may cross
+# the parallel subprocess boundary. The official source, its local paths, raw
+# child tracebacks and arbitrary JVM/Atlas output must never be forwarded.
+BIOME_REVIEW_TYPES = frozenset({
+    "net.minecraft.core.MappedRegistry",
+    "net.minecraft.core.Registry",
+    "net.minecraft.resources.RegistryDataLoader",
+    "net.minecraft.server.network.config.SynchronizeRegistriesTask",
+    "net.minecraft.network.protocol.configuration.ClientboundRegistryDataPacket",
+    "net.minecraft.world.level.chunk.PalettedContainerFactory",
+    "net.minecraft.resources.NetworkRegistryLoadTask",
+    "net.minecraft.resources.RegistryLoadTask",
+})
+NAMED_ORDER_DELEGATE = "net.minecraft.Util#sequence"
+
+
+def safe_source_failure(label: str, stderr: str) -> str:
+    """Surface actionable, source-free child errors, not raw subprocess text."""
+    if label == "biome_client_ids":
+        prefix = "R2C biome ID source discovery failed: "
+        for line in stderr.splitlines():
+            if not line.startswith(prefix):
+                continue
+            message = line[len(prefix):]
+            missing = re.fullmatch(
+                r"missing, ambiguous or excessive official type: (net\\.minecraft\\.[A-Za-z0-9_.$]+):.*",
+                message,
+            )
+            if missing is not None and missing.group(1) in BIOME_REVIEW_TYPES:
+                return (
+                    "exact Atlas type lookup failed for " + missing.group(1)
+                    + "; run the biome source probe directly to distinguish"
+                    " absent/ambiguous/over-cap declarations"
+                )
+            if message == "named delegate owner must resolve once: net.minecraft.Util":
+                return (
+                    "pinned Atlas did not resolve the planned exact "
+                    "net.minecraft.Util owner; compare the source ZIP's actual "
+                    "Util.java package and the frozen review plan"
+                )
+            if message == "named delegate missing or too broad: " + NAMED_ORDER_DELEGATE:
+                return "pinned Atlas has no bounded exact " + NAMED_ORDER_DELEGATE
+            if message.startswith("Atlas/source lock mismatch:"):
+                return "official source and Atlas metadata disagree with vanilla.lock.toml"
+            if message.startswith("source archive SHA-256 does not match vanilla lock:"):
+                return "official source archive does not match vanilla.lock.toml SHA-256"
+            if message.startswith("source plan "):
+                return "frozen biome source review plan rejected (identity or schema)"
+            if message.startswith("named delegate Atlas lookup failed:"):
+                return "bounded named-delegate Atlas query failed"
+            if message.startswith("missing, ambiguous or excessive official type:"):
+                return "pinned Atlas root lookup failed (see direct biome probe)"
+    elif label == "chunk_wire":
+        prefix = "R2C chunk-wire source inventory rejected: "
+        for line in stderr.splitlines():
+            if line.startswith(prefix):
+                message = line[len(prefix):]
+                if message.startswith("missing/ambiguous/excessive pinned source class "):
+                    return "exact chunk-wire Atlas class resolution failed (see direct probe)"
+                if message.startswith("source archive SHA-256 does not match vanilla lock:"):
+                    return "official source archive identity does not match vanilla.lock.toml"
+                if message.startswith("Atlas/source lock mismatch:"):
+                    return "official source and Atlas metadata disagree with vanilla.lock.toml"
+    return (
+        "diagnostic not safe to forward; run "
+        + ("tools/r2c_biome_id_source_frontier.py" if label == "biome_client_ids"
+           else "tools/r2c_chunk_wire_source_frontier.py")
+        + " directly with the same --source/--db and a fresh --output"
+    )
+
+
 def run_one(label: str, script: str, path: Path, source: Path,
             db: Path, lock: Path) -> None:
     result = subprocess.run(
@@ -184,8 +256,11 @@ def run_one(label: str, script: str, path: Path, source: Path,
     if result.returncode:
         # Never forward arbitrary subprocess output derived from a local
         # proprietary official-source scan. Preserve only the failing label.
-        raise ValueError(f"{label}: pinned source inventory failed closed "
-                         f"(exit {result.returncode})")
+        raise ValueError(
+            f"{label}: pinned source inventory failed closed "
+            f"(exit {result.returncode}): "
+            f"{safe_source_failure(label, result.stderr)}"
+        )
 
 
 def prepare(source: Path, db: Path, lock: Path, output_dir: Path) -> dict:

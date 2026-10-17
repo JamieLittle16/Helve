@@ -46,7 +46,7 @@ def select_review_entries(document: Mapping[str, object]) -> list[tuple[str, dic
             or document.get("kind") not in ACCEPTED_FOCUS_KINDS
             or document.get("source_archive_sha256") != focus.existing.EXPECTED_SHA
             or document.get("first_pass_only") is not True
-            or document.get("biome_client_ids_admitted") is not False
+            or document.get("client_biome_ids_admitted") is not False
             or document.get("heightmap_predicates_admitted") is not False
             or document.get("live_world_publication_admitted", False) is not False
             or document.get("production_admitted", False) is not False):

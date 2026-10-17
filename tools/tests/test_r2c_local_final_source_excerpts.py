@@ -11,6 +11,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import r2c_final_review_focus as focus
 import r2c_local_final_source_excerpts as review
+from test_r2c_final_review_focus import fixture as producer_fixture
 
 
 def fake_focus(kind: str = "r2c-26_2-first-pass-source-review-focus-v1") -> dict:
@@ -28,7 +29,7 @@ def fake_focus(kind: str = "r2c-26_2-first-pass-source-review-focus-v1") -> dict
         "kind": kind,
         "source_archive_sha256": focus.existing.EXPECTED_SHA,
         "first_pass_only": True,
-        "biome_client_ids_admitted": False,
+        "client_biome_ids_admitted": False,
         "heightmap_predicates_admitted": False,
         "outer_wire_admitted": False,
         "production_admitted": False,
@@ -87,8 +88,15 @@ class LocalSourceReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(review.LocalReviewError, "unreviewed Atlas root"):
             review.select_review_entries(changed)
 
+    def test_actual_producer_report_is_accepted_without_silent_aliases(self) -> None:
+        report = focus.build(*producer_fixture())
+        self.assertEqual(report["client_biome_ids_admitted"], False)
+        self.assertNotIn("biome_client_ids_admitted", report)
+        self.assertEqual(len(review.select_review_entries(report)), 19)
+
     def test_forged_admission_or_drift_is_rejected(self) -> None:
         for field, value in [
+            ("client_biome_ids_admitted", True),
             ("production_admitted", True),
             ("outer_wire_admitted", True),
             ("delegate_closure_proven", True),

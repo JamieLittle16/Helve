@@ -179,6 +179,45 @@ jobs:
                          and fragment in e["symbol_candidate"] for e in build_edges), (
                     offset,opcode,fragment
                   )
+          [dispatch]=[cls for cls in records if cls["class_name"] ==
+                      "net.minecraft.network.codec.IdDispatchCodec"]
+          assert [
+              (m["method_name"],m["instruction_count"],m["instruction_shape_sha256"])
+              for m in dispatch["selected_methods"]
+          ] == [
+              ("decode",42,
+               "8749bdfc2418e725da921046cda9b5a50bf8486a9621bcd934e05882e9986938"),
+              ("encode",54,
+               "efe32a2a267cf7eb1cd25737f35534f4ae9cc2026a121e35d0a243ef88f4a8ea"),
+              ("builder",5,
+               "80d0f839a4e3f8898c37dff234e8b796c0d8f93e25b5b23ff9cad84a0479f78d"),
+              ("encode",6,
+               "f0766e61576625d2ded3d2bb59044801fac3a5478a6d43b0bc2977ca3da5485d"),
+              ("decode",5,
+               "c097a30a9d6558980f182bce67d15f325876d9f07a6e4c6c79b2747844b13a22"),
+          ]
+          reader,writer=dispatch["selected_methods"][:2]
+          for offset,fragment in (
+              (1,"VarInt.read:"),
+              (11,"Field byId:"),
+              (14,"List.size:"),
+              (41,"List.get:"),
+              (55,"StreamCodec.decode:"),
+          ):
+              assert any(e["bytecode_offset"]==offset
+                         and fragment in e["symbol_candidate"]
+                         for e in reader["symbolic_edges_candidate"])
+          for offset,fragment in (
+              (12,"Field toId:"),
+              (17,"Object2IntMap.getOrDefault:"),
+              (50,"VarInt.write:"),
+              (55,"Field byId:"),
+              (60,"List.get:"),
+              (81,"StreamCodec.encode:"),
+          ):
+              assert any(e["bytecode_offset"]==offset
+                         and fragment in e["symbol_candidate"]
+                         for e in writer["symbolic_edges_candidate"])
           for cls in records:
               assert cls["builder_numeric_id_assignment_proven"] is False
               assert len(cls["classfile_sha256"])==64

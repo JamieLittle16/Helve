@@ -83,7 +83,7 @@ impl ImportedBiomeSectionBuilder<u16> for BiomeBuilder {
     }
 }
 
-type ColdDimension = SemanticDimensionInstance<
+pub(crate) type ColdDimension = SemanticDimensionInstance<
     BlockStateId,
     DirectBlockSection<BlockStateId>,
     u16,

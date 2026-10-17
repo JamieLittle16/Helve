@@ -22,6 +22,7 @@ use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
 
 use crate::r2b_server::R2bPlaySession;
+use helve_connection_core::ConnectionBufferError;
 use helve_connection_driver::DriverError;
 use helve_target_26_2::r2c_play_wire::append_chunk_with_light_packet_id;
 
@@ -373,8 +374,16 @@ impl<'a> SourceAdmittedPlayPublisher<'a> {
     /// Never sleep beyond the next R2C send tick or the earlier liveness
     /// deadline. The caller performs one bounded Play ingress/control pass
     /// before calling this method, and continues using the original socket.
-    pub(crate) fn next_wake_deadline_ms(&self, liveness_deadline_ms: u64) -> u64 {
-        self.clock.next_wake_deadline_ms(liveness_deadline_ms)
+    pub(crate) fn next_wake_deadline_ms(
+        &self,
+        world: &ColdImportedView,
+        liveness_deadline_ms: u64,
+    ) -> u64 {
+        if world.batch.needs_send_service() {
+            self.clock.next_wake_deadline_ms(liveness_deadline_ms)
+        } else {
+            liveness_deadline_ms
+        }
     }
 
     /// Issue at most 32 *individual* transactional publication admissions
@@ -395,7 +404,7 @@ impl<'a> SourceAdmittedPlayPublisher<'a> {
         self.clock.poll_tick(now_ms, &mut world.batch);
         let mut queued = 0_usize;
         for _ in 0..Self::MAX_ACTIONS_PER_TICK {
-            let step = service_one_source_admitted_chunk(
+            let step = match service_one_source_admitted_chunk(
                 session,
                 &world.dimension,
                 &world.receipts,
@@ -403,7 +412,16 @@ impl<'a> SourceAdmittedPlayPublisher<'a> {
                 &self.facts,
                 &mut self.scratch,
                 self.admission,
-            )?;
+            ) {
+                Ok(step) => step,
+                // Expected bounded egress congestion is NOT a source error:
+                // the driver and cursor are transactional, so stop sending
+                // until the original socket drains its pending output.
+                Err(DriverError::Buffer(ConnectionBufferError::EgressLimitExceeded { .. })) => {
+                    break;
+                }
+                Err(error) => return Err(error),
+            };
             match step {
                 ChunkBatchStep::CacheCenterQueued { .. }
                 | ChunkBatchStep::Started { .. }

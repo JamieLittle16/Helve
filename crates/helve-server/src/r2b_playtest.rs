@@ -467,6 +467,10 @@ pub fn serve_r2b_playtest_with_r2c_cold_plan(
     serve_r2b_playtest_with_optional_r2c_plan(transport, session_epoch, image, Some(plan))
 }
 
+#[expect(
+    clippy::redundant_closure_for_method_calls,
+    reason = "this callback borrows a registry with a closure-local lifetime; the method item fails the required FnOnce generality"
+)]
 fn serve_r2b_playtest_with_optional_r2c_plan(
     transport: &mut TcpStream,
     session_epoch: ServerSessionEpoch,
@@ -478,13 +482,11 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
         // once, before any pre-Play or Play bytes are emitted. This is a
         // source-unadmitted *consistency check* only, never numeric-ID
         // authority for chunk publication.
-        let count = with_candidate_biomes_from_context(
-            &image.configuration,
-            helve_world_import::OrderedBiomeRegistry::len,
-        )
-        .map_err(|error| R2bPlaytestError::WorldPlan {
-            reason: format!("selected Configuration biome names rejected: {error:?}"),
-        })?;
+        let count =
+            with_candidate_biomes_from_context(&image.configuration, |registry| registry.len())
+                .map_err(|error| R2bPlaytestError::WorldPlan {
+                    reason: format!("selected Configuration biome names rejected: {error:?}"),
+                })?;
         if count != 66 {
             return Err(R2bPlaytestError::WorldPlan {
                 reason: format!("selected Configuration expected 66 biome names, got {count}"),

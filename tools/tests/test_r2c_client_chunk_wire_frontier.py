@@ -31,6 +31,11 @@ def synthetic(class_name: str) -> str:
     Code:
        0: getstatic #14 // Field net/minecraft/network/protocol/game/GamePacketTypes.CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT:Lnet/minecraft/network/protocol/PacketType;
        3: areturn
+  public {class_name}(net.minecraft.network.FriendlyByteBuf);
+    Code:
+       0: aload_0
+       1: invokespecial #13 // Method java/lang/Object."<init>":()V
+       4: return
   public void unrelated();
     Code:
        0: invokevirtual #17 // Method misleading/wire.fake:()V

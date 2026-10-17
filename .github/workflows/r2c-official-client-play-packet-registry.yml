@@ -68,7 +68,7 @@ jobs:
               "SERVERBOUND_CHUNK_BATCH_RECEIVED": 11,
           }
           assert packet["builder_append_to_numeric_id_law_proven"] is False
-          assert packet["serverbound_ack_builder_index_vs_wire_candidate_discrepancy"] is True
+          assert packet["serverbound_ack_builder_index_observed_11"] is True
           methods={m["method_name"]:m for m in packet["selected_registration_methods"]}
           assert set(methods)=={"lambda$static$2","lambda$static$1"}
           assert methods["lambda$static$2"]["instruction_count"] == 429

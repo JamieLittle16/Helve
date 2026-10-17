@@ -1,0 +1,273 @@
+name: R2C Official Client Protocol Builder Frontier
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_client_packet_builder_frontier.py
+      - tools/tests/test_r2c_client_packet_builder_frontier.py
+      - docs/qualification/R2C_CLIENT_PROTOCOL_BUILDER_ID_LAW_FRONTIER.md
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-protocol-builder.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  builder:
+    name: Exact official 26.2 client packet type to numeric ID implementation (unadmitted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25 for official 26.2 unobfuscated client
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Synthetic fail-closed method, branch, and evidence tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_client_packet_builder_frontier.py' -v
+
+      - name: Inspect official ProtocolInfoBuilder class and nested implementation
+        run: |
+          python3 tools/r2c_client_packet_builder_frontier.py \
+            --output /tmp/r2c-client-protocol-builder-frontier.json
+
+      - name: Require exact target and explicit non-admission
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          item=json.loads(Path("/tmp/r2c-client-protocol-builder-frontier.json").read_text())
+          assert item["target"] == {
+              "minecraft":"26.2", "protocol":776, "data_version":4903
+          }
+          for field in ("builder_append_to_numeric_id_law_proven",
+                        "bundle_numeric_id_effect_proven",
+                        "serverbound_clientbound_direction_law_proven",
+                        "independent_source_var_sem_admitted","production_admitted"):
+              assert item[field] is False
+          records=item["builder_class_candidates"]
+          assert 1 <= len(records) <= 24
+          assert records[0]["class_name"] == (
+              "net.minecraft.network.protocol.ProtocolInfoBuilder"
+          )
+          assert any(record["method_name"]=="addPacket"
+                     for cls in records for record in cls["selected_methods"])
+          # Source-free actual SHA/size-checked Mojang 26.2 classes.
+          # Explicitly independently pinned: these are NOT derived from
+          # the collection code's own constants.
+          class_sha={
+              "net.minecraft.network.protocol.ProtocolInfoBuilder":
+                  "7af68e5a84feaa5c7b4f2c6bff09e8ee2b8f679256624419428c774cf88e8bde",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$1":
+                  "68eb1b383c38b9d4a0fd805dc12dad7b1f725508f69f0d76c653733661cec3a1",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$2":
+                  "8e648dfd4d2ae1878f158706ca6ba80ee2ed3079795fffa57ac08a6ac7238ae0",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$3":
+                  "a8cc3068a41690a0f5e391ffc9453d549eb95c327e4f0f1d40099f59c9f68fc9",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$CodecEntry":
+                  "e7b2d2a0c881cd720cb15e122cabb10c49d9f7bc4e1533ec0f4f8dba5f3e8c2b",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$Implementation":
+                  "5f2f863fe918a43823ba29b9e37ff372dd8efd2e153b9471d5d6270a338b2549",
+          }
+          found={cls["class_name"]:cls["classfile_sha256"] for cls in records}
+          assert all(found.get(name)==sha for name,sha in class_sha.items())
+          assert "net.minecraft.network.protocol.ProtocolCodecBuilder" in found
+          assert found.get("net.minecraft.network.protocol.ProtocolCodecBuilder") == (
+              "bd344893e334305216765d20497912600db813229cb4adadc90f549e374c7cd3"
+          )
+          assert "net.minecraft.network.codec.IdDispatchCodec$Builder" in found
+          assert found.get("net.minecraft.network.codec.IdDispatchCodec$Builder") == (
+              "fc0a71b133aea8f0e7e0abc7a263b049158de2dab4cf09f0ca76c0d0e41d608a"
+          )
+          assert found.get("net.minecraft.network.codec.IdDispatchCodec") == (
+              "0055112127f7f55a79601906ed1267569ec6fe8c511a409ee57c3cd5b35c4f74"
+          )
+          root=records[0]
+          root_append_methods=[
+              m for m in root["selected_methods"]
+              if m["method_name"] in ("addPacket","withBundlePacket")
+          ]
+          assert [m["method_name"] for m in root_append_methods]==[
+              "addPacket","addPacket","withBundlePacket",
+          ]
+          assert [
+              (m["instruction_count"],m["instruction_shape_sha256"])
+              for m in root_append_methods
+          ]==[
+              (12,"f1a20e916c0dcd8c3f321e42e2aab8fd6a56300f1cb1177fb3a53a9271017a27"),
+              (12,"1cd95818ae419881c72f65e3a9d584aec38a8a10cf804a8d22423a866c7dbaa8"),
+              (24,"01a8b43ca46c5e92a17c40aaff795558fe63820bbf55750a862723d52caf41fe"),
+          ]
+          for method in root_append_methods[:2]:
+              assert [
+                  (edge["bytecode_offset"],edge["opcode"])
+                  for edge in method["symbolic_edges_candidate"]
+              ] == [(1,"getfield"),(4,"new"),(11,"invokespecial"),(14,"invokeinterface")]
+              assert [
+                  fragment in edge["symbol_candidate"]
+                  for edge,fragment in zip(method["symbolic_edges_candidate"],
+                    ["Field codecs:","ProtocolInfoBuilder$CodecEntry",
+                     "ProtocolInfoBuilder$CodecEntry", "List.add:"])
+              ] == [True]*4
+          bundle=root_append_methods[2]
+          assert [(edge["bytecode_offset"],edge["opcode"])
+                  for edge in bundle["symbolic_edges_candidate"]] == [
+                      (1,"invokestatic"),(7,"invokevirtual"),
+                      (13,"getfield"),(16,"new"),(25,"invokespecial"),
+                      (28,"invokeinterface"),(38,"invokestatic"),
+                      (41,"putfield"),
+                  ]
+          assert "List.add:" in bundle["symbolic_edges_candidate"][5]["symbol_candidate"]
+          def require_builder_shape(cls_name,name,count,digest):
+              [cls]=[x for x in records if x["class_name"]==cls_name]
+              selected=[m for m in cls["selected_methods"] if m["method_name"]==name]
+              assert (count,digest) in {
+                  (m["instruction_count"],m["instruction_shape_sha256"])
+                  for m in selected
+              }, (cls_name,name,count,digest)
+          root_name="net.minecraft.network.protocol.ProtocolInfoBuilder"
+          require_builder_shape(root_name,"buildPacketCodec",25,
+              "39caa1a45b1bb0212ef922b1700fad0a92661e5cb130baf8fdd59f56e50bfeb4")
+          for count,digest in [
+              (23,"0978c153970bec3f5dbb41d87aea43ec48d45658bdea398f85bf1588f8c0f1c4"),
+              (22,"d25fd67c72092b11e322c0570952b52645afb0bd74afb43d4846e9b4d3605497"),
+          ]:
+              require_builder_shape(root_name,"buildUnbound",count,digest)
+          require_builder_shape(root_name+"$CodecEntry","addToBuilder",25,
+              "69488d19803f37955aac584fbbfd236631b05a10b17b9188efb375ca0d982593")
+          require_builder_shape(root_name+"$2","bind",20,
+              "fd418f78e27fcb11071db259e2b947fb85e3d7912e05e84296d723fe81982b92")
+          require_builder_shape(root_name+"$3","bind",19,
+              "8943a4dd5c866b17e8dbbbcef5fad1a01a2344afd2ff175f011219685b4bafca")
+          [root_codec]=[m for m in root["selected_methods"]
+                        if m["method_name"]=="buildPacketCodec"]
+          for offset,fragment in (
+              (14,"List.iterator:"),(23,"Iterator.hasNext:"),
+              (33,"Iterator.next:"),(49,"CodecEntry.addToBuilder:"),
+              (57,"ProtocolCodecBuilder.build:"),
+          ):
+              assert any(e["bytecode_offset"]==offset and fragment in e["symbol_candidate"]
+                         for e in root_codec["symbolic_edges_candidate"])
+          [codec] = [cls for cls in records if cls["class_name"] ==
+                     "net.minecraft.network.protocol.ProtocolCodecBuilder"]
+          assert [
+              (m["method_name"],m["instruction_count"],m["instruction_shape_sha256"])
+              for m in codec["selected_methods"]
+          ] == [
+              ("add",23,
+               "ede86bfae070b2bac3b2ac53a8885648d44a995cd3c2c68fcec91afb1e3014ff"),
+              ("build",4,
+               "95dfd6fceb0869f43bfcaa92c13c5bae7dc48762eb77fcdd74ac09233cb66afc"),
+          ]
+          assert any(
+              edge["bytecode_offset"]==41
+              and "IdDispatchCodec$Builder.add:" in edge["symbol_candidate"]
+              for edge in codec["selected_methods"][0]["symbolic_edges_candidate"]
+          )
+          assert any(
+              edge["bytecode_offset"]==4
+              and "IdDispatchCodec$Builder.build:" in edge["symbol_candidate"]
+              for edge in codec["selected_methods"][1]["symbolic_edges_candidate"]
+          )
+          [dispatcher]=[cls for cls in records if cls["class_name"] ==
+                        "net.minecraft.network.codec.IdDispatchCodec$Builder"]
+          assert [
+              (m["method_name"],m["instruction_count"],m["instruction_shape_sha256"])
+              for m in dispatcher["selected_methods"]
+          ] == [
+              ("add",11,"ee260d95f5e0bbe233fa4875ef4c40c8d91a20dfa007474a08e0158237308c83"),
+              ("build",49,"e20ada392294df45f305e29cef91f8a4f143cee33f7f05631f92817df0852fbc"),
+          ]
+          [append,make_codec]=dispatcher["selected_methods"]
+          assert [(e["bytecode_offset"],e["opcode"]) for e in
+                  append["symbolic_edges_candidate"]] == [
+                      (1,"getfield"),(4,"new"),(10,"invokespecial"),(13,"invokeinterface")
+                  ]
+          assert "Field entries:" in append["symbolic_edges_candidate"][0]["symbol_candidate"]
+          assert "List.add:" in append["symbolic_edges_candidate"][-1]["symbol_candidate"]
+          build_edges=make_codec["symbolic_edges_candidate"]
+          for offset,opcode,fragment in (
+              (15,"getfield","Field entries:"),
+              (18,"invokeinterface","List.iterator:"),
+              (25,"invokeinterface","Iterator.hasNext:"),
+              (34,"invokeinterface","Iterator.next:"),
+              (44,"invokevirtual","Object2IntOpenHashMap.size:"),
+              (56,"invokevirtual","Object2IntOpenHashMap.putIfAbsent:"),
+              (68,"new","IllegalStateException"),
+              (103,"invokestatic","List.copyOf:"),
+              (107,"invokespecial","IdDispatchCodec."),
+          ):
+              assert any(e["bytecode_offset"]==offset and e["opcode"]==opcode
+                         and fragment in e["symbol_candidate"] for e in build_edges), (
+                    offset,opcode,fragment
+                  )
+          [dispatch]=[cls for cls in records if cls["class_name"] ==
+                      "net.minecraft.network.codec.IdDispatchCodec"]
+          assert [
+              (m["method_name"],m["instruction_count"],m["instruction_shape_sha256"])
+              for m in dispatch["selected_methods"]
+          ] == [
+              ("decode",42,
+               "8749bdfc2418e725da921046cda9b5a50bf8486a9621bcd934e05882e9986938"),
+              ("encode",54,
+               "efe32a2a267cf7eb1cd25737f35534f4ae9cc2026a121e35d0a243ef88f4a8ea"),
+              ("builder",5,
+               "80d0f839a4e3f8898c37dff234e8b796c0d8f93e25b5b23ff9cad84a0479f78d"),
+              ("encode",6,
+               "f0766e61576625d2ded3d2bb59044801fac3a5478a6d43b0bc2977ca3da5485d"),
+              ("decode",5,
+               "c097a30a9d6558980f182bce67d15f325876d9f07a6e4c6c79b2747844b13a22"),
+          ]
+          reader,writer=dispatch["selected_methods"][:2]
+          for offset,fragment in (
+              (1,"VarInt.read:"),
+              (11,"Field byId:"),
+              (14,"List.size:"),
+              (41,"List.get:"),
+              (55,"StreamCodec.decode:"),
+          ):
+              assert any(e["bytecode_offset"]==offset
+                         and fragment in e["symbol_candidate"]
+                         for e in reader["symbolic_edges_candidate"])
+          for offset,fragment in (
+              (12,"Field toId:"),
+              (17,"Object2IntMap.getOrDefault:"),
+              (50,"VarInt.write:"),
+              (55,"Field byId:"),
+              (60,"List.get:"),
+              (81,"StreamCodec.encode:"),
+          ):
+              assert any(e["bytecode_offset"]==offset
+                         and fragment in e["symbol_candidate"]
+                         for e in writer["symbolic_edges_candidate"])
+          for cls in records:
+              assert cls["builder_numeric_id_assignment_proven"] is False
+              assert len(cls["classfile_sha256"])==64
+              print("Stock client builder class:",cls["class_name"],cls["classfile_sha256"])
+              print("Declared methods:",cls["all_declared_method_names_candidate"])
+              for m in cls["selected_methods"]:
+                  print(" method:",m["method_name"],"count",m["instruction_count"],
+                        "shape",m["instruction_shape_sha256"],
+                        "abstract",m["abstract_or_native_no_bytecode"])
+                  for edge in m["symbolic_edges_candidate"]:
+                      print("  ",edge["bytecode_offset"],edge["opcode"],
+                            edge["symbol_candidate"])
+          print("Builder implementation candidates inspected; numeric IDs not admitted")
+          PY
+
+      - name: Upload source-free, short-lived method identities only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-client-protocol-builder-candidates
+          path: /tmp/r2c-client-protocol-builder-frontier.json
+          retention-days: 7
+          if-no-files-found: error

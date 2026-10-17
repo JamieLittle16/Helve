@@ -84,6 +84,12 @@ jobs:
               "bd344893e334305216765d20497912600db813229cb4adadc90f549e374c7cd3"
           )
           assert "net.minecraft.network.codec.IdDispatchCodec$Builder" in found
+          assert found.get("net.minecraft.network.codec.IdDispatchCodec$Builder") == (
+              "fc0a71b133aea8f0e7e0abc7a263b049158de2dab4cf09f0ca76c0d0e41d608a"
+          )
+          assert found.get("net.minecraft.network.codec.IdDispatchCodec") == (
+              "0055112127f7f55a79601906ed1267569ec6fe8c511a409ee57c3cd5b35c4f74"
+          )
           root=records[0]
           root_append_methods=[
               m for m in root["selected_methods"]
@@ -141,6 +147,38 @@ jobs:
               and "IdDispatchCodec$Builder.build:" in edge["symbol_candidate"]
               for edge in codec["selected_methods"][1]["symbolic_edges_candidate"]
           )
+          [dispatcher]=[cls for cls in records if cls["class_name"] ==
+                        "net.minecraft.network.codec.IdDispatchCodec$Builder"]
+          assert [
+              (m["method_name"],m["instruction_count"],m["instruction_shape_sha256"])
+              for m in dispatcher["selected_methods"]
+          ] == [
+              ("add",11,"ee260d95f5e0bbe233fa4875ef4c40c8d91a20dfa007474a08e0158237308c83"),
+              ("build",49,"e20ada392294df45f305e29cef91f8a4f143cee33f7f05631f92817df0852fbc"),
+          ]
+          [append,make_codec]=dispatcher["selected_methods"]
+          assert [(e["bytecode_offset"],e["opcode"]) for e in
+                  append["symbolic_edges_candidate"]] == [
+                      (1,"getfield"),(4,"new"),(10,"invokespecial"),(13,"invokeinterface")
+                  ]
+          assert "Field entries:" in append["symbolic_edges_candidate"][0]["symbol_candidate"]
+          assert "List.add:" in append["symbolic_edges_candidate"][-1]["symbol_candidate"]
+          build_edges=make_codec["symbolic_edges_candidate"]
+          for offset,opcode,fragment in (
+              (15,"getfield","Field entries:"),
+              (18,"invokeinterface","List.iterator:"),
+              (25,"invokeinterface","Iterator.hasNext:"),
+              (34,"invokeinterface","Iterator.next:"),
+              (44,"invokevirtual","Object2IntOpenHashMap.size:"),
+              (56,"invokevirtual","Object2IntOpenHashMap.putIfAbsent:"),
+              (68,"new","IllegalStateException"),
+              (103,"invokestatic","List.copyOf:"),
+              (107,"invokespecial","IdDispatchCodec."),
+          ):
+              assert any(e["bytecode_offset"]==offset and e["opcode"]==opcode
+                         and fragment in e["symbol_candidate"] for e in build_edges), (
+                    offset,opcode,fragment
+                  )
           for cls in records:
               assert cls["builder_numeric_id_assignment_proven"] is False
               assert len(cls["classfile_sha256"])==64

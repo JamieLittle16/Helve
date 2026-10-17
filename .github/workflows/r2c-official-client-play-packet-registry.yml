@@ -1,0 +1,87 @@
+name: R2C Official Client Play Packet Registry Frontier
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_client_play_protocol_frontier.py
+      - tools/tests/test_r2c_client_play_protocol_frontier.py
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-play-packet-registry.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  packet-type-frontier:
+    name: Official stock client PLAY packet registration identity (unadmitted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25 for SHA-checked official 26.2 client
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Hermetic negative tests for method and R2C packet references
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_client_play_protocol_frontier.py' -v
+
+      - name: Inspect target exact client GameProtocols
+        run: |
+          python3 tools/r2c_client_play_protocol_frontier.py \
+            --output /tmp/26.2-r2c-stock-client-play-packet-registration.json
+
+      - name: Fail closed on missing target fields or invented source admission
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          item=json.loads(
+              Path("/tmp/26.2-r2c-stock-client-play-packet-registration.json").read_text()
+          )
+          assert item["target"] == {"minecraft":"26.2","protocol":776,"data_version":4903}
+          assert item["source_var_sem_admitted"] is False
+          assert item["production_admitted"] is False
+          packet=item["protocol_registration_candidate"]
+          assert packet["owner"] == "net.minecraft.network.protocol.game.GameProtocols"
+          assert packet["all_five_packet_constants_referenced"]
+          assert not packet["numeric_packet_ids_admitted"]
+          assert not packet["ordered_ordinal_assignment_proven"]
+          assert not packet["play_bundle_and_direction_law_admitted"]
+          assert packet["target_field_reference_count"] >= 5
+          all_fields=[
+              edge["field"] for method in packet["selected_registration_methods"]
+              for edge in method["packet_field_references"]
+          ]
+          for value in (
+              "CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT",
+              "CLIENTBOUND_SET_CHUNK_CACHE_CENTER",
+              "CLIENTBOUND_CHUNK_BATCH_START",
+              "CLIENTBOUND_CHUNK_BATCH_FINISHED",
+              "SERVERBOUND_CHUNK_BATCH_RECEIVED",
+          ):
+              assert value in all_fields
+          for method in packet["selected_registration_methods"]:
+              print("Selected packet registration method:",method["method_name"],
+                    "total instructions",method["instruction_count"],
+                    "digest",method["all_instructions_sha256"])
+              print("R2C packet references:",method["packet_field_references"])
+              print("Local invoke edges:",method["bounded_nearby_invocation_sites_candidate"])
+          print("Official protocol references verified; numeric packet order NOT yet admitted")
+          PY
+
+      - name: Retain only source-free packet registry proof candidates
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-stock-client-play-packet-registration-candidates
+          path: /tmp/26.2-r2c-stock-client-play-packet-registration.json
+          if-no-files-found: error
+          retention-days: 7

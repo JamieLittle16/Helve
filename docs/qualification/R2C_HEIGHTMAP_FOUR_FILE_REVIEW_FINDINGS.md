@@ -288,3 +288,70 @@ explicitly rather than guessed.
 
 No official source text is committed, and no source admission,
 Play runtime, HOT path or publisher capability is changed.
+
+## Fourth pass: five discrete-shape source roots, two abstract (17 October 2026)
+
+The operator ran the **five-method `--pending-only`** export against
+the same official 26.2 source archive and Atlas. All five exact UTF-8
+source excerpts independently matched their SHA-256 receipts. The
+private source-rich JSON SHA-256 is
+`03dea24f6ae5e56fa89c0cb4873280c13b4cc2e49abe614ff01e27276204caca`.
+The complete source-free method identities, body/excerpt hashes and
+carefully bounded findings are in
+`vanilla/reviews/network/r2c-discrete-shape-five-source-free-findings.json`.
+No Java body text is committed.
+
+The inspected code establishes:
+
+- `DiscreteVoxelShape.isEmpty` returns true when the interval is
+  empty on **any** axis (`firstFull(axis) >= lastFull(axis)`);
+  otherwise it returns false. The first/last methods dispatch into
+  implementations, not into code defined in the abstract class.
+- `DiscreteVoxelShape.firstFull(Axis)` and `lastFull(Axis)`
+  are **abstract declarations**, not executable source bodies.
+  Their body fingerprints are both SHA-256(empty). The original
+  extractor wrongly emitted `has_source_body=true` because Atlas
+  stores that digest rather than NULL; it did **not** demonstrate
+  the concrete override bodies. This PR repairs the distinction
+  and tests it using the same Atlas empty-body fingerprint.
+- `DiscreteVoxelShape.getSize(Axis)` selects the stored
+  `xSize/ySize/zSize` using `Direction.Axis.choose`.
+  This source alone does not establish the `choose` implementation
+  or where those dimensions originate.
+- `VoxelShape.get(Axis,int)` retrieves the coordinate from
+  `getCoords(axis).getDouble(i)`. Subtype-specific coordinate
+  lists and `getCoords` are still unresolved.
+
+These five reviewed *declarations* complete the **bounded top-level
+arithmetic-source review**, **not** full polymorphic
+shape-dispatch, cache initialization, client-world state equivalence,
+or independent VAR/SEM admission.
+
+### Decision: stop recursive arithmetic review and qualify the demo
+
+We already hold an exact twice-reproduced official runtime oracle
+for all **32,366** registered states, source-reviewed top-level
+heightmap predicates, all three heightmap Boolean laws and
+integration evidence for chunk heightmap packing. Completing every
+Java collision-shape helper and every block-specific override is
+not a prerequisite to *attempt* independent source/semantic
+admission of the **bounded official runtime-produced dense state fact
+table**. The gate must still qualify the concrete registry ID epoch,
+source/probe identity, matching source-law predicates and
+state-table completeness and fail closed on any uncertainty.
+
+Next work should prioritize the existing independent gates:
+
+1. Define and independently validate the exact runtime-probe/source
+   equivalence contract for the three heightmap predicate bits and
+   dense 32,366-state canonical IDs, without guessing dynamic
+   dispatch for uninspected blocks.
+2. Complete the official **receiving-client** numeric biome
+   registry/selected-known-pack VAR/SEM review against the already
+   recorded source-free Java 25 branch and lambda-bootstrap evidence.
+3. Confirm the outer Play sender/batch/client lifecycle and run
+   the real stock-client nine-chunk world demo through the
+   *existing* COLD publisher after gates permit it.
+
+**Production publication remains blocked.** There is no source
+admission by extrapolation from these abstract declarations.

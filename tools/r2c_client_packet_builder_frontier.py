@@ -26,6 +26,8 @@ OWNER = "net.minecraft.network.protocol.ProtocolInfoBuilder"
 ROOT = OWNER.replace(".", "/")
 CODEC_BUILDER = "net.minecraft.network.protocol.ProtocolCodecBuilder"
 CODEC_ROOT = CODEC_BUILDER.replace(".", "/")
+DISPATCH_CODEC = "net.minecraft.network.codec.IdDispatchCodec"
+DISPATCH_ROOT = DISPATCH_CODEC.replace(".", "/")
 MAX_JAR_ENTRIES = 60_000
 MAX_BUILDER_CLASSES = 24
 MAX_CLASS_BYTES = 786_432
@@ -128,13 +130,16 @@ def builder_roots(jar: zipfile.ZipFile) -> list[tuple[str, str]]:
         raise ValueError("missing or duplicate official ProtocolInfoBuilder root")
     candidates = sorted({
         name for name in names
-        if (name.startswith(ROOT + "$") or name.startswith(CODEC_ROOT + "$"))
+        if (name.startswith(ROOT + "$") or name.startswith(CODEC_ROOT + "$")
+            or name.startswith(DISPATCH_ROOT + "$"))
         and name.endswith(".class")
     })
     # The downstream target codec builder is a separate class; it is
     # reached by the pinned CodecEntry.addToBuilder bytecode, not guessed.
     if CODEC_ROOT + ".class" in names:
         candidates.append(CODEC_ROOT + ".class")
+    if DISPATCH_ROOT + ".class" in names:
+        candidates.append(DISPATCH_ROOT + ".class")
     if len(candidates) > MAX_BUILDER_CLASSES - 1:
         raise ValueError("unbounded official builder nested class inventory")
     return [(name, name.removesuffix(".class").replace("/", "."))

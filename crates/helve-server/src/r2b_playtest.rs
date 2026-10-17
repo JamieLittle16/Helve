@@ -12,7 +12,7 @@ use std::io::{self, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
-use crate::r2c_cold_demo_import::ColdImportedView;
+use crate::r2c_cold_demo_import::{ColdImportedView, SourceAdmittedPlayPublisher};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_play_inbound::R2cPlayInboundStep;
 use std::time::{Duration, Instant};
@@ -506,6 +506,8 @@ pub enum R2bPlaytestError {
     WorldPlan { reason: String },
     /// Transactional R2C ingress failure in the explicit saved-world mode.
     WorldInbound { reason: String },
+    /// Explicit source-admitted chunk publication failed without changing world truth.
+    WorldPublish { reason: String },
     /// A diagnostic counter overflowed.
     AccountingOverflow,
 }
@@ -737,7 +739,10 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             .awaiting()
             .map(|pending| pending.id)
     );
-    serve_world_projection_wait(transport, &mut session, cold_view.as_mut())
+    // Admission is intentionally uninhabited in product builds. This path
+    // keeps the original R2B client behavior unchanged until source VAR/SEM
+    // promotes the exact 26.2 source/known-pack/heightmap/Play contract.
+    serve_world_projection_wait(transport, &mut session, cold_view.as_mut(), None)
 }
 
 /// One event on the original R2B driver; the optional world owner can
@@ -779,6 +784,7 @@ fn serve_world_projection_wait(
     transport: &mut TcpStream,
     session: &mut R2bPlaySession,
     mut cold_view: Option<&mut ColdImportedView>,
+    mut publisher: Option<&mut SourceAdmittedPlayPublisher<'_>>,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
     let origin = Instant::now();
     let mut teleport_acknowledged = false;
@@ -834,10 +840,26 @@ fn serve_world_projection_wait(
             R2bLivenessProcess::ClosedTimedOut => return Ok(R2bPlaytestExit::ClosedTimedOut),
         }
 
+        // Control ingress and liveness have already had first priority.
+        // Only a separately admitted publisher may enter this branch; it
+        // uses the exact same connection driver and source receipt owner.
+        if let (Some(world), Some(sender)) = (cold_view.as_deref_mut(), publisher.as_deref_mut()) {
+            let Some(send_now_ms) = elapsed_millis(origin) else {
+                return Ok(R2bPlaytestExit::ClockInvalid);
+            };
+            service_admitted_play_publication(transport, session, world, sender, send_now_ms)?;
+        }
+
         let Some(now_ms) = elapsed_millis(origin) else {
             return Ok(R2bPlaytestExit::ClockInvalid);
         };
-        let deadline_ms = session.liveness.next_deadline_ms(PLAY_LIVENESS_POLICY);
+        let liveness_deadline_ms = session.liveness.next_deadline_ms(PLAY_LIVENESS_POLICY);
+        let deadline_ms = match (publisher.as_deref(), cold_view.as_deref()) {
+            (Some(sender), Some(world)) => {
+                sender.next_wake_deadline_ms(world, liveness_deadline_ms)
+            }
+            _ => liveness_deadline_ms,
+        };
         let wait_ms = deadline_ms.saturating_sub(now_ms).max(1);
         transport
             .set_read_timeout(Some(Duration::from_millis(wait_ms)))
@@ -871,6 +893,27 @@ fn serve_world_projection_wait(
             Err(error) => return Err(transport_error("read", &error)),
         }
     }
+}
+
+/// A single bounded publication opportunity following Play control and
+/// liveness. Keep the driver and socket in their original R2B owner.
+fn service_admitted_play_publication(
+    transport: &mut TcpStream,
+    session: &mut R2bPlaySession,
+    world: &mut ColdImportedView,
+    sender: &mut SourceAdmittedPlayPublisher<'_>,
+    now_ms: u64,
+) -> Result<(), R2bPlaytestError> {
+    let queued =
+        sender
+            .service(session, world, now_ms)
+            .map_err(|error| R2bPlaytestError::WorldPublish {
+                reason: format!("{error:?}"),
+            })?;
+    if queued != 0 {
+        write_play_once(transport, session)?;
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug)]

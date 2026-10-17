@@ -800,8 +800,11 @@ mod tests {
         use helve_world_chunk::HeightmapStateFacts;
 
         use crate::r2b_server::R2bPlaySession;
-        use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
-        use crate::r2c_cold_demo_import::{R2cSourceAdmission, service_one_source_admitted_chunk};
+        use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState};
+        use crate::r2c_cold_demo_import::{
+            ColdImportedView, R2cSourceAdmission, SourceAdmittedPlayPublisher,
+            service_one_source_admitted_chunk,
+        };
         use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
         use crate::r2c_section_candidate::ReceiptBoundBodyCandidateError;
 
@@ -1060,6 +1063,55 @@ mod tests {
             })
         );
         assert_eq!(state.unacknowledged_batches(), 0);
+
+        // Independently exercise the now-connected Play scheduling seam:
+        // move, do not copy, the SAME dimension and receipts into its owner.
+        // This is deliberately source-admitted in tests ONLY, with the
+        // already verified official heightmap table supplied as an argument.
+        let previous_egress = session.pending_play_egress().to_vec();
+        let mut retained = ColdImportedView::from_test_source(
+            dimension,
+            receipts,
+            R2cChunkBatchState::new_with_initial_cache_center(2, center),
+        );
+        let mut publication =
+            SourceAdmittedPlayPublisher::new(&mut session, &oracle, 100, &admission)
+                .expect("test-only receipt publisher reuses the original driver");
+        assert_eq!(publication.next_wake_deadline_ms(&retained, 800), 100);
+        assert_eq!(
+            publication
+                .service(&mut session, &mut retained, 99)
+                .unwrap(),
+            1
+        );
+        // A cache-centre update is allowed even before a tick; the batch
+        // START is still quota-gated.
+        assert_eq!(
+            publication
+                .service(&mut session, &mut retained, 100)
+                .unwrap(),
+            4
+        );
+        assert_eq!(
+            publication
+                .service(&mut session, &mut retained, 100)
+                .unwrap(),
+            0
+        );
+        assert_eq!(publication.next_wake_deadline_ms(&retained, 800), 800);
+        // The two independently assembled source-bound publications agree
+        // byte for byte, including cache centre, start, heightmaps, sections,
+        // light, finish and their framing, on the same continuing driver.
+        assert_eq!(
+            &session.pending_play_egress()[previous_egress.len()..],
+            previous_egress.as_slice(),
+        );
+        assert_eq!(session.read_scratch.as_ptr(), original_reader);
+        session.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+        assert!(matches!(
+            retained.process_one_play_inbound(&mut session, 150),
+            Ok(crate::r2c_play_inbound::R2cPlayInboundStep::ChunkBatchAcknowledged { .. })
+        ));
     }
 
     #[test]

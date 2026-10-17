@@ -191,6 +191,18 @@ impl R2cChunkBatchState {
         self.unacknowledged
     }
 
+    /// Whether an actual chunk send opportunity remains, without requiring
+    /// an ACK from the remote client. Once selected chunks are sent or the
+    /// unacknowledged window is full, the socket can block on liveness/ingress
+    /// rather than waking uselessly at 20 Hz.
+    #[must_use]
+    pub(crate) fn needs_send_service(&self) -> bool {
+        self.pending_center.is_some()
+            || self.phase != BatchPhase::Ready
+            || (self.cursor.next_index() != self.selected
+                && self.unacknowledged < self.max_unacknowledged)
+    }
+
     /// Replenish at most one vanilla send-tick quota. Do not count every
     /// individual packet admission as a separate server tick.
     pub(crate) fn on_tick(&mut self) {

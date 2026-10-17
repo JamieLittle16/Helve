@@ -140,9 +140,9 @@ impl R2bPlaySession {
     /// Returns the projector error or existing bounded Play-driver rejection unchanged.
     #[cfg_attr(
         not(test),
-        expect(
+        allow(
             dead_code,
-            reason = "R2C chunk packet and biome source admission block production projection"
+            reason = "remaining R2C client/wire source admission blocks production publication"
         )
     )]
     pub(crate) fn service_play_projected_one<E>(

@@ -6,6 +6,8 @@ on:
       - tools/official_r2c_heightmap_facts.py
       - tools/official_state_data.py
       - tools/r2c_heightmap_candidate_bytes.py
+      - tools/r2c_heightmap_reproducibility.py
+      - tools/tests/test_r2c_heightmap_reproducibility.py
       - tools/tests/test_official_r2c_heightmap_facts.py
       - tools/tests/test_r2c_heightmap_candidate_bytes.py
       - crates/helve-server/src/r2c_heightmap_facts.rs
@@ -41,11 +43,63 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/tests -p 'test_official_r2c_heightmap_facts.py' -v
           python3 -m unittest discover -s tools/tests -p 'test_r2c_heightmap_candidate_bytes.py' -v
+          python3 -m unittest discover -s tools/tests -p 'test_r2c_heightmap_reproducibility.py' -v
 
       - name: Probe official pinned server
         run: |
           python3 tools/official_r2c_heightmap_facts.py \
             --output /tmp/26.2-heightmap-state-facts-candidate.json
+
+      - name: Independently repeat full 32366-state official runtime oracle
+        run: |
+          python3 tools/official_r2c_heightmap_facts.py \
+            --output /tmp/26.2-heightmap-state-facts-repeat.json
+          python3 tools/r2c_heightmap_reproducibility.py \
+            --first /tmp/26.2-heightmap-state-facts-candidate.json \
+            --repeat /tmp/26.2-heightmap-state-facts-repeat.json \
+            --output /tmp/r2c-26.2-heightmap-runtime-repeat-audit.json
+          rm /tmp/26.2-heightmap-state-facts-repeat.json
+
+      - name: Independently gate second-run equality and source non-admission
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          first=json.loads(Path("/tmp/26.2-heightmap-state-facts-candidate.json").read_text())
+          audit=json.loads(Path("/tmp/r2c-26.2-heightmap-runtime-repeat-audit.json").read_text())
+          actual=bytes(first["flags_by_vanilla_state_id"])
+          assert len(actual)==32366
+          assert audit["reproduced_dense_state_fact_sha256"]==hashlib.sha256(actual).hexdigest()
+          assert audit["official_independent_probe_runs"]==2
+          assert audit["runtime_id_indexed_byte_equality"]
+          assert len(audit["four_bit_histogram"])==16
+          assert sum(audit["four_bit_histogram"])==32366
+          for key in ("independent_semantic_source_review","source_var_sem_admitted",
+                      "production_admitted"):
+              assert audit[key] is False
+          # Frozen from the exact pinned official 26.2 server runtime's
+          # complete 32366-state ID-indexed table. CI recomputes these
+          # independently and fails if the official fact census changes.
+          assert audit["reproduced_dense_state_fact_sha256"] == (
+              "6dc4edc0f6178490af9d79463eca0373b8b359e351d173ebc51cf6166d74c3eb"
+          )
+          assert audit["four_bit_histogram"] == [
+              3, 3924, 0, 16493, 0, 623, 0, 11015,
+              0, 0, 0, 154, 0, 0, 0, 154,
+          ]
+          assert audit["client_heightmap_state_predicate_counts"] == {
+              "fluid_non_empty":11792, "leaves":308,
+              "motion_blocking":28439,
+              "motion_blocking_no_leaves":28131,
+              "world_surface":32363,
+          }
+          print("OFFICIAL HEIGHTMAP REPRODUCED:",
+                audit["reproduced_dense_state_fact_sha256"])
+          print("Counts:",audit["client_heightmap_state_predicate_counts"])
+          print("Histogram:",audit["four_bit_histogram"])
+          print("Independent semantic source admission still BLOCKED")
+          PY
 
       - name: Fail closed on wrong identity or silent authority promotion
         run: |
@@ -93,5 +147,6 @@ jobs:
           path: |
             /tmp/26.2-heightmap-state-facts-candidate.json
             /tmp/26.2-heightmap-state-facts-candidate.bin
+            /tmp/r2c-26.2-heightmap-runtime-repeat-audit.json
           if-no-files-found: error
           retention-days: 7

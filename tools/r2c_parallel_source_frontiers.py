@@ -224,8 +224,6 @@ def safe_source_failure(label: str, stderr: str) -> str:
                 return "frozen biome source review plan rejected (identity or schema)"
             if message.startswith("named delegate Atlas lookup failed:"):
                 return "bounded named-delegate Atlas query failed"
-            if message.startswith("missing, ambiguous or excessive official type:"):
-                return "pinned Atlas root lookup failed (see direct biome probe)"
     elif label == "chunk_wire":
         prefix = "R2C chunk-wire source inventory rejected: "
         for line in stderr.splitlines():

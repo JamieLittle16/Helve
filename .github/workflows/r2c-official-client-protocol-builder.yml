@@ -87,7 +87,7 @@ jobs:
               for m in root["selected_methods"]
           ]==[
               (12,"f1a20e916c0dcd8c3f321e42e2aab8fd6a56300f1cb1177fb3a53a9271017a27"),
-              (12,"1cd95818ae419881c72f65e3a9d584aec38a8a10cf804a8d22423a866c7dbaa"),
+              (12,"1cd95818ae419881c72f65e3a9d584aec38a8a10cf804a8d22423a866c7dbaa8"),
               (24,"01a8b43ca46c5e92a17c40aaff795558fe63820bbf55750a862723d52caf41fe"),
           ]
           for method in root["selected_methods"][:2]:

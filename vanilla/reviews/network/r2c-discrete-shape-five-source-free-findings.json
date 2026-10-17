@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "kind": "r2c-26_2-five-discrete-shape-delegates-source-free-v1",
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "local_source_rich_sha256": "03dea24f6ae5e56fa89c0cb4873280c13b4cc2e49abe614ff01e27276204caca",
+  "selection_scope": "pending-discrete",
+  "expected_selected_roots": 5,
+  "extracted_methods": 5,
+  "missing_optional_methods": 0,
+  "commit_policy": "SOURCE_FREE_FIRST_PASS_ONLY_NO_VAR_SEM_OR_PRODUCTION",
+  "contains_official_source_text": false,
+  "original_extractor_abstract_method_reporting_defect": "The local pre-fix extractor reports has_source_body=true for abstract firstFull and lastFull because Atlas represents absent abstract method bodies by SHA-256(empty), not null. Source itself ends with a semicolon and contains no executable body.",
+  "methods": [
+    {
+      "index": 1,
+      "source_identity": "net.minecraft.world.phys.shapes.DiscreteVoxelShape#isEmpty()",
+      "atlas_body_sha256": "f31c92538dfb7efe037c862526857b27f4db7508b7796e19d2a4a545809f0d82",
+      "source_excerpt_sha256": "857b40e94580d87d332ce94a13295d9ca7843590ecf9984ecd15a8ab51a68d7f",
+      "declaration_kind": "executable",
+      "has_executable_body": true,
+      "first_pass_source_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 2,
+      "source_identity": "net.minecraft.world.phys.shapes.DiscreteVoxelShape#firstFull(final Direction . Axis axis)",
+      "atlas_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_excerpt_sha256": "1e84e0e2bd86e54d72a0055a7df68f4e7c1cb86facd414259ddc99c02f58e1ac",
+      "declaration_kind": "abstract",
+      "has_executable_body": false,
+      "first_pass_source_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 3,
+      "source_identity": "net.minecraft.world.phys.shapes.DiscreteVoxelShape#lastFull(final Direction . Axis axis)",
+      "atlas_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_excerpt_sha256": "fac4af1a69a895248796ea67969908765827e6965225eea7a9deb95692335f07",
+      "declaration_kind": "abstract",
+      "has_executable_body": false,
+      "first_pass_source_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 4,
+      "source_identity": "net.minecraft.world.phys.shapes.DiscreteVoxelShape#getSize(final Direction . Axis axis)",
+      "atlas_body_sha256": "72cd132603dcc43ec2da95acd6fbf9b9f477416ec672e28ebe6013df8910e57a",
+      "source_excerpt_sha256": "0edd148430204ddece8bdd9e96ecd21103bb63d4369014e4887b0fcb0f1c7651",
+      "declaration_kind": "executable",
+      "has_executable_body": true,
+      "first_pass_source_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 5,
+      "source_identity": "net.minecraft.world.phys.shapes.VoxelShape#get(final Direction . Axis axis , final int i)",
+      "atlas_body_sha256": "7e38e7d38fe660395863660527bdba26f448682fe7cf8f89664687e3a57abd44",
+      "source_excerpt_sha256": "bfb86dcd24a4caa8cad732bf114db3bd687835d128e0b79b0c4491368f85fe7b",
+      "declaration_kind": "executable",
+      "has_executable_body": true,
+      "first_pass_source_inspected": true,
+      "semantics_admitted": false
+    }
+  ],
+  "source_laws": [
+    {
+      "methods": [
+        1
+      ],
+      "text": "DiscreteVoxelShape.isEmpty loops over all AXIS_VALUES, returns true when firstFull(axis)>=lastFull(axis) for any axis; false otherwise. firstFull/lastFull are dynamically dispatched abstract methods."
+    },
+    {
+      "methods": [
+        2,
+        3
+      ],
+      "text": "DiscreteVoxelShape.firstFull(axis) and lastFull(axis) are abstract declarations in this class. Their identical Atlas SHA-256(empty) is a declaration fingerprint, not proof of an implementation or an executed method body."
+    },
+    {
+      "methods": [
+        4
+      ],
+      "text": "DiscreteVoxelShape.getSize(axis) uses Direction.Axis.choose(xSize,ySize,zSize); axis.choose requires independent source review if full dispatch closure is needed."
+    },
+    {
+      "methods": [
+        5
+      ],
+      "text": "VoxelShape.get(axis,i) returns getCoords(axis).getDouble(i); actual concrete shape coordinate-list provider is not proven by this method."
+    }
+  ],
+  "outstanding": [
+    "Concrete DiscreteVoxelShape firstFull/lastFull subtype overrides and all relevant VoxelShape coordinate-list implementations are not source-admitted.",
+    "Full 32366-state collision-shape virtual dispatch and state initCache bootstrap provenance remain independent source-gate obligations.",
+    "Independent VAR/SEM/Atlas decisions and stock-client biome-ID/known-pack ordering gate remain false.",
+    "End-to-end stock-client packet publication and visual R2C witness not yet demonstrated."
+  ],
+  "source_methods_first_pass_reviewed": true,
+  "executable_delegates_fully_closed": false,
+  "independent_atlas_gate_passed": false,
+  "source_semantics_admitted": false,
+  "client_biome_ids_admitted": false,
+  "production_admitted": false
+}

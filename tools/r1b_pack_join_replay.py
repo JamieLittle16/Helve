@@ -23,6 +23,11 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+try:
+    from . import r2c_selected_biome_profile as biome_profile
+except ImportError:
+    import r2c_selected_biome_profile as biome_profile
+
 MAGIC = b"CRR1X001"
 SCHEMA = 1
 KIND = "r1b-join-replay-image-v1"
@@ -190,6 +195,14 @@ def _write_u64(output, value: int) -> None:
 def pack(input_path: Path, output_path: Path, play_frame_limit: int | None) -> tuple[int, int]:
     value = _read_json(input_path)
     captured_config, full_play = _validate(value)
+    # R2C-specific selected-profile crosscheck belongs at the actual
+    # immutable R1X pack boundary. The shared _validate() is also reused
+    # by R2B Play-bootstrap oracle extraction and synthetic test fixtures.
+    # Never impose this selected biome profile on that generic validator.
+    try:
+        biome_profile.verify_selected_biome_profile(captured_config)
+    except biome_profile.ProfileMismatch as error:
+        raise PackError(f"R2C selected biome runtime-ID preflight failed: {error}") from error
     config = _runtime_configuration(captured_config)
 
     if play_frame_limit is None:

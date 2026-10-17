@@ -78,6 +78,10 @@ class R1BPackJoinReplayTests(unittest.TestCase):
                 hashlib.sha256(play_concat).hexdigest(),
             ),
             mock.patch.object(packer, "RUNTIME_CONFIG_BYTES", runtime_config_bytes),
+            # The 2-body test fixture is deliberately not a 34-body official
+            # selected Configuration. The full frozen-profile validator is
+            # separately tested with all 66 real runtime-observed IDs.
+            mock.patch.object(packer.biome_profile, "verify_selected_biome_profile"),
         )
 
     def test_runtime_configuration_replaces_only_product_brand(self) -> None:
@@ -110,6 +114,7 @@ class R1BPackJoinReplayTests(unittest.TestCase):
                 patches[4],
                 patches[5],
                 patches[6],
+                patches[7],
             ):
                 selected_count, selected_bytes = packer.pack(source, output, 2)
 
@@ -135,6 +140,27 @@ class R1BPackJoinReplayTests(unittest.TestCase):
         self.assertEqual(second_length, len(config[1]))
         self.assertEqual(raw[cursor : cursor + second_length], config[1])
 
+    def test_selected_runtime_biome_id_mismatch_blocks_image_before_output(self) -> None:
+        value, config, play = _fixture()
+        patches = self._patched_constants(config, play)
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "replay.json"
+            output = Path(tmp) / "replay.r1x"
+            source.write_text(json.dumps(value), encoding="utf-8")
+            with (
+                patches[0], patches[1], patches[2], patches[3],
+                patches[4], patches[5], patches[6], patches[7] as preflight,
+            ):
+                preflight.side_effect = packer.biome_profile.ProfileMismatch(
+                    "synthetic ordinal mismatch"
+                )
+                with self.assertRaisesRegex(
+                    packer.PackError, "selected biome runtime-ID preflight failed"
+                ):
+                    packer.pack(source, output, 1)
+                preflight.assert_called_once_with(config)
+            self.assertFalse(output.exists())
+
     def test_tampered_body_hash_fails_before_output_creation(self) -> None:
         value, config, play = _fixture()
         value["play_replay"]["server_bodies"][1]["body_sha256"] = "0" * 64
@@ -151,6 +177,7 @@ class R1BPackJoinReplayTests(unittest.TestCase):
                 patches[4],
                 patches[5],
                 patches[6],
+                patches[7],
             ):
                 with self.assertRaisesRegex(packer.PackError, "body_sha256 mismatch"):
                     packer.pack(source, output, 1)
@@ -171,6 +198,7 @@ class R1BPackJoinReplayTests(unittest.TestCase):
                 patches[4],
                 patches[5],
                 patches[6],
+                patches[7],
             ):
                 with self.assertRaisesRegex(packer.PackError, "play-frame-limit"):
                     packer.pack(source, output, len(play) + 1)

@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import sys
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -44,6 +46,23 @@ class CandidateBytesTests(unittest.TestCase):
         self.assertEqual(packed[:4], bytes([0, 3, 5, 11]))
         self.assertEqual(packed[-1], 1)
         self.assertEqual(len(packed), len(data["flags_by_vanilla_state_id"]))
+
+    def test_exact_frozen_official_digest_precedes_materialization(self) -> None:
+        packed = candidate.validate_candidate(document(), LOCK)
+        # A correctly shaped candidate is not necessarily the independently
+        # reproduced target-specific byte image. Reject it before output.
+        with self.assertRaisesRegex(ValueError, "dense digest mismatch"):
+            candidate.require_frozen_official_bytes(packed)
+
+        # Exercise the success branch with a synthetic test-only identity.
+        # Never weaken the real frozen official digest in production.
+        digest = hashlib.sha256(packed).hexdigest()
+        with patch.object(candidate, "EXPECTED_DENSE_SHA256", digest):
+            candidate.require_frozen_official_bytes(packed)
+            corrupted = bytearray(packed)
+            corrupted[1234] ^= 2
+            with self.assertRaisesRegex(ValueError, "dense digest mismatch"):
+                candidate.require_frozen_official_bytes(bytes(corrupted))
 
     def test_source_and_runtime_pins_are_mandatory(self) -> None:
         for key, value in (

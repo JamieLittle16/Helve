@@ -209,3 +209,82 @@ independent VAR/SEM promotion or production chunk publication.
 Still needed: complete fluid subtype/registry and shape dispatch,
 cache bootstrap/state identity, receiving-client biome IDs,
 and independent source admission.
+
+## Verified third pass: 17 exact methods (17 October 2026)
+
+The next operator-local report contains **17 exact source methods**:
+the original eleven, five previously reached direct callees, and
+the six-argument AABB constructor. All 17 reported excerpt SHA-256
+digests independently match the actual received UTF-8 excerpt bytes.
+The complete **local-only** report has SHA-256
+`e6cf968b6072ce5f9ee814247a829c78e4f77a24a8492dacfd6a7c050aeb1701`
+and unchanged official archive pin. A minimal source-free record for
+the **six newly reviewed methods**, with per-method body/excerpt hashes,
+is retained in `vanilla/reviews/network/r2c-heightmap-seventeen-delegate-review.json`.
+The first eleven are reused by reference rather than copied again.
+
+Exact third-pass source laws:
+
+- `AABB.getXsize()` is `maxX - minX`, while `getZsize()`
+  is `maxZ - minZ`. Together with the previously reviewed
+  Y span and `getSize`, the size is the arithmetic mean of
+  all three coordinate differences. This is **not** volume.
+- The six-coordinate `AABB` constructor normalizes each axis
+  using `Math.min/Math.max`. It does not assume ordered input.
+- `VoxelShape.isEmpty()` delegates to its
+  `DiscreteVoxelShape.isEmpty()` member, retaining a concrete
+  discrete-shape dependency.
+- `VoxelShape.min(axis)` uses `firstFull(axis)` and
+  `getSize(axis)`; beyond the occupied range it returns positive
+  infinity, otherwise the coordinate at `get(axis, i)`.
+  `VoxelShape.max(axis)` uses `lastFull(axis)`, returning
+  negative infinity when no positive upper occupied position
+  is present, otherwise the coordinate at `get(axis, i)`.
+  The discrete shape and coordinate helper remain unreviewed.
+- `FlowingFluid.isEmpty()/0` was **not** declared in that
+  concrete owner in the pinned Atlas. It is an *optional missing
+  method*, not a source or extraction failure; the absence of
+  that declaration is not a class-hierarchy/override-completeness proof.
+
+### Next: only five new direct delegates
+
+The existing exact-method exporter has been extended with the next
+five **required** method identities:
+`DiscreteVoxelShape.isEmpty()`,
+`DiscreteVoxelShape.firstFull(Axis)`,
+`DiscreteVoxelShape.lastFull(Axis)`,
+`DiscreteVoxelShape.getSize(Axis)`, and
+`VoxelShape.get(Axis,int)`.
+
+To avoid repeatedly exporting the **same seventeen** already
+reviewed bodies, select the new subset with `--pending-only`:
+
+```bash
+git pull
+python3 tools/r2c_heightmap_delegate_exact_review.py \
+  --pending-only \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output "/tmp/helve-r2c-discrete-delegates-$(date +%s).json"
+```
+
+The source/Atlas pin, duplicate and bounds checks still apply.
+The selected scope is recorded in the private output and cannot
+be confused with an exhaustive extraction. The default mode
+continues to extract the full selector set for deliberate
+re-verification.
+
+**This is deliberately the last planned arithmetic/voxel helper
+review pass for the initial COLD nine-chunk R2C window.** The next
+substantive milestone work should concentrate on independent
+source-semantic admission of the observed 32,366-state predicate
+table, the actual client's biome registry order and the final
+world publication/stock-client observation. A chain of helper
+reviews must not be treated as an infinite prerequisite for
+demonstrating a correctly gated bounded runtime witness; the
+remaining global dispatch/bootstrap claims must be stated
+explicitly rather than guessed.
+
+No official source text is committed, and no source admission,
+Play runtime, HOT path or publisher capability is changed.

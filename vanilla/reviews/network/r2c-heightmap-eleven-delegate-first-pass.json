@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "kind": "r2c-26_2-heightmap-eleven-delegate-first-pass-findings-v1",
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "source_rich_local_artifact_sha256": "538f146a9f354c2a4f46fbafa88ac251fb19dedb00553847ff3d25636f355434",
+  "commit_policy": "SOURCE_FREE_REVIEW_NOT_ADMISSION",
+  "contains_official_source_text": false,
+  "reviewed_methods": [
+    {
+      "index": 1,
+      "method": "Fluid#isEmpty()",
+      "source_excerpt_sha256": "1c11ce6c69c732c694ccb76a2b6c2d2abcafbcaa1bac4aa4060d5fa7705e55a0",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 2,
+      "method": "VoxelShape#bounds()",
+      "source_excerpt_sha256": "b84ca699806d52e723039a04abf1f8720601c618a4318088cbab4b18b95c61f3",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 3,
+      "method": "AABB#getSize()",
+      "source_excerpt_sha256": "0f12c49d0db04280040aef67236626dd9c2bb28c2468958387feab9b2e142577",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 4,
+      "method": "AABB#getYsize()",
+      "source_excerpt_sha256": "bc1f5ccd6e4dca22cb5c89e50019dfbf0f7b4d34a041ea60cde714ac699827fc",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 5,
+      "method": "EmptyFluid#isEmpty()",
+      "source_excerpt_sha256": "35632f568754e37e1a685a01df0d862cffd2d56fbe6f6f7d4b6d44f46baca118",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 6,
+      "method": "Fluid#defaultFluidState()",
+      "source_excerpt_sha256": "68c8524260507100595dff922d77405860d52c99cf0c4733af9da8538ce33ace",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 7,
+      "method": "Block#hasDynamicShape()",
+      "source_excerpt_sha256": "40951645f9daf132b82bc5131576e1759b36a86a381135a72af2ee732e189c9d",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 8,
+      "method": "Block#isShapeFullBlock(VoxelShape)",
+      "source_excerpt_sha256": "78f49aaae7d35bf4e60c7d18b25e1eccbd6087ce8c99b700746bbfadbca956cc",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 9,
+      "method": "Block#registerDefaultState(BlockState)",
+      "source_excerpt_sha256": "76f413a67924e69729e6544c708b54f2d1d3a70c4cfe83410d0ac9ed5faed26c",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 10,
+      "method": "StateDefinition#getPossibleStates()",
+      "source_excerpt_sha256": "63ff69b076b409987eb11387db6967074aa7232ffa5bb300fca02d590d1ffa4b",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    },
+    {
+      "index": 11,
+      "method": "Shapes#block()",
+      "source_excerpt_sha256": "546cee39c75e7a3dffdcba5518ca6f24bc401595a71a5e7b42677fff3996806d",
+      "first_pass_inspected": true,
+      "semantics_admitted": false
+    }
+  ],
+  "observations": [
+    {
+      "ids": [
+        1,
+        5
+      ],
+      "rule": "FluidState.isEmpty dispatches to concrete Fluid owner; base Fluid.isEmpty returns false, EmptyFluid overrides true. Completeness of concrete override set is not established."
+    },
+    {
+      "ids": [
+        2
+      ],
+      "rule": "VoxelShape.bounds rejects empty shapes; otherwise returns AABB(minX,minY,minZ,maxX,maxY,maxZ). Axis extrema and AABB construction are further delegates."
+    },
+    {
+      "ids": [
+        3,
+        4
+      ],
+      "rule": "AABB.getSize computes arithmetic mean of getXsize/getYsize/getZsize, not volume; getYsize is maxY-minus-minY."
+    },
+    {
+      "ids": [
+        6
+      ],
+      "rule": "Fluid.defaultFluidState returns the stored defaultFluidState field. Initialization/ownership still require review."
+    },
+    {
+      "ids": [
+        7
+      ],
+      "rule": "Block.hasDynamicShape returns its stored dynamicShape flag; source of this flag is separate."
+    },
+    {
+      "ids": [
+        8
+      ],
+      "rule": "Block.isShapeFullBlock uses SHAPE_FULL_BLOCK_CACHE.getUnchecked; it is NOT the BlockStateBase.calculateSolid test used by blocksMotion. Cached shape-full-block loader unreviewed."
+    },
+    {
+      "ids": [
+        9,
+        10
+      ],
+      "rule": "Block.registerDefaultState assigns the passed state and StateDefinition.getPossibleStates returns a stored list; neither alone proves all initCache calls or canonical global IDs."
+    },
+    {
+      "ids": [
+        11
+      ],
+      "rule": "Shapes.block returns static BLOCK; its construction and extents remain to review."
+    }
+  ],
+  "unreviewed": [
+    "VoxelShape isEmpty/min/max and subtype shape implementations",
+    "AABB getXsize/getZsize and constructor",
+    "Fluid dynamic subclass override completeness and registered default identity",
+    "Block-specific collision shape and cache initialization",
+    "Registry of 32366 states and initCache order",
+    "Independent VAR/SEM/Atlas gate; client biome ID/known-pack and Play lifecycle"
+  ],
+  "source_methods_inspected": true,
+  "all_reached_delegates_reviewed": false,
+  "heightmap_predicates_source_admitted": false,
+  "independent_atlas_gate_passed": false,
+  "client_biome_ids_admitted": false,
+  "production_admitted": false
+}

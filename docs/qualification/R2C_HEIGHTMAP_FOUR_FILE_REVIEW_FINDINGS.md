@@ -139,3 +139,73 @@ certification remain the separate logical obligations.
 
 The stock-client biome numeric ID/known-pack proof is a separate gate;
 do not activate R2C publication based on this heightmap-only report.
+
+## Verified second pass: eleven exact delegates (17 October 2026)
+
+The operator's pinned follow-up extracted **all eleven** exact methods
+(four required, seven exploratory; none missing). Every local method
+excerpt was independently byte-hashed and matched its receipt. The
+local source-rich JSON SHA-256 is
+`538f146a9f354c2a4f46fbafa88ac251fb19dedb00553847ff3d25636f355434`.
+The source-free reviewed identities, excerpt hashes and **false**
+admission flags are retained in
+`vanilla/reviews/network/r2c-heightmap-eleven-delegate-first-pass.json`.
+
+The newly resolved *source-visible* laws are:
+
+- `Fluid.isEmpty` returns false in the base implementation;
+  `EmptyFluid.isEmpty` returns true. `FluidState.isEmpty()` (from
+  the first pass) dispatches to its owner's override. This establishes
+  the two named methods, **not** an exhaustive proof that no other
+  concrete fluid overrides the method.
+- `VoxelShape.bounds` first rejects the empty case; otherwise it
+  constructs an AABB from three axis minima and maxima. The actual
+  `VoxelShape.isEmpty/min/max` implementations and shape type
+  dispatch remain outside these eleven excerpts.
+- `AABB.getSize` computes the **arithmetic mean** of the three
+  side lengths: `(getXsize()+getYsize()+getZsize())/3.0`.
+  It is **not** volume, surface area, maximum span, or a full-block
+  predicate. `AABB.getYsize` is `maxY - minY`. Therefore the
+  already-inspected vanilla `calculateSolid` threshold depends
+  on this mean **or** a separately sufficient vertical span of
+  at least 1.0. `getXsize`, `getZsize` and AABB construction
+  are the narrow remaining arithmetic delegates.
+- `Block.hasDynamicShape` returns its stored flag;
+  `Block.registerDefaultState` stores a state; and
+  `StateDefinition.getPossibleStates` returns its stored list.
+  These getters/setters alone do **not** establish the complete
+  cache-initialization epoch or global state-ID registration.
+- `Block.isShapeFullBlock` uses a separate cached shape-fullness
+  lookup; **do not substitute** it for `calculateSolid()`.
+  `Shapes.block` returns a preexisting static shape, without
+  proving how that shape was instantiated.
+- `Fluid.defaultFluidState` returns an already stored field;
+  its initialization and fluid subtype dispatch are not yet proven.
+
+### Next bounded exact-method export
+
+The existing `tools/r2c_heightmap_delegate_exact_review.py` was
+**extended**, not duplicated, to append five required direct callees:
+`AABB.getXsize`, `AABB.getZsize`, `VoxelShape.isEmpty`,
+`VoxelShape.min(Axis)`, `VoxelShape.max(Axis)`; plus two optional
+concrete-constructor/override leads. The old eleven selectors retain
+their original order and identity. An absent required method fails
+closed; an optional missing/ambiguous method remains explicitly open.
+
+Run on the pinned operator machine after updating `main`:
+
+```bash
+git pull
+python3 tools/r2c_heightmap_delegate_exact_review.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output "/tmp/helve-r2c-heightmap-delegates-$(date +%s).json"
+```
+
+The output is new-only, private, and **source-rich LOCAL ONLY**.
+Neither the first-pass review nor this follow-up authorizes
+independent VAR/SEM promotion or production chunk publication.
+Still needed: complete fluid subtype/registry and shape dispatch,
+cache bootstrap/state identity, receiving-client biome IDs,
+and independent source admission.

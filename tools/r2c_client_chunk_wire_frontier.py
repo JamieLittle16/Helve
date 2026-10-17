@@ -31,7 +31,7 @@ MAX_CLASS_JAVAP = 3_000_000
 MAX_DECLARATIONS = 96
 MAX_INSTRUCTIONS = 900
 MAX_SYMBOLS = 160
-HEADER = re.compile(r"^  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;$")
+HEADER = re.compile(r"^  [^{};]+\([^;]*\)(?: throws [^;]+)?;$")
 INSTRUCTION = re.compile(r"^\s*(\d+):\s+([a-z][a-z_0-9]*)\b(.*)$")
 REVIEW_NAMES = ("write", "type", "handle", "read", "getReadBuffer")
 
@@ -44,7 +44,12 @@ def inspect_class(disassembly: str, class_name: str) -> dict:
     for index, line in enumerate(lines):
         m = HEADER.fullmatch(line)
         if m:
-            heads.append((index, m.group(1), line))
+            # Include fully-qualified Java constructors as method boundaries:
+            # their names contain dots, unlike javap's simple method names.
+            # Otherwise the previous write/type body can accidentally absorb
+            # the following constructor's restarted bytecode offsets.
+            head = line.split("(", 1)[0].split()[-1].rsplit(".", 1)[-1]
+            heads.append((index, head, line))
     if not heads or len(heads) > MAX_DECLARATIONS:
         raise ValueError("missing or excessive chunk codec declarations")
     methods = []

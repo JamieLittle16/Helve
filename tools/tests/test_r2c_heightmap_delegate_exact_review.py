@@ -79,6 +79,22 @@ class DelegateSourceReviewTests(unittest.TestCase):
         finally:
             conn.close()
 
+    def test_abstract_declaration_never_fabricates_body_hash(self) -> None:
+        conn = fake_atlas()
+        try:
+            # Atlas indexes abstract declarations, which can have a
+            # normalized signature but no method body fingerprint.
+            conn.execute("UPDATE methods SET body_sha256=NULL WHERE id=1")
+            with zipfile.ZipFile(io.BytesIO(source_zip())) as archive:
+                rows, missing = review.extract(conn, archive, (TEST_ROOT,))
+            self.assertEqual(missing, [])
+            self.assertEqual(len(rows), 1)
+            self.assertIsNone(rows[0]["body_sha256"])
+            self.assertIs(rows[0]["has_source_body"], False)
+            self.assertIs(rows[0]["delegate_semantics_admitted"], False)
+        finally:
+            conn.close()
+
     def test_missing_duplicate_zip_members_rejected(self) -> None:
         for scenario in ("missing", "duplicate"):
             with self.subTest(scenario=scenario):

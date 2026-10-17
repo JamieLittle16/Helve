@@ -800,7 +800,7 @@ mod tests {
         use helve_world_chunk::HeightmapStateFacts;
 
         use crate::r2b_server::R2bPlaySession;
-        use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
+        use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep, R2cChunkBatchState};
         use crate::r2c_cold_demo_import::{
             ColdImportedView, R2cSourceAdmission, SourceAdmittedPlayPublisher,
             service_one_source_admitted_chunk,

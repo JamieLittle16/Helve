@@ -26,15 +26,17 @@ def fixture(fields:tuple[str,...]=probe.FIELDS)->str:
         rows=[f"  private static void {name}();","    Code:"]
         offset=0
         for i in range(size):
-            token=values.get(i,f"{direction}_TEST_{i}")
+            token=("CLIENTBOUND_BUNDLE" if direction=="CLIENTBOUND" and i==0
+                   else values.get(i,f"{direction}_TEST_{i}"))
             if token not in present:
                 token=f"{direction}_TEST_{i}"
             rows.append(
                 f"      {offset}: getstatic #11 // Field net/minecraft/network/protocol/game/GamePacketTypes.{token}:Lnet/minecraft/network/protocol/PacketType;"
             )
             offset+=3
+            registrar=("withBundlePacket" if token=="CLIENTBOUND_BUNDLE" else "addPacket")
             rows.append(
-                f"      {offset}: invokevirtual #14 // Method net/minecraft/network/protocol/ProtocolInfoBuilder.addPacket:(Lnet/minecraft/network/protocol/PacketType;)Lnet/minecraft/network/protocol/ProtocolInfoBuilder;"
+                f"      {offset}: invokevirtual #14 // Method net/minecraft/network/protocol/ProtocolInfoBuilder.{registrar}:(Lnet/minecraft/network/protocol/PacketType;)Lnet/minecraft/network/protocol/ProtocolInfoBuilder;"
             )
             offset+=3
         rows.append(f"      {offset}: return")

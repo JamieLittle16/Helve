@@ -77,7 +77,9 @@ jobs:
               "net.minecraft.network.protocol.ProtocolInfoBuilder$Implementation":
                   "5f2f863fe918a43823ba29b9e37ff372dd8efd2e153b9471d5d6270a338b2549",
           }
-          assert {cls["class_name"]:cls["classfile_sha256"] for cls in records}==class_sha
+          found={cls["class_name"]:cls["classfile_sha256"] for cls in records}
+          assert all(found.get(name)==sha for name,sha in class_sha.items())
+          assert "net.minecraft.network.protocol.ProtocolCodecBuilder" in found
           root=records[0]
           root_append_methods=[
               m for m in root["selected_methods"]

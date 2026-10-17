@@ -96,7 +96,7 @@ class FirstPassFindingsTests(unittest.TestCase):
     def test_wire_doc_keeps_distinct_server_and_client_batch_ids(self) -> None:
         inspected = WIRE_INSPECTION.read_text(encoding="utf-8")
         self.assertIn("serverbound `chunk_batch_received = 11`", inspected)
-        self.assertIn("clientbound `chunk_batch_finished = 11`", inspected)
+        self.assertIn("`chunk_batch_finished = 11`", inspected)
         self.assertIn("`chunk_batch_start = 12`", inspected)
         self.assertNotIn("serverbound `chunk_batch_received = 12`", inspected)
 

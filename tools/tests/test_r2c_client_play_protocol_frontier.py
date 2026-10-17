@@ -101,7 +101,7 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"two packet types"):
             probe.inspect(invalid)
         branched=fixture().replace(
-            "       6: getstatic", "       6: ifnull 99"
+            "      6: getstatic", "      6: ifnull 99"
         )
         with self.assertRaisesRegex(ValueError,"non-linear"):
             probe.inspect(branched)

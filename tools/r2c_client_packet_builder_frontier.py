@@ -58,7 +58,7 @@ def inspect(disassembly: str, class_name: str) -> dict:
         name = match.group("declaration").split("(", 1)[0].split()[-1].rsplit(".", 1)[-1]
         headers.append((i, name, line.strip()))
     if not headers or len(headers) > MAX_METHODS:
-        raise ValueError("missing or excessive official builder declarations")
+        raise ValueError(f"missing or excessive official builder declarations: {class_name}")
     records = []
     for ordinal, (start, name, declaration) in enumerate(headers):
         if name not in FOCUS:

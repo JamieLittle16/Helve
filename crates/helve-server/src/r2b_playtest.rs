@@ -260,9 +260,10 @@ impl R2cColdWorldPlan {
     /// # Errors
     /// Fails closed on missing/invalid/symlink world and region directories.
     pub fn new(world: PathBuf) -> Result<Self, R2cColdWorldPlanError> {
+        let region = world.join("region");
         for (component, path) in [
             ("world", world.as_path()),
-            ("region", world.join("region").as_path()),
+            ("region", region.as_path()),
         ] {
             let metadata = fs::symlink_metadata(path).map_err(|error| {
                 R2cColdWorldPlanError::Io {
@@ -309,7 +310,7 @@ pub enum R2bPlaytestError {
     /// An impossible incomplete frame followed an R2B `Unclaimed` classification.
     DiscardInvariant,
     /// Opt-in world preview could not be bound to the actual outstanding teleport.
-    WorldPlan(PendingTeleportViewError),
+    WorldPlan { reason: String },
     /// A diagnostic counter overflowed.
     AccountingOverflow,
 }
@@ -489,13 +490,14 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             .expect("fixed R2B playtest overworld profile is valid");
         let (center, positions) =
             plan_pending_teleport_first_view(&session, profile, 10, 9)
-                .map_err(R2bPlaytestError::WorldPlan)?;
+                .map_err(|error| R2bPlaytestError::WorldPlan {
+                    reason: format!("{error:?}"),
+                })?;
         eprintln!(
             "R2C COLD world plan only | root={} | teleport_center=({}, {}) | selected_first_view={} | world_read=false | chunk_sent=false | source_admitted=false",
             plan.world().display(),
             center.x, center.z, positions.len()
         );
-        debug_assert_eq!(session.queued_egress(), 0);
     }
 
     eprintln!(

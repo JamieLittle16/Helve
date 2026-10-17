@@ -1009,6 +1009,44 @@ mod r2c_cold_plan_tests {
         ));
     }
 
+    #[test]
+    fn opt_in_dense_candidate_is_bounded_and_never_promoted_to_admission() {
+        use helve_generated::{BLOCK_STATE_COUNT, STATE_MUTATION_FLAGS};
+
+        let world = ScratchWorld::new();
+        fs::create_dir(world.0.join("region")).unwrap();
+        let facts_path = world.0.join("facts.bin");
+        let valid: Vec<u8> = STATE_MUTATION_FLAGS
+            .iter()
+            .map(|&flags| (flags & 1) | ((flags & 2) << 1))
+            .collect();
+        assert_eq!(valid.len(), BLOCK_STATE_COUNT);
+        fs::write(&facts_path, &valid).unwrap();
+        let plan = R2cColdWorldPlan::new(world.0.clone())
+            .unwrap()
+            .with_candidate_heightmap_file(&facts_path)
+            .expect("candidate with existing independently checked non-air/fluid bits");
+        assert_eq!(plan.candidate_heightmap_bytes(), Some(valid.as_slice()));
+        assert_eq!(plan.world(), world.0.as_path());
+
+        fs::write(&facts_path, &valid[..valid.len() - 1]).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(world.0.clone())
+                .unwrap()
+                .with_candidate_heightmap_file(&facts_path),
+            Err(R2cColdWorldPlanError::WrongHeightmapBytes { .. })
+        ));
+        let mut wrong = valid;
+        wrong[0] = 0x80;
+        fs::write(&facts_path, &wrong).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(world.0.clone())
+                .unwrap()
+                .with_candidate_heightmap_file(&facts_path),
+            Err(R2cColdWorldPlanError::HeightmapCandidate(_))
+        ));
+    }
+
     #[cfg(unix)]
     #[test]
     fn symlinked_world_or_region_is_not_treated_as_admitted_source() {

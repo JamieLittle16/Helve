@@ -23,6 +23,11 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+try:
+    from . import r2c_selected_biome_profile as biome_profile
+except ImportError:
+    import r2c_selected_biome_profile as biome_profile
+
 MAGIC = b"CRR1X001"
 SCHEMA = 1
 KIND = "r1b-join-replay-image-v1"
@@ -164,6 +169,15 @@ def _validate(value: dict[str, Any]) -> tuple[list[bytes], list[bytes]]:
         raise PackError("captured Play concatenation SHA-256 mismatch")
     if play_section.get("body_concat_sha256") != EXPECTED_PLAY_BODY_SHA256:
         raise PackError("captured Play declared body hash mismatch")
+
+    # The image bytes were validated above; now bind the exact outbound
+    # Configuration order to the *independently recorded* official 66-ID
+    # runtime candidate. This is a COLD consistency check only and DOES
+    # NOT grant receiving-client VAR/SEM source admission.
+    try:
+        biome_profile.verify_selected_biome_profile(config)
+    except biome_profile.ProfileMismatch as error:
+        raise PackError(f"R2C selected biome runtime-ID preflight failed: {error}") from error
 
     return config, play
 

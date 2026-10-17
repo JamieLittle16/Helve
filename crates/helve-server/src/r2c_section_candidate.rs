@@ -1059,7 +1059,7 @@ mod tests {
         assert_eq!(reader.buffered_len(), 0);
 
         // A genuine inbound acknowledgement uses the same retained ingress.
-        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        session.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
         assert_eq!(
             session.process_one_r2c_chunk_batch_ack(&mut state),
             Ok(ChunkBatchInboundStep::Received {
@@ -1252,7 +1252,7 @@ mod tests {
         reader.consume(consumed).unwrap();
         assert_eq!(reader.buffered_len(), 0);
 
-        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        session.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
         assert_eq!(
             session.process_one_r2c_chunk_batch_ack(&mut state),
             Ok(ChunkBatchInboundStep::Received {

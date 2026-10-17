@@ -22,13 +22,21 @@ use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
 
 use crate::r2b_server::R2bPlaySession;
-use crate::r2c_chunk_batch::R2cChunkBatchState;
+use helve_connection_driver::DriverError;
+use helve_target_26_2::r2c_play_wire::append_chunk_with_light_packet_id;
+
+use crate::r2c_chunk_batch::{ChunkBatchStep, R2cChunkBatchState};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_disk_first_view::{
     PendingTeleportDiskFirstViewRequest, import_pending_teleport_disk_first_view,
 };
 use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
-use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
+use crate::r2c_play_inbound::{
+    R2cPlayInboundError, R2cPlayInboundStep, process_one_r2c_play_inbound,
+};
+use crate::r2c_section_candidate::{
+    ReceiptBoundBodyCandidateError, append_receipt_bound_empty_chunk_body_candidate,
+};
 use helve_target_26_2::Target26_2R1xContext;
 
 /// **Bounded, development-only** initial load: no world generator, no
@@ -109,6 +117,21 @@ impl ColdImportedView {
 
     pub(crate) fn receipts(&self) -> usize {
         self.receipts.len()
+    }
+
+    /// Reuse R2B control and already implemented R2C batch-ACK parsing on
+    /// the *original* Play ingress owner. This is safe before admission:
+    /// without any published finished batch, an unsolicited ACK fails
+    /// transactionally and cannot advance the source publication cursor.
+    ///
+    /// # Errors
+    /// Preserves typed R2B/ACK errors and never constructs a second queue.
+    pub(crate) fn process_one_play_inbound(
+        &mut self,
+        session: &mut R2bPlaySession,
+        now_ms: u64,
+    ) -> Result<R2cPlayInboundStep, R2cPlayInboundError> {
+        process_one_r2c_play_inbound(session, &mut self.batch, now_ms)
     }
 }
 
@@ -208,6 +231,64 @@ impl ColdImportedView {
             66,
         )
     }
+}
+
+/// Only an independently source-admitted biome-ID, heightmap, outer-wire
+/// and Play lifecycle bundle may authorize queueing chunk packets.
+///
+/// In normal builds this enum is *uninhabited*. There is no construction
+/// path, runtime flag, CLI switch or environment-variable override. Tests
+/// can instantiate their own witness to exercise the already implemented
+/// driver and source-receipt projection, but cannot promote that candidate
+/// evidence to a production source admission.
+#[cfg(not(test))]
+pub(crate) enum R2cSourceAdmission {}
+
+/// Test-only capability for checking publication composition; never
+/// compiled as a constructible value into the product server.
+#[cfg(test)]
+pub(crate) struct R2cSourceAdmission;
+
+/// Compose the already implemented receipt-bound chunk encoder with the
+/// ACK/quota-aware publisher on the **same** continuing R2B Play driver.
+///
+/// This function does not construct a new world, packet list, buffer owner,
+/// network dispatcher or registry. It consumes an opaque source-admission
+/// witness, which has no values in production until the independent
+/// Minecraft 26.2 VAR/SEM and complete client registry law are admitted.
+/// Each chunk resolves a fresh source receipt before its bytes can be queued.
+///
+/// # Errors
+/// Returns the existing transactional driver's source/egress error. A
+/// rejected chunk does not advance the batch cursor or append a frame.
+#[cfg_attr(
+    not(test),
+    allow(
+        dead_code,
+        reason = "uninhabited R2C source admission forbids live chunk publication"
+    )
+)]
+pub(crate) fn service_one_source_admitted_chunk(
+    session: &mut R2bPlaySession,
+    dimension: &ColdDimension,
+    receipts: &[SourceChunkPublicationReceipt],
+    batch: &mut R2cChunkBatchState,
+    facts: &CandidateHeightmapFacts<'_>,
+    scratch: &mut Vec<u8>,
+    _admission: &R2cSourceAdmission,
+) -> Result<ChunkBatchStep, DriverError<ReceiptBoundBodyCandidateError>> {
+    session.service_r2c_chunk_batch_one(batch, scratch, |index, output| {
+        append_chunk_with_light_packet_id(output);
+        append_receipt_bound_empty_chunk_body_candidate(
+            dimension,
+            &receipts[index],
+            facts,
+            66,
+            65_535,
+            output,
+        )
+        .map(|_| ())
+    })
 }
 
 /// Load the first finite world view into one retained semantic dimension.

@@ -479,7 +479,10 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
         // source-unadmitted *consistency check* only, never numeric-ID
         // authority for chunk publication.
         let count =
-            with_candidate_biomes_from_context(&image.configuration, |registry| registry.len())
+            with_candidate_biomes_from_context(
+                &image.configuration,
+                helve_world_import::OrderedBiomeRegistry::len,
+            )
                 .map_err(|error| R2bPlaytestError::WorldPlan {
                     reason: format!("selected Configuration biome names rejected: {error:?}"),
                 })?;

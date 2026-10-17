@@ -6,12 +6,14 @@
 
 use helve_connection_core::FrameView;
 
-/// Packet identities from source-order `GameProtocols` registrations.
+/// 26.2 Play packet candidates backed by independently inspected exact client
+/// `GameProtocols` registration order. Complete source/VAR/SEM admission
+/// is separate from these numeric identities.
 pub const CLIENTBOUND_CHUNK_WITH_LIGHT: u8 = 45;
 pub const CLIENTBOUND_CHUNK_BATCH_START: u8 = 12;
 pub const CLIENTBOUND_CHUNK_BATCH_FINISHED: u8 = 11;
 pub const CLIENTBOUND_SET_CHUNK_CACHE_CENTER: u8 = 94;
-pub const SERVERBOUND_CHUNK_BATCH_RECEIVED: i32 = 12;
+pub const SERVERBOUND_CHUNK_BATCH_RECEIVED: i32 = 11;
 /// Selected remote-client `PlayerChunkSender` upper bound.
 pub const MAX_REMOTE_CHUNKS_PER_BATCH: usize = 64;
 
@@ -120,7 +122,7 @@ mod tests {
         assert_eq!(CLIENTBOUND_CHUNK_BATCH_START, 12);
         assert_eq!(CLIENTBOUND_CHUNK_WITH_LIGHT, 45);
         assert_eq!(CLIENTBOUND_SET_CHUNK_CACHE_CENTER, 94);
-        assert_eq!(SERVERBOUND_CHUNK_BATCH_RECEIVED, 12);
+        assert_eq!(SERVERBOUND_CHUNK_BATCH_RECEIVED, 11);
         assert_eq!(MAX_REMOTE_CHUNKS_PER_BATCH, 64);
     }
 
@@ -161,19 +163,19 @@ mod tests {
     fn serverbound_ack_is_exact_float32_and_other_packets_are_untouched() {
         let limits = ConnectionLimits::new(128, 256, 256).unwrap();
         let mut input = IngressBuffer::new(limits);
-        input.push(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        input.push(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
         assert_eq!(
             decode_chunk_batch_ack(input.peek_frame().unwrap().unwrap()),
             Ok(Some(9.0))
         );
         let mut unrelated = IngressBuffer::new(limits);
-        unrelated.push(&[2, 13, 0]).unwrap();
+        unrelated.push(&[2, 12, 0]).unwrap();
         assert_eq!(
             decode_chunk_batch_ack(unrelated.peek_frame().unwrap().unwrap()),
             Ok(None)
         );
         let mut malformed = IngressBuffer::new(limits);
-        malformed.push(&[2, 12, 0]).unwrap();
+        malformed.push(&[2, 11, 0]).unwrap();
         assert_eq!(
             decode_chunk_batch_ack(malformed.peek_frame().unwrap().unwrap()),
             Err(ChunkBatchWireError::InvalidAcknowledgementLength { actual: 1 })

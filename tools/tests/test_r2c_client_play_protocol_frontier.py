@@ -84,7 +84,7 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
                          ])
         self.assertTrue(all(m["no_conditional_builder_registration_observed"] for m in methods))
         self.assertFalse(entry["builder_append_to_numeric_id_law_proven"])
-        self.assertTrue(entry["serverbound_ack_builder_index_vs_wire_candidate_discrepancy"])
+        self.assertTrue(entry["serverbound_ack_builder_index_observed_11"])
         self.assertNotIn("synthetic-client-game-protocol",json.dumps(entry))
 
     def test_missing_duplicate_and_oversized_clients_fail_closed(self)->None:

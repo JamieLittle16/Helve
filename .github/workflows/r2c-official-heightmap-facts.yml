@@ -78,6 +78,22 @@ jobs:
           for key in ("independent_semantic_source_review","source_var_sem_admitted",
                       "production_admitted"):
               assert audit[key] is False
+          # Frozen from the exact pinned official 26.2 server runtime's
+          # complete 32366-state ID-indexed table. CI recomputes these
+          # independently and fails if the official fact census changes.
+          assert audit["reproduced_dense_state_fact_sha256"] == (
+              "6dc4edc0f6178490af9d79463eca0373b8b359e351d173ebc51cf6166d74c3eb"
+          )
+          assert audit["four_bit_histogram"] == [
+              3, 3924, 0, 16493, 0, 623, 0, 11015,
+              0, 0, 0, 154, 0, 0, 0, 154,
+          ]
+          assert audit["client_heightmap_state_predicate_counts"] == {
+              "fluid_non_empty":11792, "leaves":308,
+              "motion_blocking":28439,
+              "motion_blocking_no_leaves":28131,
+              "world_surface":32363,
+          }
           print("OFFICIAL HEIGHTMAP REPRODUCED:",
                 audit["reproduced_dense_state_fact_sha256"])
           print("Counts:",audit["client_heightmap_state_predicate_counts"])

@@ -492,6 +492,8 @@ where
     )
 )]
 pub(crate) enum ReceiptBoundBodyCandidateError {
+    /// The publication cursor outlived its immutable source-receipt selection.
+    MissingReceipt { index: usize, available: usize },
     /// Original dimension/position/incarnation, revision, or empty-list evidence failed.
     Receipt(SourceChunkReceiptError),
     /// Current source heightmaps/light cannot form a coherent immutable borrow.

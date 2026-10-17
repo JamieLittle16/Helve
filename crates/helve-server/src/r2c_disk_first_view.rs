@@ -789,7 +789,7 @@ mod tests {
     )]
     fn source_chunks_from_two_disk_regions_feed_one_nearest_first_batch() {
         use helve_connection_core::{ConnectionLimits, IngressBuffer};
-        use helve_connection_driver::ConnectionDriver;
+        use helve_connection_driver::{ConnectionDriver, DriverError};
         use helve_session_core::LivenessState;
         use helve_target_26_2::r2b::TeleportTransaction;
         use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
@@ -803,6 +803,7 @@ mod tests {
         use crate::r2c_chunk_batch::{ChunkBatchInboundStep, ChunkBatchStep};
         use crate::r2c_cold_demo_import::{R2cSourceAdmission, service_one_source_admitted_chunk};
         use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
+        use crate::r2c_section_candidate::ReceiptBoundBodyCandidateError;
 
         let world = WorldFixture::new();
         // At the origin the selected fixed view straddles signed
@@ -957,6 +958,32 @@ mod tests {
             Ok(ChunkBatchStep::Started { count: 2 })
         ));
         for index in 0..2 {
+            if index == 1 {
+                // A truncated receipt selection must reject without panic,
+                // appending bytes, or advancing the source publication cursor.
+                let queued_before = session.pending_play_egress().to_vec();
+                let cursor_before = state.next_chunk_index();
+                assert!(matches!(
+                    service_one_source_admitted_chunk(
+                        &mut session,
+                        &dimension,
+                        &receipts[..1],
+                        &mut state,
+                        &facts,
+                        &mut scratch,
+                        &admission,
+                    ),
+                    Err(DriverError::Handler(
+                        ReceiptBoundBodyCandidateError::MissingReceipt {
+                            index: 1,
+                            available: 1
+                        }
+                    ))
+                ));
+                assert_eq!(session.pending_play_egress(), queued_before);
+                assert_eq!(state.next_chunk_index(), cursor_before);
+                assert!(scratch.is_empty());
+            }
             assert!(matches!(
                 service_one_source_admitted_chunk(
                 &mut session,

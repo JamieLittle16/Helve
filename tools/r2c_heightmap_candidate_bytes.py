@@ -17,6 +17,10 @@ import tomllib
 
 import official_r2c_heightmap_facts as official
 
+# Frozen by two independent, pinned 26.2 runtime-oracle executions. This
+# constant is a CANDIDATE identity check, not VAR/SEM source admission.
+EXPECTED_DENSE_SHA256 = "6dc4edc0f6178490af9d79463eca0373b8b359e351d173ebc51cf6166d74c3eb"
+
 EXPECTED_TARGET = {"minecraft": "26.2", "protocol": 776, "data_version": 4903}
 EXPECTED_BITS = {
     "non_air": 0,
@@ -69,6 +73,19 @@ def validate_candidate(document: dict, lock: dict) -> bytes:
             raise ValueError(f"motion/air inconsistency at official ID {index}")
     return bytes(records)
 
+def require_frozen_official_bytes(flags: bytes) -> None:
+    """Refuse to materialize even a COLD candidate whose official ID facts drift.
+
+    Shape, source ZIP identity and per-state sanity checks remain in
+    validate_candidate; this independent content commitment prevents a
+    different but superficially plausible motion/leaves table from entering
+    receipt-backed projections. It does not grant source/SEM admission.
+    """
+    digest = hashlib.sha256(flags).hexdigest()
+    if digest != EXPECTED_DENSE_SHA256:
+        raise ValueError("official 26.2 heightmap candidate dense digest mismatch")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True, type=Path)
@@ -80,8 +97,16 @@ def main() -> int:
             lock = tomllib.load(stream)
         document = json.loads(args.input.read_text(encoding="utf-8"))
         flags = validate_candidate(document, lock)
+        require_frozen_official_bytes(flags)
+        # Source-free ephemeral output only. Do not clobber a previous probe,
+        # follow a symlink or deposit an unadmitted table in the repository.
+        if args.output.exists() or args.output.is_symlink():
+            raise ValueError("heightmap candidate output must be fresh")
+        if args.output.resolve(strict=False).is_relative_to(Path(__file__).resolve().parents[1]):
+            raise ValueError("heightmap candidate must be written outside the repository")
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_bytes(flags)
+        with args.output.open("xb") as stream:
+            stream.write(flags)
         print(
             f"R2C official *candidate* only: {len(flags)} bytes, "
             f"sha256={hashlib.sha256(flags).hexdigest()}; "

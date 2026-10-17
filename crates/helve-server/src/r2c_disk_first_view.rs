@@ -1153,6 +1153,171 @@ mod tests {
     }
 
     #[test]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "one finite end-to-end fixture checks nine real Anvil receipts and their complete test-gated packet batch"
+    )]
+    fn nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch() {
+        use helve_connection_core::{ConnectionLimits, IngressBuffer};
+        use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
+        use helve_target_26_2::r2c_play_wire::{
+            CLIENTBOUND_CHUNK_BATCH_FINISHED, CLIENTBOUND_CHUNK_BATCH_START,
+            CLIENTBOUND_CHUNK_WITH_LIGHT,
+        };
+
+        use crate::r2c_cold_demo_import::{
+            ColdImportedView, R2cSourceAdmission, SourceAdmittedPlayPublisher,
+        };
+        use crate::r2c_play_inbound::R2cPlayInboundStep;
+
+        let profile = test_overworld_lattice();
+        let mut session = retained_session_with_teleport(0.25, 8.0, 0.25);
+        let (center, positions) =
+            super::plan_pending_teleport_first_view(&session, profile, 10, 9).unwrap();
+        let expected_positions = [
+            ChunkPos { x: 0, z: 0 },
+            ChunkPos { x: -1, z: 0 },
+            ChunkPos { x: 0, z: -1 },
+            ChunkPos { x: 0, z: 1 },
+            ChunkPos { x: 1, z: 0 },
+            ChunkPos { x: -1, z: -1 },
+            ChunkPos { x: -1, z: 1 },
+            ChunkPos { x: 1, z: -1 },
+            ChunkPos { x: 1, z: 1 },
+        ];
+        assert_eq!(center, expected_positions[0]);
+        assert_eq!(positions, expected_positions);
+
+        let world = WorldFixture::new();
+        world.write_chunks(&positions);
+        let mut dimension: SemanticDimensionInstance<
+            BlockStateId,
+            DirectBlockSection<BlockStateId>,
+            u16,
+            DirectBiomeSection<u16>,
+        > = SemanticDimensionInstance::new(DimensionId(2), profile);
+        let resolver = Target262BlockStateResolver;
+        let mut block_builder = BlockBuilder;
+        let mut block_scratch = BlockSectionDecodeScratch::new();
+        let mut decompressor = UncompressedChunkPayloadDecoder;
+        let mut importer = StoredBlockImporter::new(
+            ChunkPayloadLimits::new(32 * SECTOR, 32 * SECTOR),
+            NbtLimits::new(512, 4096, 4096, 32).unwrap(),
+            &mut decompressor,
+            &resolver,
+            &mut block_builder,
+            &mut block_scratch,
+        );
+        let registry = OrderedBiomeRegistry::new(4903, &["minecraft:plains"]).unwrap();
+        let mut biome_builder = BiomeBuilder;
+        let mut biome_scratch = BiomeDecodeScratch::new();
+        let mut biome_decoder =
+            ExactBiomeDecoder::new(&registry, &mut biome_builder, &mut biome_scratch);
+        let mut receipts = Vec::new();
+        let (imported_center, batch) = super::import_pending_teleport_disk_first_view(
+            &session,
+            super::PendingTeleportDiskFirstViewRequest {
+                world: &world.root,
+                profile,
+                view_distance: 10,
+                max_chunks: 9,
+                limits: PregeneratedRegionLimits {
+                    region: RegionLimits::new(8 * SECTOR, SECTOR),
+                    max_external_bytes: 8 * SECTOR,
+                },
+            },
+            &mut dimension,
+            &mut importer,
+            &mut biome_decoder,
+            &mut receipts,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        )
+        .expect("nine source chunks from four real Anvil region files");
+        assert_eq!(imported_center, center);
+        assert_eq!(dimension.resident_chunk_count(), 9);
+        assert_eq!(receipts.len(), 9);
+        assert_eq!(batch.next_chunk_index(), 0);
+        assert_eq!(session.queued_egress(), 0);
+        for (receipt, position) in receipts.iter().zip(expected_positions) {
+            assert_eq!(receipt.installed().handle.position, position);
+            assert!(receipt.resolve_explicitly_empty(&dimension).is_ok());
+        }
+
+        // Hermetic CI proves source import and receipt order. Only the
+        // pinned Java 25 workflow supplies actual 26.2 heightmap facts.
+        let Some(path) = std::env::var_os("HELVE_R2C_HEIGHTMAP_CANDIDATE") else {
+            return;
+        };
+        let oracle = fs::read(path).expect("official source-locked heightmap table");
+        let mut view = ColdImportedView::from_test_source(dimension, receipts, batch);
+        let audit = view.audit_candidate_bodies(&oracle).expect("nine bounded source bodies");
+        assert_eq!(audit.chunks, 9);
+        assert!(audit.maximum_body_bytes > 8);
+        assert!(audit.total_body_bytes >= audit.maximum_body_bytes * 9);
+
+        // The sole positive admission witness exists only in Rust tests.
+        // This is not a stock-client run or a production gate promotion.
+        let admission = R2cSourceAdmission;
+        let original_read_scratch = session.read_scratch.as_ptr();
+        let mut sender =
+            SourceAdmittedPlayPublisher::new(&mut session, &oracle, 0, &admission).unwrap();
+        assert_eq!(sender.service(&mut session, &mut view, 0).unwrap(), 12);
+        assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
+        let limits = ConnectionLimits::new(65_535, 524_288, 524_288).unwrap();
+        let mut wire = IngressBuffer::new(limits);
+        wire.push(session.pending_play_egress()).unwrap();
+
+        let center_frame = wire.peek_frame().unwrap().unwrap();
+        assert_eq!(center_frame.packet_id(), 94);
+        assert_eq!(center_frame.payload(), [0, 0]);
+        let consumed = center_frame.stream_bytes();
+        wire.consume(consumed).unwrap();
+
+        let start = wire.peek_frame().unwrap().unwrap();
+        assert_eq!(start.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_START));
+        let consumed = start.stream_bytes();
+        wire.consume(consumed).unwrap();
+
+        // All nine real Anvil chunks contain one solid stone section at Y=0.
+        // Independently build the three five-bit per-column wire heightmaps.
+        let mut words = [0_u64; 22];
+        for column in 0..256_usize {
+            words[column / 12] |= 16_u64 << ((column % 12) * 5);
+        }
+        let mut maps = Vec::new();
+        append_heightmap_map_candidate(&mut maps, 16, [&words; 3]).unwrap();
+        for position in expected_positions {
+            let frame = wire.peek_frame().unwrap().unwrap();
+            assert_eq!(frame.packet_id(), i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
+            assert_eq!(&frame.payload()[..4], &position.x.to_be_bytes());
+            assert_eq!(&frame.payload()[4..8], &position.z.to_be_bytes());
+            assert_eq!(&frame.payload()[8..8 + maps.len()], maps);
+            let consumed = frame.stream_bytes();
+            wire.consume(consumed).unwrap();
+        }
+        let finish = wire.peek_frame().unwrap().unwrap();
+        assert_eq!(
+            finish.packet_id(),
+            i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+        );
+        assert_eq!(finish.payload(), [9]);
+        let consumed = finish.stream_bytes();
+        wire.consume(consumed).unwrap();
+        assert_eq!(wire.buffered_len(), 0);
+
+        // ACK is parsed by the same R2B driver; no second ingress buffer,
+        // dispatcher or chunk scheduler is created by the product path.
+        session.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+        assert_eq!(
+            view.process_one_play_inbound(&mut session, 0).unwrap(),
+            R2cPlayInboundStep::ChunkBatchAcknowledged {
+                desired_per_tick: 9.0
+            }
+        );
+        assert_eq!(sender.service(&mut session, &mut view, 50).unwrap(), 0);
+    }
+
+    #[test]
     fn bounded_nearest_first_plan_respects_vanilla_round_corners() {
         let center = ChunkPos { x: 0, z: 0 };
         let requested = plan_first_view_positions(center, 2, 9).unwrap();

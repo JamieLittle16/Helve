@@ -163,13 +163,13 @@ class ParallelSourceFrontierTests(unittest.TestCase):
             ),
             (
                 "R2C biome ID source discovery failed: named delegate owner must "
-                "resolve once: net.minecraft.Util",
-                "net.minecraft.Util",
+                "resolve once: net.minecraft.util.Util",
+                "net.minecraft.util.Util",
             ),
             (
                 "R2C biome ID source discovery failed: named delegate missing or "
-                "too broad: net.minecraft.Util#sequence",
-                "net.minecraft.Util#sequence",
+                "too broad: net.minecraft.util.Util#sequence",
+                "net.minecraft.util.Util#sequence",
             ),
             (
                 "R2C biome ID source discovery failed: Atlas/source lock mismatch: "

@@ -187,7 +187,7 @@ BIOME_REVIEW_TYPES = frozenset({
     "net.minecraft.resources.NetworkRegistryLoadTask",
     "net.minecraft.resources.RegistryLoadTask",
 })
-NAMED_ORDER_DELEGATE = "net.minecraft.Util#sequence"
+NAMED_ORDER_DELEGATE = "net.minecraft.util.Util#sequence"
 
 
 def safe_source_failure(label: str, stderr: str) -> str:
@@ -208,10 +208,10 @@ def safe_source_failure(label: str, stderr: str) -> str:
                     + "; run the biome source probe directly to distinguish"
                     " absent/ambiguous/over-cap declarations"
                 )
-            if message == "named delegate owner must resolve once: net.minecraft.Util":
+            if message == "named delegate owner must resolve once: net.minecraft.util.Util":
                 return (
                     "pinned Atlas did not resolve the planned exact "
-                    "net.minecraft.Util owner; compare the source ZIP's actual "
+                    "net.minecraft.util.Util owner; compare the source ZIP's actual "
                     "Util.java package and the frozen review plan"
                 )
             if message == "named delegate missing or too broad: " + NAMED_ORDER_DELEGATE:

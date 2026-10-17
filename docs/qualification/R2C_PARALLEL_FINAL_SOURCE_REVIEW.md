@@ -50,7 +50,7 @@ publication. Those are the remaining new semantic reviews.
 ### If the parallel biome inventory fails closed
 
 The wrapper now preserves **only** a bounded, source-free failure category
-(e.g. exact missing/ambiguous Atlas root, `net.minecraft.Util#sequence`
+(e.g. exact missing/ambiguous Atlas root, `net.minecraft.util.Util#sequence`
 lookup, or source/Atlas lock mismatch), not arbitrary child stderr or Mojang
 text. If the category is insufficient, execute the **existing** biome probe
 directly, with the same pinned inputs and a fresh output outside the repo:
@@ -64,14 +64,18 @@ python3 tools/r2c_biome_id_source_frontier.py \
 ```
 
 This emits its specific reason on stderr. A missing method cannot be
-substituted with a guessed owner or silently omitted. In particular, the
-server-source review plan uses `net.minecraft.Util` while the separately
-pinned stock-client bytecode probes mention `net.minecraft.util.Util`;
-**check the exact qualified type in the pinned ZIP and Atlas before changing
-the plan**, since these two artifact identities are not interchangeable.
-After correcting only a demonstrated declaration identity, rerun the
-existing tests and whole parallel runner. Both source inventories are
-atomic review inputs, **never production admission**.
+substituted with a guessed owner or silently omitted. The 17 October
+failure `named delegate owner must resolve once: net.minecraft.Util`
+exposed a stale package in the review plan; the separately pinned official
+26.2 client probes resolve `net.minecraft.util.Util`. The corrected plan
+and source inventory now require that **exact** owner and bounded
+`sequence` overloads in the local pinned Atlas. Missing, duplicated or
+over-cap declarations still fail closed, and the same official source ZIP
+must be fingerprint-verified. This is only the source-discovery fix;
+**ordered client assignment and production admission remain unproven**.
+Rerun the whole parallel runner to verify the local pinned source matches
+the corrected owner. Both inventories remain atomic review inputs,
+**never production admission**.
 
 ### Independent obligations after discovery
 

@@ -57,7 +57,7 @@ That suggests a direct network-entry-order → numeric-ordinal law
 the receiving client.
 
 The review inventory now includes an **exact-name, maximum 16-overload**
-Atlas lookup for `net.minecraft.Util#sequence` (a method-scoped
+Atlas lookup for `net.minecraft.util.Util#sequence` (a method-scoped
 `targeted_methods` entry in the review plan). This avoids inventorying
 hundreds of unrelated `Util` methods or weakening the existing
 256-method-per-root cap. Its signatures/body fingerprints and hazard leads
@@ -264,10 +264,14 @@ has a `Stream.forEach` entrypoint; `MappedRegistry.register` contains
 The next official-client method-scoped probe fingerprints only the
 `NetworkRegistryLoadTask.lambda$load$N` and
 `net.minecraft.util.Util.sequence` / `lambda$sequence$N` methods.
-The client JAR's package name is `net.minecraft.util.Util`; the existing
-separate server-source Atlas plan refers to `net.minecraft.Util`.
-That difference must be reconciled against the independently pinned
-source corpus rather than silently treated as one identity.
+The pinned stock-client bytecode names `net.minecraft.util.Util`.
+The previous server-source Atlas plan mistakenly requested
+`net.minecraft.Util`, which fails strict resolution on the pinned local
+Atlas. The narrowed plan now requests `net.minecraft.util.Util#sequence`
+instead, while retaining unique exact-type and 16-overload bounds.
+The local source ZIP and Atlas must still resolve this exact declaration
+before any reviewer can qualify its semantics; matching a class name
+is discovery, not client order/VAR/SEM admission.
 
 **Do not infer completion-order preservation from a function name or call
 site.** Proving that each decoded entry retains its input list index,

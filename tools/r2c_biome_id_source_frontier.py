@@ -55,7 +55,7 @@ def load_plan(path: Path) -> tuple[tuple[str, tuple[str, ...]], ...]:
     # Util contains many unrelated helpers; only inspect the exact ordered
     # future-sequencing delegate rather than broadening the 256-method cap.
     if data["targeted_methods"] != [{
-        "type": "net.minecraft.Util",
+        "type": "net.minecraft.util.Util",
         "method": "sequence",
         "max_overloads": 16,
         "review_focus": (
@@ -152,7 +152,7 @@ def exact_named_declarations(
     """Find a bounded concrete delegate without scanning every Util method."""
     if not (1 <= overload_cap <= 16):
         raise BiomeIdSourceError("named delegate overload cap exceeds review bounds")
-    if qualified_name != "net.minecraft.Util" or method_name != "sequence":
+    if qualified_name != "net.minecraft.util.Util" or method_name != "sequence":
         raise BiomeIdSourceError("unplanned named delegate")
     try:
         type_rows = conn.execute(projection._TYPE_SELECT, (qualified_name,)).fetchall()
@@ -225,9 +225,9 @@ def inventory(
         "source_review_plan_sha256": plan_sha256,
         "groups": rows,
         "targeted_methods": ([{
-            "type": "net.minecraft.Util",
+            "type": "net.minecraft.util.Util",
             "method": "sequence",
-            "overloads": exact_named_declarations(conn, "net.minecraft.Util", "sequence"),
+            "overloads": exact_named_declarations(conn, "net.minecraft.util.Util", "sequence"),
         }] if include_ordered_sequence else []),
         "source_inspected": False,
         "client_assignment_proven": False,

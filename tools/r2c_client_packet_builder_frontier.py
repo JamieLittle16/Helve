@@ -43,6 +43,7 @@ FOCUS = (
     # Exact real method names discovered on SHA-pinned 26.2 builder classes:
     "buildDetails", "buildPacketCodec", "buildUnbound",
     "addToBuilder", "listPackets", "bind", "codec", "id", "add",
+    "encode", "decode", "builder",
 )
 
 

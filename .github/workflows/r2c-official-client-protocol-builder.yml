@@ -103,11 +103,13 @@ jobs:
               ] == [True]*4
           bundle=root["selected_methods"][2]
           assert [(edge["bytecode_offset"],edge["opcode"])
-                  for edge in bundle["symbolic_edges_candidate"]][-5:] == [
+                  for edge in bundle["symbolic_edges_candidate"]] == [
+                      (1,"invokestatic"),(7,"invokevirtual"),
                       (13,"getfield"),(16,"new"),(25,"invokespecial"),
-                      (28,"invokeinterface"),(41,"putfield"),
+                      (28,"invokeinterface"),(38,"invokestatic"),
+                      (41,"putfield"),
                   ]
-          assert "List.add:" in bundle["symbolic_edges_candidate"][-2]["symbol_candidate"]
+          assert "List.add:" in bundle["symbolic_edges_candidate"][5]["symbol_candidate"]
           for cls in records:
               assert cls["builder_numeric_id_assignment_proven"] is False
               assert len(cls["classfile_sha256"])==64

@@ -26,6 +26,24 @@ def fixture(label: str) -> dict:
         base.update(packet_wire_law_proven=False,
                     block_entity_semantics_proven=False,
                     chunk_publication_order_proven=False)
+        # Reuse the already checked-in independent source-admission report,
+        # not a freshly invented source or a second semantic review.
+        admitted = json.loads(gate.ADMITTED_WORLD_STATE.read_text())
+        classes = list(sorted(gate.REUSABLE_WIRE_ROOTS))
+        groups = [{"type": "unrelated", "declarations": []} for _ in range(2)]
+        for owner in classes:
+            methods = []
+            for row in admitted["required_methods"]:
+                if not row["source"].startswith(owner + "#"):
+                    continue
+                methods.append({
+                    "signature": row["source"].split("#", 1)[1],
+                    "normalized_sha256": row["normalized_sha256"],
+                    "body_sha256": row["body_sha256"],
+                    "declaration_only": False,
+                })
+            groups.append({"type": owner, "declarations": methods})
+        base["groups"] = groups
     return base
 
 
@@ -55,6 +73,12 @@ class ParallelSourceFrontierTests(unittest.TestCase):
             self.assertFalse(manifest["heightmap_per_state_source_semantics_admitted"])
             self.assertFalse(manifest["independent_atlas_gate_passed"])
             self.assertFalse(manifest["live_world_publication_admitted"])
+            self.assertFalse(manifest["outer_packet_semantics_reused_or_admitted"])
+            self.assertEqual(len(manifest["reused_independently_admitted_inner_wire_methods"]), 7)
+            self.assertTrue(all(
+                not entry["outer_chunk_wire_admitted"]
+                for entry in manifest["reused_independently_admitted_inner_wire_methods"]
+            ))
             self.assertTrue((root/"review-packet"/"review-frontier-manifest.json").is_file())
             with patch.object(gate, "sha256", return_value=gate.EXPECTED_SHA):
                 with self.assertRaisesRegex(ValueError,"must not exist"):
@@ -92,6 +116,37 @@ class ParallelSourceFrontierTests(unittest.TestCase):
                 p.write_text(json.dumps(bad))
                 with self.assertRaisesRegex(ValueError,"boundaries drifted"):
                     gate.check_one(label,p)
+
+    def test_only_exact_previously_reviewed_fingerprints_can_be_reused(self) -> None:
+        prior = json.loads(gate.ADMITTED_WORLD_STATE.read_text())
+        valid = fixture("chunk_wire")
+        reused = gate.exact_admitted_world_state_reuse(valid, prior)
+        self.assertEqual(len(reused), 7)
+        self.assertEqual(len({entry["source"] for entry in reused}), 7)
+        self.assertTrue(all(entry["authority"] ==
+                            "PRIOR_INDEPENDENT_WORLD_STATE_VAR_ONLY"
+                            for entry in reused))
+
+        import copy
+        changed = copy.deepcopy(valid)
+        changed["groups"][2]["declarations"][0]["body_sha256"] = "f" * 64
+        with self.assertRaisesRegex(ValueError, "fingerprint drift"):
+            gate.exact_admitted_world_state_reuse(changed, prior)
+
+        lost = copy.deepcopy(valid)
+        lost["groups"][2]["declarations"].pop()
+        with self.assertRaisesRegex(ValueError, "seven exact"):
+            gate.exact_admitted_world_state_reuse(lost, prior)
+
+        forged = copy.deepcopy(prior)
+        forged["admitted"] = False
+        with self.assertRaisesRegex(ValueError, "source gate invalid"):
+            gate.exact_admitted_world_state_reuse(valid, forged)
+
+        forged = copy.deepcopy(prior)
+        forged["source"]["archive_sha256"] = "0" * 64
+        with self.assertRaisesRegex(ValueError, "source gate invalid"):
+            gate.exact_admitted_world_state_reuse(valid, forged)
 
     def test_wrong_source_absent_db_and_subprocess_failure_reject(self) -> None:
         with tempfile.TemporaryDirectory() as temp:

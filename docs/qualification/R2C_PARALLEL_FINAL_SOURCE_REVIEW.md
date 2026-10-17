@@ -33,6 +33,20 @@ review plan, Atlas database, expected method-root groups,
 or source-admission flags rejects the entire result. It never
 copies source text or Java disassembly to Git.
 
+**Do not repeat the admitted inner-wire review.** The runner also intersects
+the fresh chunk-wire Atlas declaration signatures and both normalized/body
+SHA-256 hashes with the **already independently admitted**, promoted
+`r2c-world-state-source-admission-26.2.json` report. Seven exact
+`ClientboundLevelChunkPacketData`/`ClientboundLightUpdatePacketData`
+methods have previously reviewed VAR IDs and limited HEIGHTMAP/LIGHT SEM
+claims. The manifest's
+`reused_independently_admitted_inner_wire_methods` contains their original
+VAR IDs, exact hashes and admitted rule IDs; any missing, drifted or forged
+match fails closed. This is **only a reuse map**: the existing world-state
+gate is not authorization for enclosing packet identities, entry-order law,
+block entities, player pacing/ACK, client biome ID assignment or live chunk
+publication. Those are the remaining new semantic reviews.
+
 ### Independent obligations after discovery
 
 **Biome:** close selected/default known packs and Configuration

@@ -41,3 +41,39 @@ stock client visible-world test. Continue using `ColdImportedView`,
 `SourceAdmittedPlayPublisher`, source receipts, and the **original R2B
 session/driver**. Do not create another biome mapping, heightmap engine, egress
 queue, or unreviewed production switch.
+
+## Exact local official-source review extraction
+
+With the original ZIP and pinned Atlas available on the operator's machine,
+we can now extract the **exact 19 fingerprint-pinned method bodies** for the
+remaining first-pass source inspection. This deliberately reuses the existing
+world-state delegate-review range reader and call inventory; no other Java
+parser or full-file dump is introduced.
+
+First produce the source-free focus file from the previously generated three
+inventories as shown above. Then, from the repository root:
+
+```bash
+python3 tools/r2c_local_final_source_excerpts.py \
+  --focus /tmp/helve-r2c-review-focus-<run>.json \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output "/tmp/helve-r2c-reviewed-source-$(date +%s).json"
+```
+
+The output is a local **source-rich**, owner-private (mode 0600) review
+artifact. Every method is selected by its full Atlas qualified owner and
+signature, checked against both normalized and body SHA-256 and observed
+Atlas hazards, and then extracted by the canonical bounded exact line-range
+reader. Ambiguous/missing/drifted declarations fail closed before any output
+is created. The exporter includes the existing Atlas call inventory for
+delegate leads.
+
+**Do not commit this file or copy the official Java source into a PR.** If
+sharing it for review, treat it as temporary private review input. A valid
+file is still `source_inspected=false`, `semantics_admitted=false`;
+neither the client-only Configuration handler nor remaining heightmap
+predicate proof comes from these 19 server-source method slices. Reviewers
+must inspect reached delegates and error paths before authoring source-free
+VAR/SEM and passing the independent local source gate.

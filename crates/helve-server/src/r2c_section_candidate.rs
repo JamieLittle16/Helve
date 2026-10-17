@@ -66,13 +66,6 @@ pub(crate) enum SectionCandidateError {
 ///
 /// Only if one of the already-validated 4096 local coordinates or the generated
 /// 26.2 global block-state ID bound is internally inconsistent.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "R2C final packet source-admission and biome ID qualification still block live publication"
-    )
-)]
 pub(crate) fn append_coherent_section_candidate<BlockStorage, BiomeStorage>(
     image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
     section_y: i32,
@@ -146,13 +139,6 @@ where
 ///
 /// Only if an already validated chunk lattice violates its signed section-Y
 /// representability invariant.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "R2C outer chunk wire contract and registry IDs remain unadmitted"
-    )
-)]
 pub(crate) fn append_coherent_section_column_candidate<BlockStorage, BiomeStorage>(
     image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
     biome_registry_count: usize,
@@ -206,13 +192,6 @@ pub(crate) enum ChunkDataCandidateError {
 ///
 /// Heightmap, source-section, caller-size-cap or empty-section errors all
 /// reject the entire candidate and restore the original caller buffer.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "R2C chunk packet, entity and biome ID publication remain unadmitted"
-    )
-)]
 pub(crate) fn append_coherent_chunk_data_fields_candidate<BlockStorage, BiomeStorage>(
     image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
     biome_registry_count: usize,
@@ -277,13 +256,6 @@ pub(crate) enum LightPayloadCandidateError {
 ///
 /// Rejects invalid mask/lattice shape, stale or missing source layers, and
 /// any disagreement between data-mask population and visited source layers.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "R2C chunk-with-light publication is not yet fully source-admitted"
-    )
-)]
 pub(crate) fn append_coherent_light_payload_candidate<BlockStorage, BiomeStorage>(
     image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
     output: &mut Vec<u8>,
@@ -455,13 +427,6 @@ pub(crate) enum EmptyChunkBodyCandidateError {
 /// Rejects target/version identity, missing/nonempty saved entity evidence,
 /// section/biome encoding or light materialization. All preserve the original
 /// destination prefix.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "R2C outer packet, biome numeric-ID and publication source admission remain pending"
-    )
-)]
 pub(crate) fn append_explicit_empty_chunk_body_candidate<BlockStorage, BiomeStorage>(
     image: &InitialChunkReference<'_, BlockStateId, BlockStorage, u16, BiomeStorage>,
     stored: &StoredChunkHeader,
@@ -555,13 +520,6 @@ pub(crate) enum ReceiptBoundBodyCandidateError {
 ///
 /// Receipt, coherent reference, or candidate body failure; no bytes remain
 /// appended on any rejection.
-#[cfg_attr(
-    not(test),
-    expect(
-        dead_code,
-        reason = "R2C source-bound packet candidates remain separate from live Play routing"
-    )
-)]
 pub(crate) fn append_receipt_bound_empty_chunk_body_candidate<BlockStorage, BiomeStorage, F>(
     dimension: &SemanticDimensionInstance<BlockStateId, BlockStorage, u16, BiomeStorage>,
     receipt: &SourceChunkPublicationReceipt,

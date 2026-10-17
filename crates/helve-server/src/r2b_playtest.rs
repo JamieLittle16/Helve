@@ -248,9 +248,16 @@ pub struct R2cColdWorldPlan {
 
 #[derive(Debug)]
 pub enum R2cColdWorldPlanError {
-    Io { operation: &'static str, kind: io::ErrorKind },
-    Symlink { component: &'static str },
-    NotDirectory { component: &'static str },
+    Io {
+        operation: &'static str,
+        kind: io::ErrorKind,
+    },
+    Symlink {
+        component: &'static str,
+    },
+    NotDirectory {
+        component: &'static str,
+    },
 }
 
 impl R2cColdWorldPlan {
@@ -261,16 +268,12 @@ impl R2cColdWorldPlan {
     /// Fails closed on missing/invalid/symlink world and region directories.
     pub fn new(world: PathBuf) -> Result<Self, R2cColdWorldPlanError> {
         let region = world.join("region");
-        for (component, path) in [
-            ("world", world.as_path()),
-            ("region", region.as_path()),
-        ] {
-            let metadata = fs::symlink_metadata(path).map_err(|error| {
-                R2cColdWorldPlanError::Io {
+        for (component, path) in [("world", world.as_path()), ("region", region.as_path())] {
+            let metadata =
+                fs::symlink_metadata(path).map_err(|error| R2cColdWorldPlanError::Io {
                     operation: component,
                     kind: error.kind(),
-                }
-            })?;
+                })?;
             if metadata.file_type().is_symlink() {
                 return Err(R2cColdWorldPlanError::Symlink { component });
             }
@@ -488,15 +491,16 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
         // to any external saved world is NOT qualified by this preview.
         let profile = DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true)
             .expect("fixed R2B playtest overworld profile is valid");
-        let (center, positions) =
-            plan_pending_teleport_first_view(&session, profile, 10, 9)
-                .map_err(|error| R2bPlaytestError::WorldPlan {
-                    reason: format!("{error:?}"),
-                })?;
+        let (center, positions) = plan_pending_teleport_first_view(&session, profile, 10, 9)
+            .map_err(|error| R2bPlaytestError::WorldPlan {
+                reason: format!("{error:?}"),
+            })?;
         eprintln!(
             "R2C COLD world plan only | root={} | teleport_center=({}, {}) | selected_first_view={} | world_read=false | chunk_sent=false | source_admitted=false",
             plan.world().display(),
-            center.x, center.z, positions.len()
+            center.x,
+            center.z,
+            positions.len()
         );
     }
 
@@ -858,13 +862,21 @@ mod r2c_cold_plan_tests {
         let dir = ScratchWorld::new();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.clone()),
-            Err(R2cColdWorldPlanError::Io { operation: "region", .. })
+            Err(R2cColdWorldPlanError::Io {
+                operation: "region",
+                ..
+            })
         ));
         fs::create_dir(dir.0.join("region")).unwrap();
         let selection = R2cColdWorldPlan::new(dir.0.clone()).unwrap();
         assert_eq!(selection.world(), dir.0.as_path());
         // No saved world or region files are read or admitted by this preflight.
-        assert_eq!(fs::read_dir(selection.world().join("region")).unwrap().count(), 0);
+        assert_eq!(
+            fs::read_dir(selection.world().join("region"))
+                .unwrap()
+                .count(),
+            0
+        );
     }
 
     #[test]
@@ -873,12 +885,17 @@ mod r2c_cold_plan_tests {
         fs::write(dir.0.join("region"), b"not a region directory").unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.clone()),
-            Err(R2cColdWorldPlanError::NotDirectory { component: "region" })
+            Err(R2cColdWorldPlanError::NotDirectory {
+                component: "region"
+            })
         ));
         fs::remove_file(dir.0.join("region")).unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.join("missing")),
-            Err(R2cColdWorldPlanError::Io { operation: "world", .. })
+            Err(R2cColdWorldPlanError::Io {
+                operation: "world",
+                ..
+            })
         ));
     }
 
@@ -891,12 +908,16 @@ mod r2c_cold_plan_tests {
         symlink(dir.0.join("actual-region"), dir.0.join("region")).unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.clone()),
-            Err(R2cColdWorldPlanError::Symlink { component: "region" })
+            Err(R2cColdWorldPlanError::Symlink {
+                component: "region"
+            })
         ));
         symlink(&dir.0, dir.0.join("world-link")).unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.join("world-link")),
-            Err(R2cColdWorldPlanError::Symlink { component: "world" })
+            Err(R2cColdWorldPlanError::Symlink {
+                component: "world"
+            })
         ));
     }
 }

@@ -130,6 +130,29 @@ air/leaves combinations. After validation, each fact access is just a
 dense indexed read, with no extra registry map, per-world copy, or
 HOT-path bookkeeping.
 
+### COLD loader rejects non-official-census tables
+
+The server's opt-in `--r2c-heightmap-candidate` loader additionally
+checks the **same pinned 16-bin official runtime histogram** shown above
+before opening a listener. The check is a fixed 16-counter stack scan
+over the caller-owned 32,366-byte table, reusing the existing table
+validation loop; it adds no per-chunk, per-block or HOT-path cost.
+The still-uninhabited source-gated publication constructor requires the
+same official census. Generic synthetic unit-test adapters deliberately
+retain separate consistency-only validation and cannot be passed as
+official candidate files. The dedicated official-runtime test checks
+that an actual runtime table passes and that an otherwise coherent
+motion/leaves mutation fails the census preflight.
+
+**Scope:** This catches changed four-bit *counts* at the Rust consumption
+boundary; an adversarial permutation preserving those counts is not
+detected. The **exact 32,366-byte SHA-256** remains independently enforced
+by `tools/r2c_heightmap_candidate_bytes.py`, and the complete client
+registry epoch, source/SEM equivalence, Play wire and stock-client
+demonstration gates remain closed. This is not a substitute for a
+byte-for-byte authenticated admission record or permission to populate
+`R2cSourceAdmission`.
+
 The dedicated official-runtime GitHub workflow now additionally
 runs an opt-in Rust integration test using the **actual** downloaded
 official probe table. This selects motion-blocking leaf and non-leaf

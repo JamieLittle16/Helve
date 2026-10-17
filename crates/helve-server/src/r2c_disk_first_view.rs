@@ -1077,7 +1077,7 @@ mod tests {
         let mut publication =
             SourceAdmittedPlayPublisher::new(&mut session, &oracle, 100, &admission)
                 .expect("test-only receipt publisher reuses the original driver");
-        assert_eq!(publication.next_wake_deadline_ms(800), 100);
+        assert_eq!(publication.next_wake_deadline_ms(&retained, 800), 100);
         assert_eq!(
             publication
                 .service(&mut session, &mut retained, 99)
@@ -1098,7 +1098,7 @@ mod tests {
                 .unwrap(),
             0
         );
-        assert_eq!(publication.next_wake_deadline_ms(800), 150);
+        assert_eq!(publication.next_wake_deadline_ms(&retained, 800), 800);
         // The two independently assembled source-bound publications agree
         // byte for byte, including cache centre, start, heightmaps, sections,
         // light, finish and their framing, on the same continuing driver.

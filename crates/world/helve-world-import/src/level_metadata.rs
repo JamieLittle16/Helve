@@ -42,7 +42,7 @@ impl From<NbtError> for LevelMetadataError {
 /// Parses one borrowed NBT payload with the same depth/length limits as the
 /// existing importer; unrelated fields are skipped, not materialized. The
 /// whole root must be well formed, with exactly one Data compound and one
-/// DataVersion, even when a duplicate comes after the expected value.
+/// `DataVersion`, even when a duplicate comes after the expected value.
 ///
 /// This is a *necessary* COLD save-identity check, not a source certificate
 /// for the world profile, packs, client biome IDs or packet publication.

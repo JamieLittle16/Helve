@@ -48,9 +48,8 @@ EXPECTED_ORDINALS={
     "CLIENTBOUND_CHUNK_BATCH_START":12,
     "CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT":45,
     "CLIENTBOUND_SET_CHUNK_CACHE_CENTER":94,
-    # Source-observed addPacket builder index. Helve's candidate *wire ID*
-    # is 12; whether the final protocol table applies a bundle/reserved
-    # offset is NOT admitted. This mismatch must be resolved independently.
+    # Stock-client builder position; keep numeric-ID source admission
+    # independent from the builder argument ordering.
     "SERVERBOUND_CHUNK_BATCH_RECEIVED":11,
 }
 
@@ -203,7 +202,7 @@ def inspect(disassembly: str) -> dict:
     return {
         "complete_builder_argument_order_for_five_types_candidate":joined,
         "builder_append_to_numeric_id_law_proven":False,
-        "serverbound_ack_builder_index_vs_wire_candidate_discrepancy":True,
+        "serverbound_ack_builder_index_observed_11":True,
         "owner": OWNER,
         "selected_registration_methods": methods,
         "target_field_reference_count":len(matched),

@@ -47,6 +47,32 @@ gate is not authorization for enclosing packet identities, entry-order law,
 block entities, player pacing/ACK, client biome ID assignment or live chunk
 publication. Those are the remaining new semantic reviews.
 
+### If the parallel biome inventory fails closed
+
+The wrapper now preserves **only** a bounded, source-free failure category
+(e.g. exact missing/ambiguous Atlas root, `net.minecraft.Util#sequence`
+lookup, or source/Atlas lock mismatch), not arbitrary child stderr or Mojang
+text. If the category is insufficient, execute the **existing** biome probe
+directly, with the same pinned inputs and a fresh output outside the repo:
+
+```bash
+python3 tools/r2c_biome_id_source_frontier.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output "/tmp/helve-r2c-biome-inventory-$(date +%s).json"
+```
+
+This emits its specific reason on stderr. A missing method cannot be
+substituted with a guessed owner or silently omitted. In particular, the
+server-source review plan uses `net.minecraft.Util` while the separately
+pinned stock-client bytecode probes mention `net.minecraft.util.Util`;
+**check the exact qualified type in the pinned ZIP and Atlas before changing
+the plan**, since these two artifact identities are not interchangeable.
+After correcting only a demonstrated declaration identity, rerun the
+existing tests and whole parallel runner. Both source inventories are
+atomic review inputs, **never production admission**.
+
 ### Independent obligations after discovery
 
 **Biome:** close selected/default known packs and Configuration

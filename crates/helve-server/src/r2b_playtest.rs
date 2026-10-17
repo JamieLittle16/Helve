@@ -415,7 +415,9 @@ impl R2cColdWorldPlan {
     /// development profile, rather than per connection or chunk.
     ///
     /// # Errors
-    /// Rejects missing, symlinked, wrong-sized or incoherent fact bytes.
+    /// Rejects missing, symlinked, wrong-sized, independently inconsistent
+    /// or non-official-census candidate bytes. The frozen 16-bin census is
+    /// only a COLD corruption check, not client/source/SEM admission.
     pub fn with_candidate_heightmap_file(
         mut self,
         candidate_path: &Path,
@@ -468,7 +470,7 @@ impl R2cColdWorldPlan {
                 expected: BLOCK_STATE_COUNT,
             });
         }
-        crate::r2c_heightmap_facts::CandidateHeightmapFacts::from_oracle_bytes(&bytes)
+        crate::r2c_heightmap_facts::CandidateHeightmapFacts::from_official_oracle_bytes(&bytes)
             .map_err(|error| R2cColdWorldPlanError::HeightmapCandidate(format!("{error:?}")))?;
         self.heightmap_candidate = Some(bytes);
         Ok(self)
@@ -1253,12 +1255,15 @@ mod r2c_cold_plan_tests {
             .collect();
         assert_eq!(valid.len(), BLOCK_STATE_COUNT);
         fs::write(&facts_path, &valid).unwrap();
-        let plan = R2cColdWorldPlan::new(world.0.clone())
-            .unwrap()
-            .with_candidate_heightmap_file(&facts_path)
-            .expect("candidate with existing independently checked non-air/fluid bits");
-        assert_eq!(plan.candidate_heightmap_bytes(), Some(valid.as_slice()));
-        assert_eq!(plan.world(), world.0.as_path());
+        // This table is coherent with independent non-air/fluid bits, but
+        // deliberately lacks the actual official motion/leaves census.
+        // The product's COLD candidate file path must reject it.
+        assert!(matches!(
+            R2cColdWorldPlan::new(world.0.clone())
+                .unwrap()
+                .with_candidate_heightmap_file(&facts_path),
+            Err(R2cColdWorldPlanError::HeightmapCandidate(_))
+        ));
 
         fs::write(&facts_path, &valid[..valid.len() - 1]).unwrap();
         assert!(matches!(

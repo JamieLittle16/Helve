@@ -125,7 +125,7 @@ class PinnedPredicateReviewTests(unittest.TestCase):
                         source_archive=source, atlas=root / "atlas.sqlite",
                         lock=root / "lock.toml", output=Path(__file__).parent / "source.json",
                     )
-                with self.assertRaises(review.HeightmapReviewError):
+                with self.assertRaises(review.existing.ClosureError):
                     # File present must be rejected before source reads.
                     review.run(
                         source_archive=source, atlas=root / "atlas.sqlite",

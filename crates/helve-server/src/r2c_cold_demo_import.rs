@@ -31,7 +31,9 @@ use crate::r2c_disk_first_view::{
     PendingTeleportDiskFirstViewRequest, import_pending_teleport_disk_first_view,
 };
 use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
-use crate::r2c_play_inbound::{R2cPlayInboundError, R2cPlayInboundStep, process_one_r2c_play_inbound};
+use crate::r2c_play_inbound::{
+    R2cPlayInboundError, R2cPlayInboundStep, process_one_r2c_play_inbound,
+};
 use crate::r2c_section_candidate::{
     ReceiptBoundBodyCandidateError, append_receipt_bound_empty_chunk_body_candidate,
 };
@@ -278,7 +280,12 @@ pub(crate) fn service_one_source_admitted_chunk(
     session.service_r2c_chunk_batch_one(batch, scratch, |index, output| {
         append_chunk_with_light_packet_id(output);
         append_receipt_bound_empty_chunk_body_candidate(
-            dimension, &receipts[index], facts, 66, 65_535, output,
+            dimension,
+            &receipts[index],
+            facts,
+            66,
+            65_535,
+            output,
         )
         .map(|_| ())
     })

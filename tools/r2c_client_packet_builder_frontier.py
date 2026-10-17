@@ -33,8 +33,13 @@ MAX_METHOD_INSTRUCTIONS = 2_500
 MAX_SYMBOLS = 256
 DECL = re.compile(r"^  (?P<declaration>[^;{}]+\([^;]*\)(?: throws [^;]+)?);$")
 INSTRUCTION = re.compile(r"^\s*(\d+):\s+([a-z][a-z_0-9]*)\b(.*)$")
-FOCUS = ("addPacket", "withBundlePacket", "addBundlePacket", "build",
-         "buildCodec", "createProtocolInfo", "finish")
+FOCUS = (
+    "addPacket", "withBundlePacket", "addBundlePacket", "build",
+    "buildCodec", "createProtocolInfo", "finish",
+    # Exact real method names discovered on SHA-pinned 26.2 builder classes:
+    "buildDetails", "buildPacketCodec", "buildUnbound",
+    "addToBuilder", "listPackets", "bind", "codec", "id",
+)
 
 
 def inspect(disassembly: str, class_name: str) -> dict:

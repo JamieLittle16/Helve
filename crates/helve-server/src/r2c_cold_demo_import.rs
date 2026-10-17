@@ -111,6 +111,21 @@ pub(crate) struct ColdImportedView {
 }
 
 impl ColdImportedView {
+    /// Reuse a fully imported test fixture to validate the final retained
+    /// scheduler without introducing a second product-world constructor.
+    #[cfg(test)]
+    pub(crate) fn from_test_source(
+        dimension: ColdDimension,
+        receipts: Vec<SourceChunkPublicationReceipt>,
+        batch: R2cChunkBatchState,
+    ) -> Self {
+        Self {
+            dimension,
+            receipts,
+            batch,
+        }
+    }
+
     pub(crate) fn chunks(&self) -> usize {
         self.dimension.resident_chunk_count()
     }

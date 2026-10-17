@@ -71,7 +71,7 @@ jobs:
               "net.minecraft.network.protocol.ProtocolInfoBuilder$2":
                   "8e648dfd4d2ae1878f158706ca6ba80ee2ed3079795fffa57ac08a6ac7238ae0",
               "net.minecraft.network.protocol.ProtocolInfoBuilder$3":
-                  "a8cc3068a41690a0f5e391ffc9453d549eb95c327e4f0f1d40099f59c9f68fc",
+                  "a8cc3068a41690a0f5e391ffc9453d549eb95c327e4f0f1d40099f59c9f68fc9",
               "net.minecraft.network.protocol.ProtocolInfoBuilder$CodecEntry":
                   "e7b2d2a0c881cd720cb15e122cabb10c49d9f7bc4e1533ec0f4f8dba5f3e8c2b",
               "net.minecraft.network.protocol.ProtocolInfoBuilder$Implementation":

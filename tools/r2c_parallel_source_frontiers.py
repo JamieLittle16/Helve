@@ -199,7 +199,7 @@ def safe_source_failure(label: str, stderr: str) -> str:
                 continue
             message = line[len(prefix):]
             missing = re.fullmatch(
-                r"missing, ambiguous or excessive official type: (net\\.minecraft\\.[A-Za-z0-9_.$]+):.*",
+                r"missing, ambiguous or excessive official type: (net\.minecraft\.[A-Za-z0-9_.$]+):.*",
                 message,
             )
             if missing is not None and missing.group(1) in BIOME_REVIEW_TYPES:

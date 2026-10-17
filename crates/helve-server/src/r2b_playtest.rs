@@ -1272,6 +1272,19 @@ mod r2c_cold_plan_tests {
                 .with_candidate_heightmap_file(&facts_path),
             Err(R2cColdWorldPlanError::WrongHeightmapBytes { .. })
         ));
+        // The dedicated Java 25 workflow supplies the exact pinned runtime
+        // facts. Unlike a coherent synthetic table, they must pass the
+        // product's real pre-listener file admission path.
+        if let Some(official) = std::env::var_os("HELVE_R2C_HEIGHTMAP_CANDIDATE") {
+            let admitted = R2cColdWorldPlan::new(world.0.clone())
+                .unwrap()
+                .with_candidate_heightmap_file(std::path::Path::new(&official))
+                .expect("actual official runtime table passes frozen COLD census");
+            assert_eq!(
+                admitted.candidate_heightmap_bytes().unwrap().len(),
+                BLOCK_STATE_COUNT
+            );
+        }
         let mut wrong = valid;
         wrong[0] = 0x80;
         fs::write(&facts_path, &wrong).unwrap();

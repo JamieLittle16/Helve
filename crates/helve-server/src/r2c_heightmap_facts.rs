@@ -42,7 +42,11 @@ pub(crate) enum HeightmapCandidateError {
     ImpossibleAirProperties { state: usize, flags: u8 },
     /// A COLD file claimed to be the frozen official oracle has a different
     /// four-bit count; a matching histogram alone is not source admission.
-    OfficialCensusMismatch { flags: u8, actual: u32, expected: u32 },
+    OfficialCensusMismatch {
+        flags: u8,
+        actual: u32,
+        expected: u32,
+    },
 }
 
 /// Stack-only borrow of one complete immutable official runtime candidate.
@@ -82,7 +86,10 @@ impl<'a> CandidateHeightmapFacts<'a> {
         Self::validate(flags, true)
     }
 
-    fn validate(flags: &'a [u8], require_official_census: bool) -> Result<Self, HeightmapCandidateError> {
+    fn validate(
+        flags: &'a [u8],
+        require_official_census: bool,
+    ) -> Result<Self, HeightmapCandidateError> {
         if flags.len() != BLOCK_STATE_COUNT {
             return Err(HeightmapCandidateError::WrongCount {
                 actual: flags.len(),

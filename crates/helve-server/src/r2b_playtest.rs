@@ -348,9 +348,11 @@ impl R2cColdWorldPlan {
             }
         })?;
         let mut compressed = Vec::new();
-        compressed.try_reserve_exact(initial_capacity).map_err(|_| {
-            R2cColdWorldPlanError::LevelMetadata("bounded level.dat allocation failed".into())
-        })?;
+        compressed
+            .try_reserve_exact(initial_capacity)
+            .map_err(|_| {
+                R2cColdWorldPlanError::LevelMetadata("bounded level.dat allocation failed".into())
+            })?;
         File::open(&level)
             .map_err(|error| R2cColdWorldPlanError::Io {
                 operation: "level.dat",

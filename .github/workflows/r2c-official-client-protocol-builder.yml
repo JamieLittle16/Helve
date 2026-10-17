@@ -114,6 +114,7 @@ jobs:
               assert cls["builder_numeric_id_assignment_proven"] is False
               assert len(cls["classfile_sha256"])==64
               print("Stock client builder class:",cls["class_name"],cls["classfile_sha256"])
+              print("Declared methods:",cls["all_declared_method_names_candidate"])
               for m in cls["selected_methods"]:
                   print(" method:",m["method_name"],"count",m["instruction_count"],
                         "shape",m["instruction_shape_sha256"],

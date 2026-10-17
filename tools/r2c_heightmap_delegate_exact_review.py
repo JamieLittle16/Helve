@@ -112,8 +112,11 @@ def extract(
         if (evidence["type"] != root.owner
                 or evidence["signature"] != row["signature"]
                 or evidence["fingerprint_algorithm"] != vanilla_atlas.FINGERPRINT_ALGORITHM
-                or not isinstance(evidence["body_sha256"], str)
-                or len(evidence["body_sha256"]) != 64):
+                or not isinstance(evidence["normalized_sha256"], str)
+                or len(evidence["normalized_sha256"]) != 64
+                or (evidence["body_sha256"] is not None
+                    and (not isinstance(evidence["body_sha256"], str)
+                         or len(evidence["body_sha256"]) != 64))):
             raise ReviewError(f"Atlas declaration/fingerprint invalid: {root.owner}#{root.method}")
         path = closure._safe_member(row["path"])
         if members.count(path) != 1:
@@ -133,6 +136,7 @@ def extract(
             "source_identity": f"{root.owner}#{row['signature']}",
             "normalized_sha256": evidence["normalized_sha256"],
             "body_sha256": evidence["body_sha256"],
+            "has_source_body": evidence["body_sha256"] is not None,
             "atlas_hazards": source["atlas_observed_hazards"],
             "source_path": path,
             "start_line": int(row["start_line"]),

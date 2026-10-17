@@ -10,7 +10,12 @@ use std::fmt;
 use std::fs::{self, File};
 use std::io::{self, BufReader, Read, Write};
 use std::net::TcpStream;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use helve_types::DimensionTypeId;
+use helve_world_runtime::DimensionRuntimeProfile;
+
+use crate::r2c_disk_first_view::{PendingTeleportViewError, plan_pending_teleport_first_view};
 use std::time::{Duration, Instant};
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
@@ -233,6 +238,54 @@ pub enum R2bPlaytestExit {
     ClockInvalid,
 }
 
+/// Opt-in, **non-publishing** first world preview for one R2B development session.
+/// The selected world path is only validated as a bounded local Anvil root;
+/// no chunks are imported and no Play world packet is ever admitted.
+#[derive(Clone, Debug)]
+pub struct R2cColdWorldPlan {
+    world: PathBuf,
+}
+
+#[derive(Debug)]
+pub enum R2cColdWorldPlanError {
+    Io { operation: &'static str, kind: io::ErrorKind },
+    Symlink { component: &'static str },
+    NotDirectory { component: &'static str },
+}
+
+impl R2cColdWorldPlan {
+    /// Validates the selected Anvil `world/region` directory before opening
+    /// a listening socket, without reading or trusting any saved chunk bytes.
+    ///
+    /// # Errors
+    /// Fails closed on missing/invalid/symlink world and region directories.
+    pub fn new(world: PathBuf) -> Result<Self, R2cColdWorldPlanError> {
+        for (component, path) in [
+            ("world", world.as_path()),
+            ("region", world.join("region").as_path()),
+        ] {
+            let metadata = fs::symlink_metadata(path).map_err(|error| {
+                R2cColdWorldPlanError::Io {
+                    operation: component,
+                    kind: error.kind(),
+                }
+            })?;
+            if metadata.file_type().is_symlink() {
+                return Err(R2cColdWorldPlanError::Symlink { component });
+            }
+            if !metadata.is_dir() {
+                return Err(R2cColdWorldPlanError::NotDirectory { component });
+            }
+        }
+        Ok(Self { world })
+    }
+
+    #[must_use]
+    pub fn world(&self) -> &Path {
+        &self.world
+    }
+}
+
 /// Failure from the temporary R2B playtest outer owner.
 #[derive(Debug)]
 pub enum R2bPlaytestError {
@@ -255,6 +308,8 @@ pub enum R2bPlaytestError {
     TruncatedEof { buffered_ingress: usize },
     /// An impossible incomplete frame followed an R2B `Unclaimed` classification.
     DiscardInvariant,
+    /// Opt-in world preview could not be bound to the actual outstanding teleport.
+    WorldPlan(PendingTeleportViewError),
     /// A diagnostic counter overflowed.
     AccountingOverflow,
 }
@@ -389,6 +444,30 @@ pub fn serve_r2b_playtest_blocking_transport(
     session_epoch: ServerSessionEpoch,
     image: &R2bPlaytestImage,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
+    serve_r2b_playtest_with_optional_r2c_plan(transport, session_epoch, image, None)
+}
+
+/// Retains the *same* R2B Play owner, with an explicitly selected COLD
+/// nonpublishing pregenerated-world request for later R2C source admission.
+/// This route must not be used to infer that a client can see a world.
+///
+/// # Errors
+/// Returns normal R2B I/O/control errors, or a typed fail-closed teleport plan error.
+pub fn serve_r2b_playtest_with_r2c_cold_plan(
+    transport: &mut TcpStream,
+    session_epoch: ServerSessionEpoch,
+    image: &R2bPlaytestImage,
+    plan: &R2cColdWorldPlan,
+) -> Result<R2bPlaytestExit, R2bPlaytestError> {
+    serve_r2b_playtest_with_optional_r2c_plan(transport, session_epoch, image, Some(plan))
+}
+
+fn serve_r2b_playtest_with_optional_r2c_plan(
+    transport: &mut TcpStream,
+    session_epoch: ServerSessionEpoch,
+    image: &R2bPlaytestImage,
+    plan: Option<&R2cColdWorldPlan>,
+) -> Result<R2bPlaytestExit, R2bPlaytestError> {
     let outcome = enter_r2b_play_blocking_transport(
         transport,
         session_epoch,
@@ -401,6 +480,23 @@ pub fn serve_r2b_playtest_blocking_transport(
         R2bEntryOutcome::PeerEof => return Ok(R2bPlaytestExit::PeerEofBeforeWorld),
         R2bEntryOutcome::WorldProjectionReady(session) => session,
     };
+
+    if let Some(plan) = plan {
+        // This profile is the exact *fixed R2B playtest snapshot* selected
+        // above (overworld dimension type 0, -64..320, skylight). Its match
+        // to any external saved world is NOT qualified by this preview.
+        let profile = DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true)
+            .expect("fixed R2B playtest overworld profile is valid");
+        let (center, positions) =
+            plan_pending_teleport_first_view(&session, profile, 10, 9)
+                .map_err(R2bPlaytestError::WorldPlan)?;
+        eprintln!(
+            "R2C COLD world plan only | root={} | teleport_center=({}, {}) | selected_first_view={} | world_read=false | chunk_sent=false | source_admitted=false",
+            plan.world().display(),
+            center.x, center.z, positions.len()
+        );
+        debug_assert_eq!(session.queued_egress(), 0);
+    }
 
     eprintln!(
         "R2B WorldProjectionReady | captured_play_publication=0 | pending_teleport={:?} | R2C_world_projection_pending=true",

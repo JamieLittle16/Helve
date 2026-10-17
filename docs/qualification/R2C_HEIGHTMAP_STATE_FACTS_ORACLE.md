@@ -188,3 +188,35 @@ Finally replace the explicitly synthetic heightmap predicate in the
 receipt/batch tests and run a stock 26.2 client with a source-admitted
 pregenerated world. Neither this runtime oracle nor successful CI alone
 is that proof.
+
+## Extended real-oracle predicate branch coverage
+
+The dedicated official 26.2 heightmap workflow now feeds **additional
+runtime-selected global state IDs** to the same existing borrowed fact
+adapter and `ClientHeightmaps::derive` COLD reference test. The
+selected exact flag combinations must exist within the independently
+reproduced 32,366-state official registry:
+
+| Four-bit flags | Source-observed case | Expected client maps |
+| --- | --- | --- |
+| `0b0101` | Non-air, no `blocksMotion`, nonempty fluid, not leaves | All three maps |
+| `0b0001` | Non-air, no motion, no fluid, not leaves | WORLD_SURFACE only |
+| `0b1111` | Waterlogged motion-blocking leaf | WORLD_SURFACE and MOTION_BLOCKING, **not** NO_LEAVES |
+
+Those cases are placed into distinct columns of the already existing
+two-section source-test chunk, alongside the ground-below-dry-leaves
+case. The expected *relative* first-available heights are checked on
+all three maps at every column, including expected zeros where a
+column has no matching source predicate.
+
+No state ID or block name is hard-coded: each case is found by scanning
+the actual official runtime table. The test intentionally fails on
+missing cases, swapped predicates, wrong section/column indexing or
+incorrect leaves/fluid precedence. This adds genuine source-derived
+branch diversity to the existing official-oracle/Helve integration
+without another state table, geometry implementation, or HOT-path
+bookkeeping.
+
+This remains a **runtime-oracle integration test**, not the independent
+source/VAR/SEM admission of the whole state-fact table or a stock-client
+visual world witness. The production R2C publisher remains gated.

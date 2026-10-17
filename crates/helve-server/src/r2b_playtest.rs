@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 use helve_types::DimensionTypeId;
 use helve_world_runtime::DimensionRuntimeProfile;
 
-use crate::r2c_disk_first_view::{PendingTeleportViewError, plan_pending_teleport_first_view};
+use crate::r2c_disk_first_view::plan_pending_teleport_first_view;
 use std::time::{Duration, Instant};
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
@@ -821,4 +821,82 @@ fn transport_error(operation: &'static str, error: &io::Error) -> R2bPlaytestErr
 
 fn elapsed_millis(origin: Instant) -> Option<u64> {
     u64::try_from(origin.elapsed().as_millis()).ok()
+}
+
+#[cfg(test)]
+mod r2c_cold_plan_tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    use super::{R2cColdWorldPlan, R2cColdWorldPlanError};
+
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+
+    struct ScratchWorld(PathBuf);
+
+    impl ScratchWorld {
+        fn new() -> Self {
+            let number = NEXT.fetch_add(1, Ordering::Relaxed);
+            let root = std::env::temp_dir().join(format!(
+                "helve-r2c-world-plan-{}-{number}",
+                std::process::id()
+            ));
+            fs::create_dir(&root).expect("fresh temporary root");
+            Self(root)
+        }
+    }
+
+    impl Drop for ScratchWorld {
+        fn drop(&mut self) {
+            let _ = fs::remove_dir_all(&self.0);
+        }
+    }
+
+    #[test]
+    fn cold_world_root_is_explicit_and_requires_region_directory() {
+        let dir = ScratchWorld::new();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::Io { operation: "region", .. })
+        ));
+        fs::create_dir(dir.0.join("region")).unwrap();
+        let selection = R2cColdWorldPlan::new(dir.0.clone()).unwrap();
+        assert_eq!(selection.world(), dir.0.as_path());
+        // No saved world or region files are read or admitted by this preflight.
+        assert_eq!(fs::read_dir(selection.world().join("region")).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn invalid_world_components_are_rejected_before_network_listen() {
+        let dir = ScratchWorld::new();
+        fs::write(dir.0.join("region"), b"not a region directory").unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::NotDirectory { component: "region" })
+        ));
+        fs::remove_file(dir.0.join("region")).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.join("missing")),
+            Err(R2cColdWorldPlanError::Io { operation: "world", .. })
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn symlinked_world_or_region_is_not_treated_as_admitted_source() {
+        use std::os::unix::fs::symlink;
+        let dir = ScratchWorld::new();
+        fs::create_dir(dir.0.join("actual-region")).unwrap();
+        symlink(dir.0.join("actual-region"), dir.0.join("region")).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::Symlink { component: "region" })
+        ));
+        symlink(&dir.0, dir.0.join("world-link")).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.join("world-link")),
+            Err(R2cColdWorldPlanError::Symlink { component: "world" })
+        ));
+    }
 }

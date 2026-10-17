@@ -59,13 +59,25 @@ def inspect_class(disassembly: str, class_name: str) -> dict:
         end = next((i for i, _, _ in heads if i > start), len(lines))
         rows = []
         symbols = []
+        code_sections = 0
         for line in lines[start:end]:
+            # javap prints the class static initializer as 'static {};',
+            # not a method declaration. Treat it as a hard boundary, never
+            # swallow its bytecode into the last named packet method.
+            if line == "  static {};" or line == "}":
+                break
+            if line.strip() == "Code:":
+                code_sections += 1
+                if code_sections != 1:
+                    raise ValueError(
+                        f"duplicate method Code block: {class_name}#{name}"
+                    )
             match = INSTRUCTION.match(line)
             if not match:
                 continue
             offset, op, rest = int(match.group(1)), match.group(2), match.group(3).strip()
             if rows and offset <= rows[-1][0]:
-                raise ValueError("chunk codec instruction offsets not increasing")
+                raise ValueError(f"chunk codec instruction offsets not increasing: {class_name}#{name} at {offset}")
             rows.append((offset, op, rest))
             if len(rows) > MAX_INSTRUCTIONS:
                 raise ValueError("unbounded chunk codec method body")

@@ -5,6 +5,7 @@ on:
     paths:
       - tools/r2c_client_packet_builder_frontier.py
       - tools/tests/test_r2c_client_packet_builder_frontier.py
+      - docs/qualification/R2C_CLIENT_PROTOCOL_BUILDER_ID_LAW_FRONTIER.md
       - tools/r2c_official_client_registry_inventory.py
       - tools/official_state_data.py
       - vanilla/vanilla.lock.toml
@@ -126,6 +127,36 @@ jobs:
                       (41,"putfield"),
                   ]
           assert "List.add:" in bundle["symbolic_edges_candidate"][5]["symbol_candidate"]
+          def require_builder_shape(cls_name,name,count,digest):
+              [cls]=[x for x in records if x["class_name"]==cls_name]
+              selected=[m for m in cls["selected_methods"] if m["method_name"]==name]
+              assert (count,digest) in {
+                  (m["instruction_count"],m["instruction_shape_sha256"])
+                  for m in selected
+              }, (cls_name,name,count,digest)
+          root_name="net.minecraft.network.protocol.ProtocolInfoBuilder"
+          require_builder_shape(root_name,"buildPacketCodec",25,
+              "39caa1a45b1bb0212ef922b1700fad0a92661e5cb130baf8fdd59f56e50bfeb4")
+          for count,digest in [
+              (23,"0978c153970bec3f5dbb41d87aea43ec48d45658bdea398f85bf1588f8c0f1c4"),
+              (22,"d25fd67c72092b11e322c0570952b52645afb0bd74afb43d4846e9b4d3605497"),
+          ]:
+              require_builder_shape(root_name,"buildUnbound",count,digest)
+          require_builder_shape(root_name+"$CodecEntry","addToBuilder",25,
+              "69488d19803f37955aac584fbbfd236631b05a10b17b9188efb375ca0d982593")
+          require_builder_shape(root_name+"$2","bind",20,
+              "fd418f78e27fcb11071db259e2b947fb85e3d7912e05e84296d723fe81982b92")
+          require_builder_shape(root_name+"$3","bind",19,
+              "8943a4dd5c866b17e8dbbbcef5fad1a01a2344afd2ff175f011219685b4bafca")
+          [root_codec]=[m for m in root["selected_methods"]
+                        if m["method_name"]=="buildPacketCodec"]
+          for offset,fragment in (
+              (14,"List.iterator:"),(23,"Iterator.hasNext:"),
+              (33,"Iterator.next:"),(49,"CodecEntry.addToBuilder:"),
+              (57,"ProtocolCodecBuilder.build:"),
+          ):
+              assert any(e["bytecode_offset"]==offset and fragment in e["symbol_candidate"]
+                         for e in root_codec["symbolic_edges_candidate"])
           [codec] = [cls for cls in records if cls["class_name"] ==
                      "net.minecraft.network.protocol.ProtocolCodecBuilder"]
           assert [

@@ -55,6 +55,16 @@ ROOTS = (
     Root("net.minecraft.world.level.block.Block", "registerDefaultState", 1, False, "block default-state bootstrap"),
     Root("net.minecraft.world.level.block.state.StateDefinition", "getPossibleStates", 0, False, "state enumeration and initCache reachability"),
     Root("net.minecraft.world.phys.shapes.Shapes", "block", 0, False, "default block shape identity"),
+    # Narrow follow-up from the independently inspected 11-method report.
+    # The first five are named direct callees in that exact official source.
+    Root("net.minecraft.world.phys.AABB", "getXsize", 0, True, "getSize arithmetic mean X side"),
+    Root("net.minecraft.world.phys.AABB", "getZsize", 0, True, "getSize arithmetic mean Z side"),
+    Root("net.minecraft.world.phys.shapes.VoxelShape", "isEmpty", 0, True, "bounds empty-shape guard"),
+    Root("net.minecraft.world.phys.shapes.VoxelShape", "min", 1, True, "bounds minimum axis"),
+    Root("net.minecraft.world.phys.shapes.VoxelShape", "max", 1, True, "bounds maximum axis"),
+    Root("net.minecraft.world.phys.AABB", "AABB", 6, False, "bounds six-scalar constructor"),
+    Root("net.minecraft.world.level.material.FlowingFluid", "isEmpty", 0, False, "possible concrete fluid override"),
+
 )
 
 

@@ -34,7 +34,9 @@ FIELDS=(
 )
 ROW=re.compile(r"^\s*(\d+):\s+([a-z][a-z_0-9]*)\b(.*)$")
 DECL=re.compile(r"^  [^{};]+\([^;]*\)(?: throws [^;]+)?;$")
-GETSTATIC_TYPE=re.compile(r"\bGamePacketTypes\.(CLIENTBOUND_[A-Z0-9_]+|SERVERBOUND_[A-Z0-9_]+):")
+GETSTATIC_TYPE=re.compile(
+    r"\b([A-Za-z0-9_]+PacketTypes)\.(CLIENTBOUND_[A-Z0-9_]+|SERVERBOUND_[A-Z0-9_]+):"
+)
 
 REGISTER_CALL="ProtocolInfoBuilder.addPacket:"
 REGISTRATION_METHODS={
@@ -68,10 +70,10 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
             if packet is not None:
                 raise ValueError(
                     f"two packet types loaded before registration call: "
-                    f"previous={packet[0]}@{packet[1]} next={field.group(1)}@{offset}; "
+                    f"previous={packet[0]}@{packet[1]} next={field.group(2)}@{offset}; "
                     f"previous packet registration method may need separate review"
                 )
-            name=field.group(1)
+            name=field.group(2)
             if not name.startswith(direction.upper()+"_"):
                 raise ValueError("packet direction mismatches named builder")
             packet=(name,offset)
@@ -138,8 +140,8 @@ def inspect(disassembly: str) -> dict:
             raise ValueError("too many protocol registration instruction rows")
         if opcode=="getstatic" and "// Field " in operand:
             match=GETSTATIC_TYPE.search(operand)
-            if match and match.group(1) in FIELDS:
-                item={"method":current,"offset":offset,"field":match.group(1)}
+            if match and match.group(2) in FIELDS:
+                item={"method":current,"offset":offset,"field":match.group(2)}
                 matched.append(item)
                 if len(matched)>MAX_MATCHES:
                     raise ValueError("too many target-registration witnesses")

@@ -96,3 +96,46 @@ independent requirements for the first visible R2C world.
 
 **Production `R2cSourceAdmission` stays uninhabited. No HOT path, chunk
 writer, network owner, or worldgen architecture is changed by this review.**
+
+## Exact method-level follow-up, not another four-file dump
+
+A narrower official-source/Vanilla Atlas tool,
+`tools/r2c_heightmap_delegate_exact_review.py`, now selects the
+**directly observed** remaining `Fluid.isEmpty`,
+`VoxelShape.bounds`, and `AABB.getSize/getYsize` call sites by exact
+qualified owner, method name and arity. It also explicitly attempts
+`EmptyFluid.isEmpty`, fluid default-state and state/bootstrap/shape
+helpers as **optional** exploratory leads, reporting their absence
+instead of guessing a different owner or silently treating an absent
+override as semantically identical.
+
+From the repository root, on the machine holding the original official
+ZIP and pinned Atlas, run:
+
+```bash
+git pull
+python3 tools/r2c_heightmap_delegate_exact_review.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output "/tmp/helve-r2c-heightmap-delegates-$(date +%s).json"
+```
+
+The output is **local source-rich** and must not be committed.
+Its method records carry the exact Atlas declaration/signature, body and
+normalized SHA-256, source line range, bounded body excerpt, hazard
+metadata, and resolved/unresolved call inventory. A missing **required**
+method, duplicate owner/arity, duplicate ZIP member, changed official
+ZIP/Atlas pin or source bound is rejected before output. Each method is
+COLD/qualification-only and its admission flags remain false.
+
+An optional method being absent means further exact type/dispatch
+investigation is needed. This tool is intentionally *not* a Java type
+checker and cannot prove full virtual dispatch to every block-specific
+collision shape from names or static call-site metadata. The official
+32,366-state runtime oracle supplies the concrete target identity and
+value witness; the reviewed source path and independent VAR/SEM
+certification remain the separate logical obligations.
+
+The stock-client biome numeric ID/known-pack proof is a separate gate;
+do not activate R2C publication based on this heightmap-only report.

@@ -77,7 +77,7 @@ class ClientBuilderFrontierTests(unittest.TestCase):
         self.assertFalse(builder["abstract_or_native_no_bytecode"])
         self.assertEqual(builder["instruction_count"], 4)
         self.assertEqual(builder["symbolic_edges_candidate"][0]["opcode"], "new")
-        self.assertNotIn("selected", json.dumps(root))
+        self.assertNotIn("Field foo:", json.dumps(root))
         self.assertFalse(root["builder_numeric_id_assignment_proven"])
 
     def test_bounded_fail_closed_code_and_symbol_inputs(self):

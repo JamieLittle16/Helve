@@ -31,6 +31,7 @@ use crate::r2c_disk_first_view::{
     PendingTeleportDiskFirstViewRequest, import_pending_teleport_disk_first_view,
 };
 use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
+use crate::r2c_play_inbound::{R2cPlayInboundError, R2cPlayInboundStep, process_one_r2c_play_inbound};
 use crate::r2c_section_candidate::{
     ReceiptBoundBodyCandidateError, append_receipt_bound_empty_chunk_body_candidate,
 };
@@ -114,6 +115,21 @@ impl ColdImportedView {
 
     pub(crate) fn receipts(&self) -> usize {
         self.receipts.len()
+    }
+
+    /// Reuse R2B control and already implemented R2C batch-ACK parsing on
+    /// the *original* Play ingress owner. This is safe before admission:
+    /// without any published finished batch, an unsolicited ACK fails
+    /// transactionally and cannot advance the source publication cursor.
+    ///
+    /// # Errors
+    /// Preserves typed R2B/ACK errors and never constructs a second queue.
+    pub(crate) fn process_one_play_inbound(
+        &mut self,
+        session: &mut R2bPlaySession,
+        now_ms: u64,
+    ) -> Result<R2cPlayInboundStep, R2cPlayInboundError> {
+        process_one_r2c_play_inbound(session, &mut self.batch, now_ms)
     }
 }
 

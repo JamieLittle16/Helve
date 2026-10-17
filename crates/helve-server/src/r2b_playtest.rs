@@ -36,6 +36,10 @@ use helve_target_26_2::{
         WorldBorderPayload,
     },
 };
+use helve_world_import::{
+    ChunkCompression, ChunkPayloadDecoder, DeflateChunkPayloadDecoder, NbtLimits,
+    require_target_26_2_level_metadata,
+};
 
 use crate::{
     R2bEntryOutcome, R2bLivenessProcess, R2bPlayError, R2bPlayInbound, R2bPlayProcess,
@@ -55,6 +59,9 @@ const MAX_IMAGE_BYTES: u64 = HEADER_BYTES
     + EXPECTED_CONFIGURATION_BYTES as u64
     + MAX_SHARED_BODY_BYTES;
 const ACTIONS_PER_SERVICE: usize = 32;
+// Bounded COLD saved-world metadata only: no packet, world-cell or HOT allocation.
+const MAX_R2C_LEVEL_FILE_BYTES: u64 = 4 * 1024 * 1024;
+const MAX_R2C_LEVEL_NBT_BYTES: usize = 8 * 1024 * 1024;
 const _: () = assert!(ACTIONS_PER_SERVICE > 0);
 
 const EXPECTED_SOURCE_SHA256: [u8; 32] = [
@@ -268,6 +275,13 @@ pub enum R2cColdWorldPlanError {
         expected: usize,
     },
     HeightmapCandidate(String),
+    /// The selected saved-world `level.dat` grew or exceeded its COLD cap.
+    LevelFileTooLarge {
+        observed: u64,
+        maximum: u64,
+    },
+    /// Gzip framing/checksum or bounded NBT saved-world version was rejected.
+    LevelMetadata(String),
 }
 
 impl R2cColdWorldPlan {
@@ -319,6 +333,65 @@ impl R2cColdWorldPlan {
                 component: "level.dat",
             });
         }
+        if metadata.len() > MAX_R2C_LEVEL_FILE_BYTES {
+            return Err(R2cColdWorldPlanError::LevelFileTooLarge {
+                observed: metadata.len(),
+                maximum: MAX_R2C_LEVEL_FILE_BYTES,
+            });
+        }
+        // The metadata length can race with a write: limit the actual read
+        // independently. Never trust a file-size precheck to cap allocation.
+        let initial_capacity = usize::try_from(metadata.len()).map_err(|_| {
+            R2cColdWorldPlanError::LevelFileTooLarge {
+                observed: metadata.len(),
+                maximum: MAX_R2C_LEVEL_FILE_BYTES,
+            }
+        })?;
+        let mut compressed = Vec::new();
+        compressed
+            .try_reserve_exact(initial_capacity)
+            .map_err(|_| {
+                R2cColdWorldPlanError::LevelMetadata("bounded level.dat allocation failed".into())
+            })?;
+        File::open(&level)
+            .map_err(|error| R2cColdWorldPlanError::Io {
+                operation: "level.dat",
+                kind: error.kind(),
+            })?
+            .take(MAX_R2C_LEVEL_FILE_BYTES + 1)
+            .read_to_end(&mut compressed)
+            .map_err(|error| R2cColdWorldPlanError::Io {
+                operation: "level.dat",
+                kind: error.kind(),
+            })?;
+        let observed = u64::try_from(compressed.len()).map_err(|_| {
+            R2cColdWorldPlanError::LevelFileTooLarge {
+                observed: u64::MAX,
+                maximum: MAX_R2C_LEVEL_FILE_BYTES,
+            }
+        })?;
+        if observed > MAX_R2C_LEVEL_FILE_BYTES {
+            return Err(R2cColdWorldPlanError::LevelFileTooLarge {
+                observed,
+                maximum: MAX_R2C_LEVEL_FILE_BYTES,
+            });
+        }
+        let mut decoder = DeflateChunkPayloadDecoder::new();
+        let source = decoder
+            .decode(ChunkCompression::Gzip, &compressed, MAX_R2C_LEVEL_NBT_BYTES)
+            .map_err(|error| {
+                R2cColdWorldPlanError::LevelMetadata(format!(
+                    "bounded gzip level.dat rejected: {error:?}"
+                ))
+            })?;
+        let limits = NbtLimits::new(4096, 32768, 32768, 64).map_err(|error| {
+            R2cColdWorldPlanError::LevelMetadata(format!("level.dat NBT limits invalid: {error:?}"))
+        })?;
+        require_target_26_2_level_metadata(source, limits).map_err(|error| {
+            R2cColdWorldPlanError::LevelMetadata(format!(
+                "26.2 Data.DataVersion rejected: {error:?}"
+            ))
+        })?;
         Ok(Self {
             world,
             heightmap_candidate: None,
@@ -1031,13 +1104,27 @@ mod r2c_cold_plan_tests {
     use super::{R2cColdWorldPlan, R2cColdWorldPlanError};
 
     static NEXT: AtomicU64 = AtomicU64::new(0);
+    // Synthetic, checksum-correct gzip NBT: empty root, one Data compound,
+    // one DataVersion Int, and both TAG_End terminators.
+    const VALID_LEVEL_DAT_GZIP: [u8; 47] = [
+        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62, 0x60, 0xe0, 0x62,
+        0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06, 0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99,
+        0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0xea, 0x0c, 0x0c, 0x00, 0x73, 0xd9, 0x0f, 0xb5, 0x1e, 0x00,
+        0x00, 0x00,
+    ];
+    const OLD_LEVEL_DAT_GZIP: [u8; 47] = [
+        0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe3, 0x62, 0x60, 0xe0, 0x62,
+        0x60, 0x71, 0x49, 0x2c, 0x49, 0x64, 0x66, 0xe0, 0x06, 0x51, 0x61, 0xa9, 0x45, 0xc5, 0x99,
+        0xf9, 0x79, 0x0c, 0x0c, 0xc2, 0x6a, 0x0c, 0x0c, 0x00, 0x44, 0xb3, 0xcd, 0xb4, 0x1e, 0x00,
+        0x00, 0x00,
+    ];
 
     fn official_overworld_directory(root: &std::path::Path) -> PathBuf {
         let path = root.join("dimensions/minecraft/overworld");
         fs::create_dir_all(&path).unwrap();
         // This test covers bounded path identity only, not level.dat NBT
         // admission. The full saved profile remains separately gated.
-        fs::write(root.join("level.dat"), b"not a source-admitted level.dat").unwrap();
+        fs::write(root.join("level.dat"), VALID_LEVEL_DAT_GZIP).unwrap();
         path
     }
 
@@ -1167,6 +1254,36 @@ mod r2c_cold_plan_tests {
             Err(R2cColdWorldPlanError::NotFile {
                 component: "level.dat"
             })
+        ));
+    }
+
+    #[test]
+    fn saved_root_rejects_old_corrupt_and_oversized_level_metadata() {
+        let dir = ScratchWorld::new();
+        let overworld = official_overworld_directory(&dir.0);
+        fs::create_dir(overworld.join("region")).unwrap();
+        R2cColdWorldPlan::new(dir.0.clone()).expect("pinned gzip NBT version 4903");
+
+        let path = dir.0.join("level.dat");
+        fs::write(&path, OLD_LEVEL_DAT_GZIP).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::LevelMetadata(_))
+        ));
+        let mut corrupted = VALID_LEVEL_DAT_GZIP;
+        corrupted[40] ^= 0x01;
+        fs::write(&path, corrupted).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::LevelMetadata(_))
+        ));
+        // Deliberately larger than the COLD cap. The production path rejects
+        // from metadata without allocating for untrusted source bytes.
+        let too_large = vec![0_u8; usize::try_from(super::MAX_R2C_LEVEL_FILE_BYTES + 1).unwrap()];
+        fs::write(&path, too_large).unwrap();
+        assert!(matches!(
+            R2cColdWorldPlan::new(dir.0.clone()),
+            Err(R2cColdWorldPlanError::LevelFileTooLarge { .. })
         ));
     }
 

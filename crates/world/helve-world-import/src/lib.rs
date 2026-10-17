@@ -11,6 +11,7 @@ pub mod biome_registry;
 pub mod chunk;
 pub mod compression;
 mod generated_state_lookup;
+pub mod level_metadata;
 pub mod nbt;
 pub mod state_lookup;
 pub mod stored_biomes;
@@ -23,6 +24,7 @@ pub use chunk::{
     ChunkImportError, StoredChunkHeader, TARGET_DATA_VERSION_26_2, inspect_chunk_header,
 };
 pub use compression::{CompressedPayloadError, DeflateChunkPayloadDecoder, WrapperKind};
+pub use level_metadata::{LevelMetadataError, require_target_26_2_level_metadata};
 pub use nbt::{ListHeader, NamedTag, NbtError, NbtLimits, NbtReader, TagType};
 pub use state_lookup::{
     Target262BlockStateResolver, canonical_state_fingerprint, resolve_target_26_2_block_state,

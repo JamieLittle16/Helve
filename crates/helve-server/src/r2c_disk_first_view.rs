@@ -886,6 +886,18 @@ mod tests {
         let oracle = std::fs::read(path).expect("source-pinned official 26.2 oracle");
         let facts = CandidateHeightmapFacts::from_oracle_bytes(&oracle)
             .expect("actual oracle IDs match qualified generated state facts");
+
+        // Exercise the exact *product-bound* COLD audit over actual
+        // disk-imported, receipt-bound semantic chunks before checking
+        // the existing batch sender. No packet is queued by this audit.
+        let cold_audit = crate::r2c_cold_demo_import::audit_receipt_bound_candidate_bodies(
+            &dimension, &receipts, &oracle, 66,
+        )
+        .expect("two selected Anvil chunks reach the single bounded COLD projector");
+        assert_eq!(cold_audit.chunks, 2);
+        assert!(cold_audit.total_body_bytes >= cold_audit.maximum_body_bytes);
+        assert!(cold_audit.maximum_body_bytes > 8);
+
         let stone = helve_world_import::resolve_target_26_2_block_state("minecraft:stone", &[])
             .expect("exact saved stone identity");
         let predicate = facts.properties(stone);

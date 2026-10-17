@@ -27,6 +27,8 @@ use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_disk_first_view::{
     PendingTeleportDiskFirstViewRequest, import_pending_teleport_disk_first_view,
 };
+use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
+use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
 use helve_target_26_2::Target26_2R1xContext;
 
 /// **Bounded, development-only** initial load: no world generator, no
@@ -81,7 +83,7 @@ impl ImportedBiomeSectionBuilder<u16> for BiomeBuilder {
     }
 }
 
-type ColdDimension = SemanticDimensionInstance<
+pub(crate) type ColdDimension = SemanticDimensionInstance<
     BlockStateId,
     DirectBlockSection<BlockStateId>,
     u16,
@@ -107,6 +109,104 @@ impl ColdImportedView {
 
     pub(crate) fn receipts(&self) -> usize {
         self.receipts.len()
+    }
+}
+
+/// Strict pre-publication projection audit, with no driver or socket access.
+///
+/// The first-view receipt ordering, world and ACK controller remain owned by
+/// the original COLD import; this is an *inspection*, not a second packet
+/// owner or independent state source. All byte counts describe disposable
+/// scratch, never bytes queued for Play.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct ColdCandidateAudit {
+    pub(crate) chunks: usize,
+    pub(crate) total_body_bytes: usize,
+    pub(crate) maximum_body_bytes: usize,
+}
+
+/// Re-use the actual source-receipt-bound 26.2 projector over all imported
+/// chunks, with a single cleared COLD buffer. Never append to the R2B driver.
+///
+/// A successful audit establishes that source receipts can be converted to
+/// candidate chunk bodies for this saved world and candidate heightmap table.
+/// It is **not** an admission of biome IDs, motion/leaves predicates or Play
+/// packet semantics. Errors are fail-closed; no partial packet escapes.
+///
+/// # Errors
+/// Rejects unsupported table bits/length/ID consistency, stale/invalid
+/// receipts, absent block-entity evidence, packet overflow and accounting
+/// inconsistencies without modifying world or transport.
+pub(crate) fn audit_receipt_bound_candidate_bodies(
+    dimension: &ColdDimension,
+    receipts: &[SourceChunkPublicationReceipt],
+    heightmap_candidate: &[u8],
+    registry_count: usize,
+) -> Result<ColdCandidateAudit, String> {
+    const MAX_PACKET_BODY: usize = 65_535;
+    if receipts.is_empty() || receipts.len() != dimension.resident_chunk_count() {
+        return Err("COLD projection requires one source receipt per selected resident".to_owned());
+    }
+    let facts = CandidateHeightmapFacts::from_oracle_bytes(heightmap_candidate)
+        .map_err(|error| format!("heightmap table rejected: {error:?}"))?;
+    if registry_count != 66 {
+        return Err(format!(
+            "COLD client registry candidate has {registry_count} biomes, not 66"
+        ));
+    }
+
+    // Bounded one-owner COLD scratch. No packet list, no cloned chunks and
+    // no insertion into the continuing connection's outbound buffer.
+    let mut scratch = Vec::with_capacity(MAX_PACKET_BODY);
+    let mut total_body_bytes = 0_usize;
+    let mut maximum_body_bytes = 0_usize;
+    for receipt in receipts {
+        scratch.clear();
+        append_receipt_bound_empty_chunk_body_candidate(
+            dimension,
+            receipt,
+            &facts,
+            registry_count,
+            MAX_PACKET_BODY,
+            &mut scratch,
+        )
+        .map_err(|error| format!("source receipt chunk candidate rejected: {error:?}"))?;
+        if scratch.is_empty() || scratch.len() > MAX_PACKET_BODY {
+            return Err(format!(
+                "COLD candidate body length {} outside 1..={MAX_PACKET_BODY}",
+                scratch.len()
+            ));
+        }
+        total_body_bytes = total_body_bytes
+            .checked_add(scratch.len())
+            .ok_or_else(|| "COLD candidate body accounting overflow".to_owned())?;
+        maximum_body_bytes = maximum_body_bytes.max(scratch.len());
+    }
+    Ok(ColdCandidateAudit {
+        chunks: receipts.len(),
+        total_body_bytes,
+        maximum_body_bytes,
+    })
+}
+
+impl ColdImportedView {
+    /// Immutable, non-publishing candidate check of the same retained world.
+    ///
+    /// # Errors
+    /// Rejects an invalid source, candidate table, stale receipt or body.
+    pub(crate) fn audit_candidate_bodies(
+        &self,
+        heightmap_candidate: &[u8],
+    ) -> Result<ColdCandidateAudit, String> {
+        if self.batch.next_chunk_index() != 0 || self.batch.unacknowledged_batches() != 0 {
+            return Err("COLD audit cannot advance an already published batch".to_owned());
+        }
+        audit_receipt_bound_candidate_bodies(
+            &self.dimension,
+            &self.receipts,
+            heightmap_candidate,
+            66,
+        )
     }
 }
 

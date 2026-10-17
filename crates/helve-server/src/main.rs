@@ -18,6 +18,7 @@ const LOGIN_SESSION_EPOCH_PREFIX: &str = "--login-session-epoch=";
 const R1X_REPLAY_IMAGE_PREFIX: &str = "--r1x-replay-image=";
 const R2B_PLAYTEST_IMAGE_PREFIX: &str = "--r2b-playtest-image=";
 const R2C_WORLD_PLAN_PREFIX: &str = "--r2c-world-plan=";
+const R2C_HEIGHTMAP_CANDIDATE_PREFIX: &str = "--r2c-heightmap-candidate=";
 const R1X_CAPTURE_SESSION_EPOCH_HEX: &str = "4d7f604f196a43b08987f0b2a27c2663";
 
 #[derive(Debug)]
@@ -28,6 +29,7 @@ struct Options {
     r1x_replay_image: Option<PathBuf>,
     r2b_playtest_image: Option<PathBuf>,
     r2c_world_plan: Option<PathBuf>,
+    r2c_heightmap_candidate: Option<PathBuf>,
 }
 
 fn main() -> ExitCode {
@@ -111,12 +113,23 @@ fn load_selected_r2c_plan(options: &Options) -> Result<Option<R2cColdWorldPlan>,
         .r2c_world_plan
         .as_ref()
         .map(|path| {
-            R2cColdWorldPlan::new(path.clone()).map_err(|error| {
+            let plan = R2cColdWorldPlan::new(path.clone()).map_err(|error| {
                 format!(
                     "R2C COLD world-plan directory {} rejected: {error:?}",
                     path.display()
                 )
-            })
+            })?;
+            match options.r2c_heightmap_candidate.as_deref() {
+                Some(candidate) => plan
+                    .with_candidate_heightmap_file(candidate)
+                    .map_err(|error| {
+                        format!(
+                            "R2C COLD heightmap candidate {} rejected: {error:?}",
+                            candidate.display()
+                        )
+                    }),
+                None => Ok(plan),
+            }
         })
         .transpose()
 }
@@ -130,7 +143,7 @@ fn announce(
     if r2b_playtest.is_some() {
         if let Some(path) = options.r2c_world_plan.as_ref() {
             println!(
-                "R2C COLD plan requested for {} | world directory preflight only | no chunk import | no chunk publication | source_admitted=false",
+                "R2C COLD plan requested for {} | selected Anvil source import at Play handoff | optional candidate packet audit | no chunk publication | source_admitted=false",
                 path.display()
             );
         }
@@ -262,6 +275,7 @@ fn options_from(arguments: impl IntoIterator<Item = String>) -> Result<Options, 
     let mut r1x_replay_image = None;
     let mut r2b_playtest_image = None;
     let mut r2c_world_plan = None;
+    let mut r2c_heightmap_candidate = None;
 
     for argument in arguments {
         if argument == "--once" {
@@ -296,11 +310,25 @@ fn options_from(arguments: impl IntoIterator<Item = String>) -> Result<Options, 
             if r2c_world_plan.replace(PathBuf::from(value)).is_some() {
                 return Err("--r2c-world-plan may be supplied only once".to_owned());
             }
+        } else if let Some(value) = argument.strip_prefix(R2C_HEIGHTMAP_CANDIDATE_PREFIX) {
+            if value.is_empty() {
+                return Err("--r2c-heightmap-candidate requires a non-empty file path".to_owned());
+            }
+            if r2c_heightmap_candidate
+                .replace(PathBuf::from(value))
+                .is_some()
+            {
+                return Err("--r2c-heightmap-candidate may be supplied only once".to_owned());
+            }
         } else if argument.starts_with('-') {
             return Err(format!("unknown option {argument:?}"));
         } else if bind_address.replace(argument).is_some() {
             return Err("at most one bind address may be supplied".to_owned());
         }
+    }
+
+    if r2c_heightmap_candidate.is_some() && r2c_world_plan.is_none() {
+        return Err("--r2c-heightmap-candidate requires --r2c-world-plan".to_owned());
     }
 
     if r2c_world_plan.is_some() && r2b_playtest_image.is_none() {
@@ -334,6 +362,7 @@ fn options_from(arguments: impl IntoIterator<Item = String>) -> Result<Options, 
         r1x_replay_image,
         r2b_playtest_image,
         r2c_world_plan,
+        r2c_heightmap_candidate,
     })
 }
 
@@ -342,7 +371,7 @@ mod tests {
     use super::{
         DEFAULT_R0_BIND_ADDRESS, LOGIN_SESSION_EPOCH_PREFIX, PRODUCT_NAME,
         R1X_CAPTURE_SESSION_EPOCH_HEX, R1X_REPLAY_IMAGE_PREFIX, R2B_PLAYTEST_IMAGE_PREFIX,
-        R2C_WORLD_PLAN_PREFIX, options, options_from,
+        R2C_HEIGHTMAP_CANDIDATE_PREFIX, R2C_WORLD_PLAN_PREFIX, options, options_from,
     };
 
     #[test]
@@ -366,6 +395,22 @@ mod tests {
             )
         };
         assert!(args(&["--r2c-world-plan=/tmp/world"]).is_err());
+        assert!(args(&["--r2c-heightmap-candidate=/tmp/facts.bin"]).is_err());
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-heightmap-candidate=/tmp/facts.bin"
+            ])
+            .is_err()
+        );
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-world-plan=/tmp/world",
+                "--r2c-heightmap-candidate="
+            ])
+            .is_err()
+        );
         assert!(args(&["--r1x-replay-image=a", "--r2c-world-plan=/tmp/world"]).is_err());
         assert!(args(&["--r2b-playtest-image=a", "--r2c-world-plan="]).is_err());
         assert!(
@@ -382,6 +427,25 @@ mod tests {
             selected.r2c_world_plan.as_deref(),
             Some(std::path::Path::new("/tmp/world"))
         );
+        let audited = args(&[
+            "--r2b-playtest-image=a",
+            "--r2c-world-plan=/tmp/world",
+            "--r2c-heightmap-candidate=/tmp/facts.bin",
+        ])
+        .expect("candidate audit option requires the COLD world route");
+        assert_eq!(
+            audited.r2c_heightmap_candidate.as_deref(),
+            Some(std::path::Path::new("/tmp/facts.bin"))
+        );
+        assert!(
+            args(&[
+                "--r2b-playtest-image=a",
+                "--r2c-world-plan=/tmp/world",
+                "--r2c-heightmap-candidate=/tmp/facts.bin",
+                "--r2c-heightmap-candidate=/tmp/other.bin",
+            ])
+            .is_err()
+        );
         assert!(
             args(&["--r2b-playtest-image=a"])
                 .expect("existing R2B mode remains supported")
@@ -397,6 +461,7 @@ mod tests {
         assert_eq!(R1X_REPLAY_IMAGE_PREFIX, "--r1x-replay-image=");
         assert_eq!(R2B_PLAYTEST_IMAGE_PREFIX, "--r2b-playtest-image=");
         assert_eq!(R2C_WORLD_PLAN_PREFIX, "--r2c-world-plan=");
+        assert_eq!(R2C_HEIGHTMAP_CANDIDATE_PREFIX, "--r2c-heightmap-candidate=");
         assert_eq!(R1X_CAPTURE_SESSION_EPOCH_HEX.len(), 32);
     }
 }

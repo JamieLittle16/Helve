@@ -73,6 +73,42 @@ source/runtime commitments, and uploads a seven-day ephemeral output.
 **The generated candidate is not committed and no table is wired into
 production by this workflow.**
 
+## Independent runtime reproducibility and exact frozen state-fact identity
+
+The official Java 25 heightmap workflow now executes the full
+`Block.BLOCK_STATE_REGISTRY` reflection oracle **twice** against
+the SHA-256-pinned official 26.2 server and independently compares
+all 32,366 ID-indexed four-bit records, byte for byte. The small,
+source-free audit contains a digest, a 16-bin histogram and three
+heightmap-predicate counts. A changed value at even one ID, missing
+record, unpinned source identity or source/production admission flag
+fails closed.
+
+On 17 October 2026, the full second official runtime run reproduced:
+
+- Dense 32,366-byte SHA-256:
+  `6dc4edc0f6178490af9d79463eca0373b8b359e351d173ebc51cf6166d74c3eb`
+- 4-bit flag histogram in `0..15` order:
+  `[3,3924,0,16493,0,623,0,11015,0,0,0,154,0,0,0,154]`
+- Topmost-height predicate matching state counts:
+  `WORLD_SURFACE=32363`,
+  `MOTION_BLOCKING=28439`,
+  `MOTION_BLOCKING_NO_LEAVES=28131`.
+- Additional independent field counts:
+  `leaves=308`, `fluid_non_empty=11792`.
+
+These exact numbers are **frozen as independent CI expectations**
+against the official runtime probe. The server identity and source
+review anchors are checked against the existing lock. Only an
+ephemeral 7-day audit/report and the original source-free candidate
+are uploaded; the second full candidate is removed after comparison.
+
+This is stronger determinism/identity evidence for the eventual
+immutable cold-path table. It is **not a second implementation of the
+heightmap source predicates** and does not qualify
+`BlockStateBase.calculateSolid`, source/VAR/SEM or live
+chunk publication. Those must remain separate gates.
+
 ## Cross-oracle COLD projector integration (source-gated)
 
 `tools/r2c_heightmap_candidate_bytes.py` validates the precise

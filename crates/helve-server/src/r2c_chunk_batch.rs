@@ -21,6 +21,60 @@ use crate::r2b_server::R2bPlaySession;
 const INITIAL_RATE: f32 = 9.0;
 const MAX_OUTSTANDING_AFTER_ACK: u8 = 10;
 
+/// A monotonic, fixed-phase 20 Hz chunk-service clock for the eventual
+/// source-admitted Play loop. One poll admits at most one logical send tick,
+/// even after a late socket wake-up: missed ticks never become a burst of
+/// accumulated chunk quota. The caller must separately cap its blocking
+/// read deadline to the earlier of this clock and Play liveness.
+///
+/// Constructing or polling this clock does not authorize chunk publication.
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "live R2C send ticks await source admission")
+)]
+pub(crate) struct R2cBatchTickClock {
+    next_due_ms: u64,
+}
+
+#[cfg_attr(
+    not(test),
+    allow(dead_code, reason = "live R2C send ticks await source admission")
+)]
+impl R2cBatchTickClock {
+    const TICK_MS: u64 = 50;
+
+    /// Start with one immediately due service opportunity, not a burst.
+    pub(crate) const fn new(now_ms: u64) -> Self {
+        Self {
+            next_due_ms: now_ms,
+        }
+    }
+
+    /// The earliest permitted wake-up time for chunk or liveness service.
+    pub(crate) const fn next_wake_deadline_ms(&self, liveness_deadline_ms: u64) -> u64 {
+        if self.next_due_ms < liveness_deadline_ms {
+            self.next_due_ms
+        } else {
+            liveness_deadline_ms
+        }
+    }
+
+    /// Supply no more than one tick and skip entire overdue tick intervals.
+    /// No batch cursor, packet bytes or source receipt are mutated here.
+    pub(crate) fn poll_tick(&mut self, now_ms: u64, batch: &mut R2cChunkBatchState) -> bool {
+        if now_ms < self.next_due_ms {
+            return false;
+        }
+        let overdue = now_ms - self.next_due_ms;
+        let intervals = overdue / Self::TICK_MS + 1;
+        self.next_due_ms = self
+            .next_due_ms
+            .saturating_add(intervals.saturating_mul(Self::TICK_MS));
+        batch.on_tick();
+        true
+    }
+}
+
 /// Convert only a verified, source-capped nonnegative quota. Truncation
 /// matches Java's floor for these finite, nonnegative values.
 #[expect(
@@ -340,6 +394,41 @@ mod tests {
             u8::try_from(index).expect("small synthetic selection"),
         ]);
         Ok(())
+    }
+
+    #[test]
+    fn logical_send_clock_is_phase_stable_and_never_replays_late_ticks() {
+        use super::R2cBatchTickClock;
+
+        let mut batch = R2cChunkBatchState::new(40);
+        let mut clock = R2cBatchTickClock::new(1_000);
+        assert_eq!(clock.next_wake_deadline_ms(1_200), 1_000);
+        assert_eq!(clock.next_wake_deadline_ms(900), 900);
+        assert!(!clock.poll_tick(999, &mut batch));
+        assert!(clock.poll_tick(1_000, &mut batch));
+        assert_eq!(batch.quota.to_bits(), 9.0_f32.to_bits());
+        assert!(!clock.poll_tick(1_000, &mut batch));
+        assert!(!clock.poll_tick(1_049, &mut batch));
+        assert_eq!(clock.next_wake_deadline_ms(1_080), 1_050);
+
+        // Late I/O wake skips four old deadlines, supplying one tick only.
+        assert!(clock.poll_tick(1_263, &mut batch));
+        assert_eq!(clock.next_wake_deadline_ms(1_500), 1_300);
+        assert_eq!(batch.quota.to_bits(), 9.0_f32.to_bits());
+        assert!(!clock.poll_tick(1_299, &mut batch));
+        assert!(clock.poll_tick(1_300, &mut batch));
+        assert_eq!(clock.next_wake_deadline_ms(1_400), 1_350);
+    }
+
+    #[test]
+    fn logical_send_clock_does_not_spin_at_clock_saturation() {
+        use super::R2cBatchTickClock;
+
+        let mut batch = R2cChunkBatchState::new(1);
+        let mut clock = R2cBatchTickClock::new(u64::MAX - 10);
+        assert!(clock.poll_tick(u64::MAX - 10, &mut batch));
+        assert!(!clock.poll_tick(u64::MAX - 1, &mut batch));
+        assert_eq!(clock.next_wake_deadline_ms(u64::MAX), u64::MAX);
     }
 
     #[test]

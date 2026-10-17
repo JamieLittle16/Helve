@@ -1,0 +1,77 @@
+name: R2C Official Client Chunk Wire Frontier
+
+on:
+  pull_request:
+    paths:
+      - tools/r2c_client_chunk_wire_frontier.py
+      - tools/tests/test_r2c_client_chunk_wire_frontier.py
+      - tools/r2c_official_client_registry_inventory.py
+      - tools/official_state_data.py
+      - vanilla/vanilla.lock.toml
+      - .github/workflows/r2c-official-client-chunk-wire-frontier.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  client:
+    name: Exact 26.2 client chunk-with-light packet codec candidates (not admitted)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Java 25 for exact Mojang client
+        uses: actions/setup-java@0f481fcb613427c0f801b606911222b5b6f3083a # v5.5.0
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Hermetic negative tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_r2c_client_chunk_wire_frontier.py' -v
+
+      - name: Inspect actual 26.2 client packet classes
+        run: |
+          python3 tools/r2c_client_chunk_wire_frontier.py \
+            --output /tmp/r2c-26.2-client-chunk-wire-candidates.json
+
+      - name: Fail closed on wrong target, incomplete classes or any authority claim
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          doc=json.loads(Path("/tmp/r2c-26.2-client-chunk-wire-candidates.json").read_text())
+          assert doc["target"] == {"minecraft":"26.2","protocol":776,"data_version":4903}
+          for key in ("packet_type_identity_admitted","serialized_field_order_admitted",
+                      "source_var_sem_admitted","production_admitted"):
+              assert doc[key] is False
+          classes=doc["wire_codec_candidates"]
+          assert [item["class_name"] for item in classes] == [
+              "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket",
+              "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData",
+              "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData",
+          ]
+          for item in classes:
+              assert not item["outer_packet_wire_semantics_source_admitted"]
+              assert len(item["classfile_sha256_candidate"]) == 64
+              assert any(m["name"]=="write" for m in item["candidate_methods"])
+              print("Official class:",item["class_name"],
+                    "SHA",item["classfile_sha256_candidate"])
+              for m in item["candidate_methods"]:
+                  print(" method",m["name"],"sha",m["instruction_shape_sha256"])
+                  for symbol in m["symbols"]:
+                      print("  ",symbol["offset"],symbol["opcode"],symbol["symbol_candidate"])
+          print("Client packet code inspected, outer wire source admission remains FALSE")
+          PY
+
+      - name: Retain only short-lived source-free packet call candidates
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: r2c-26.2-client-chunk-wire-method-candidates
+          path: /tmp/r2c-26.2-client-chunk-wire-candidates.json
+          retention-days: 7
+          if-no-files-found: error

@@ -341,8 +341,16 @@ impl R2cColdWorldPlan {
         }
         // The metadata length can race with a write: limit the actual read
         // independently. Never trust a file-size precheck to cap allocation.
-        let mut compressed =
-            Vec::with_capacity(usize::try_from(metadata.len()).expect("bounded file length"));
+        let initial_capacity = usize::try_from(metadata.len()).map_err(|_| {
+            R2cColdWorldPlanError::LevelFileTooLarge {
+                observed: metadata.len(),
+                maximum: MAX_R2C_LEVEL_FILE_BYTES,
+            }
+        })?;
+        let mut compressed = Vec::new();
+        compressed.try_reserve_exact(initial_capacity).map_err(|_| {
+            R2cColdWorldPlanError::LevelMetadata("bounded level.dat allocation failed".into())
+        })?;
         File::open(&level)
             .map_err(|error| R2cColdWorldPlanError::Io {
                 operation: "level.dat",
@@ -354,7 +362,12 @@ impl R2cColdWorldPlan {
                 operation: "level.dat",
                 kind: error.kind(),
             })?;
-        let observed = u64::try_from(compressed.len()).expect("bounded read fits u64");
+        let observed = u64::try_from(compressed.len()).map_err(|_| {
+            R2cColdWorldPlanError::LevelFileTooLarge {
+                observed: u64::MAX,
+                maximum: MAX_R2C_LEVEL_FILE_BYTES,
+            }
+        })?;
         if observed > MAX_R2C_LEVEL_FILE_BYTES {
             return Err(R2cColdWorldPlanError::LevelFileTooLarge {
                 observed,

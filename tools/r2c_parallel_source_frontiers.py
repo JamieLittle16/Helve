@@ -21,6 +21,18 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_SHA = "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750"
 TARGET = {"minecraft": "26.2", "protocol": 776, "data_version": 4903}
+ADMITTED_WORLD_STATE = ROOT / (
+    "vanilla/reports/r2c-world-state-source-admission-26.2.json"
+)
+WORLD_STATE_GATE_ID = "GATE-NET-R2C-WORLD-STATE-26_2-001"
+# These two wire roots overlap the *already admitted* inner world-state
+# semantics. Reuse only exact declaration/body fingerprints, NEVER the
+# broader outer packet ID, bootstrap, empty-entity or ACK claims.
+REUSABLE_WIRE_ROOTS = frozenset({
+    "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData",
+    "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData",
+})
+
 JOBS = {
     "biome_client_ids": (
         "r2c_biome_id_source_frontier.py",
@@ -72,6 +84,95 @@ def check_one(label: str, path: Path) -> dict:
             "source_inspected": False, "production_admitted": False}
 
 
+def exact_admitted_world_state_reuse(
+    wire_inventory: dict, admitted_report: dict,
+) -> list[dict[str, object]]:
+    """Carry forward *only* independently gated exact inner-wire methods.
+
+    An identical method fingerprint may support reuse of the previously
+    reviewed semantic claims; it does not automatically admit the packet
+    envelope, first Play ordering, block entities or publication pacing.
+    """
+    source = admitted_report.get("source")
+    if (
+        admitted_report.get("schema") != 1
+        or admitted_report.get("admitted") is not True
+        or admitted_report.get("source_free_bundle_bound") is not True
+        or admitted_report.get("failures") != []
+        or admitted_report.get("gate_id") != WORLD_STATE_GATE_ID
+        or not isinstance(source, dict)
+        or source.get("archive_sha256") != EXPECTED_SHA
+        or source.get("minecraft_version") != "26.2"
+        or source.get("protocol_version") != "776"
+        or source.get("world_version") != "4903"
+        or source.get("fingerprint_algorithm") != "java-token-v2-literal-sensitive"
+        or wire_inventory.get("source_archive_sha256") != EXPECTED_SHA
+        or wire_inventory.get("source_inspected") is not False
+        or wire_inventory.get("production_admitted") is not False
+    ):
+        raise ValueError("previous independent world-state source gate invalid or drifted")
+
+    required = admitted_report.get("required_methods")
+    groups = wire_inventory.get("groups")
+    if not isinstance(required, list) or len(required) != 58 or not isinstance(groups, list):
+        raise ValueError("source admission method set or wire inventory missing")
+
+    by_source: dict[str, dict] = {}
+    for record in required:
+        if not isinstance(record, dict):
+            raise ValueError("malformed existing independent VAR record")
+        name = record.get("source")
+        if (
+            not isinstance(name, str) or not name
+            or record.get("status") != "VAR_REVIEWED"
+            or not isinstance(record.get("var_id"), str)
+            or not isinstance(record.get("semantic_rules"), list)
+            or not record["semantic_rules"]
+            or not all(isinstance(record.get(key), str)
+                       and len(record[key]) == 64
+                       for key in ("normalized_sha256", "body_sha256"))
+            or name in by_source
+        ):
+            raise ValueError("unusable, duplicated or unreviewed prior source record")
+        by_source[name] = record
+
+    reused: list[dict[str, object]] = []
+    for group in groups:
+        if not isinstance(group, dict):
+            raise ValueError("malformed chunk-wire declaration group")
+        owner = group.get("type")
+        if owner not in REUSABLE_WIRE_ROOTS:
+            continue
+        methods = group.get("declarations")
+        if not isinstance(methods, list):
+            raise ValueError("missing inner wire declarations")
+        for method in methods:
+            if not isinstance(method, dict) or not isinstance(method.get("signature"), str):
+                raise ValueError("invalid exact wire method signature")
+            name = f"{owner}#{method['signature']}"
+            record = by_source.get(name)
+            if record is None:
+                continue
+            if (
+                method.get("declaration_only") is not False
+                or method.get("normalized_sha256") != record["normalized_sha256"]
+                or method.get("body_sha256") != record["body_sha256"]
+            ):
+                raise ValueError(f"admitted source declaration fingerprint drift: {name}")
+            reused.append({
+                "source": name,
+                "var_id": record["var_id"],
+                "admitted_semantic_rules": record["semantic_rules"],
+                "normalized_sha256": record["normalized_sha256"],
+                "body_sha256": record["body_sha256"],
+                "authority": "PRIOR_INDEPENDENT_WORLD_STATE_VAR_ONLY",
+                "outer_chunk_wire_admitted": False,
+            })
+    if len(reused) != 7 or len({r["source"] for r in reused}) != 7:
+        raise ValueError("expected seven exact previously admitted inner-wire declarations")
+    return sorted(reused, key=lambda item: str(item["source"]))
+
+
 def run_one(label: str, script: str, path: Path, source: Path,
             db: Path, lock: Path) -> None:
     result = subprocess.run(
@@ -113,11 +214,22 @@ def prepare(source: Path, db: Path, lock: Path, output_dir: Path) -> dict:
             label: check_one(label, staging / filename)
             for label, (_, filename) in JOBS.items()
         }
+        # This is a source-free intersection of the *already* independently
+        # admitted 58-method report with freshly inventoried declaration and
+        # method-body SHA-256 identities. Never infer a new semantic claim.
+        prior = json.loads(ADMITTED_WORLD_STATE.read_text(encoding="utf-8"))
+        wire = json.loads(
+            (staging / JOBS["chunk_wire"][1]).read_text(encoding="utf-8")
+        )
+        reuse = exact_admitted_world_state_reuse(wire, prior)
         report = {
             "schema": 1,
             "kind": "r2c-26_2-parallel-source-frontier-handoff-v1",
             "target": TARGET, "source_archive_sha256": EXPECTED_SHA,
             "inventories": reports, "completed_in_parallel": True,
+            "reused_independently_admitted_inner_wire_methods": reuse,
+            "reused_world_state_gate_id": WORLD_STATE_GATE_ID,
+            "outer_packet_semantics_reused_or_admitted": False,
             "independent_human_source_review_complete": False,
             "independent_atlas_gate_passed": False,
             "heightmap_per_state_source_semantics_admitted": False,

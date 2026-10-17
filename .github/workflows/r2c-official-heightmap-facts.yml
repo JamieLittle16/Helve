@@ -142,6 +142,9 @@ jobs:
           cargo test --locked -p helve-server --lib \
             r2c_disk_first_view::tests::source_chunks_from_two_disk_regions_feed_one_nearest_first_batch \
             -- --exact
+          cargo test --locked -p helve-server --lib \
+            r2c_disk_first_view::tests::nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch \
+            -- --exact
 
       - name: Upload ephemeral source-free candidate facts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

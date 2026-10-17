@@ -60,6 +60,54 @@ jobs:
           )
           assert any(record["method_name"]=="addPacket"
                      for cls in records for record in cls["selected_methods"])
+          # Source-free actual SHA/size-checked Mojang 26.2 classes.
+          # Explicitly independently pinned: these are NOT derived from
+          # the collection code's own constants.
+          class_sha={
+              "net.minecraft.network.protocol.ProtocolInfoBuilder":
+                  "7af68e5a84feaa5c7b4f2c6bff09e8ee2b8f679256624419428c774cf88e8bde",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$1":
+                  "68eb1b383c38b9d4a0fd805dc12dad7b1f725508f69f0d76c653733661cec3a1",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$2":
+                  "8e648dfd4d2ae1878f158706ca6ba80ee2ed3079795fffa57ac08a6ac7238ae0",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$3":
+                  "a8cc3068a41690a0f5e391ffc9453d549eb95c327e4f0f1d40099f59c9f68fc",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$CodecEntry":
+                  "e7b2d2a0c881cd720cb15e122cabb10c49d9f7bc4e1533ec0f4f8dba5f3e8c2b",
+              "net.minecraft.network.protocol.ProtocolInfoBuilder$Implementation":
+                  "5f2f863fe918a43823ba29b9e37ff372dd8efd2e153b9471d5d6270a338b2549",
+          }
+          assert {cls["class_name"]:cls["classfile_sha256"] for cls in records}==class_sha
+          root=records[0]
+          assert [m["method_name"] for m in root["selected_methods"]]==[
+              "addPacket","addPacket","withBundlePacket",
+          ]
+          assert [
+              (m["instruction_count"],m["instruction_shape_sha256"])
+              for m in root["selected_methods"]
+          ]==[
+              (12,"f1a20e916c0dcd8c3f321e42e2aab8fd6a56300f1cb1177fb3a53a9271017a27"),
+              (12,"1cd95818ae419881c72f65e3a9d584aec38a8a10cf804a8d22423a866c7dbaa"),
+              (24,"01a8b43ca46c5e92a17c40aaff795558fe63820bbf55750a862723d52caf41fe"),
+          ]
+          for method in root["selected_methods"][:2]:
+              assert [
+                  (edge["bytecode_offset"],edge["opcode"])
+                  for edge in method["symbolic_edges_candidate"]
+              ] == [(1,"getfield"),(4,"new"),(11,"invokespecial"),(14,"invokeinterface")]
+              assert [
+                  fragment in edge["symbol_candidate"]
+                  for edge,fragment in zip(method["symbolic_edges_candidate"],
+                    ["Field codecs:","ProtocolInfoBuilder$CodecEntry",
+                     "ProtocolInfoBuilder$CodecEntry", "List.add:"])
+              ] == [True]*4
+          bundle=root["selected_methods"][2]
+          assert [(edge["bytecode_offset"],edge["opcode"])
+                  for edge in bundle["symbolic_edges_candidate"]][-5:] == [
+                      (13,"getfield"),(16,"new"),(25,"invokespecial"),
+                      (28,"invokeinterface"),(41,"putfield"),
+                  ]
+          assert "List.add:" in bundle["symbolic_edges_candidate"][-2]["symbol_candidate"]
           for cls in records:
               assert cls["builder_numeric_id_assignment_proven"] is False
               assert len(cls["classfile_sha256"])==64

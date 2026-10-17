@@ -59,6 +59,7 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
     """
     packet=None
     entries=[]
+    seen=set()
     for offset,op,operand in rows:
         if op.startswith(("if","goto","jsr")) or op in ("tableswitch","lookupswitch"):
             raise ValueError("packet registration builder has non-linear control flow")
@@ -74,6 +75,9 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
             if packet is None:
                 raise ValueError("registration call has no preceding packet type")
             name,loaded=packet
+            if name in seen:
+                raise ValueError("duplicate stock client packet type registration")
+            seen.add(name)
             entries.append({
                 "field":name,"candidate_ordinal":len(entries),
                 "getstatic_offset":loaded,"add_packet_offset":offset,

@@ -23,12 +23,12 @@ use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
 
 use crate::r2b_server::R2bPlaySession;
 use crate::r2c_chunk_batch::R2cChunkBatchState;
-use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
-use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_disk_first_view::{
     PendingTeleportDiskFirstViewRequest, import_pending_teleport_disk_first_view,
 };
+use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
+use crate::r2c_section_candidate::append_receipt_bound_empty_chunk_body_candidate;
 use helve_target_26_2::Target26_2R1xContext;
 
 /// **Bounded, development-only** initial load: no world generator, no
@@ -150,7 +150,9 @@ pub(crate) fn audit_receipt_bound_candidate_bodies(
     let facts = CandidateHeightmapFacts::from_oracle_bytes(heightmap_candidate)
         .map_err(|error| format!("heightmap table rejected: {error:?}"))?;
     if registry_count != 66 {
-        return Err(format!("COLD client registry candidate has {registry_count} biomes, not 66"));
+        return Err(format!(
+            "COLD client registry candidate has {registry_count} biomes, not 66"
+        ));
     }
 
     // Bounded one-owner COLD scratch. No packet list, no cloned chunks and
@@ -175,7 +177,8 @@ pub(crate) fn audit_receipt_bound_candidate_bodies(
                 scratch.len()
             ));
         }
-        total_body_bytes = total_body_bytes.checked_add(scratch.len())
+        total_body_bytes = total_body_bytes
+            .checked_add(scratch.len())
             .ok_or_else(|| "COLD candidate body accounting overflow".to_owned())?;
         maximum_body_bytes = maximum_body_bytes.max(scratch.len());
     }

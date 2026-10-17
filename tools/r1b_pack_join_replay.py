@@ -170,15 +170,6 @@ def _validate(value: dict[str, Any]) -> tuple[list[bytes], list[bytes]]:
     if play_section.get("body_concat_sha256") != EXPECTED_PLAY_BODY_SHA256:
         raise PackError("captured Play declared body hash mismatch")
 
-    # The image bytes were validated above; now bind the exact outbound
-    # Configuration order to the *independently recorded* official 66-ID
-    # runtime candidate. This is a COLD consistency check only and DOES
-    # NOT grant receiving-client VAR/SEM source admission.
-    try:
-        biome_profile.verify_selected_biome_profile(config)
-    except biome_profile.ProfileMismatch as error:
-        raise PackError(f"R2C selected biome runtime-ID preflight failed: {error}") from error
-
     return config, play
 
 
@@ -204,6 +195,14 @@ def _write_u64(output, value: int) -> None:
 def pack(input_path: Path, output_path: Path, play_frame_limit: int | None) -> tuple[int, int]:
     value = _read_json(input_path)
     captured_config, full_play = _validate(value)
+    # R2C-specific selected-profile crosscheck belongs at the actual
+    # immutable R1X pack boundary. The shared _validate() is also reused
+    # by R2B Play-bootstrap oracle extraction and synthetic test fixtures.
+    # Never impose this selected biome profile on that generic validator.
+    try:
+        biome_profile.verify_selected_biome_profile(captured_config)
+    except biome_profile.ProfileMismatch as error:
+        raise PackError(f"R2C selected biome runtime-ID preflight failed: {error}") from error
     config = _runtime_configuration(captured_config)
 
     if play_frame_limit is None:

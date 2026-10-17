@@ -150,7 +150,8 @@ def extract(
     return reviewed, missing
 
 
-def run(*, source_zip: Path, db: Path, lock: Path, output: Path) -> dict:
+def run(*, source_zip: Path, db: Path, lock: Path, output: Path,
+        roots: Sequence[Root] = ROOTS) -> dict:
     external = closure._external_output(output)
     conn = vanilla_atlas.connect_db(db)
     try:
@@ -158,7 +159,7 @@ def run(*, source_zip: Path, db: Path, lock: Path, output: Path) -> dict:
         if identity != oracle.SOURCE_ARCHIVE_SHA256:
             raise ReviewError("wrong official 26.2 source identity")
         with zipfile.ZipFile(source_zip) as archive:
-            reviewed, missing = extract(conn, archive)
+            reviewed, missing = extract(conn, archive, roots)
     finally:
         conn.close()
     if not reviewed:

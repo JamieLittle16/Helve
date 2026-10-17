@@ -338,7 +338,7 @@ impl R2cColdWorldPlan {
         }
         // The metadata length can race with a write: limit the actual read
         // independently. Never trust a file-size precheck to cap allocation.
-        let mut compressed = Vec::with_capacity(metadata.len() as usize);
+        let mut compressed = Vec::with_capacity(usize::try_from(metadata.len()).expect("bounded file length"));
         File::open(&level)
             .map_err(|error| R2cColdWorldPlanError::Io {
                 operation: "level.dat",
@@ -350,9 +350,10 @@ impl R2cColdWorldPlan {
                 operation: "level.dat",
                 kind: error.kind(),
             })?;
-        if compressed.len() as u64 > MAX_R2C_LEVEL_FILE_BYTES {
+        let observed = u64::try_from(compressed.len()).expect("bounded read fits u64");
+        if observed > MAX_R2C_LEVEL_FILE_BYTES {
             return Err(R2cColdWorldPlanError::LevelFileTooLarge {
-                observed: compressed.len() as u64,
+                observed,
                 maximum: MAX_R2C_LEVEL_FILE_BYTES,
             });
         }
@@ -1262,7 +1263,7 @@ mod r2c_cold_plan_tests {
         ));
         // Deliberately larger than the COLD cap. The production path rejects
         // from metadata without allocating for untrusted source bytes.
-        let too_large = vec![0_u8; (super::MAX_R2C_LEVEL_FILE_BYTES + 1) as usize];
+        let too_large = vec![0_u8; usize::try_from(super::MAX_R2C_LEVEL_FILE_BYTES + 1).unwrap()];
         fs::write(&path, too_large).unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.clone()),

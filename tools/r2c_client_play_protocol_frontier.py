@@ -83,7 +83,10 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
             )
             if is_direct or is_bundle:
                 if packet is None:
-                    raise ValueError("registration call has no preceding packet type")
+                    raise ValueError(
+                        f"registration call has no preceding packet type: "
+                        f"{direction}@{offset} {operand[:200]}"
+                    )
                 name,loaded=packet
                 if is_bundle and name!="CLIENTBOUND_BUNDLE":
                     raise ValueError("bundle builder consumes wrong packet type")

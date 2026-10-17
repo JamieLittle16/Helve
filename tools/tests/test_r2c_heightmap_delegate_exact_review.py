@@ -114,14 +114,14 @@ class DelegateSourceReviewTests(unittest.TestCase):
             source = root / "official.zip"
             source.write_bytes(source_zip())
             out = root / "review.json"
-            with (patch.object(review, "ROOTS", (TEST_ROOT, MISSING_ROOT)),
-                  patch.object(review.vanilla_atlas, "connect_db",
+            with (patch.object(review.vanilla_atlas, "connect_db",
                                side_effect=lambda _: fake_atlas()),
                   patch.object(review.source_probe, "require_pinned_source",
                                return_value=review.oracle.SOURCE_ARCHIVE_SHA256)):
                 receipt = review.run(
                     source_zip=source, db=root / "atlas.sqlite",
-                    lock=root / "vanilla.lock.toml", output=out
+                    lock=root / "vanilla.lock.toml", output=out,
+                    roots=(TEST_ROOT, MISSING_ROOT),
                 )
                 self.assertEqual(receipt["review_methods"], 1)
                 self.assertEqual(receipt["missing_optional_methods"], 1)
@@ -138,12 +138,14 @@ class DelegateSourceReviewTests(unittest.TestCase):
                     review.run(
                         source_zip=source, db=root / "atlas.sqlite",
                         lock=root / "vanilla.lock.toml", output=out,
+                        roots=(TEST_ROOT, MISSING_ROOT),
                     )
                 with self.assertRaises(review.closure.ClosureError):
                     review.run(
                         source_zip=source, db=root / "atlas.sqlite",
                         lock=root / "vanilla.lock.toml",
                         output=Path(__file__).parents[1] / "review.json",
+                        roots=(TEST_ROOT, MISSING_ROOT),
                     )
 
 

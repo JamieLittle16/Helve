@@ -77,7 +77,7 @@ class ChunkClientWireTests(unittest.TestCase):
             probe.inspect_class(original.replace("8: invokevirtual","1: invokevirtual"),cls)
         with self.assertRaisesRegex(ValueError,"missing symbolic"):
             probe.inspect_class(original.replace("// Method","; Method"),cls)
-        with self.assertRaisesRegex(ValueError,"oversized"):
+        with self.assertRaisesRegex(ValueError,"unbounded"):
             probe.inspect_class("x"*(probe.MAX_CLASS_JAVAP+1),cls)
 
     def test_artifact_lookup_and_source_free_nonadmission(self) -> None:

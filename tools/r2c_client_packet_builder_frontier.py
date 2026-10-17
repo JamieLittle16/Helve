@@ -131,7 +131,7 @@ def builder_roots(jar: zipfile.ZipFile) -> list[tuple[str, str]]:
     candidates = sorted({
         name for name in names
         if (name.startswith(ROOT + "$") or name.startswith(CODEC_ROOT + "$")
-            or name.startswith(DISPATCH_ROOT + "$"))
+            or name == DISPATCH_ROOT + "$Builder.class")
         and name.endswith(".class")
     })
     # The downstream target codec builder is a separate class; it is

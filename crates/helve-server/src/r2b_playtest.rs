@@ -915,9 +915,7 @@ mod r2c_cold_plan_tests {
         symlink(&dir.0, dir.0.join("world-link")).unwrap();
         assert!(matches!(
             R2cColdWorldPlan::new(dir.0.join("world-link")),
-            Err(R2cColdWorldPlanError::Symlink {
-                component: "world"
-            })
+            Err(R2cColdWorldPlanError::Symlink { component: "world" })
         ));
     }
 }

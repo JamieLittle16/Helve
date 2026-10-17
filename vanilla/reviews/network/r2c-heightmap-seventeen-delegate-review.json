@@ -1,0 +1,118 @@
+{
+  "schema": 1,
+  "kind": "r2c-26_2-17-method-heightmap-delegate-source-free-review-v1",
+  "commit_policy": "SOURCE_FREE_LOCAL_REVIEW_NOT_SOURCE_ADMISSION",
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "source_rich_artifact_sha256": "e6cf968b6072ce5f9ee814247a829c78e4f77a24a8492dacfd6a7c050aeb1701",
+  "prior_first_pass": "vanilla/reviews/network/r2c-heightmap-eleven-delegate-first-pass.json",
+  "prior_method_count": 11,
+  "source_excerpt_count": 17,
+  "source_text_committed": false,
+  "reviewed_new_methods": [
+    {
+      "index": 12,
+      "source_identity": "net.minecraft.world.phys.AABB#getXsize()",
+      "body_sha256": "6df60bf9647b439c036089451c9e0c20545a6073ef99afb8724142bb61048fc2",
+      "source_excerpt_sha256": "c5ffd743bb97059a0bdab41309b00e64dc99cdccb22c1bb4569e56b359710078",
+      "source_inspected": true,
+      "source_admitted": false
+    },
+    {
+      "index": 13,
+      "source_identity": "net.minecraft.world.phys.AABB#getZsize()",
+      "body_sha256": "95b0106f14eb900c5070a5a2026ea978f980818464285ca13116b8e1b9116a99",
+      "source_excerpt_sha256": "8d75ea7d89adcf604197e7a7fe2350a6e99f89af52693263910ef210f82c2af1",
+      "source_inspected": true,
+      "source_admitted": false
+    },
+    {
+      "index": 14,
+      "source_identity": "net.minecraft.world.phys.shapes.VoxelShape#isEmpty()",
+      "body_sha256": "0669a4125c4042170c1760cec22b0304bfe241b6e38c8970ed400b2d7fed7ec6",
+      "source_excerpt_sha256": "b76c10536581be996c8df13b5ff91dfa77256999ab7f6b1f9bfaa2373305eff6",
+      "source_inspected": true,
+      "source_admitted": false
+    },
+    {
+      "index": 15,
+      "source_identity": "net.minecraft.world.phys.shapes.VoxelShape#min(final Direction . Axis axis)",
+      "body_sha256": "c144c4f15fe0be4e61990c516a3f459af8b3294a2100df99c4b36235262d6cb9",
+      "source_excerpt_sha256": "0623f2000f12f3ad2b4042e4cc1c58842371758835dc5a04f2156353dbc4fd01",
+      "source_inspected": true,
+      "source_admitted": false
+    },
+    {
+      "index": 16,
+      "source_identity": "net.minecraft.world.phys.shapes.VoxelShape#max(final Direction . Axis axis)",
+      "body_sha256": "f861262434d525eccff33d6c81fd6c1f5913f2e9cd0ba5b03458eeef3661f46f",
+      "source_excerpt_sha256": "d565c78bc6ea6eea9f859da2940db1b08b9c4f6b2122cc60664ace7ad3c9653c",
+      "source_inspected": true,
+      "source_admitted": false
+    },
+    {
+      "index": 17,
+      "source_identity": "net.minecraft.world.phys.AABB#AABB(final double minX , final double minY , final double minZ , final double maxX , final double maxY , final double maxZ)",
+      "body_sha256": "ae7d77bb79251ea9754cae96bfaf495a91da3169a6abd09bd8d40ae879022e26",
+      "source_excerpt_sha256": "5528a88b3c8ac0cb0a28daf9dd14a5e2b48cba9b47607f54635b29caa0a10810",
+      "source_inspected": true,
+      "source_admitted": false
+    }
+  ],
+  "optional_method_not_found": {
+    "owner": "net.minecraft.world.level.material.FlowingFluid",
+    "method": "isEmpty",
+    "parameters": 0,
+    "reason": "No declaration under that owner and arity in pinned Atlas; no conclusion about inherited behavior or other overriding subclasses."
+  },
+  "findings": [
+    {
+      "methods": [
+        12,
+        13
+      ],
+      "rule": "AABB.getXsize()=maxX-minX; getZsize()=maxZ-minZ."
+    },
+    {
+      "methods": [
+        17
+      ],
+      "rule": "AABB six-double constructor normalizes each coordinate pair using Math.min/Math.max independently for X,Y,Z."
+    },
+    {
+      "methods": [
+        14
+      ],
+      "rule": "VoxelShape.isEmpty() delegates to its DiscreteVoxelShape.isEmpty() member, not an independent cached VoxelShape flag."
+    },
+    {
+      "methods": [
+        15
+      ],
+      "rule": "VoxelShape.min(axis) reads DiscreteVoxelShape.firstFull(axis) and getSize(axis), returning POSITIVE_INFINITY when no occupied index lies within size, else VoxelShape.get(axis,index)."
+    },
+    {
+      "methods": [
+        16
+      ],
+      "rule": "VoxelShape.max(axis) reads DiscreteVoxelShape.lastFull(axis), returning NEGATIVE_INFINITY for index <=0, else VoxelShape.get(axis,index)."
+    }
+  ],
+  "unresolved_direct_callees": [
+    "net.minecraft.world.phys.shapes.DiscreteVoxelShape#isEmpty()",
+    "net.minecraft.world.phys.shapes.DiscreteVoxelShape#firstFull(final Direction . Axis axis)",
+    "net.minecraft.world.phys.shapes.DiscreteVoxelShape#lastFull(final Direction . Axis axis)",
+    "net.minecraft.world.phys.shapes.DiscreteVoxelShape#getSize(final Direction . Axis axis)",
+    "net.minecraft.world.phys.shapes.VoxelShape#get(final Direction . Axis axis , final int i)"
+  ],
+  "other_unresolved": [
+    "Concrete voxel shape and collision-shape virtual dispatch for all official block states",
+    "Fluid subtype inheritance/override enumeration and 32,366-state cache bootstrap provenance",
+    "Source SEM and VAR qualification and independent Atlas gate",
+    "Stock client biome numeric IDs/known-pack selection and outer Play lifecycle"
+  ],
+  "first_pass_source_inspected": true,
+  "all_reached_delegates_reviewed": false,
+  "source_semantics_admitted": false,
+  "independent_atlas_gate_passed": false,
+  "production_admitted": false
+}

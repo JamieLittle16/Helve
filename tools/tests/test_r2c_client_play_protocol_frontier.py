@@ -16,16 +16,35 @@ import r2c_client_play_protocol_frontier as probe
 BYTECODE=b"\xca\xfe\xba\xbesynthetic-client-game-protocol"
 
 def fixture(fields:tuple[str,...]=probe.FIELDS)->str:
-    rows=[]
-    offset=0
-    for name in fields:
-        rows.append(f"      {offset}: getstatic #11 // Field net/minecraft/network/protocol/game/GamePacketTypes.{name}:Lnet/minecraft/network/protocol/PacketType;")
-        offset+=3
-        rows.append(f"      {offset}: invokevirtual #14 // Method net/minecraft/network/ProtocolInfoBuilder.addPacket:(Lnet/minecraft/network/protocol/PacketType;)Lnet/minecraft/network/ProtocolInfoBuilder;")
-        offset+=3
-    rows.append(f"      {offset}: return")
-    return "\n".join(["public class net.minecraft.network.protocol.game.GameProtocols {",
-        "  static {};","    Code:",*rows,"}"])
+    present=set(fields)
+    client_targets={11:"CLIENTBOUND_CHUNK_BATCH_FINISHED",
+                    12:"CLIENTBOUND_CHUNK_BATCH_START",
+                    45:"CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT",
+                    94:"CLIENTBOUND_SET_CHUNK_CACHE_CENTER"}
+    server_targets={12:"SERVERBOUND_CHUNK_BATCH_RECEIVED"}
+    def method(name:str,values:dict[int,str],size:int,direction:str)->list[str]:
+        rows=[f"  private static void {name}();","    Code:"]
+        offset=0
+        for i in range(size):
+            token=values.get(i,f"{direction}_TEST_{i}")
+            if token not in present:
+                token=f"{direction}_TEST_{i}"
+            rows.append(
+                f"      {offset}: getstatic #11 // Field net/minecraft/network/protocol/game/GamePacketTypes.{token}:Lnet/minecraft/network/protocol/PacketType;"
+            )
+            offset+=3
+            rows.append(
+                f"      {offset}: invokevirtual #14 // Method net/minecraft/network/protocol/ProtocolInfoBuilder.addPacket:(Lnet/minecraft/network/protocol/PacketType;)Lnet/minecraft/network/protocol/ProtocolInfoBuilder;"
+            )
+            offset+=3
+        rows.append(f"      {offset}: return")
+        return rows
+    return "\n".join([
+        "public class net.minecraft.network.protocol.game.GameProtocols {",
+        *method("lambda$static$2",client_targets,95,"CLIENTBOUND"),
+        *method("lambda$static$1",server_targets,13,"SERVERBOUND"),
+        "}",
+    ])
 
 def jar_bytes(with_class:bool=True)->bytes:
     out=io.BytesIO()
@@ -46,11 +65,17 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
         self.assertFalse(entry["ordered_ordinal_assignment_proven"])
         self.assertFalse(entry["numeric_packet_ids_admitted"])
         self.assertFalse(entry["play_bundle_and_direction_law_admitted"])
-        self.assertEqual(len(entry["selected_registration_methods"]),1)
-        method=entry["selected_registration_methods"][0]
-        self.assertEqual([m["field"] for m in method["packet_field_references"]],
+        self.assertEqual(len(entry["selected_registration_methods"]),2)
+        self.assertEqual(entry["complete_builder_argument_order_for_five_types_candidate"],
+                         probe.EXPECTED_ORDINALS)
+        methods=entry["selected_registration_methods"]
+        self.assertEqual(methods[0]["candidate_complete_add_packet_registrations"],95)
+        self.assertEqual(methods[1]["candidate_complete_add_packet_registrations"],13)
+        self.assertEqual([m["field"] for method in methods
+                          for m in method["packet_field_references"]],
                          list(probe.FIELDS))
-        self.assertEqual(len(method["bounded_nearby_invocation_sites_candidate"]),5)
+        self.assertTrue(all(m["no_conditional_builder_registration_observed"] for m in methods))
+        self.assertFalse(entry["builder_append_to_numeric_id_law_proven"])
         self.assertNotIn("synthetic-client-game-protocol",json.dumps(entry))
 
     def test_missing_duplicate_and_oversized_clients_fail_closed(self)->None:
@@ -58,8 +83,22 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
             probe.inspect(fixture(probe.FIELDS[:-1]))
         with self.assertRaisesRegex(ValueError,"unbounded"):
             probe.inspect("x"*(probe.MAX_JAVAP+1))
-        with self.assertRaisesRegex(ValueError,"too many target-registration"):
-            probe.inspect(fixture(probe.FIELDS*12))
+        many=fixture().replace(
+            "GamePacketTypes.CLIENTBOUND_TEST_1:",
+            "GamePacketTypes.CLIENTBOUND_CHUNK_BATCH_START:"
+        )
+        with self.assertRaisesRegex(ValueError,"index drift"):
+            probe.inspect(many)
+        invalid=fixture().replace(
+            "ProtocolInfoBuilder.addPacket:", "ProtocolInfoBuilder.unrelated:",1
+        )
+        with self.assertRaisesRegex(ValueError,"two packet types"):
+            probe.inspect(invalid)
+        branched=fixture().replace(
+            "       6: getstatic", "       6: ifnull 99"
+        )
+        with self.assertRaisesRegex(ValueError,"non-linear"):
+            probe.inspect(branched)
         with self.assertRaisesRegex(ValueError,"cannot parse"):
             probe.inspect("nothing here")
 
@@ -84,6 +123,10 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
                 report=probe.discover(meta,Path(temp))
         self.assertEqual(report["official_client_sha256"],hashlib.sha256(raw).hexdigest())
         self.assertEqual(report["protocol_registration_candidate"]["target_field_reference_count"],5)
+        self.assertEqual(
+            report["protocol_registration_candidate"]["complete_builder_argument_order_for_five_types_candidate"],
+            probe.EXPECTED_ORDINALS,
+        )
         self.assertFalse(report["source_var_sem_admitted"])
         self.assertFalse(report["production_admitted"])
         self.assertFalse(report["protocol_registration_candidate"]["numeric_packet_ids_admitted"])

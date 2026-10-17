@@ -17,7 +17,10 @@ import tomllib
 from pathlib import Path
 from typing import Any, Sequence
 
-import r1b_join_capture_image as witness
+try:
+    from . import r1b_join_capture_image as witness
+except ImportError:
+    import r1b_join_capture_image as witness
 
 BIOME_REGISTRY = "minecraft:worldgen/biome"
 REGISTRY_PACKET_ID = 7

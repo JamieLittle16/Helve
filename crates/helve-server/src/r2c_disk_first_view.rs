@@ -1025,7 +1025,7 @@ mod tests {
         assert_eq!(wire.buffered_len(), 0);
 
         // Real 26.2 float32 rate acknowledgement: 9.0 chunks/tick.
-        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        session.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
         assert_eq!(
             session.process_one_r2c_chunk_batch_ack(&mut state),
             Ok(ChunkBatchInboundStep::Received {

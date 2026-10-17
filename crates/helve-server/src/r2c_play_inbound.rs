@@ -131,9 +131,9 @@ mod tests {
         assert_eq!(batch.unacknowledged_batches(), 1);
 
         // Serverbound teleport confirmation (ID 0, teleport 1), followed by
-        // source-reviewed float32 chunk batch ACK (ID 12, 9.0f32).
+        // official-client-ordered serverbound batch ACK (ID 11, 9.0f32).
         session
-            .ingest_play(&[2, 0, 1, 5, 12, 0x41, 0x10, 0, 0])
+            .ingest_play(&[2, 0, 1, 5, 11, 0x41, 0x10, 0, 0])
             .unwrap();
         assert_eq!(
             process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
@@ -156,10 +156,26 @@ mod tests {
     }
 
     #[test]
+    fn former_serverbound_ack_id_twelve_is_not_claimed_or_consumed() {
+        let mut session = session();
+        let mut batch = R2cChunkBatchState::new(1);
+        // Packet ID 12 belongs to a *different* serverbound Play type on
+        // official protocol 776. It must not be decoded as a batch rate.
+        session.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        assert_eq!(
+            process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
+            R2cPlayInboundStep::Unclaimed { packet_id: 12 }
+        );
+        assert_eq!(session.buffered_ingress(), 6);
+        assert_eq!(batch.next_chunk_index(), 0);
+        assert_eq!(batch.unacknowledged_batches(), 0);
+    }
+
+    #[test]
     fn fragmented_ack_is_retained_until_complete_and_premature_ack_fails_closed() {
         let mut session = session();
         let mut batch = R2cChunkBatchState::new(1);
-        session.ingest_play(&[5, 12, 0x41]).unwrap();
+        session.ingest_play(&[5, 11, 0x41]).unwrap();
         assert_eq!(
             process_one_r2c_play_inbound(&mut session, &mut batch, 0).unwrap(),
             R2cPlayInboundStep::Incomplete

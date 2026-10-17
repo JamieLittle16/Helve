@@ -468,7 +468,7 @@ mod tests {
             Ok(ChunkBatchStep::WaitingForAcknowledgement)
         );
         assert_eq!(state.next_chunk_index(), 9);
-        conn.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        conn.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
         assert_eq!(
             conn.process_one_r2c_chunk_batch_ack(&mut state),
             Ok(ChunkBatchInboundStep::Received {
@@ -580,7 +580,7 @@ mod tests {
         assert!(outcome.is_ok());
         assert_eq!(conn.buffered_ingress(), 0);
 
-        conn.ingest_play(&[5, 12, 0x41, 0x10, 0, 0]).unwrap();
+        conn.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
         assert_eq!(
             conn.process_one_r2c_chunk_batch_ack(&mut state),
             Err(DriverError::Handler(

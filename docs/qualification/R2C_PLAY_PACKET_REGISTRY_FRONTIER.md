@@ -47,12 +47,13 @@ the complete method-code identities:
 | Chunk batch finish | 11 |
 | Serverbound batch received | **11** |
 
-**Important mismatch:** Helve's existing serverbound ACK *wire ID*
-candidate is **12**, whereas the client's observed `addPacket` builder
-position is **11**. Do **not** silently change the runtime ID or
-silently treat this as a source admission. Independent review of the
-`ProtocolInfoBuilder` output table, bundle/delimiter/reserved slots and
-target PLAY direction is needed to determine the exact numeric ID.
+**Important correction:** The client's observed `addPacket` builder
+position is **11**. The earlier Helve serverbound ACK candidate had ID
+**12**, and parallel PR #349 corrects it to **11**, corroborated by the
+independent generated protocol-776 packet table. That fixes the numeric
+candidate, **not** the independent VAR/SEM admission. Continue reviewing
+the `ProtocolInfoBuilder` output table, bundle/delimiter/reserved slots
+and target PLAY direction before constructing any runtime source gate.
 
 The other four builder positions coincide with Helve's current
 clientbound numeric candidates. They remain *structural evidence*

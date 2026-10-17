@@ -66,7 +66,10 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
         field=GETSTATIC_TYPE.search(operand) if op=="getstatic" else None
         if field:
             if packet is not None:
-                raise ValueError("two packet types loaded before registration call")
+                raise ValueError(
+                    f"two packet types loaded before registration call: "
+                    f"previous={packet[0]}@{packet[1]} next={field.group(1)}@{offset}"
+                )
             name=field.group(1)
             if not name.startswith(direction.upper()+"_"):
                 raise ValueError("packet direction mismatches named builder")

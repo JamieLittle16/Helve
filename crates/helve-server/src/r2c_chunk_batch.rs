@@ -406,7 +406,7 @@ mod tests {
         assert_eq!(clock.next_wake_deadline_ms(900), 900);
         assert!(!clock.poll_tick(999, &mut batch));
         assert!(clock.poll_tick(1_000, &mut batch));
-        assert_eq!(batch.quota, 9.0);
+        assert_eq!(batch.quota.to_bits(), 9.0_f32.to_bits());
         assert!(!clock.poll_tick(1_000, &mut batch));
         assert!(!clock.poll_tick(1_049, &mut batch));
         assert_eq!(clock.next_wake_deadline_ms(1_080), 1_050);
@@ -414,7 +414,7 @@ mod tests {
         // Late I/O wake skips four old deadlines, supplying one tick only.
         assert!(clock.poll_tick(1_263, &mut batch));
         assert_eq!(clock.next_wake_deadline_ms(1_500), 1_300);
-        assert_eq!(batch.quota, 9.0);
+        assert_eq!(batch.quota.to_bits(), 9.0_f32.to_bits());
         assert!(!clock.poll_tick(1_299, &mut batch));
         assert!(clock.poll_tick(1_300, &mut batch));
         assert_eq!(clock.next_wake_deadline_ms(1_400), 1_350);

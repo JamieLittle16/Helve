@@ -68,24 +68,36 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
             if packet is not None:
                 raise ValueError(
                     f"two packet types loaded before registration call: "
-                    f"previous={packet[0]}@{packet[1]} next={field.group(1)}@{offset}"
+                    f"previous={packet[0]}@{packet[1]} next={field.group(1)}@{offset}; "
+                    f"previous packet registration method may need separate review"
                 )
             name=field.group(1)
             if not name.startswith(direction.upper()+"_"):
                 raise ValueError("packet direction mismatches named builder")
             packet=(name,offset)
-        if op.startswith("invoke") and REGISTER_CALL in operand:
-            if packet is None:
-                raise ValueError("registration call has no preceding packet type")
-            name,loaded=packet
-            if name in seen:
-                raise ValueError("duplicate stock client packet type registration")
-            seen.add(name)
-            entries.append({
-                "field":name,"candidate_ordinal":len(entries),
-                "getstatic_offset":loaded,"add_packet_offset":offset,
-            })
-            packet=None
+        if op.startswith("invoke") and "ProtocolInfoBuilder." in operand:
+            is_direct=REGISTER_CALL in operand
+            is_bundle=(
+                "ProtocolInfoBuilder.addBundlePacket:" in operand
+                or "ProtocolInfoBuilder.withBundlePacket:" in operand
+            )
+            if is_direct or is_bundle:
+                if packet is None:
+                    raise ValueError("registration call has no preceding packet type")
+                name,loaded=packet
+                if is_bundle and name!="CLIENTBOUND_BUNDLE":
+                    raise ValueError("bundle builder consumes wrong packet type")
+                if is_direct and name=="CLIENTBOUND_BUNDLE":
+                    raise ValueError("bundle packet unexpectedly uses ordinary addPacket")
+                if name in seen:
+                    raise ValueError("duplicate stock client packet type registration")
+                seen.add(name)
+                entries.append({
+                    "field":name,"candidate_ordinal":len(entries),
+                    "getstatic_offset":loaded,"add_packet_offset":offset,
+                    "bundle_registration":is_bundle,
+                })
+                packet=None
             if len(entries)>MAX_ROWS//3:
                 raise ValueError("unbounded packet builder registrations")
     if packet is not None or not entries:

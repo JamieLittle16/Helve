@@ -10,16 +10,13 @@ use std::path::Path;
 
 use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
 use helve_types::{DimensionId, DimensionTypeId};
-use helve_world_contract::{
-    BLOCK_SECTION_CELLS, BlockSection, SectionBlockPos,
-};
-use helve_world_import::{
-    BiomeDecodeScratch, BlockSectionDecodeScratch, ChunkPayloadLimits,
-    DeflateChunkPayloadDecoder, ExactBiomeDecoder, ImportedBiomeSectionBuilder,
-    ImportedBlockSectionBuilder, NbtLimits, StoredBlockImporter,
-    Target262BlockStateResolver,
-};
+use helve_world_contract::{BLOCK_SECTION_CELLS, BlockSection, SectionBlockPos};
 use helve_world_import::RegionLimits;
+use helve_world_import::{
+    BiomeDecodeScratch, BlockSectionDecodeScratch, ChunkPayloadLimits, DeflateChunkPayloadDecoder,
+    ExactBiomeDecoder, ImportedBiomeSectionBuilder, ImportedBlockSectionBuilder, NbtLimits,
+    StoredBlockImporter, Target262BlockStateResolver,
+};
 use helve_world_load::{PregeneratedRegionLimits, SourceChunkPublicationReceipt};
 use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
@@ -79,20 +76,24 @@ impl ImportedBiomeSectionBuilder<u16> for BiomeBuilder {
     fn build_biomes(&mut self, ids: &[u16]) -> Self::Section {
         debug_assert_eq!(ids.len(), 64);
         let mut section = DirectBiomeSection::filled(ids[0]);
-        section.fill_with(|x, y, z| {
-            ids[usize::from(x) + 4 * usize::from(z) + 16 * usize::from(y)]
-        });
+        section.fill_with(|x, y, z| ids[usize::from(x) + 4 * usize::from(z) + 16 * usize::from(y)]);
         section
     }
 }
 
 type ColdDimension = SemanticDimensionInstance<
-    BlockStateId, DirectBlockSection<BlockStateId>, u16, DirectBiomeSection<u16>,
+    BlockStateId,
+    DirectBlockSection<BlockStateId>,
+    u16,
+    DirectBiomeSection<u16>,
 >;
 
 /// This owns the ONLY imported dimension for this development connection and
 /// its existing immutable source receipts. No publication bytes are produced.
-#[allow(dead_code, reason = "R2C disk import is COLD non-publishing until source admission")]
+#[allow(
+    dead_code,
+    reason = "R2C disk import is COLD non-publishing until source admission"
+)]
 pub(crate) struct ColdImportedView {
     dimension: ColdDimension,
     receipts: Vec<SourceChunkPublicationReceipt>,
@@ -112,7 +113,7 @@ impl ColdImportedView {
 /// Load the first finite world view into one retained semantic dimension.
 /// Exact selected Configuration biome order is *candidate-only*. Unknown
 /// source state/biome/light, missing region/section, nonempty block entities,
-/// unsupported codec, wrong DataVersion or invalid source fail closed.
+/// unsupported codec, wrong `DataVersion` or invalid source fail closed.
 ///
 /// On a failed multi-region import, earlier regions can remain resident in
 /// this temporary owner; the entire owner is dropped and **no Play packet**
@@ -141,7 +142,10 @@ pub(crate) fn import_selected_cold_world(
         ChunkPayloadLimits::new(MAX_CHUNK_BYTES, MAX_CHUNK_BYTES),
         NbtLimits::new(4096, 32768, 32768, 64)
             .map_err(|error| format!("invalid bounded NBT profile: {error:?}"))?,
-        &mut decompressor, &resolver, &mut blocks, &mut block_scratch,
+        &mut decompressor,
+        &resolver,
+        &mut blocks,
+        &mut block_scratch,
     );
     let mut biome_builder = BiomeBuilder;
     let mut biome_scratch = BiomeDecodeScratch::new();
@@ -170,5 +174,9 @@ pub(crate) fn import_selected_cold_world(
         .map_err(|error| format!("source Anvil import rejected: {error:?}"))
     })
     .map_err(|error| format!("selected Configuration biomes rejected: {error:?}"))?
-    .map(|batch| ColdImportedView { dimension, receipts, batch })
+    .map(|batch| ColdImportedView {
+        dimension,
+        receipts,
+        batch,
+    })
 }

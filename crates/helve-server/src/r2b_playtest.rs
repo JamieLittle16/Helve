@@ -16,6 +16,7 @@ use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use std::time::{Duration, Instant};
 
 use helve_connection_driver::{DriverError, OutboundBatch, TransactionResult};
+use helve_generated::BLOCK_STATE_COUNT;
 use helve_target_26_2::{
     R1xContextError, Target26_2R1xContext,
     play_liveness::PLAY_LIVENESS_POLICY,
@@ -236,11 +237,13 @@ pub enum R2bPlaytestExit {
 }
 
 /// Opt-in, **non-publishing** first world preview for one R2B development session.
-/// The selected world path is only validated as a bounded local Anvil root;
-/// no chunks are imported and no Play world packet is ever admitted.
+/// The selected world path is a validated local Anvil root; optional COLD
+/// projection inspection never sends a Play world packet.
 #[derive(Clone, Debug)]
 pub struct R2cColdWorldPlan {
     world: PathBuf,
+    /// Immutable, explicitly selected candidate table (never source admitted).
+    heightmap_candidate: Option<Box<[u8]>>,
 }
 
 #[derive(Debug)]
@@ -255,6 +258,14 @@ pub enum R2cColdWorldPlanError {
     NotDirectory {
         component: &'static str,
     },
+    NotFile {
+        component: &'static str,
+    },
+    WrongHeightmapBytes {
+        observed: u64,
+        expected: usize,
+    },
+    HeightmapCandidate(String),
 }
 
 impl R2cColdWorldPlan {
@@ -278,12 +289,81 @@ impl R2cColdWorldPlan {
                 return Err(R2cColdWorldPlanError::NotDirectory { component });
             }
         }
-        Ok(Self { world })
+        Ok(Self {
+            world,
+            heightmap_candidate: None,
+        })
     }
 
     #[must_use]
     pub fn world(&self) -> &Path {
         &self.world
+    }
+
+    /// Load and validate a separate source-unadmitted 26.2 heightmap state
+    /// table before opening the network listener. Own it once per selected
+    /// development profile, rather than per connection or chunk.
+    ///
+    /// # Errors
+    /// Rejects missing, symlinked, wrong-sized or incoherent fact bytes.
+    pub fn with_candidate_heightmap_file(
+        mut self,
+        candidate_path: &Path,
+    ) -> Result<Self, R2cColdWorldPlanError> {
+        let metadata = fs::symlink_metadata(candidate_path).map_err(|error| {
+            R2cColdWorldPlanError::Io {
+                operation: "heightmap",
+                kind: error.kind(),
+            }
+        })?;
+        if metadata.file_type().is_symlink() {
+            return Err(R2cColdWorldPlanError::Symlink {
+                component: "heightmap",
+            });
+        }
+        if !metadata.is_file() {
+            return Err(R2cColdWorldPlanError::NotFile {
+                component: "heightmap",
+            });
+        }
+        if metadata.len() != BLOCK_STATE_COUNT as u64 {
+            return Err(R2cColdWorldPlanError::WrongHeightmapBytes {
+                observed: metadata.len(),
+                expected: BLOCK_STATE_COUNT,
+            });
+        }
+        // Fixed-size read, plus one trailing byte check if the file changed
+        // after metadata preflight. No unbounded filesystem allocation.
+        let mut bytes = vec![0_u8; BLOCK_STATE_COUNT].into_boxed_slice();
+        let mut reader = File::open(candidate_path).map_err(|error| {
+            R2cColdWorldPlanError::Io {
+                operation: "heightmap",
+                kind: error.kind(),
+            }
+        })?;
+        reader.read_exact(&mut bytes).map_err(|error| R2cColdWorldPlanError::Io {
+            operation: "heightmap",
+            kind: error.kind(),
+        })?;
+        let mut extra = [0_u8; 1];
+        if reader.read(&mut extra).map_err(|error| R2cColdWorldPlanError::Io {
+            operation: "heightmap",
+            kind: error.kind(),
+        })? != 0 {
+            return Err(R2cColdWorldPlanError::WrongHeightmapBytes {
+                observed: BLOCK_STATE_COUNT as u64 + 1,
+                expected: BLOCK_STATE_COUNT,
+            });
+        }
+        crate::r2c_heightmap_facts::CandidateHeightmapFacts::from_oracle_bytes(&bytes)
+            .map_err(|error| R2cColdWorldPlanError::HeightmapCandidate(format!("{error:?}")))?;
+        self.heightmap_candidate = Some(bytes);
+        Ok(self)
+    }
+
+    #[must_use]
+    pub(crate) fn candidate_heightmap_bytes(&self) -> Option<&[u8]> {
+        self.heightmap_candidate.as_deref()
     }
 }
 
@@ -520,6 +600,15 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             imported.chunks(),
             imported.receipts(),
         );
+        if let Some(table) = plan.candidate_heightmap_bytes() {
+            let audit = imported
+                .audit_candidate_bodies(table)
+                .map_err(|reason| R2bPlaytestError::WorldPlan { reason })?;
+            eprintln!(
+                "R2C COLD candidate audit | chunks={} | total_body_bytes={} | maximum_body_bytes={} | packet_queued=false | biome_heightmap_wire_admitted=false",
+                audit.chunks, audit.total_body_bytes, audit.maximum_body_bytes
+            );
+        }
         Some(imported)
     } else {
         None

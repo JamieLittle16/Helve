@@ -1250,7 +1250,9 @@ mod tests {
         };
         let oracle = fs::read(path).expect("official source-locked heightmap table");
         let mut view = ColdImportedView::from_test_source(dimension, receipts, batch);
-        let audit = view.audit_candidate_bodies(&oracle).expect("nine bounded source bodies");
+        let audit = view
+            .audit_candidate_bodies(&oracle)
+            .expect("nine bounded source bodies");
         assert_eq!(audit.chunks, 9);
         assert!(audit.maximum_body_bytes > 8);
         assert!(audit.total_body_bytes >= audit.maximum_body_bytes * 9);

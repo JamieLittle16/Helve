@@ -847,14 +847,7 @@ fn serve_world_projection_wait(
             let Some(send_now_ms) = elapsed_millis(origin) else {
                 return Ok(R2bPlaytestExit::ClockInvalid);
             };
-            let queued = sender
-                .service(session, world, send_now_ms)
-                .map_err(|error| R2bPlaytestError::WorldPublish {
-                    reason: format!("{error:?}"),
-                })?;
-            if queued != 0 {
-                write_play_once(transport, session)?;
-            }
+            service_admitted_play_publication(transport, session, world, sender, send_now_ms)?;
         }
 
         let Some(now_ms) = elapsed_millis(origin) else {
@@ -900,6 +893,26 @@ fn serve_world_projection_wait(
             Err(error) => return Err(transport_error("read", &error)),
         }
     }
+}
+
+/// A single bounded publication opportunity following Play control and
+/// liveness. Keep the driver and socket in their original R2B owner.
+fn service_admitted_play_publication(
+    transport: &mut TcpStream,
+    session: &mut R2bPlaySession,
+    world: &mut ColdImportedView,
+    sender: &mut SourceAdmittedPlayPublisher<'_>,
+    now_ms: u64,
+) -> Result<(), R2bPlaytestError> {
+    let queued = sender
+        .service(session, world, now_ms)
+        .map_err(|error| R2bPlaytestError::WorldPublish {
+            reason: format!("{error:?}"),
+        })?;
+    if queued != 0 {
+        write_play_once(transport, session)?;
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug)]

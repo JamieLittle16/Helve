@@ -21,7 +21,7 @@ def fixture(fields:tuple[str,...]=probe.FIELDS)->str:
                     12:"CLIENTBOUND_CHUNK_BATCH_START",
                     45:"CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT",
                     94:"CLIENTBOUND_SET_CHUNK_CACHE_CENTER"}
-    server_targets={12:"SERVERBOUND_CHUNK_BATCH_RECEIVED"}
+    server_targets={11:"SERVERBOUND_CHUNK_BATCH_RECEIVED"}
     def method(name:str,values:dict[int,str],size:int,direction:str)->list[str]:
         rows=[f"  private static void {name}();","    Code:"]
         offset=0
@@ -84,6 +84,7 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
                          ])
         self.assertTrue(all(m["no_conditional_builder_registration_observed"] for m in methods))
         self.assertFalse(entry["builder_append_to_numeric_id_law_proven"])
+        self.assertTrue(entry["serverbound_ack_builder_index_vs_wire_candidate_discrepancy"])
         self.assertNotIn("synthetic-client-game-protocol",json.dumps(entry))
 
     def test_missing_duplicate_and_oversized_clients_fail_closed(self)->None:

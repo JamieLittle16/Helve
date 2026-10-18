@@ -271,13 +271,12 @@ mod tests {
     fn directly_imported_mixed_section_matches_independent_mutation_reference() {
         let states: Vec<State> = (0..BLOCK_SECTION_CELLS)
             .map(|index| match index % 7 {
-                0 => State::Air,
-                1 => State::Solid,
+                1 | 6 => State::Solid,
                 2 => State::Fluid,
                 3 => State::RandomBlock,
                 4 => State::RandomFluid,
                 5 => State::BothRandom,
-                _ => State::Solid,
+                _ => State::Air,
             })
             .collect();
         let direct = DirectBlockSection::from_decoded_cells(&states, &Facts);

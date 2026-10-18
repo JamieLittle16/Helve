@@ -127,9 +127,13 @@ Even a fully resolved lambda bootstrap does not itself prove:
 - the independently pinned VAR/SEM source review of the exact client and
   shared server source roots.
 
-The server-source Atlas plan also names a distinct
-`net.minecraft.Util` declaration; the observed official client invokes
-`net.minecraft.util.Util`. These must not be silently equated.
+The **old, superseded** Atlas plan named
+`net.minecraft.Util`; the current bounded server-source plan and the
+official 26.2 client both name `net.minecraft.util.Util`.
+This identity correction does **not** establish that the source
+declaration is the exact client code path or prove its exceptional,
+ordered-completion semantics. Keep actual receiving-client
+BootstrapMethods/bytecode verification independent.
 
 **Never promote** `client_numeric_id_assignment_proven` or
 `production_admitted` based on discovery-only output. The heightmap

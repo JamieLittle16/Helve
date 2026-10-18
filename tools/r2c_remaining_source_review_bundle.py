@@ -94,10 +94,12 @@ def _private_source(path: Path) -> dict:
 def generate(*, source: Path, db: Path, lock: Path,
              source_free_dir: Path, private_dir: Path) -> dict:
     """Run the *existing* 3 pinned inspections, then write a nonadmitted index."""
-    public = _outside_fresh_directory(source_free_dir)
-    private = _outside_fresh_directory(private_dir)
+    public = source_free_dir.expanduser().absolute()
+    private = private_dir.expanduser().absolute()
     if (public.is_relative_to(private) or private.is_relative_to(public)):
         raise BundleError("source-free and private review roots must be disjoint")
+    public = _outside_fresh_directory(public)
+    private = _outside_fresh_directory(private)
     public.mkdir(mode=0o700)
     private.mkdir(mode=0o700)
     common = ["--source", str(source), "--db", str(db), "--lock", str(lock)]

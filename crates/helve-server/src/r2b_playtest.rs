@@ -797,7 +797,9 @@ fn serve_unadmitted_stock_client_test(
     let table = plan
         .and_then(R2cColdWorldPlan::candidate_heightmap_bytes)
         .ok_or_else(|| R2bPlaytestError::WorldPlan {
-            reason: "diagnostic live R2C requires an explicitly selected official heightmap candidate".to_owned(),
+            reason:
+                "diagnostic live R2C requires an explicitly selected official heightmap candidate"
+                    .to_owned(),
         })?;
     let world = cold_view
         .as_mut()
@@ -814,12 +816,8 @@ fn serve_unadmitted_stock_client_test(
         world.chunks(),
         world.receipts(),
     );
-    let exit = serve_world_projection_wait(
-        transport,
-        session,
-        Some(&mut *world),
-        Some(&mut publisher),
-    )?;
+    let exit =
+        serve_world_projection_wait(transport, session, Some(&mut *world), Some(&mut publisher))?;
     if matches!(exit, R2bPlaytestExit::LivePeerEof { .. }) {
         let (sent, expected, unacknowledged) = world.diagnostic_batch_progress();
         if sent != expected || unacknowledged != 0 {

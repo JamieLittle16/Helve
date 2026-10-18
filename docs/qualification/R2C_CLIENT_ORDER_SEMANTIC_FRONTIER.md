@@ -198,6 +198,33 @@ duplicate/error handling, known-pack selection and **independent
 VAR/SEM source admission** remain open. Never set any authority flag
 based on this operand witness.
 
+## All explicit `MappedRegistry.register` exit paths (new bounded review)
+
+The existing pinned actual-client JVM probe also classifies **every
+reachable normal return and explicit `athrow`** in the exact
+`MappedRegistry.register` method. Rather than concluding correctness
+from the existence of one path, it follows all five observed conditional
+and goto branches, with a finite acyclic exploration bound. Each path
+records its terminal bytecode offset/opcode and whether it passed the
+previously pinned dense-ID checkpoints `ObjectList.size`,
+`ObjectList.add`, and `Reference2IntMap.put`.
+
+The independently pinned 26.2 client workflow requires early
+`athrow` exits at bytecode offsets **53, 89, 137**, before any of those
+three ID-write checkpoints, and one normal **`areturn` at 275** that
+has passed *all three in order*. Mutation tests require a premature
+normal return and a late explicit throw to be rejected. No official
+source or disassembly is committed; the exported source-free result
+contains only exit classification and checkpoint symbols.
+
+**Precise limitation:** This is a control-flow property for **explicit
+JVM exits**. Any invoked method may itself throw, including after
+partial mutation; no rollback guarantee or duplicate-key/value policy
+is inferred here. The branch guard operands, exact mutation effects,
+registerElements stream traversal, executor error propagation, known-pack
+identity, and independent source VAR/SEM remain **unreviewed/unadmitted**.
+The result cannot authorize production biome ordinals.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

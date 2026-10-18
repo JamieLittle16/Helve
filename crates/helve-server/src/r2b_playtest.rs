@@ -14,7 +14,10 @@ use std::path::{Path, PathBuf};
 
 #[cfg(test)]
 use crate::r2c_cold_demo_import::R2cSourceAdmission;
-use crate::r2c_cold_demo_import::{ColdImportedView, SourceAdmittedPlayPublisher};
+use crate::r2c_cold_demo_import::{
+    ColdImportedView, R2cColdWorldHost, SourceAdmittedPlayPublisher,
+    import_selected_cold_world_host,
+};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_play_inbound::R2cPlayInboundStep;
 use std::time::{Duration, Instant};
@@ -651,6 +654,68 @@ pub fn serve_r2b_playtest_blocking_transport(
         session_epoch,
         image,
         None,
+        None,
+        WorldPublicationMode::NoChunks,
+    )
+}
+
+/// Construct the server-lifetime source-backed world before accepting a
+/// client. It is strictly non-publishing until independent 26.2 VAR/SEM
+/// admission; no session driver or socket participates in source import.
+///
+/// # Errors
+/// Fail closed on unsupported save, candidate biome order, initial teleport,
+/// source receipt, or optional official-heightmap candidate.
+pub fn prepare_r2c_cold_world_host(
+    image: &R2bPlaytestImage,
+    plan: &R2cColdWorldPlan,
+) -> Result<R2cColdWorldHost, String> {
+    let count = with_candidate_biomes_from_context(
+        &image.configuration, |registry| registry.len(),
+    ).map_err(|error| format!("selected Configuration biome names rejected: {error:?}"))?;
+    if count != 66 {
+        return Err(format!("selected Configuration expected 66 biome names, got {count}"));
+    }
+    let teleport = selected_snapshot(&image.server_data).teleport;
+    let host = import_selected_cold_world_host(
+        &image.configuration,
+        &plan.overworld_source_root(),
+        (teleport.x, teleport.y, teleport.z),
+    )?;
+    eprintln!(
+        "R2C server-owned COLD import | root={} | resident_chunks={} | verified_source_receipts={} | world_read=true | chunk_sent=false | source_admitted=false",
+        plan.world().display(),
+        host.chunks(),
+        host.receipts(),
+    );
+    if let Some(table) = plan.candidate_heightmap_bytes() {
+        let audit = host.audit_candidate_bodies(table)?;
+        eprintln!(
+            "R2C server-owned COLD audit | chunks={} | total_body_bytes={} | maximum_body_bytes={} | packet_queued=false | source_admitted=false",
+            audit.chunks, audit.total_body_bytes, audit.maximum_body_bytes
+        );
+    }
+    Ok(host)
+}
+
+/// Borrow an already imported server-owned world for one retained R2B
+/// Play session. Only the ACK/quota cursor is per client; source chunks
+/// and source receipts keep their original server lifetime.
+///
+/// # Errors
+/// Propagates the existing session, teleport or transport failures.
+pub fn serve_r2b_playtest_with_r2c_cold_host(
+    transport: &mut TcpStream,
+    session_epoch: ServerSessionEpoch,
+    image: &R2bPlaytestImage,
+    host: &R2cColdWorldHost,
+) -> Result<R2bPlaytestExit, R2bPlaytestError> {
+    serve_r2b_playtest_with_optional_r2c_plan(
+        transport,
+        session_epoch,
+        image,
+        None,
+        Some(host),
         WorldPublicationMode::NoChunks,
     )
 }
@@ -672,6 +737,7 @@ pub fn serve_r2b_playtest_with_r2c_cold_plan(
         session_epoch,
         image,
         Some(plan),
+        None,
         WorldPublicationMode::NoChunks,
     )
 }
@@ -720,9 +786,10 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     session_epoch: ServerSessionEpoch,
     image: &R2bPlaytestImage,
     plan: Option<&R2cColdWorldPlan>,
+    host: Option<&R2cColdWorldHost>,
     publication_mode: WorldPublicationMode,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
-    if plan.is_some() {
+    if plan.is_some() || host.is_some() {
         // Reuse the already-tested borrowed Configuration bridge exactly
         // once, before any pre-Play or Play bytes are emitted. This is a
         // source-unadmitted *consistency check* only, never numeric-ID
@@ -756,7 +823,9 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     // its receipts live through the original R2B Play service loop; they
     // cannot emit Play chunks until separate client/source VAR/SEM admission.
     // Without the flag, the original R2B behavior remains byte-identical.
-    let mut cold_view = if let Some(plan) = plan {
+    let mut cold_view = if let Some(host) = host {
+        Some(host.attach(&session).map_err(|reason| R2bPlaytestError::WorldPlan { reason })?)
+    } else if let Some(plan) = plan {
         let overworld = plan.overworld_source_root();
         let imported = import_cold_world_for_demo(
             &session,
@@ -1649,6 +1718,7 @@ mod r2c_stock_client_diagnostic {
                 epoch,
                 &image,
                 Some(&plan),
+                None,
                 WorldPublicationMode::UnadmittedStockClientDiagnostic,
             )
             .unwrap_or_else(|error| {

@@ -12,6 +12,8 @@ use std::io::{self, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
+use crate::r2c_cold_demo_import::R2cSourceAdmission;
 use crate::r2c_cold_demo_import::{ColdImportedView, SourceAdmittedPlayPublisher};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_play_inbound::R2cPlayInboundStep;
@@ -644,7 +646,13 @@ pub fn serve_r2b_playtest_blocking_transport(
     session_epoch: ServerSessionEpoch,
     image: &R2bPlaytestImage,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
-    serve_r2b_playtest_with_optional_r2c_plan(transport, session_epoch, image, None)
+    serve_r2b_playtest_with_optional_r2c_plan(
+        transport,
+        session_epoch,
+        image,
+        None,
+        WorldPublicationMode::NoChunks,
+    )
 }
 
 /// Retains the *same* R2B Play owner, with an explicitly selected COLD
@@ -659,7 +667,23 @@ pub fn serve_r2b_playtest_with_r2c_cold_plan(
     image: &R2bPlaytestImage,
     plan: &R2cColdWorldPlan,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
-    serve_r2b_playtest_with_optional_r2c_plan(transport, session_epoch, image, Some(plan))
+    serve_r2b_playtest_with_optional_r2c_plan(
+        transport,
+        session_epoch,
+        image,
+        Some(plan),
+        WorldPublicationMode::NoChunks,
+    )
+}
+
+/// Every product caller supplies `NoChunks`. The only positive variant
+/// exists in Rust's test build, where it remains an unadmitted visual
+/// diagnostic rather than an R2C source/VAR/SEM acceptance decision.
+#[derive(Clone, Copy)]
+enum WorldPublicationMode {
+    NoChunks,
+    #[cfg(test)]
+    UnadmittedStockClientDiagnostic,
 }
 
 #[expect(
@@ -671,6 +695,7 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     session_epoch: ServerSessionEpoch,
     image: &R2bPlaytestImage,
     plan: Option<&R2cColdWorldPlan>,
+    publication_mode: WorldPublicationMode,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
     if plan.is_some() {
         // Reuse the already-tested borrowed Configuration bridge exactly
@@ -741,9 +766,46 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             .awaiting()
             .map(|pending| pending.id)
     );
+    // Only the `cargo test --lib` diagnostic build can produce a positive
+    // witness. This deliberately exercises the *existing* real socket,
+    // importer and publisher, but is neither a production switch nor a
+    // source-admitted R2C client demonstration.
+    #[cfg(test)]
+    if matches!(
+        publication_mode,
+        WorldPublicationMode::UnadmittedStockClientDiagnostic
+    ) {
+        let table = plan
+            .and_then(R2cColdWorldPlan::candidate_heightmap_bytes)
+            .ok_or_else(|| R2bPlaytestError::WorldPlan {
+                reason: "diagnostic live R2C requires an explicitly selected official heightmap candidate".to_owned(),
+            })?;
+        let world = cold_view
+            .as_mut()
+            .ok_or_else(|| R2bPlaytestError::WorldPlan {
+                reason: "diagnostic live R2C requires a verified imported saved world".to_owned(),
+            })?;
+        // Both the receipt audit above and the publisher's own facts/limit
+        // validation must pass before the first chunk enters the driver.
+        let admission = R2cSourceAdmission;
+        let mut publisher = SourceAdmittedPlayPublisher::new(&mut session, table, 0, &admission)
+            .map_err(|reason| R2bPlaytestError::WorldPublish { reason })?;
+        eprintln!(
+            "R2C TEST-ONLY LIVE DIAGNOSTIC | chunks={} | source_receipts={} | stock_client_observation_required=true | source_admitted_for_live_r2c=false | production_admitted=false",
+            world.chunks(),
+            world.receipts(),
+        );
+        return serve_world_projection_wait(
+            transport,
+            &mut session,
+            Some(world),
+            Some(&mut publisher),
+        );
+    }
     // Admission is intentionally uninhabited in product builds. This path
     // keeps the original R2B client behavior unchanged until source VAR/SEM
     // promotes the exact 26.2 source/known-pack/heightmap/Play contract.
+    let _ = publication_mode;
     serve_world_projection_wait(transport, &mut session, cold_view.as_mut(), None)
 }
 
@@ -1367,5 +1429,102 @@ mod r2c_cold_plan_tests {
             R2cColdWorldPlan::new(dir.0.join("world-link")),
             Err(R2cColdWorldPlanError::Symlink { component: "world" })
         ));
+    }
+}
+
+#[cfg(test)]
+mod r2c_stock_client_diagnostic {
+    use std::env;
+    use std::net::TcpListener;
+    use std::path::PathBuf;
+    use std::time::Duration;
+
+    use super::{
+        R2bPlaytestExit, R2cColdWorldPlan, WorldPublicationMode, load_r2b_playtest_image,
+        serve_r2b_playtest_with_optional_r2c_plan,
+    };
+    use crate::{HELVE_STATUS_JSON, ServerSessionEpoch};
+
+    fn required(name: &str) -> String {
+        env::var(name).unwrap_or_else(|_| {
+            panic!("test-only R2C diagnostic requires {name}; see R2C_STOCK_CLIENT_DEMO_RUNBOOK")
+        })
+    }
+
+    /// This is an explicit human-operated external vanilla-client experiment.
+    /// It is *never* executed by ordinary cargo test or GitHub CI, cannot be
+    /// linked into the production binary, and grants no 26.2 source admission.
+    /// Its only socket listener is 127.0.0.1. A failed client observation is
+    /// evidence for the precise selected-world / receiver boundary, not an
+    /// excuse to replace the existing publisher or packet codec.
+    #[test]
+    #[ignore = "requires a real local stock Java 26.2 client, qualified R2B image and selected 26.2 saved world; UNADMITTED diagnostic only"]
+    fn manual_stock_client_receives_real_anvil_chunks() {
+        assert_eq!(
+            required("HELVE_R2C_DIAGNOSTIC_CONFIRM"),
+            "UNADMITTED_LOCAL_ONLY",
+            "must explicitly accept the unadmitted test-build-only client experiment"
+        );
+        let epoch = ServerSessionEpoch::parse_hex(&required("HELVE_R2C_DIAGNOSTIC_EPOCH"))
+            .expect("capture-qualified offline R2B session epoch");
+        let image = load_r2b_playtest_image(
+            &PathBuf::from(required("HELVE_R2C_DIAGNOSTIC_R2B_IMAGE")),
+            HELVE_STATUS_JSON,
+        )
+        .expect("exact source/capture-committed R2B playtest image");
+        let plan = R2cColdWorldPlan::new(PathBuf::from(required("HELVE_R2C_DIAGNOSTIC_WORLD")))
+            .expect("bounded real 26.2 saved-world root")
+            .with_candidate_heightmap_file(&PathBuf::from(required(
+                "HELVE_R2C_HEIGHTMAP_CANDIDATE",
+            )))
+            .expect("exact pinned, bounded 32,366-state official-runtime candidate");
+        let port = env::var("HELVE_R2C_DIAGNOSTIC_PORT")
+            .map_or_else(|_| Ok(25565_u16), |text| text.parse::<u16>())
+            .expect("valid numeric loopback listener port");
+        let listener = TcpListener::bind(("127.0.0.1", port))
+            .expect("loopback demo listener; close another server occupying the port");
+        eprintln!(
+            "R2C UNADMITTED TEST-ONLY DIAGNOSTIC listening on {} | connect stock Minecraft Java 26.2 | source/VAR/SEM for live R2C NOT admitted | this is NOT a production server",
+            listener.local_addr().expect("bound address")
+        );
+        let (mut socket, peer) = listener.accept().expect("one local client connection");
+        socket.set_nodelay(true).expect("same real TCP peer");
+        socket
+            .set_read_timeout(Some(Duration::from_secs(15)))
+            .expect("initial client handshake timeout");
+        socket
+            .set_write_timeout(Some(Duration::from_secs(15)))
+            .expect("client write timeout");
+        eprintln!(
+            "R2C diagnostic stock-client peer={peer}; source world audit and original R2B session follow"
+        );
+        let exit = serve_r2b_playtest_with_optional_r2c_plan(
+            &mut socket,
+            epoch,
+            &image,
+            Some(&plan),
+            WorldPublicationMode::UnadmittedStockClientDiagnostic,
+        )
+        .expect("canonical R2B + same-driver nine-chunk test-only source publication");
+        eprintln!("R2C unadmitted client experiment ended: {exit:?}");
+        match exit {
+            R2bPlaytestExit::LivePeerEof {
+                teleport_acknowledged: true,
+                accepted_keep_alives,
+                discarded_world_frames,
+                ..
+            } => {
+                assert!(
+                    accepted_keep_alives >= 1,
+                    "client must remain connected for at least one keep-alive cycle"
+                );
+                eprintln!(
+                    "R2C DIAGNOSTIC WIRE PASS | teleport ACK=accepted | keep-alives={accepted_keep_alives} | unclaimed gameplay frames={discarded_world_frames} | visual terrain observation is MANUAL, not implied | no source/production admission"
+                );
+            }
+            other => {
+                panic!("client left before a verified teleport/liveness completion: {other:?}")
+            }
+        }
     }
 }

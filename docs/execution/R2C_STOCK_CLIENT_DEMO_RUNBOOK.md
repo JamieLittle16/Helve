@@ -158,6 +158,61 @@ The command is intentionally not a hidden "turn on chunks" switch:
 passing `--r2c-heightmap-candidate` cannot construct the
 uninhabited production `R2cSourceAdmission`.
 
+## 3A. New: isolated local stock-client *diagnostic* over real TCP
+
+The existing `cargo test` build now includes exactly one **ignored**
+external-client test:
+`r2b_playtest::r2c_stock_client_diagnostic::manual_stock_client_receives_real_anvil_chunks`.
+It composes the original full R2B handshake and Play entry, **same
+nonduplicated** COLD 26.2 save importer/source receipts, approved bounded
+R2C section/body projector, quota-aware sender, ACK ingress, teleport
+and keep-alive in the original continuing socket loop. The positive
+`R2cSourceAdmission` witness exists **only inside `cfg(test)`**.
+The product/server binary is unchanged and **cannot** enable it via
+CLI, feature, runtime variable or a copy of the test executable.
+
+Run this from the machine where the **unmodified Minecraft Java 26.2
+client is actually available**, with the real pinned R2B image,
+selected namespaced save root and SHA-checked dense heightmap
+**candidate** already prepared:
+
+```bash
+HELVE_R2C_DIAGNOSTIC_CONFIRM=UNADMITTED_LOCAL_ONLY \
+HELVE_R2C_DIAGNOSTIC_EPOCH=4d7f604f196a43b08987f0b2a27c2663 \
+HELVE_R2C_DIAGNOSTIC_R2B_IMAGE=/tmp/helve-r2b-playtest.bin \
+HELVE_R2C_DIAGNOSTIC_WORLD=/path/to/26.2-save-root \
+HELVE_R2C_HEIGHTMAP_CANDIDATE=/tmp/26.2-heightmap-state-facts-candidate.bin \
+cargo test --locked -p helve-server --lib \
+  r2b_playtest::r2c_stock_client_diagnostic::manual_stock_client_receives_real_anvil_chunks \
+  -- --exact --ignored --nocapture --test-threads=1
+```
+
+The ignored test binds **only `127.0.0.1:25565`** (optional
+`HELVE_R2C_DIAGNOSTIC_PORT` to move the same loopback listener), then
+waits for **one** real client. Connect to `localhost:25565`. The
+diagnostic exits when the client disconnects: stay connected through
+at least one keep-alive cycle, then close the client, inspect the
+test result, the console output and the client logs, and record
+whether blocks **actually rendered**.
+
+The saved-world import is fail-closed: a missing/invalid selected
+source chunk, biome, lighting layer, block-entity assumption or
+heightmap source table aborts rather than being replaced by synthetic
+world bytes. The test may likewise expose a genuine client-side
+packet/registry/ordering failure. **An observed visible terrain result
+is diagnostic evidence only, not source admission or production
+R2C milestone completion.** Record the first failing selected
+packet/client error if it does not render, rather than building another
+parser. A green Rust test proves the socket exited with accepted
+teleport and at least one keep-alive; it does **not** machine-verify
+screen pixels.
+
+The test is not run by ordinary CI, and Rust `--test` builds may be
+slower than the production release path. Never copy its positive
+witness into production. When the selected remaining client/outer-Play
+VAR/SEM gates pass, activate the existing publisher in the normal
+product route and repeat the same observation as the actual R2C exit.
+
 ## 4. Minimal missing engineering to permit *visible* demo
 
 | Obligation | Reuse / exact action | Exit evidence |

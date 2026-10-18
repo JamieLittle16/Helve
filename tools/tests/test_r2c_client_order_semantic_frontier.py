@@ -163,6 +163,12 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                     self.assertTrue(handlers["stream_foreach_directly_covered_by_handler"])
                     self.assertFalse(handlers["rollback_or_partial_mutation_semantics_proven"])
                     self.assertEqual(handlers["jvm_exception_handlers"][0]["target"], 5)
+                    self.assertEqual(handlers["bounded_invoke_sites"], [{
+                        "offset": 1,
+                        "opcode": "invokeinterface",
+                        "symbol": "Method exact/Stream.forEach:()V",
+                        "protected_by_handler_targets": [5],
+                    }])
                 else:
                     self.assertIsNone(record["register_elements_exception_table_witness"])
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),
@@ -344,6 +350,19 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         self.assertEqual(len(record["register_elements_exception_table_witness"][
             "jvm_exception_handlers"
         ]), 1)
+        # A method may contain close/suppressed exception calls as well as
+        # the registration forEach; keep their handler-range coverage exact.
+        augmented = source.replace(
+            "       6: aload_1",
+            "       6: invokevirtual #14 // Method exact/Stream.close:()V",
+        )
+        augmented_calls = probe.bounded_method_shape(
+            augmented, cls, method
+        )["register_elements_exception_table_witness"]["bounded_invoke_sites"]
+        self.assertEqual(augmented_calls[-1]["offset"], 6)
+        self.assertEqual(augmented_calls[-1]["symbol"], "Method exact/Stream.close:()V")
+        self.assertEqual(augmented_calls[-1]["protected_by_handler_targets"], [])
+
         missing = source.replace("    Exception table:", "    Missing table:")
         with self.assertRaisesRegex(ValueError, "one exception table"):
             probe.bounded_method_shape(missing, cls, method)

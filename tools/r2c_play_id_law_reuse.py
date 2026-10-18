@@ -122,14 +122,15 @@ def bind(play: dict, builder: dict, root: Path = ROOT) -> dict:
     require(builder.get("independent_source_var_sem_admitted") is False
             and builder.get("builder_append_to_numeric_id_law_proven") is False,
             "builder probe has invented admission authority")
-    observed = {
-        (cls["class_name"], method["method_name"]):
-        (method["instruction_shape_sha256"], method["instruction_count"])
-        for cls in builder["builder_class_candidates"]
-        for method in cls["selected_methods"]
-    }
+    observed = {}
+    for cls in builder["builder_class_candidates"]:
+        for method in cls["selected_methods"]:
+            key = cls["class_name"], method["method_name"]
+            observed.setdefault(key, set()).add(
+                (method["instruction_shape_sha256"], method["instruction_count"])
+            )
     for method, fingerprint in BUILDER_METHODS.items():
-        require(observed.get(method) == fingerprint,
+        require(fingerprint in observed.get(method, set()),
                 f"downstream client append/dispatch law drift: {method}")
     # Do not silently adopt some extra / missing R0 source record. Verify
     # both its explicit independent gate membership and its SEM link.

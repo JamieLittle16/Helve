@@ -166,28 +166,35 @@ pub(crate) fn plan_pending_teleport_first_view(
     view_distance: i32,
     max_chunks: usize,
 ) -> Result<(ChunkPos, Vec<ChunkPos>), PendingTeleportViewError> {
+    let center = checked_pending_teleport_center(session, profile)?;
+    let requested = plan_first_view_positions(center, view_distance, max_chunks)
+        .map_err(PendingTeleportViewError::Request)?;
+    Ok((center, requested))
+}
+
+/// Validate a retained session's actual pending teleport without rebuilding
+/// the immutable server-hosted first-view selection. This is the same
+/// finite/vertical/signed-coordinate law used by the full COLD planner.
+///
+/// The server host has already source-imported and fixed one view for its
+/// lifetime. Once this checked center matches the host's center, the
+/// deterministic first-view selection is identical without sorting a new
+/// candidate vector for every joining client.
+pub(crate) fn checked_pending_teleport_center(
+    session: &R2bPlaySession,
+    profile: DimensionRuntimeProfile,
+) -> Result<ChunkPos, PendingTeleportViewError> {
     let pending = session
         .teleport_transaction()
         .awaiting()
         .ok_or(PendingTeleportViewError::MissingTeleport)?;
-    plan_explicit_teleport_first_view(
-        pending.x,
-        pending.y,
-        pending.z,
-        profile,
-        view_distance,
-        max_chunks,
-    )
+    checked_explicit_teleport_center(pending.x, pending.y, pending.z, profile)
 }
 
 /// The exact same finite-coordinate, vertical-lattice and signed chunk
 /// selection law can be checked at server startup from the selected R2B
 /// bootstrap destination, before a client or Play session exists. At join
 /// time the pending teleport must still select the same resident view.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
-)]
 pub(crate) fn plan_explicit_teleport_first_view(
     x: f64,
     y: f64,
@@ -196,6 +203,24 @@ pub(crate) fn plan_explicit_teleport_first_view(
     view_distance: i32,
     max_chunks: usize,
 ) -> Result<(ChunkPos, Vec<ChunkPos>), PendingTeleportViewError> {
+    let center = checked_explicit_teleport_center(x, y, z, profile)?;
+    let requested = plan_first_view_positions(center, view_distance, max_chunks)
+        .map_err(PendingTeleportViewError::Request)?;
+    Ok((center, requested))
+}
+
+/// One allocation-free coordinate law shared by the bootstrap and every
+/// session attachment. The source-selected section/view list stays COLD.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
+)]
+fn checked_explicit_teleport_center(
+    x: f64,
+    y: f64,
+    z: f64,
+    profile: DimensionRuntimeProfile,
+) -> Result<ChunkPos, PendingTeleportViewError> {
     if !(x.is_finite() && y.is_finite() && z.is_finite()) {
         return Err(PendingTeleportViewError::NonFiniteTeleport);
     }
@@ -215,13 +240,10 @@ pub(crate) fn plan_explicit_teleport_first_view(
     {
         return Err(PendingTeleportViewError::ChunkCoordinateOutOfRange { x, z });
     }
-    let center = ChunkPos {
+    Ok(ChunkPos {
         x: x as i32,
         z: z as i32,
-    };
-    let requested = plan_first_view_positions(center, view_distance, max_chunks)
-        .map_err(PendingTeleportViewError::Request)?;
-    Ok((center, requested))
+    })
 }
 
 /// Borrowed and finite initial-view request, grouped without owning another

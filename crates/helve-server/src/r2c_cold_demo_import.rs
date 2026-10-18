@@ -31,8 +31,8 @@ use helve_target_26_2::r2c_play_wire::append_chunk_with_light_packet_id;
 use crate::r2c_chunk_batch::{ChunkBatchStep, R2cBatchTickClock, R2cChunkBatchState};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_disk_first_view::{
-    DiskFirstViewRequest, import_disk_first_view, plan_explicit_teleport_first_view,
-    plan_pending_teleport_first_view,
+    DiskFirstViewRequest, checked_pending_teleport_center, import_disk_first_view,
+    plan_explicit_teleport_first_view, plan_pending_teleport_first_view,
 };
 use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
 use crate::r2c_play_inbound::{
@@ -113,7 +113,6 @@ pub struct R2cColdWorldHost {
     receipts: Arc<[SourceChunkPublicationReceipt]>,
     center: ChunkPos,
     profile: DimensionRuntimeProfile,
-    max_chunks: usize,
 }
 
 impl std::fmt::Debug for R2cColdWorldHost {
@@ -136,26 +135,25 @@ impl R2cColdWorldHost {
         receipts: Vec<SourceChunkPublicationReceipt>,
         center: ChunkPos,
         profile: DimensionRuntimeProfile,
-        max_chunks: usize,
     ) -> Self {
         Self {
             dimension: Arc::new(dimension),
             receipts: receipts.into(),
             center,
             profile,
-            max_chunks,
         }
     }
 
-    /// Validate that a new session's actual pending teleport selects exactly
-    /// the original server-owned source window before attaching its own cursor.
-    /// No world data, receipt, or chunk memory is copied.
+    /// Validate the session's pending teleport against the already selected
+    /// source view. The COLD host fixed the selection at import, so only the
+    /// checked center can vary across join attempts; a matching center must
+    /// yield the same deterministic coordinate set. No allocation, sorting,
+    /// filesystem access, receipt copy or packet encoding happens on attach.
     pub(crate) fn attach(&self, session: &R2bPlaySession) -> Result<ColdImportedView, String> {
-        let (center, selected) =
-            plan_pending_teleport_first_view(session, self.profile, VIEW_DISTANCE, self.max_chunks)
-                .map_err(|error| format!("session teleport differs from hosted view: {error:?}"))?;
-        if center != self.center || selected.len() != self.receipts.len() {
-            return Err("session first view differs from server-owned source selection".to_owned());
+        let center = checked_pending_teleport_center(session, self.profile)
+            .map_err(|error| format!("session teleport differs from hosted view: {error:?}"))?;
+        if center != self.center {
+            return Err("session first-view center differs from server-owned world".to_owned());
         }
         Ok(ColdImportedView {
             dimension: Arc::clone(&self.dimension),
@@ -606,7 +604,6 @@ pub(crate) fn import_selected_cold_world_host(
         receipts: view.receipts,
         center,
         profile,
-        max_chunks: CHUNKS,
     })
 }
 

@@ -166,28 +166,35 @@ pub(crate) fn plan_pending_teleport_first_view(
     view_distance: i32,
     max_chunks: usize,
 ) -> Result<(ChunkPos, Vec<ChunkPos>), PendingTeleportViewError> {
+    let center = checked_pending_teleport_center(session, profile)?;
+    let requested = plan_first_view_positions(center, view_distance, max_chunks)
+        .map_err(PendingTeleportViewError::Request)?;
+    Ok((center, requested))
+}
+
+/// Validate a retained session's actual pending teleport without rebuilding
+/// the immutable server-hosted first-view selection. This is the same
+/// finite/vertical/signed-coordinate law used by the full COLD planner.
+///
+/// The server host has already source-imported and fixed one view for its
+/// lifetime. Once this checked center matches the host's center, the
+/// deterministic first-view selection is identical without sorting a new
+/// candidate vector for every joining client.
+pub(crate) fn checked_pending_teleport_center(
+    session: &R2bPlaySession,
+    profile: DimensionRuntimeProfile,
+) -> Result<ChunkPos, PendingTeleportViewError> {
     let pending = session
         .teleport_transaction()
         .awaiting()
         .ok_or(PendingTeleportViewError::MissingTeleport)?;
-    plan_explicit_teleport_first_view(
-        pending.x,
-        pending.y,
-        pending.z,
-        profile,
-        view_distance,
-        max_chunks,
-    )
+    checked_explicit_teleport_center(pending.x, pending.y, pending.z, profile)
 }
 
 /// The exact same finite-coordinate, vertical-lattice and signed chunk
 /// selection law can be checked at server startup from the selected R2B
 /// bootstrap destination, before a client or Play session exists. At join
 /// time the pending teleport must still select the same resident view.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
-)]
 pub(crate) fn plan_explicit_teleport_first_view(
     x: f64,
     y: f64,
@@ -196,6 +203,24 @@ pub(crate) fn plan_explicit_teleport_first_view(
     view_distance: i32,
     max_chunks: usize,
 ) -> Result<(ChunkPos, Vec<ChunkPos>), PendingTeleportViewError> {
+    let center = checked_explicit_teleport_center(x, y, z, profile)?;
+    let requested = plan_first_view_positions(center, view_distance, max_chunks)
+        .map_err(PendingTeleportViewError::Request)?;
+    Ok((center, requested))
+}
+
+/// One allocation-free coordinate law shared by the bootstrap and every
+/// session attachment. The source-selected section/view list stays COLD.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
+)]
+fn checked_explicit_teleport_center(
+    x: f64,
+    y: f64,
+    z: f64,
+    profile: DimensionRuntimeProfile,
+) -> Result<ChunkPos, PendingTeleportViewError> {
     if !(x.is_finite() && y.is_finite() && z.is_finite()) {
         return Err(PendingTeleportViewError::NonFiniteTeleport);
     }
@@ -215,13 +240,10 @@ pub(crate) fn plan_explicit_teleport_first_view(
     {
         return Err(PendingTeleportViewError::ChunkCoordinateOutOfRange { x, z });
     }
-    let center = ChunkPos {
+    Ok(ChunkPos {
         x: x as i32,
         z: z as i32,
-    };
-    let requested = plan_first_view_positions(center, view_distance, max_chunks)
-        .map_err(PendingTeleportViewError::Request)?;
-    Ok((center, requested))
+    })
 }
 
 /// Borrowed and finite initial-view request, grouped without owning another
@@ -489,6 +511,43 @@ mod tests {
             super::plan_explicit_teleport_first_view(0.0, 384.0, 0.0, profile, 10, 9),
             Err(super::PendingTeleportViewError::OutsideVerticalLattice { .. })
         ));
+    }
+
+    #[test]
+    fn checked_session_center_agrees_with_full_view_without_reselecting_chunks() {
+        let profile = test_overworld_lattice();
+        for (x, y, z) in [
+            (10.390_952_126_751_907, 84.0, -5.815_159_807_324_014),
+            (-0.000_001, -64.0, -511.99),
+            (16.0, 319.999, 0.0),
+            (f64::from(i32::MAX) * 16.0, 70.0, 0.0),
+            (f64::from(i32::MIN) * 16.0, 70.0, 0.0),
+        ] {
+            let session = retained_session_with_teleport(x, y, z);
+            let checked = super::checked_pending_teleport_center(&session, profile)
+                .expect("checked session center");
+            for cap in [1, 9, 25] {
+                let (planned, selected) =
+                    super::plan_pending_teleport_first_view(&session, profile, 10, cap)
+                        .expect("full checked source selection");
+                assert_eq!(checked, planned);
+                assert_eq!(
+                    selected,
+                    super::plan_first_view_positions(checked, 10, cap).unwrap()
+                );
+            }
+        }
+        for (x, y, z) in [
+            (f64::NAN, 70.0, 0.0),
+            (0.0, f64::INFINITY, 0.0),
+            (0.0, 384.0, 0.0),
+            (0.0, -64.01, 0.0),
+            ((f64::from(i32::MAX) + 1.0) * 16.0, 70.0, 0.0),
+        ] {
+            let session = retained_session_with_teleport(x, y, z);
+            assert!(super::checked_pending_teleport_center(&session, profile).is_err());
+            assert!(super::plan_pending_teleport_first_view(&session, profile, 10, 25).is_err());
+        }
     }
 
     #[test]
@@ -1329,7 +1388,7 @@ mod tests {
         // nine-chunk fixture verifies that each session shares the exact
         // original dimension and receipt allocations, but not its ACK cursor.
         let host = crate::r2c_cold_demo_import::R2cColdWorldHost::from_test_source(
-            dimension, receipts, center, profile, 9,
+            dimension, receipts, center, profile,
         );
         let second_session = retained_session_with_teleport(0.25, 8.0, 0.25);
         let second = host
@@ -1338,6 +1397,15 @@ mod tests {
         let mut view = host.attach(&session).expect("first session attaches");
         assert!(view.shares_resident_with(&second));
         assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
+        // Different positions within the same preselected chunk (and valid
+        // vertical lattice) attach without rebuilding the view or changing
+        // the host's source receipts.
+        let same_chunk = retained_session_with_teleport(15.99, 15.9, 15.99);
+        let third = host
+            .attach(&same_chunk)
+            .expect("same selected chunk center");
+        assert!(third.shares_resident_with(&view));
+        assert_eq!(third.diagnostic_batch_progress(), (0, 9, 0));
         assert!(
             host.attach(&retained_session_with_teleport(1024.0, 8.0, 0.25))
                 .is_err()

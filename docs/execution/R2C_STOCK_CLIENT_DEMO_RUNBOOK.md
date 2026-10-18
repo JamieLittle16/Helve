@@ -151,6 +151,20 @@ startup audit. Missing or nonempty saved block-entity evidence anywhere
 in the selected 25 still fails closed; the test-only nine-column
 reference rehearsal remains separate.
 
+**Delayed-ACK/control interleave qualification:** The 25-source
+retained-TCP regression also deliberately pauses after its *first*
+finished chunk batch, confirms a 120 ms bounded socket read does
+**not** receive a subsequent batch without an ACK, then sends
+serverbound teleport confirmation (ID 0, pending sequence 1) followed
+by the first chunk-batch ACK (ID 11, client rate 9.0). It requires
+both the original teleport and batch state to commit correctly and
+all 25 chunks to finish with zero unacknowledged batches. This
+exercise is built into the same official Java 25 heightmap workflow
+already running the 25-source test—no new isolated codec or protocol
+oracle was introduced. The 120 ms stall is a bounded behavioral
+assertion, not a latency/performance benchmark or real-client
+sustained-connection proof.
+
 **Multi-batch live TCP regression:** The existing test
 `nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch`
 has a companion

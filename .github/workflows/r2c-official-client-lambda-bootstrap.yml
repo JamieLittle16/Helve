@@ -104,6 +104,16 @@ jobs:
                          "RegistryLoadTask.lambda$registerElements$2:")
           assert task_root["success_error_dispatch_callsite_shapes_pinned"]
           assert not task_root["full_register_or_error_semantics_proven"]
+          opcode_shapes = task_root["register_consumer_opcode_shapes_candidate"]
+          assert [entry["handler"] for entry in opcode_shapes] == [
+              "lambda$registerElements$0", "lambda$registerElements$1",
+              "lambda$registerElements$2",
+          ]
+          assert all(1 <= entry["bounded_instruction_count"] <= 48
+                     for entry in opcode_shapes)
+          print("Exact source-free callback opcode skeletons:",
+                [(entry["handler"], entry["source_free_opcode_offsets"])
+                 for entry in opcode_shapes])
           callbacks = task_root["register_consumer_delegate_invocations_candidate"]
           assert [entry["handler"] for entry in callbacks] == [
               "lambda$registerElements$0",

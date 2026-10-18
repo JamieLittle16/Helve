@@ -116,7 +116,7 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError,"bundle is not registration zero"):
             probe.inspect(without_bundle)
-        with self.assertRaisesRegex(ValueError,"ambiguous clientbound Play bundle"):
+        with self.assertRaisesRegex(ValueError,"duplicate"):
             probe.inspect(fixture().replace(
                 "GamePacketTypes.CLIENTBOUND_TEST_1:",
                 "GamePacketTypes.CLIENTBOUND_BUNDLE:"

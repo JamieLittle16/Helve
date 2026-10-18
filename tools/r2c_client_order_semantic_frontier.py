@@ -207,7 +207,13 @@ def sequence_normal_branch_witness(
         ("target", "target"),
     ]:
         raise ValueError("Util.sequence empty/single/multiple branch shape drift")
-    expected_calls = [list(wanted[:1]), list(wanted[:2]), list(wanted)]
+    # The singleton future also has its own thenApply(List::of) path;
+    # only the multiple-future branch invokes allOf before thenApply.
+    expected_calls = [
+        list(wanted[:1]),
+        [wanted[0], wanted[1], wanted[3]],
+        list(wanted),
+    ]
     if [item["ordered_distinct_critical_invokes"] for item in found] != expected_calls:
         raise ValueError("Util.sequence distinct critical invokes do not partition by exit")
     # A repeated List.size on the multi-input branch can be source-valid,

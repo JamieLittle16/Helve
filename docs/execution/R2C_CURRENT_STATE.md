@@ -173,6 +173,29 @@ explicitly false. An operator must retain the exact Git commit,
 client/server transcripts and visual proof alongside the source-free
 record. No user-private save, source-rich file or binary is committed.
 
+## Direct reference section COLD construction cleanup
+
+The source import path previously filled each 4,096-cell reference
+block section with air and replayed every decoded cell via 4,096
+individual `BlockSection::replace` calls. The transparent
+`DirectBlockSection` reference type now provides
+`from_decoded_cells`: copy the already bounded, decoded cell slice into
+a single directly owned array and derive non-air, counted-fluid,
+random-block and random-fluid summaries in **one traversal**.
+The R2C COLD builder uses this path only for a full decoded section;
+the existing uniform construction and all runtime mutation behavior
+remain unchanged.
+
+An independent mixed-state test compares every returned cell and all
+summary counters against the original mutation-by-mutation reference;
+it also checks post-import mutation and malformed partial input. The
+existing 9/25-column real-Anvil import, receipt resolution and
+official-heightmap TCP/ACK regressions continue through the same
+server-owned world. This is a bounded COLD import-path simplification,
+**not a measured speedup, production storage-policy selection,
+source-admission claim, or extra HOT block mutation work**. M0.3D
+target-machine qualification remains open.
+
 ## Performance policy: between the R2C demo and R2D
 
 For the **first constrained R2C demo**, prefer the already-correct

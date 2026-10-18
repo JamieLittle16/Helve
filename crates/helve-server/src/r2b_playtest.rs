@@ -915,11 +915,12 @@ pub(crate) fn serve_world_projection_wait(
                     // COLD-only stock-client experiment, without another parser,
                     // packet copy or production HOT-path trace.
                     #[cfg(test)]
-                    if publisher.is_some() && discarded_world_frames < 16 {
-                        eprintln!(
-                            "R2C TEST-ONLY unclaimed Play inbound | packet_id={packet_id} | elapsed_ms={now_ms} | action=discard_in_diagnostic_only"
-                        );
-                    }
+                    log_unclaimed_diagnostic(
+                        publisher.is_some(),
+                        discarded_world_frames,
+                        packet_id,
+                        now_ms,
+                    );
                     let _ = packet_id;
                     discard_one_complete_play_frame(session)?;
                     discarded_world_frames = discarded_world_frames
@@ -1026,6 +1027,15 @@ impl OutboundBatch for DiscardedPlayFrame {
 
     fn outbound_frames(&self) -> &[Self::Body] {
         &[]
+    }
+}
+
+#[cfg(test)]
+fn log_unclaimed_diagnostic(publishing: bool, discarded: u64, packet_id: i32, now_ms: u64) {
+    if publishing && discarded < 16 {
+        eprintln!(
+            "R2C TEST-ONLY unclaimed Play inbound | packet_id={packet_id} | elapsed_ms={now_ms} | action=discard_in_diagnostic_only"
+        );
     }
 }
 

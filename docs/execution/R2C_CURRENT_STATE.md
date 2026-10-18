@@ -3,6 +3,7 @@
 **As of:** 18 October 2026  
 **Post-visual audited `main` baseline:** `093ae2cee68c86706beebaeb6986d5c088d62e57` (PR #387)  
 **Server-lifetime COLD owner merged:** `c9a03549c4de915129591c693a36b8960e7445bb` (PR #389; normal server path, nonpublishing)  
+**Follow-on ownership improvements merged:** PR #392 (allocation-free checked session attach) and PR #393 (25-source server-host selection), on `main` at `437ca9a532906412c3620d605b99f9d799b22ef8` before this qualification.  
 **Target:** Minecraft Java 26.2, protocol 776, DataVersion 4903  
 **Milestone state:** **VISUAL TEST-ONLY CHECKPOINT ACHIEVED: 25 real Anvil chunks sent, central 3×3 visibly rendered in the unmodified stock client; production source admission and optimized product integration NOT YET CLOSED**  
 **Next action:** [Post-visual architecture audit and pre-R2D closure plan](R2C_POST_VISUAL_PRE_R2D_AUDIT_2026-10-18.md) and [stock-client runbook](R2C_STOCK_CLIENT_DEMO_RUNBOOK.md)
@@ -88,6 +89,18 @@ still represents the demonstrated mesh-ready neighborhood, not a claimed
 25-column visible world. This changes only up-front source import cost and
 resident COLD shape; **ordinary Play chunk publication remains disabled**
 and no optimized storage-policy or source/VAR/SEM admission is implied.
+
+**25-source ownership regression (follow-on qualification):** A hermetic
+four-signed-region, 25-Anvil-column test uses the already existing
+`WorldFixture`, bounded typed import, complete nearest-first receipt
+ordering and the actual `R2cColdWorldHost` shared-attacher boundary. It
+checks two independent Play sessions reuse the exact same resident and
+receipt allocations with fresh, unadvanced cursors. Removing a required
+source region after hosting cannot affect already resident attachments;
+a *new* import must fail closed, without queueing Play data. This test
+uses the existing uncompressed test-only Anvil writer and does **not**
+substitute for a product startup test on an actual 26.2 save, a target
+hardware result, or the source/VAR/SEM publication gate.
 
 **Scope is deliberately limited:** this is a server-lifetime
 **immutable COLD world**, not a writable region-owned simulation executor.

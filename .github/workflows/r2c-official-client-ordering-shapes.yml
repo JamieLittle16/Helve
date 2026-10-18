@@ -109,12 +109,19 @@ jobs:
               [{"branch_offset": 6, "arm": "target"},
                {"branch_offset": 23, "arm": "target"}],
           ]
-          assert [path["ordered_critical_invokes"] for path in sequence_paths] == [
+          assert [path["ordered_distinct_critical_invokes"] for path in sequence_paths] == [
               ["List.isEmpty:"],
               ["List.isEmpty:", "List.size:"],
               ["List.isEmpty:", "List.size:", "CompletableFuture.allOf:",
                "CompletableFuture.thenApply:"],
           ]
+          # Preserve repeated source operations for human review; the path
+          # contract pins required first-occurrence order, not one invocation
+          # per symbol. Do not silently discard the original call trace.
+          print("Official Util.sequence critical calls by normal return:", [
+              (path["return_offset"], path["ordered_critical_invokes"])
+              for path in sequence_paths
+          ])
           assert all(
               record["util_sequence_three_normal_branch_witness"] is None
               for record in methods

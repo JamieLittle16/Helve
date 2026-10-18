@@ -127,6 +127,28 @@ JAVAP_LOADER = """public class net.minecraft.resources.RegistryDataLoader {
 
 
 
+JAVAP_LOADER_VERBOSE = JAVAP_LOADER.replace(
+    "        6: areturn\n\n  private static java.util.Map lambda$load$0",
+    "        6: invokedynamic #42,  0 // InvokeDynamic #0:get:()Ljava/util/function/Supplier;\n"
+    "       11: invokestatic #44 // Method java/util/concurrent/CompletableFuture.supplyAsync:()Ljava/util/concurrent/CompletableFuture;\n"
+    "       14: invokedynamic #45,  0 // InvokeDynamic #1:apply:()Ljava/util/function/Function;\n"
+    "       19: areturn\n\n  private static java.util.Map lambda$load$0",
+) + """BootstrapMethods:
+  0: #73 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+    Method arguments:
+      #60 ()Ljava/lang/Object;
+      #62 REF_invokeStatic net/minecraft/resources/RegistryDataLoader.lambda$load$0:(Ljava/util/List;)Ljava/util/Map;
+      #65 ()Ljava/util/Map;
+  1: #73 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(Ljava/lang/Object;)Ljava/lang/invoke/CallSite;
+    Method arguments:
+      #67 (Ljava/lang/Object;)Ljava/lang/Object;
+      #69 REF_invokeStatic net/minecraft/resources/RegistryDataLoader.lambda$load$1:(Ljava/util/Map;)Ljava/util/concurrent/CompletableFuture;
+      #72 ()Ljava/util/concurrent/CompletableFuture;
+InnerClasses:
+  public static final #85= #81 of #83;
+"""
+
+
 JAVAP_TASK_ROOTS = {
     "net.minecraft.resources.RegistryLoadTask": """public abstract class net.minecraft.resources.RegistryLoadTask {
   public java.util.concurrent.CompletableFuture load(net.minecraft.resources.RegistryOps$RegistryInfoLookup, java.util.concurrent.Executor);
@@ -206,6 +228,8 @@ def mock_javap(args: list[str], **kwargs: object) -> subprocess.CompletedProcess
         return subprocess.CompletedProcess(args, 0, JAVAP_COLLECTOR, "")
     if "-c" in args and probe.CONTENTS_CLASS in args:
         return subprocess.CompletedProcess(args, 0, JAVAP_CONTENTS, "")
+    if "-v" in args and probe.LOADER_CLASS in args:
+        return subprocess.CompletedProcess(args, 0, JAVAP_LOADER_VERBOSE, "")
     if "-c" in args and probe.LOADER_CLASS in args:
         return subprocess.CompletedProcess(args, 0, JAVAP_LOADER, "")
     if "-c" in args and args[-1] in JAVAP_TASK_ROOTS:
@@ -389,6 +413,14 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
             )
             self.assertTrue(all(not entry["bootstrap_linkage_proven"]
                                 for entry in evidence["async_lambda_candidates"]))
+            links = evidence["factory_lambda_bootstrap_candidates"]
+            self.assertEqual([link["implementation_method_candidate"] for link in links],
+                             ["lambda$load$0", "lambda$load$1"])
+            self.assertEqual([link["invokedynamic_offset"] for link in links], [6, 14])
+            self.assertTrue(all(link["constant_pool_linkage_inspected"] for link in links))
+            self.assertTrue(all(not link["invocation_order_semantics_admitted"]
+                                for link in links))
+            self.assertFalse(evidence["bootstrap_linkage_source_reviewed"])
             self.assertFalse(evidence["source_inspected"])
             modified = JAVAP_LOADER.replace(
                 "net.minecraft.server.packs.resources.ResourceProvider",
@@ -413,6 +445,52 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                 probe.subprocess, "run", side_effect=mock_javap,
             ), self.assertRaisesRegex(ValueError, "missing or duplicated"):
                 probe.registry_loader_overload_candidate(jar)
+
+    def test_factory_bootstrap_links_reject_drift_ambiguity_and_unknown_methods(self) -> None:
+        declared = {"lambda$load$0", "lambda$load$1"}
+        normal = probe.factory_lambda_bootstrap_candidates(JAVAP_LOADER_VERBOSE, declared)
+        self.assertEqual(len(normal), 2)
+        self.assertEqual(normal[0]["bootstrap_table_index"], 0)
+        self.assertEqual(normal[1]["bootstrap_table_index"], 1)
+        self.assertNotIn("BootstrapMethods", json.dumps(normal))
+        self.assertNotIn("public static", json.dumps(normal))
+
+        changes = (
+            (JAVAP_LOADER_VERBOSE.replace("InvokeDynamic #1:apply",
+                                           "InvokeDynamic #14:apply"),
+             "absent bootstrap index"),
+            (JAVAP_LOADER_VERBOSE.replace("lambda$load$1:", "lambda$unknown$1:"),
+             "ambiguous or undeclared"),
+            (JAVAP_LOADER_VERBOSE.replace(
+                "LambdaMetafactory.metafactory:",
+                "StringConcatFactory.makeConcatWithConstants:",
+                1,
+             ), "not the selected LambdaMetafactory"),
+            (JAVAP_LOADER_VERBOSE.replace("BootstrapMethods:", "OtherMethods:"),
+             "exactly one BootstrapMethods"),
+            (JAVAP_LOADER_VERBOSE.replace(
+                "  1: #73 REF_invokeStatic",
+                "  0: #73 REF_invokeStatic",
+            ), "duplicate"),
+            (JAVAP_LOADER_VERBOSE.replace(
+                "  1: #73 REF_invokeStatic",
+                "  4: #73 REF_invokeStatic",
+            ), "absent bootstrap index"),
+            (JAVAP_LOADER_VERBOSE.replace(
+                "        6: invokedynamic #42",
+                "        6: invokestatic #42",
+            ).replace(
+                "       14: invokedynamic #45",
+                "       14: invokestatic #45",
+            ), "no inspected invokedynamic"),
+        )
+        for drifted, expected in changes:
+            with self.subTest(expected=expected), self.assertRaisesRegex(ValueError, expected):
+                probe.factory_lambda_bootstrap_candidates(drifted, declared)
+        with self.assertRaisesRegex(ValueError, "undeclared"):
+            probe.factory_lambda_bootstrap_candidates(
+                JAVAP_LOADER_VERBOSE, {"lambda$load$0"},
+            )
 
     def test_loader_lambdas_fail_closed_without_exact_declarations(self) -> None:
         candidates = probe.loader_async_lambda_candidates(JAVAP_LOADER)
@@ -592,6 +670,8 @@ class OfficialClientSourceFrontierTests(unittest.TestCase):
                       loader["selected_overload_invoke_sites_candidate"]["invocations"][0]
                       ["symbolic_target"])
         self.assertFalse(loader["client_registration_order_admitted"])
+        self.assertEqual(len(loader["factory_lambda_bootstrap_candidates"]), 2)
+        self.assertFalse(loader["bootstrap_linkage_source_reviewed"])
         roots = result["registry_task_root_candidates"]
         self.assertEqual([r["class_name"] for r in roots], [
             "net.minecraft.resources.RegistryLoadTask",

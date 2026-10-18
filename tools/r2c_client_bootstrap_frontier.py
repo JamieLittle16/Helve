@@ -230,8 +230,21 @@ def bounded_registration_callback_opcodes(disassembly: str) -> list[dict]:
                     raise ValueError("unbounded registration callback code")
         if not rows or not rows[-1][1].endswith("return"):
             raise ValueError("registration callback has no trailing return")
+        fields = []
+        for offset, opcode, operand in rows:
+            if opcode != "getfield":
+                continue
+            if "// Field " not in operand:
+                raise ValueError("callback getfield lacks exact symbolic field identity")
+            identity = operand.split("// Field ", 1)[1].strip()
+            if not identity or len(identity) > 512:
+                raise ValueError("callback getfield identity is unbounded")
+            fields.append({"offset": offset, "field": identity})
+            if len(fields) > 8:
+                raise ValueError("callback field reference limit exceeded")
         output.append({
             "handler": name,
+            "bounded_field_refs": fields,
             "source_free_opcode_offsets": [
                 {"offset": offset, "opcode": opcode}
                 for offset, opcode, _ in rows

@@ -127,6 +127,28 @@ The **next actions are not another rewrite of the importer or session spine**. F
 4. Finish M0.3D section selection and R2C.6 reference/direct/cache/share performance tournament using controlled target-hardware evidence.
 5. Red-team bounded TCP/ACK/keepalive/reconnect/memory/resource behavior before beginning R2D sustained-world qualification.
 
+## Post-visual evidence reproducibility tooling (unadmitted)
+
+The existing `tools/r2c_stock_client_diagnostic.py` launcher now offers
+`--evidence-json` as an optional, COLD-only source-free input digest
+snapshot. It reuses the already implemented 9/25-position selector and
+saved-block-entity source auditor. An external, fresh `0600` JSON records
+the exact selected chunk coordinates, SHA-256/length commitments for
+`level.dat` and the four selected Anvil regions, the selected R2B
+image and heightmap candidate. A staged unmodified vanilla source must
+match its disposable copy; post-test rehashing refuses a success record
+if any selected inputs changed. The output is never generated on a
+failed Rust rehearsal or failed ignored real-client test.
+
+**Qualification scope:** this freezes reproducible **input identity**
+and the fact that a local test transport completed. It does not
+archive client video/logs, establish an independent rendered-pixels
+observation, admit Minecraft source VAR/SEM or populate the uninhabited
+production `R2cSourceAdmission` witness. All status booleans are
+explicitly false. An operator must retain the exact Git commit,
+client/server transcripts and visual proof alongside the source-free
+record. No user-private save, source-rich file or binary is committed.
+
 ## Performance policy: between the R2C demo and R2D
 
 For the **first constrained R2C demo**, prefer the already-correct

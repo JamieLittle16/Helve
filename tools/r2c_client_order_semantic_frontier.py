@@ -164,6 +164,7 @@ def sequence_normal_branch_witness(
                     for branch, arm in decisions
                 ],
                 "ordered_critical_invokes": list(calls),
+                "ordered_distinct_critical_invokes": list(dict.fromkeys(calls)),
             })
             if len(found) > 3:
                 raise ValueError("unexpected extra Util.sequence normal-return path")
@@ -207,8 +208,18 @@ def sequence_normal_branch_witness(
     ]:
         raise ValueError("Util.sequence empty/single/multiple branch shape drift")
     expected_calls = [list(wanted[:1]), list(wanted[:2]), list(wanted)]
-    if [item["ordered_critical_invokes"] for item in found] != expected_calls:
-        raise ValueError("Util.sequence critical invokes do not partition by exit")
+    if [item["ordered_distinct_critical_invokes"] for item in found] != expected_calls:
+        raise ValueError("Util.sequence distinct critical invokes do not partition by exit")
+    # A repeated List.size on the multi-input branch can be source-valid,
+    # but duplicates of the other critical steps remain unexpected. Retain
+    # every observed critical invocation (including repeats) in evidence.
+    for item in found:
+        calls = item["ordered_critical_invokes"]
+        if any(calls.count(symbol) != 1 for symbol in wanted if
+               symbol in calls and symbol != "List.size:"):
+            raise ValueError("Util.sequence repeated a critical non-size invocation")
+        if calls.count("List.size:") > 3:
+            raise ValueError("Util.sequence has an unbounded extra size check")
     return found
 
 

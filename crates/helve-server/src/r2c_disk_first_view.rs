@@ -1302,6 +1302,107 @@ mod tests {
     #[test]
     #[expect(
         clippy::too_many_lines,
+        reason = "one 25-source multi-region regression checks complete ownership, repeat attachment, and missing-source fail-closed behavior"
+    )]
+    fn twenty_five_disk_chunks_share_one_host_and_missing_region_fails_closed() {
+        use crate::r2c_cold_demo_import::{ColdDimension, R2cColdWorldHost, SELECTED_VISIBLE_CHUNKS};
+
+        let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
+        let first = retained_session_with_teleport(0.25, 8.0, 0.25);
+        let (center, positions) = super::plan_pending_teleport_first_view(
+            &first, profile, 10, SELECTED_VISIBLE_CHUNKS,
+        )
+        .expect("25-source first view");
+        assert_eq!(center, ChunkPos { x: 0, z: 0 });
+        assert_eq!(positions.len(), SELECTED_VISIBLE_CHUNKS);
+        assert_eq!(positions[0], center);
+
+        let world = WorldFixture::new();
+        world.write_chunks(&positions);
+        let mut dimension = ColdDimension::new(DimensionId(2), profile);
+        let resolver = Target262BlockStateResolver;
+        let mut block_builder = BlockBuilder;
+        let mut block_scratch = BlockSectionDecodeScratch::new();
+        let mut decompressor = UncompressedChunkPayloadDecoder;
+        let mut importer = StoredBlockImporter::new(
+            ChunkPayloadLimits::new(32 * SECTOR, 32 * SECTOR),
+            NbtLimits::new(512, 4096, 4096, 32).unwrap(),
+            &mut decompressor,
+            &resolver,
+            &mut block_builder,
+            &mut block_scratch,
+        );
+        let registry = OrderedBiomeRegistry::new(4903, &["minecraft:plains"]).unwrap();
+        let mut biome_builder = BiomeBuilder;
+        let mut biome_scratch = BiomeDecodeScratch::new();
+        let mut biome_decoder =
+            ExactBiomeDecoder::new(&registry, &mut biome_builder, &mut biome_scratch);
+        let mut receipts = Vec::new();
+        let request = super::PendingTeleportDiskFirstViewRequest {
+            world: &world.root,
+            profile,
+            view_distance: 10,
+            max_chunks: SELECTED_VISIBLE_CHUNKS,
+            limits: PregeneratedRegionLimits {
+                region: RegionLimits::new(32 * SECTOR, SECTOR),
+                max_external_bytes: 8 * SECTOR,
+            },
+        };
+        let (imported_center, cursor) = super::import_pending_teleport_disk_first_view(
+            &first,
+            request,
+            &mut dimension,
+            &mut importer,
+            &mut biome_decoder,
+            &mut receipts,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        )
+        .expect("all 25 genuine chunks import from four signed Anvil regions");
+        assert_eq!(imported_center, center);
+        assert_eq!(dimension.resident_chunk_count(), SELECTED_VISIBLE_CHUNKS);
+        assert_eq!(receipts.len(), SELECTED_VISIBLE_CHUNKS);
+        assert_eq!(cursor.next_chunk_index(), 0);
+        assert_eq!(first.queued_egress(), 0);
+        for (receipt, position) in receipts.iter().zip(&positions) {
+            assert_eq!(receipt.installed().handle.position, *position);
+            assert!(receipt.resolve_explicitly_empty(&dimension).is_ok());
+        }
+
+        let host = R2cColdWorldHost::from_test_source(dimension, receipts, center, profile);
+        let first_view = host.attach(&first).expect("first client attaches");
+        let second = retained_session_with_teleport(15.75, 9.0, 15.75);
+        let second_view = host.attach(&second).expect("same-center client attaches");
+        assert!(first_view.shares_resident_with(&second_view));
+        assert_eq!(first_view.diagnostic_batch_progress(), (0, SELECTED_VISIBLE_CHUNKS, 0));
+        assert_eq!(second_view.diagnostic_batch_progress(), (0, SELECTED_VISIBLE_CHUNKS, 0));
+        assert_eq!(host.chunks(), SELECTED_VISIBLE_CHUNKS);
+        assert_eq!(host.receipts(), SELECTED_VISIBLE_CHUNKS);
+
+        // The resident host no longer depends on an open source-region file.
+        // An independent fresh source import must reject the same missing
+        // required region; neither case can construct production admission.
+        fs::remove_file(world.root.join("region/r.-1.-1.mca")).unwrap();
+        let after_source_removed = host.attach(&first).expect("already hosted world survives");
+        assert!(after_source_removed.shares_resident_with(&first_view));
+        let mut absent_dimension = ColdDimension::new(DimensionId(2), profile);
+        let mut absent_receipts = Vec::new();
+        assert!(super::import_pending_teleport_disk_first_view(
+            &first,
+            request,
+            &mut absent_dimension,
+            &mut importer,
+            &mut biome_decoder,
+            &mut absent_receipts,
+            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+        )
+        .is_err());
+        assert_eq!(first.queued_egress(), 0);
+        assert_eq!(second.queued_egress(), 0);
+    }
+
+    #[test]
+    #[expect(
+        clippy::too_many_lines,
         reason = "one finite end-to-end fixture checks nine real Anvil receipts and their complete test-gated packet batch"
     )]
     fn nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch() {

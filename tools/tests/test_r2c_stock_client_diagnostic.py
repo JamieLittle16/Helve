@@ -145,18 +145,58 @@ class LauncherTests(unittest.TestCase):
             calls.append((command, env.copy()))
             return SimpleNamespace(returncode=0)
 
+        reports = tuple(
+            SimpleNamespace(
+                x=i, z=i, evidence="EXPLICITLY_EMPTY", entries=(),
+                region_sha256="abcdef" * 10,
+            )
+            for i in range(25)
+        )
         with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum), \
                 patch.object(diagnostic.shutil, "which", return_value="/mock/cargo"), \
                 patch.object(diagnostic.subprocess, "run", side_effect=fake_run), \
+                patch.object(diagnostic.saved_entities, "audit_world", return_value=reports) as read, \
                 patch.dict(diagnostic.os.environ, {"HELVE_R2C_DIAGNOSTIC_RENDER_HALO": "unsafe"}):
             self.assertEqual(diagnostic.main([
                 "--world", str(self.world), "--r2b-image", str(self.r2b),
                 "--heightmap-bin", str(self.facts), "--render-halo",
             ]), 0)
+        read.assert_called_once_with(self.world, 25)
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[0][0], diagnostic.rust_test_command(diagnostic.REHEARSAL, ignored=False))
         self.assertEqual(calls[1][0], diagnostic.rust_test_command(diagnostic.TEST, ignored=True))
         self.assertEqual(calls[1][1]["HELVE_R2C_DIAGNOSTIC_RENDER_HALO"], "1")
+
+    def test_nonempty_25_halo_is_rejected_before_heightmap_java_or_listener(self) -> None:
+        reports = tuple(
+            SimpleNamespace(
+                x=i, z=i,
+                evidence="NONEMPTY (unsupported)" if i == 12 else "EXPLICITLY_EMPTY",
+                entries=(("minecraft:beehive", 20, 74, 21),) if i == 12 else (),
+                region_sha256="abcdef" * 10,
+            )
+            for i in range(25)
+        )
+        with patch.object(diagnostic.saved_entities, "audit_world", return_value=reports) as read, \
+                patch.object(diagnostic.subprocess, "run") as runner, \
+                patch.object(diagnostic.r2b, "pack") as pack:
+            status = diagnostic.main([
+                "--world", str(self.world), "--r2b-image", str(self.r2b),
+                "--generate-heightmap", "--render-halo",
+            ])
+        self.assertEqual(status, 2)
+        read.assert_called_once_with(self.world, 25)
+        runner.assert_not_called()
+        pack.assert_not_called()
+
+    def test_malformed_or_missing_halo_source_stops_before_expensive_work(self) -> None:
+        with patch.object(diagnostic.subprocess, "run") as runner:
+            status = diagnostic.main([
+                "--world", str(self.world), "--r2b-image", str(self.r2b),
+                "--generate-heightmap", "--render-halo",
+            ])
+        self.assertEqual(status, 2)
+        runner.assert_not_called()
 
     def test_preflight_only_never_launches_a_test(self) -> None:
         with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum), \

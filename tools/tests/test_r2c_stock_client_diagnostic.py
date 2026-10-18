@@ -79,6 +79,35 @@ class LauncherTests(unittest.TestCase):
             ]), 2)
         self.assertEqual(json.loads(destination.read_text()), record)
 
+    def test_completed_25_halo_diagnostic_evidence_never_claims_visible_pixels(self) -> None:
+        self.make_evidence_regions()
+        output = self.root / "completed-25.json"
+        reports = tuple(
+            SimpleNamespace(
+                x=x, z=z, evidence="EXPLICITLY_EMPTY", entries=(),
+                region_sha256="abcdef" * 10,
+            )
+            for x, z in diagnostic.saved_entities.first_view_positions(25)
+        )
+        with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum), \
+                patch.object(diagnostic.shutil, "which", return_value="/mock/cargo"), \
+                patch.object(diagnostic.subprocess, "run",
+                             return_value=SimpleNamespace(returncode=0)) as runner, \
+                patch.object(diagnostic.saved_entities, "audit_world", return_value=reports):
+            self.assertEqual(diagnostic.main([
+                "--world", str(self.world), "--r2b-image", str(self.r2b),
+                "--heightmap-bin", str(self.facts), "--render-halo",
+                "--evidence-json", str(output),
+            ]), 0)
+        self.assertEqual(runner.call_count, 2)
+        record = json.loads(output.read_text())
+        self.assertEqual(record["outcome"],
+                         "TEST_ONLY_TRANSPORT_COMPLETED_VISUAL_MANUAL")
+        self.assertEqual(len(record["inputs"]["selected_chunks"]), 25)
+        self.assertFalse(record["stock_client_pixels_independently_verified"])
+        self.assertFalse(record["source_var_sem_admitted"])
+        self.assertFalse(record["production_chunk_publication_admitted"])
+
     def test_source_manifest_rejects_missing_symlinked_and_changed_inputs(self) -> None:
         self.make_evidence_regions()
         args = self.arguments("--evidence-json", str(self.root / "frozen.json"))

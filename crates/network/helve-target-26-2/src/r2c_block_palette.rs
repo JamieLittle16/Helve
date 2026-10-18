@@ -294,11 +294,9 @@ mod tests {
         } else {
             Vec::new()
         };
-        let count = if width == 0 {
-            0
-        } else {
-            CELLS.div_ceil(64 / width)
-        };
+        let count = 64_usize
+            .checked_div(width)
+            .map_or(0, |per_word| CELLS.div_ceil(per_word));
         assert_eq!(bytes.len() - cursor, count * 8);
         let words: Vec<u64> = bytes[cursor..]
             .chunks_exact(8)

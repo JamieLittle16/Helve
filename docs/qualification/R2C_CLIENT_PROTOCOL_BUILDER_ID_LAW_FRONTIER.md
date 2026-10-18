@@ -2,7 +2,7 @@
 
 **Version:** Minecraft Java 26.2, protocol 776, DataVersion 4903.  
 **Status:** exact stock-client JVM *call-site evidence*, **not yet** a verified
-numeric-ID/source-SEM admission certificate.
+numeric-ID/source-SEM admission certificate. PR #375 subsequently cross-bound the five client Play positions to **nine already source-reviewed R0 generic builder/dispatch VAR laws** with exact client class/method fingerprints and complete bundle/registration counts; see `R2C_PLAY_PACKET_REVIEWED_ID_LAW_REUSE.md`. That reuse does **not** admit the remaining outer Play lifecycle or the whole R2C production route.
 
 ## What is already established
 

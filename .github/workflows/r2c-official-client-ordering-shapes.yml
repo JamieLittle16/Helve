@@ -173,6 +173,24 @@ jobs:
           assert method_map[("net.minecraft.core.MappedRegistry", "register")]["return_instruction_offsets"] == [
               53, 89, 137, 275
           ]
+          registry_terminal = method_map[
+              ("net.minecraft.core.MappedRegistry", "register")
+          ]["mapped_registry_terminal_path_witness"]
+          assert [(row["exit_offset"], row["exit_opcode"]) for row in registry_terminal] == [
+              (53, "athrow"), (89, "athrow"), (137, "athrow"), (275, "areturn"),
+          ]
+          assert all(not row["normal_return"] and
+                     not row["critical_invokes_before_exit"]
+                     for row in registry_terminal[:-1])
+          assert registry_terminal[-1]["normal_return"]
+          assert registry_terminal[-1]["critical_invokes_before_exit"] == [
+              "ObjectList.size:", "ObjectList.add:", "Reference2IntMap.put:",
+          ]
+          assert all(
+              method["mapped_registry_terminal_path_witness"] is None
+              for method in methods if (method["class_name"], method["method_name"])
+              != ("net.minecraft.core.MappedRegistry", "register")
+          )
 
           for record in methods:
               assert record["ordered_callsite_witness_matches"]

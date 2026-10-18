@@ -232,6 +232,31 @@ report always marks `bootstrap_linkage_proven: false`. None of this work
 promotes the 66-entry runtime-crosschecked biome-ID candidate, supplies
 VAR/SEM, or enables live chunk publication.
 
+### Receiver-reached LoaderFactory invokedynamic linkage (discovery only)
+
+The existing official-client `RegistryDataLoader.load(LoaderFactory, List,
+List, Executor)` probe now also inspects the same exact official class's
+`javap -v -c -p` constant-pool bootstrap table. It binds only the
+selected factory overload's `invokedynamic` instruction offsets to
+`BootstrapMethods` entries and the exact declared `lambda$load$N`
+implementation handles. The source-free output records the bootstrap
+index, functional call-site name, implementation method name, handle
+kind and descriptor hash. Missing/ambiguous bootstrap indices,
+unrecognized metafactory, undeclared implementation lambdas and
+unbounded output fail closed.
+
+This removes the **method-name-only discovery ambiguity** for
+`RegistryDataLoader`'s factory lambdas on a successfully inspected pinned
+artifact. It does **not** prove when or whether the callback executes,
+which CompletableFuture it completes, error paths, order of list
+decoding/registration, or actual client biome-ID authority. Both
+`bootstrap_linkage_source_reviewed` and
+`client_registration_order_admitted` remain false.
+The same discipline must be applied independently to any
+`NetworkRegistryLoadTask` or `Util.sequence` callback used to prove
+ordered registration; a successful loader-only lookup cannot substitute
+for that review.
+
 ### Exact client registry task and ID-map method frontier (discovery only)
 
 The actual official 26.2 client `RegistryDataLoader.lambda$load$0`

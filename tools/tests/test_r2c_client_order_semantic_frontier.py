@@ -177,6 +177,26 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                  {"branch_offset": 13, "arm": "target"}],
             ],
         )
+        extra_size = source.replace(
+            "20: aload_0", "20: invokevirtual #14 // Method exact/List.size:()I",
+        )
+        extra = probe.bounded_method_shape(extra_size, cls, method)[
+            "util_sequence_three_normal_branch_witness"
+        ]
+        self.assertEqual(
+            extra[2]["ordered_critical_invokes"].count("List.size:"), 2,
+        )
+        self.assertEqual(
+            extra[2]["ordered_distinct_critical_invokes"],
+            ["List.isEmpty:", "List.size:", "CompletableFuture.allOf:",
+             "CompletableFuture.thenApply:"],
+        )
+        duplicate_allof = source.replace(
+            "20: aload_0",
+            "20: invokestatic #14 // Method exact/CompletableFuture.allOf:()V",
+        )
+        with self.assertRaisesRegex(ValueError, "repeated a critical"):
+            probe.bounded_method_shape(duplicate_allof, cls, method)
         # Lexical ordered calls and even an existential *multi* path are
         # insufficient if either the empty or the singleton exit disappears.
         missing_singleton = source.replace("13: if_icmpne     20",

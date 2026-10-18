@@ -1,15 +1,17 @@
-//! Explicit, source-unadmitted **COLD** Anvil import for the opted-in R2B
-//! playtest. No target packet ID, new world owner, outbound queue, or Play
-//! publication. The returned one-authority resident is retained by the
-//! original connection service loop, not discarded after import.
+//! Explicit, source-unadmitted **COLD** Anvil import for the R2C development
+//! boundary. The ordinary executable creates one server-lifetime resident
+//! dimension and immutable source receipts before accepting clients, while
+//! the stock-client diagnostic retains its separate test-only import path.
+//! Sessions own cursors, not chunks. No second queue or Play publication.
 //!
 //! Reference sections are a correctness baseline for the *development demo*
 //! only, not the M0.3D/issue #19 production section representation decision.
 
 use std::path::Path;
+use std::sync::Arc;
 
 use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
-use helve_types::{DimensionId, DimensionTypeId};
+use helve_types::{ChunkPos, DimensionId, DimensionTypeId};
 use helve_world_contract::{BLOCK_SECTION_CELLS, BlockSection, SectionBlockPos};
 use helve_world_import::RegionLimits;
 use helve_world_import::{
@@ -29,7 +31,8 @@ use helve_target_26_2::r2c_play_wire::append_chunk_with_light_packet_id;
 use crate::r2c_chunk_batch::{ChunkBatchStep, R2cBatchTickClock, R2cChunkBatchState};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_disk_first_view::{
-    PendingTeleportDiskFirstViewRequest, import_pending_teleport_disk_first_view,
+    DiskFirstViewRequest, import_disk_first_view, plan_explicit_teleport_first_view,
+    plan_pending_teleport_first_view,
 };
 use crate::r2c_heightmap_facts::CandidateHeightmapFacts;
 use crate::r2c_play_inbound::{
@@ -101,15 +104,98 @@ pub(crate) type ColdDimension = SemanticDimensionInstance<
     DirectBiomeSection<u16>,
 >;
 
-/// This owns the ONLY imported dimension for this development connection and
-/// its existing immutable source receipts. No publication bytes are produced.
+/// The server owns one immutable initial resident dimension and source-receipt
+/// selection across independent client lifetimes. This is a COLD, pre-R2D
+/// bridge: the future active mutation authority is not an Arc or socket.
+/// The selected world is not independently source-admitted for publication.
+pub struct R2cColdWorldHost {
+    dimension: Arc<ColdDimension>,
+    receipts: Arc<[SourceChunkPublicationReceipt]>,
+    center: ChunkPos,
+    profile: DimensionRuntimeProfile,
+    max_chunks: usize,
+}
+
+impl std::fmt::Debug for R2cColdWorldHost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("R2cColdWorldHost")
+            .field("center", &self.center)
+            .field("resident_chunks", &self.chunks())
+            .field("source_receipts", &self.receipts.len())
+            .finish_non_exhaustive()
+    }
+}
+
+impl R2cColdWorldHost {
+    /// Test-only bridge from the real multi-region Anvil fixture. This shares
+    /// existing semantic residents and source receipts, never fabricates a
+    /// source-admission witness or makes the ordinary publisher constructible.
+    #[cfg(test)]
+    pub(crate) fn from_test_source(
+        dimension: ColdDimension,
+        receipts: Vec<SourceChunkPublicationReceipt>,
+        center: ChunkPos,
+        profile: DimensionRuntimeProfile,
+        max_chunks: usize,
+    ) -> Self {
+        Self {
+            dimension: Arc::new(dimension),
+            receipts: receipts.into(),
+            center,
+            profile,
+            max_chunks,
+        }
+    }
+
+    /// Validate that a new session's actual pending teleport selects exactly
+    /// the original server-owned source window before attaching its own cursor.
+    /// No world data, receipt, or chunk memory is copied.
+    pub(crate) fn attach(&self, session: &R2bPlaySession) -> Result<ColdImportedView, String> {
+        let (center, selected) =
+            plan_pending_teleport_first_view(session, self.profile, VIEW_DISTANCE, self.max_chunks)
+                .map_err(|error| format!("session teleport differs from hosted view: {error:?}"))?;
+        if center != self.center || selected.len() != self.receipts.len() {
+            return Err("session first view differs from server-owned source selection".to_owned());
+        }
+        Ok(ColdImportedView {
+            dimension: Arc::clone(&self.dimension),
+            receipts: Arc::clone(&self.receipts),
+            batch: R2cChunkBatchState::new_with_initial_cache_center(self.receipts.len(), center),
+        })
+    }
+
+    pub(crate) fn chunks(&self) -> usize {
+        self.dimension.resident_chunk_count()
+    }
+
+    pub(crate) fn receipts(&self) -> usize {
+        self.receipts.len()
+    }
+
+    /// Do one server-lifetime candidate preflight, not a full re-encode at
+    /// every join. Publication remains disabled until independent VAR/SEM.
+    pub(crate) fn audit_candidate_bodies(
+        &self,
+        heightmap_candidate: &[u8],
+    ) -> Result<ColdCandidateAudit, String> {
+        audit_receipt_bound_candidate_bodies(
+            &self.dimension,
+            &self.receipts,
+            heightmap_candidate,
+            66,
+        )
+    }
+}
+
+/// Only the chunk-batch cursor and ACK/rate state belong to the connection.
+/// The resident dimension and exact source receipts belong to the server.
 #[allow(
     dead_code,
     reason = "R2C disk import is COLD non-publishing until source admission"
 )]
 pub(crate) struct ColdImportedView {
-    dimension: ColdDimension,
-    receipts: Vec<SourceChunkPublicationReceipt>,
+    dimension: Arc<ColdDimension>,
+    receipts: Arc<[SourceChunkPublicationReceipt]>,
     batch: R2cChunkBatchState,
 }
 
@@ -123,10 +209,18 @@ impl ColdImportedView {
         batch: R2cChunkBatchState,
     ) -> Self {
         Self {
-            dimension,
-            receipts,
+            dimension: Arc::new(dimension),
+            receipts: receipts.into(),
             batch,
         }
+    }
+
+    /// Test-only identity probe: a second join reuses exactly the same
+    /// resident directory and receipt storage, not an identical re-import.
+    #[cfg(test)]
+    pub(crate) fn shares_resident_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.dimension, &other.dimension)
+            && Arc::ptr_eq(&self.receipts, &other.receipts)
     }
 
     pub(crate) fn chunks(&self) -> usize {
@@ -483,16 +577,61 @@ pub(crate) fn import_selected_cold_world_with_render_halo(
     import_selected_cold_world_bounded(session, context, world, RENDER_HALO_CHUNKS)
 }
 
+fn selected_overworld_profile() -> Result<DimensionRuntimeProfile, String> {
+    DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true)
+        .map_err(|error| format!("selected overworld profile invalid: {error:?}"))
+}
+
+/// Prepare one source-backed immutable resident dimension before accepting
+/// clients. Position selection uses the exact same checked teleport planner
+/// as the retained R2B session. No packet is sent or admission granted.
+pub(crate) fn import_selected_cold_world_host(
+    context: &Target26_2R1xContext,
+    world: &Path,
+    teleport: (f64, f64, f64),
+) -> Result<R2cColdWorldHost, String> {
+    let profile = selected_overworld_profile()?;
+    let (center, requested) = plan_explicit_teleport_first_view(
+        teleport.0,
+        teleport.1,
+        teleport.2,
+        profile,
+        VIEW_DISTANCE,
+        CHUNKS,
+    )
+    .map_err(|error| format!("bootstrap teleport rejects hosted world: {error:?}"))?;
+    let view = import_selected_cold_world_positions(context, world, profile, center, requested)?;
+    Ok(R2cColdWorldHost {
+        dimension: view.dimension,
+        receipts: view.receipts,
+        center,
+        profile,
+        max_chunks: CHUNKS,
+    })
+}
+
 fn import_selected_cold_world_bounded(
     session: &R2bPlaySession,
     context: &Target26_2R1xContext,
     world: &Path,
     max_chunks: usize,
 ) -> Result<ColdImportedView, String> {
-    let profile = DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true)
-        .map_err(|error| format!("selected overworld profile invalid: {error:?}"))?;
+    let profile = selected_overworld_profile()?;
+    let (center, requested) =
+        plan_pending_teleport_first_view(session, profile, VIEW_DISTANCE, max_chunks)
+            .map_err(|error| format!("selected pending teleport rejected: {error:?}"))?;
+    import_selected_cold_world_positions(context, world, profile, center, requested)
+}
+
+fn import_selected_cold_world_positions(
+    context: &Target26_2R1xContext,
+    world: &Path,
+    profile: DimensionRuntimeProfile,
+    center: ChunkPos,
+    mut requested: Vec<ChunkPos>,
+) -> Result<ColdImportedView, String> {
     let mut dimension = ColdDimension::new(DimensionId(0), profile);
-    let mut receipts = Vec::with_capacity(max_chunks);
+    let mut receipts = Vec::with_capacity(requested.len());
     let resolver = Target262BlockStateResolver;
     let mut blocks = BlockBuilder;
     let mut block_scratch = BlockSectionDecodeScratch::new();
@@ -512,13 +651,12 @@ fn import_selected_cold_world_bounded(
 
     with_candidate_biomes_from_context(context, |registry| {
         let mut biomes = ExactBiomeDecoder::new(registry, &mut biome_builder, &mut biome_scratch);
-        import_pending_teleport_disk_first_view(
-            session,
-            PendingTeleportDiskFirstViewRequest {
+        import_disk_first_view(
+            DiskFirstViewRequest {
                 world,
-                profile,
+                requested: &mut requested,
+                center,
                 view_distance: VIEW_DISTANCE,
-                max_chunks,
                 limits: PregeneratedRegionLimits {
                     region: RegionLimits::new(MAX_REGION_BYTES, MAX_CHUNK_BYTES),
                     max_external_bytes: MAX_CHUNK_BYTES,
@@ -530,13 +668,12 @@ fn import_selected_cold_world_bounded(
             &mut receipts,
             || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
         )
-        .map(|(_center, batch)| batch)
         .map_err(|error| format!("source Anvil import rejected: {error:?}"))
     })
     .map_err(|error| format!("selected Configuration biomes rejected: {error:?}"))?
     .map(|batch| ColdImportedView {
-        dimension,
-        receipts,
+        dimension: Arc::new(dimension),
+        receipts: receipts.into(),
         batch,
     })
 }

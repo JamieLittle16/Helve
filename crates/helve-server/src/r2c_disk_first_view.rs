@@ -160,10 +160,6 @@ pub(crate) enum PendingTeleportViewError {
 ///
 /// Rejects absent/non-finite/out-of-lattice/unrepresentable teleport
 /// coordinates and invalid finite first-view bounds before filesystem I/O.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
-)]
 pub(crate) fn plan_pending_teleport_first_view(
     session: &R2bPlaySession,
     profile: DimensionRuntimeProfile,
@@ -174,20 +170,44 @@ pub(crate) fn plan_pending_teleport_first_view(
         .teleport_transaction()
         .awaiting()
         .ok_or(PendingTeleportViewError::MissingTeleport)?;
-    if !(pending.x.is_finite() && pending.y.is_finite() && pending.z.is_finite()) {
+    plan_explicit_teleport_first_view(
+        pending.x,
+        pending.y,
+        pending.z,
+        profile,
+        view_distance,
+        max_chunks,
+    )
+}
+
+/// The exact same finite-coordinate, vertical-lattice and signed chunk
+/// selection law can be checked at server startup from the selected R2B
+/// bootstrap destination, before a client or Play session exists. At join
+/// time the pending teleport must still select the same resident view.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
+)]
+pub(crate) fn plan_explicit_teleport_first_view(
+    x: f64,
+    y: f64,
+    z: f64,
+    profile: DimensionRuntimeProfile,
+    view_distance: i32,
+    max_chunks: usize,
+) -> Result<(ChunkPos, Vec<ChunkPos>), PendingTeleportViewError> {
+    if !(x.is_finite() && y.is_finite() && z.is_finite()) {
         return Err(PendingTeleportViewError::NonFiniteTeleport);
     }
-    if pending.y < f64::from(profile.min_block_y())
-        || pending.y >= f64::from(profile.max_block_y_exclusive())
-    {
+    if y < f64::from(profile.min_block_y()) || y >= f64::from(profile.max_block_y_exclusive()) {
         return Err(PendingTeleportViewError::OutsideVerticalLattice {
-            y: pending.y,
+            y,
             minimum: profile.min_block_y(),
             maximum_exclusive: profile.max_block_y_exclusive(),
         });
     }
-    let x = (pending.x / 16.0).floor();
-    let z = (pending.z / 16.0).floor();
+    let x = (x / 16.0).floor();
+    let z = (z / 16.0).floor();
     if x < f64::from(i32::MIN)
         || x > f64::from(i32::MAX)
         || z < f64::from(i32::MIN)
@@ -443,6 +463,32 @@ mod tests {
 
     fn test_overworld_lattice() -> DimensionRuntimeProfile {
         DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true).unwrap()
+    }
+
+    #[test]
+    fn pre_session_bootstrap_and_pending_teleport_select_identical_first_view() {
+        let profile = test_overworld_lattice();
+        for (x, y, z) in [
+            (10.390_952_126_751_907, 84.0, -5.815_159_807_324_014),
+            (-0.1, -64.0, -511.99),
+            (511.999, 319.0, 0.0),
+        ] {
+            let session = retained_session_with_teleport(x, y, z);
+            let before = super::plan_explicit_teleport_first_view(x, y, z, profile, 10, 25)
+                .expect("bootstrap first-view candidate");
+            let after = super::plan_pending_teleport_first_view(&session, profile, 10, 25)
+                .expect("pending teleport first-view candidate");
+            assert_eq!(before, after, "pre-session and pending teleport must agree");
+        }
+
+        assert!(matches!(
+            super::plan_explicit_teleport_first_view(f64::NAN, 84.0, 0.0, profile, 10, 9),
+            Err(super::PendingTeleportViewError::NonFiniteTeleport)
+        ));
+        assert!(matches!(
+            super::plan_explicit_teleport_first_view(0.0, 384.0, 0.0, profile, 10, 9),
+            Err(super::PendingTeleportViewError::OutsideVerticalLattice { .. })
+        ));
     }
 
     #[test]
@@ -1200,9 +1246,7 @@ mod tests {
         };
 
         use crate::r2b_playtest::{R2bPlaytestExit, serve_world_projection_wait};
-        use crate::r2c_cold_demo_import::{
-            ColdImportedView, R2cSourceAdmission, SourceAdmittedPlayPublisher,
-        };
+        use crate::r2c_cold_demo_import::{R2cSourceAdmission, SourceAdmittedPlayPublisher};
         use std::io::{Read, Write};
         use std::net::{Shutdown, TcpListener, TcpStream};
         use std::time::Duration;
@@ -1280,13 +1324,32 @@ mod tests {
             assert!(receipt.resolve_explicitly_empty(&dimension).is_ok());
         }
 
+        // One retained source owner survives independent client lifetimes.
+        // The ordinary server imports only once before accept; this hermetic
+        // nine-chunk fixture verifies that each session shares the exact
+        // original dimension and receipt allocations, but not its ACK cursor.
+        let host = crate::r2c_cold_demo_import::R2cColdWorldHost::from_test_source(
+            dimension, receipts, center, profile, 9,
+        );
+        let second_session = retained_session_with_teleport(0.25, 8.0, 0.25);
+        let second = host
+            .attach(&second_session)
+            .expect("second session attaches");
+        let mut view = host.attach(&session).expect("first session attaches");
+        assert!(view.shares_resident_with(&second));
+        assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
+        assert!(
+            host.attach(&retained_session_with_teleport(1024.0, 8.0, 0.25))
+                .is_err()
+        );
+        assert_eq!(host.chunks(), 9);
+
         // Hermetic CI proves source import and receipt order. Only the
         // pinned Java 25 workflow supplies actual 26.2 heightmap facts.
         let Some(path) = std::env::var_os("HELVE_R2C_HEIGHTMAP_CANDIDATE") else {
             return;
         };
         let oracle = fs::read(path).expect("official source-locked heightmap table");
-        let mut view = ColdImportedView::from_test_source(dimension, receipts, batch);
         let audit = view
             .audit_candidate_bodies(&oracle)
             .expect("nine bounded source bodies");
@@ -1355,6 +1418,8 @@ mod tests {
         ));
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
         assert_eq!(session.queued_egress(), 0);
+        assert!(view.shares_resident_with(&second));
+        assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
         assert_eq!(frames.len(), 12);
 
         assert_eq!(frames[0].0, 94);

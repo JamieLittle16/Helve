@@ -6,10 +6,10 @@ use std::time::Duration;
 
 use helve_server::{
     DEFAULT_R0_BIND_ADDRESS, HELVE_STATUS_JSON, PRODUCT_NAME, R0_ADMISSION_SESSION_SHA256,
-    R2bPlaytestImage, R2cColdWorldPlan, ServerSessionEpoch, load_r1x_image,
-    load_r2b_playtest_image, serve_r0_blocking_transport, serve_r1a_blocking_transport,
-    serve_r1x_blocking_transport, serve_r2b_playtest_blocking_transport,
-    serve_r2b_playtest_with_r2c_cold_plan,
+    R2bPlaytestImage, R2cColdWorldHost, R2cColdWorldPlan, ServerSessionEpoch, load_r1x_image,
+    load_r2b_playtest_image, prepare_r2c_cold_world_host, serve_r0_blocking_transport,
+    serve_r1a_blocking_transport, serve_r1x_blocking_transport,
+    serve_r2b_playtest_blocking_transport, serve_r2b_playtest_with_r2c_cold_host,
 };
 use helve_target_26_2::{Target26_2R1xContext, generated};
 
@@ -47,6 +47,15 @@ fn run() -> Result<(), String> {
     let r1x_context = load_selected_r1x(&options)?;
     let r2b_playtest = load_selected_r2b(&options)?;
     let r2c_world_plan = load_selected_r2c_plan(&options)?;
+    // Import once at the server lifetime, not after any client reaches Play.
+    // This COLD world cannot publish chunks in an ordinary build.
+    let r2c_world_host = match (r2b_playtest.as_ref(), r2c_world_plan.as_ref()) {
+        (Some(image), Some(plan)) => Some(
+            prepare_r2c_cold_world_host(image, plan)
+                .map_err(|error| format!("R2C server world rejected: {error}"))?,
+        ),
+        _ => None,
+    };
     let listener = TcpListener::bind(&options.bind_address)
         .map_err(|error| format!("could not bind {}: {error}", options.bind_address))?;
     let local_address = listener
@@ -70,7 +79,7 @@ fn run() -> Result<(), String> {
             &options,
             r1x_context.as_ref(),
             r2b_playtest.as_ref(),
-            r2c_world_plan.as_ref(),
+            r2c_world_host.as_ref(),
         )?;
         if options.once {
             return Ok(());
@@ -143,7 +152,7 @@ fn announce(
     if r2b_playtest.is_some() {
         if let Some(path) = options.r2c_world_plan.as_ref() {
             println!(
-                "R2C COLD plan requested for {} | selected Anvil source import at Play handoff | optional candidate packet audit | no chunk publication | source_admitted=false",
+                "R2C server-owned COLD plan requested for {} | selected Anvil source imported once before accept | no chunk publication | source_admitted=false",
                 path.display()
             );
         }
@@ -196,7 +205,7 @@ fn serve_connection(
     options: &Options,
     r1x_context: Option<&Target26_2R1xContext>,
     r2b_playtest: Option<&R2bPlaytestImage>,
-    r2c_world_plan: Option<&R2cColdWorldPlan>,
+    r2c_world_host: Option<&R2cColdWorldHost>,
 ) -> Result<(), String> {
     if let Some(image) = r2b_playtest {
         let session_epoch = options
@@ -206,9 +215,9 @@ fn serve_connection(
             "R2B playtest",
             peer,
             options.once,
-            match r2c_world_plan {
-                Some(plan) => {
-                    serve_r2b_playtest_with_r2c_cold_plan(stream, session_epoch, image, plan)
+            match r2c_world_host {
+                Some(host) => {
+                    serve_r2b_playtest_with_r2c_cold_host(stream, session_epoch, image, host)
                 }
                 None => serve_r2b_playtest_blocking_transport(stream, session_epoch, image),
             },

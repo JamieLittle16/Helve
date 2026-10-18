@@ -225,6 +225,31 @@ registerElements stream traversal, executor error propagation, known-pack
 identity, and independent source VAR/SEM remain **unreviewed/unadmitted**.
 The result cannot authorize production biome ordinals.
 
+## Bounded registration exception-handler source-free frontier
+
+The existing exact official-client 26.2 `javap -c -p` reviewer now
+parses the **JVM `Exception table`** for the already-rooted
+`RegistryLoadTask.registerElements` method. It validates the
+`from`, exclusive `to`, handler target and caught exception class
+against actual instruction offsets; malformed, ambiguous, missing or
+unbounded tables fail closed. The emitted source-free record also
+identifies the exact `Stream.forEach` call offset and whether an
+exception-table range covers that *direct invocation*.
+
+This is not the same as complete exceptional execution semantics.
+The table's protection range can include more than one invoked method,
+and a caught throwable can originate from downstream code. Nor does
+the presence of a handler prove rollback of earlier inserted IDs.
+An exception may leave a partially populated receiving-client registry.
+The separate `MappedRegistry.register` explicit-exit witness proved
+in #406 does not exclude exceptions thrown by its invoked delegates.
+All independent source VAR/SEM and production flags remain false.
+
+The existing CI runs this against the actual SHA-1/size-checked client,
+prints only finite handler metadata and separately asserts that the
+`rollback_or_partial_mutation_semantics_proven` field stays false.
+No official Mojang class text, source listing or disassembly is shipped.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

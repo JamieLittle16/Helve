@@ -1246,9 +1246,7 @@ mod tests {
         };
 
         use crate::r2b_playtest::{R2bPlaytestExit, serve_world_projection_wait};
-        use crate::r2c_cold_demo_import::{
-            R2cSourceAdmission, SourceAdmittedPlayPublisher,
-        };
+        use crate::r2c_cold_demo_import::{R2cSourceAdmission, SourceAdmittedPlayPublisher};
         use std::io::{Read, Write};
         use std::net::{Shutdown, TcpListener, TcpStream};
         use std::time::Duration;
@@ -1334,13 +1332,16 @@ mod tests {
             dimension, receipts, center, profile, 9,
         );
         let second_session = retained_session_with_teleport(0.25, 8.0, 0.25);
-        let second = host.attach(&second_session).expect("second session attaches");
+        let second = host
+            .attach(&second_session)
+            .expect("second session attaches");
         let mut view = host.attach(&session).expect("first session attaches");
         assert!(view.shares_resident_with(&second));
         assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
-        assert!(host
-            .attach(&retained_session_with_teleport(1024.0, 8.0, 0.25))
-            .is_err());
+        assert!(
+            host.attach(&retained_session_with_teleport(1024.0, 8.0, 0.25))
+                .is_err()
+        );
         assert_eq!(host.chunks(), 9);
 
         // Hermetic CI proves source import and receipt order. Only the

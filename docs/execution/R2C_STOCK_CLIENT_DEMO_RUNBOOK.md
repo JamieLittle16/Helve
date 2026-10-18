@@ -256,6 +256,49 @@ preparation issues**; a packet mismatch or no visible terrain after
 an accepted batch is a narrower genuine receiving-client integration
 issue. Do not fix either by replaying captured Play world packets.
 
+## 25-chunk halo source failure: inspect before running Java or opening TCP
+
+The first `--render-halo` stock-client attempts on 18 October 2026
+failed *before* any chunk was published:
+`Source(Disk(Visit(BlockEntities(UnhandledEntries { count: 2 }))))`.
+Both identical attempts used the same verified `Helve R2C Clean`
+source save, which had passed the **nine-chunk** explicit-empty gate;
+the expanded 25-source-chunk view introduced unsupported saved block
+entities in the additional halo. This does **not** contradict the
+successful one-chunk render or establish a problem with the halo theory.
+
+Use the existing immutable-source NBT inspection oracle with the same
+25-position selector **before** re-generating any heightmap:
+
+```bash
+cd /home/Jamie/Crucible
+python3 tools/r2c_first_view_block_entities.py \
+  --world "$HOME/.local/share/PrismLauncher/instances/26.2/minecraft/saves/Helve R2C Clean" \
+  --render-halo
+```
+
+The new COLD audit prints each selected saved chunk's explicit-empty,
+missing or nonempty evidence, and the original saved block-entity
+`id,x,y,z`. The 25-chunk launcher option now **calls this same
+read-only audit before the R1B packer, Java heightmap oracle, rehearse
+and live socket**; a failing source cannot waste another full
+expensive attempt. It does not rewrite NBT, drop block entities, fake
+light, promote a source receipt, or change production R2C. Rust still
+re-verifies every receipt before Play.
+
+For a quick first 3×3 visibly meshed demonstration, an independent
+**unmodified 26.2** clean single-player fixture generated as
+**Superflat, structures off** can supply a legitimate dense 5×5
+with explicitly empty block-entity lists; generate/save all 25 chunks
+around `(chunk X=0, Z=-1)`, then audit it first. The visual
+proof uses genuine vanilla-generated flat blocks rather than missing
+or invented chunks. Alternatively, use an independently prepared
+*copy* of a terrain save without block entities in the selected
+25 positions, leaving the previous successful nine-source-chunk
+fixture untouched. Do not silently strip saved entities from source
+Anvil data; proper support for nonempty lists remains a separate
+source- and wire-qualified feature.
+
 ## 18 October 2026: successful first visible chunk and renderer-neighbor halo
 
 After the fixed-length palette repair (#383), the **unmodified**

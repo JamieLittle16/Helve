@@ -203,7 +203,7 @@ pub(crate) fn plan_explicit_teleport_first_view(
         || y >= f64::from(profile.max_block_y_exclusive())
     {
         return Err(PendingTeleportViewError::OutsideVerticalLattice {
-            y: y,
+            y,
             minimum: profile.min_block_y(),
             maximum_exclusive: profile.max_block_y_exclusive(),
         });
@@ -465,6 +465,32 @@ mod tests {
 
     fn test_overworld_lattice() -> DimensionRuntimeProfile {
         DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true).unwrap()
+    }
+
+    #[test]
+    fn pre_session_bootstrap_and_pending_teleport_select_identical_first_view() {
+        let profile = test_overworld_lattice();
+        for (x, y, z) in [
+            (10.390_952_126_751_907, 84.0, -5.815_159_807_324_014),
+            (-0.1, -64.0, -511.99),
+            (511.999, 319.0, 0.0),
+        ] {
+            let session = retained_session_with_teleport(x, y, z);
+            let before = super::plan_explicit_teleport_first_view(x, y, z, profile, 10, 25)
+                .expect("bootstrap first-view candidate");
+            let after = super::plan_pending_teleport_first_view(&session, profile, 10, 25)
+                .expect("pending teleport first-view candidate");
+            assert_eq!(before, after, "pre-session and pending teleport must agree");
+        }
+
+        assert!(matches!(
+            super::plan_explicit_teleport_first_view(f64::NAN, 84.0, 0.0, profile, 10, 9),
+            Err(super::PendingTeleportViewError::NonFiniteTeleport)
+        ));
+        assert!(matches!(
+            super::plan_explicit_teleport_first_view(0.0, 384.0, 0.0, profile, 10, 9),
+            Err(super::PendingTeleportViewError::OutsideVerticalLattice { .. })
+        ));
     }
 
     #[test]

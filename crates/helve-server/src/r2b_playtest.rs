@@ -795,12 +795,26 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             world.chunks(),
             world.receipts(),
         );
-        return serve_world_projection_wait(
+        let exit = serve_world_projection_wait(
             transport,
             &mut session,
-            Some(world),
+            Some(&mut *world),
             Some(&mut publisher),
-        );
+        )?;
+        if matches!(exit, R2bPlaytestExit::LivePeerEof { .. }) {
+            let (sent, expected, unacknowledged) = world.diagnostic_batch_progress();
+            if sent != expected || unacknowledged != 0 {
+                return Err(R2bPlaytestError::WorldPublish {
+                    reason: format!(
+                        "diagnostic chunk batch incomplete at peer EOF: published={sent}/{expected}, pending_ACKs={unacknowledged}"
+                    ),
+                });
+            }
+            eprintln!(
+                "R2C TEST-ONLY CHUNK BATCH ACK PASS | published_chunks={sent} | source_receipts={expected} | unacknowledged_batches=0 | visual rendering remains MANUAL"
+            );
+        }
+        return Ok(exit);
     }
     // Admission is intentionally uninhabited in product builds. This path
     // keeps the original R2B client behavior unchanged until source VAR/SEM

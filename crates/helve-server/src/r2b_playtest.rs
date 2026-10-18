@@ -915,7 +915,9 @@ pub(crate) fn serve_world_projection_wait(
                     // COLD-only stock-client experiment, without another parser,
                     // packet copy or production HOT-path trace.
                     #[cfg(test)]
-                    trace_unclaimed(publisher.is_some(), discarded_world_frames, packet_id, now_ms);
+                    if publisher.is_some() && discarded_world_frames < 16 {
+                        trace_unclaimed(packet_id, now_ms);
+                    }
                     let _ = packet_id;
                     discard_one_complete_play_frame(session)?;
                     discarded_world_frames = discarded_world_frames
@@ -1026,12 +1028,10 @@ impl OutboundBatch for DiscardedPlayFrame {
 }
 
 #[cfg(test)]
-fn trace_unclaimed(publishing: bool, discarded: u64, packet_id: i32, now_ms: u64) {
-    if publishing && discarded < 16 {
-        eprintln!(
-            "R2C TEST-ONLY unclaimed Play inbound | packet_id={packet_id} | elapsed_ms={now_ms} | action=discard_in_diagnostic_only"
-        );
-    }
+fn trace_unclaimed(packet_id: i32, now_ms: u64) {
+    eprintln!(
+        "R2C TEST-ONLY unclaimed Play inbound | packet_id={packet_id} | elapsed_ms={now_ms} | action=discard_in_diagnostic_only"
+    );
 }
 
 fn discard_one_complete_play_frame(session: &mut R2bPlaySession) -> Result<(), R2bPlaytestError> {

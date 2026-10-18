@@ -1578,6 +1578,7 @@ mod tests {
             let mut finished_chunks = 0_usize;
             let mut batch_chunk_count = 0_usize;
             let mut in_batch = false;
+            let mut held_first_ack = false;
             loop {
                 if let Some(frame) = wire.peek_frame().unwrap() {
                     let packet = (frame.packet_id(), frame.payload().to_vec());
@@ -1605,9 +1606,40 @@ mod tests {
                             finished_chunks += batch_chunk_count;
                             assert_eq!(finished_chunks, chunks_seen);
                             in_batch = false;
-                            // Exact existing serverbound 26.2 chunk-batch ACK:
-                            // 5-byte payload length, ID 11, f32 rate 9.0.
-                            peer.write_all(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+                            if selected > 9 && !held_first_ack {
+                                // Before the initial ACK, the single outstanding
+                                // batch window must prevent any subsequent chunk
+                                // from reaching the real socket. There is no second
+                                // sender allowed to bypass the retained driver.
+                                assert_eq!(wire.buffered_len(), 0);
+                                peer.set_read_timeout(Some(Duration::from_millis(120)))
+                                    .unwrap();
+                                match peer.read(&mut scratch) {
+                                    Err(error)
+                                        if matches!(
+                                            error.kind(),
+                                            std::io::ErrorKind::WouldBlock
+                                                | std::io::ErrorKind::TimedOut
+                                        ) => {}
+                                    result => panic!(
+                                        "client withheld initial ACK but sender continued: {result:?}"
+                                    ),
+                                }
+                                peer.set_read_timeout(Some(Duration::from_secs(5)))
+                                    .unwrap();
+                                held_first_ack = true;
+                                // Interleave the already-pending R2B teleport
+                                // confirmation with the first 26.2 batch ACK.
+                                // Both frames must be handled through the one
+                                // ordered retained Play ingress owner.
+                                peer.write_all(&[
+                                    2, 0, 1, 5, 11, 0x41, 0x10, 0, 0,
+                                ]).unwrap();
+                            } else {
+                                // Exact serverbound 26.2 batch ACK: packet ID
+                                // 11, f32 client rate 9.0.
+                                peer.write_all(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+                            }
                         }
                         94 => assert!(frames.is_empty(), "cache center must be first"),
                         id => panic!("unexpected test world Play frame: {id}"),
@@ -1640,11 +1672,11 @@ mod tests {
         assert!(matches!(
             exit,
             R2bPlaytestExit::LivePeerEof {
-                teleport_acknowledged: false,
+                teleport_acknowledged,
                 accepted_keep_alives: 0,
                 discarded_world_frames: 0,
                 ..
-            }
+            } if teleport_acknowledged == (selected > 9)
         ));
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
         assert_eq!(session.queued_egress(), 0);

@@ -88,6 +88,40 @@ with precisely the model's dataflow in all branches. That requires
 independent bytecode/source control-flow and error-path review, still
 unadmitted.
 
+## New: single normal-return control-flow witness (conditional)
+
+The existing exact seven-method `javap -c -p` review now performs an
+additional bounded control-flow test. An ordered list of call instructions
+in disassembly is **not** sufficient if those instructions belong to
+mutually exclusive branches. The test follows concrete branch targets,
+both arms of conditional jumps, and straight-line successors. It accepts
+each selected 26.2 method only if **one normal-return execution path**
+encounters all previously pinned required invocation checkpoints in order.
+A target outside the parsed method, malformed transfer, unsupported JVM
+switch/jsr/ret instruction, or method with no such path fails closed.
+This is checked against the **actual official 26.2 client** in the
+existing dedicated Java 25 workflow, and hermetic regression fixtures
+deliberately include textually ordered but CFG-incompatible calls.
+
+This is an *existential normal-control-flow* property, **not** a proof
+that all valid input values take that path or that the calls have the
+expected dataflow. The witness does **not** interpret operand stack,
+local-variable contents, exception tables, asynchronous callback
+scheduling, registry duplicate handling, or selected known-pack
+semantics. The candidate report explicitly retains
+`all_control_flow_paths_reviewed=false`,
+`exception_and_duplicate_semantics_proven=false`, and all source and
+production authority flags **false**. The exact #268 world-state VAR/SEM
+gate remains independently admitted and unchanged.
+
+**Next semantic task:** use this *reachable success-path witness* and
+the existing invokedynamic method-handle review as the basis for
+*human-checked*, full-fingerprint VAR/SEM decisions. Independently
+inspect the remaining bytecode/source exception edges and dataflow
+to prove what happens on empty/missing/duplicate/error registrations.
+Then source-gate the narrowed registry/Configuration/client decision
+set. No new source parser or runtime biome registry is needed.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

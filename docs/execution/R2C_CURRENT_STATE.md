@@ -79,6 +79,16 @@ gate and official heightmap facts workflow were green at reviewed head
 `eed6bcedfbb43b155f8f16e87c4e775595f3f592`.
 The public legacy per-connection world import entrypoint was removed.
 
+**Selected visible halo adjustment (post-PR #392):** The ordinary server-owned
+COLD host now selects the same **25** genuine source positions as the
+successful 5×5 stock-client renderer-halo diagnostic, rather than the old
+nine-column reference selection. The original nine-column importer remains
+only for existing finite reference/diagnostic regressions. The central 3×3
+still represents the demonstrated mesh-ready neighborhood, not a claimed
+25-column visible world. This changes only up-front source import cost and
+resident COLD shape; **ordinary Play chunk publication remains disabled**
+and no optimized storage-policy or source/VAR/SEM admission is implied.
+
 **Scope is deliberately limited:** this is a server-lifetime
 **immutable COLD world**, not a writable region-owned simulation executor.
 `TcpListener::accept` still serves client connections serially, the opted-in

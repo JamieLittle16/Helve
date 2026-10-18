@@ -555,8 +555,16 @@ mod tests {
         use std::collections::HashSet;
 
         let center = helve_types::ChunkPos { x: 0, z: -1 };
-        let requested = super::plan_first_view_positions(center, 10, 25).unwrap();
-        assert_eq!(requested.len(), 25);
+        let requested = super::plan_first_view_positions(
+            center,
+            10,
+            crate::r2c_cold_demo_import::SELECTED_VISIBLE_CHUNKS,
+        )
+        .unwrap();
+        assert_eq!(
+            requested.len(),
+            crate::r2c_cold_demo_import::SELECTED_VISIBLE_CHUNKS
+        );
         assert_eq!(requested[0], center);
         let positions: HashSet<_> = requested.iter().map(|pos| (pos.x, pos.z)).collect();
         assert_eq!(positions.len(), 25);

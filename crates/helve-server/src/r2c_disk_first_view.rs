@@ -514,6 +514,45 @@ mod tests {
     }
 
     #[test]
+    fn checked_session_center_agrees_with_full_view_without_reselecting_chunks() {
+        let profile = test_overworld_lattice();
+        for (x, y, z) in [
+            (10.390_952_126_751_907, 84.0, -5.815_159_807_324_014),
+            (-0.000_001, -64.0, -511.99),
+            (16.0, 319.999, 0.0),
+            (f64::from(i32::MAX) * 16.0, 70.0, 0.0),
+            (f64::from(i32::MIN) * 16.0, 70.0, 0.0),
+        ] {
+            let session = retained_session_with_teleport(x, y, z);
+            let checked = super::checked_pending_teleport_center(&session, profile)
+                .expect("checked session center");
+            for cap in [1, 9, 25] {
+                let (planned, selected) =
+                    super::plan_pending_teleport_first_view(&session, profile, 10, cap)
+                        .expect("full checked source selection");
+                assert_eq!(checked, planned);
+                assert_eq!(
+                    selected,
+                    super::plan_first_view_positions(checked, 10, cap).unwrap()
+                );
+            }
+        }
+        for (x, y, z) in [
+            (f64::NAN, 70.0, 0.0),
+            (0.0, f64::INFINITY, 0.0),
+            (0.0, 384.0, 0.0),
+            (0.0, -64.01, 0.0),
+            ((f64::from(i32::MAX) + 1.0) * 16.0, 70.0, 0.0),
+        ] {
+            let session = retained_session_with_teleport(x, y, z);
+            assert!(super::checked_pending_teleport_center(&session, profile).is_err());
+            assert!(super::plan_pending_teleport_first_view(
+                &session, profile, 10, 25
+            ).is_err());
+        }
+    }
+
+    #[test]
     fn twenty_five_source_chunks_form_complete_neighbor_halo_for_inner_nine() {
         use std::collections::HashSet;
 
@@ -1351,7 +1390,7 @@ mod tests {
         // nine-chunk fixture verifies that each session shares the exact
         // original dimension and receipt allocations, but not its ACK cursor.
         let host = crate::r2c_cold_demo_import::R2cColdWorldHost::from_test_source(
-            dimension, receipts, center, profile, 9,
+            dimension, receipts, center, profile,
         );
         let second_session = retained_session_with_teleport(0.25, 8.0, 0.25);
         let second = host
@@ -1360,6 +1399,13 @@ mod tests {
         let mut view = host.attach(&session).expect("first session attaches");
         assert!(view.shares_resident_with(&second));
         assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
+        // Different positions within the same preselected chunk (and valid
+        // vertical lattice) attach without rebuilding the view or changing
+        // the host's source receipts.
+        let same_chunk = retained_session_with_teleport(15.99, 15.9, 15.99);
+        let third = host.attach(&same_chunk).expect("same selected chunk center");
+        assert!(third.shares_resident_with(&view));
+        assert_eq!(third.diagnostic_batch_progress(), (0, 9, 0));
         assert!(
             host.attach(&retained_session_with_teleport(1024.0, 8.0, 0.25))
                 .is_err()

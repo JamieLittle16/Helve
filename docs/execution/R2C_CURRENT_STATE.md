@@ -166,6 +166,30 @@ and backpressure check, not a 15-second real keep-alive test, an
 arbitrary slow-client quota, production admission or concurrent-server
 readiness claim.
 
+## Two physical TCP joins from one immutable world host (pending PR qualification)
+
+The existing source-backed four-signed-region 25-chunk loopback regression
+now has a second, explicit **two-connection** variant. It imports the same
+Anvil fixture exactly once into one `R2cColdWorldHost`, then opens and
+closes two separate localhost TCP connections. Each connection attaches a
+fresh retained R2B Play session, projects every original source receipt via
+the existing 20-Hz, ACK-paced same-driver publisher, and drains its entire
+batch cursor before EOF. The test independently verifies per-connection
+source positions and heightmap bytes, exact first-join/second-join wire-frame
+equality, zero remaining ACKs and egress, original read-scratch identity,
+and unadvanced state of a third attached observer. It does not create
+another importer, global client cache or packet owner.
+
+The positive witness is **still test-build-only**, with exact dense
+heightmap facts injected solely by the pinned official-oracle CI workflow.
+Normal hermetic CI continues to verify the COLD fixture/host portion without
+assuming the oracle bytes are source admitted. This regression exercises
+consecutive sockets **after** R2B's handoff: it is not a full fresh
+Handshake/Login/Configuration reconnect, concurrent-client simulation,
+vanilla stock-client automated visual test, 15-second keep-alive proof,
+source/VAR/SEM admission, or product publication authority. Once CI is
+confirmed, update this pending qualifier to the recorded run and commit.
+
 ## Post-visual evidence reproducibility tooling (unadmitted)
 
 The existing `tools/r2c_stock_client_diagnostic.py` launcher now offers

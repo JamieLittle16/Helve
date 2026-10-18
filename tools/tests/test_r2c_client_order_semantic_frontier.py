@@ -362,43 +362,44 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
     def test_register_elements_handler_boundaries_are_not_inferred(self) -> None:
         cls, method = probe.METHODS[-2]
         source = fixture(cls)
-        record = probe.bounded_method_shape(source, cls, method)
-        self.assertEqual(len(record["register_elements_exception_table_witness"][
-            "jvm_exception_handlers"
-        ]), 1)
-        # A method may contain close/suppressed exception calls as well as
-        # the registration forEach; keep their handler-range coverage exact.
+        evidence = probe.bounded_method_shape(source, cls, method)[
+            "register_elements_exception_table_witness"
+        ]
+        self.assertEqual(len(evidence["jvm_exception_handlers"]), 2)
+        self.assertEqual(evidence["stream_foreach_offset"], 14)
+        self.assertEqual([x["offset"] for x in evidence["monitor_sites"]], [6, 25, 31])
+
+        # The bounded metadata retains a new invoked method and records its
+        # handler ownership, but does not automatically declare it as Mojang's
+        # actual source or infer its semantics.
         augmented = source.replace(
-            "       6: aload_1",
-            "       6: invokevirtual #14 // Method exact/Stream.close:()V",
+            "      30: aload_2",
+            "      30: invokevirtual #14 // Method exact/Stream.close:()V",
         )
-        augmented_calls = probe.bounded_method_shape(
-            augmented, cls, method
-        )["register_elements_exception_table_witness"]["bounded_invoke_sites"]
-        self.assertEqual(augmented_calls[-1]["offset"], 6)
-        self.assertEqual(augmented_calls[-1]["symbol"], "Method exact/Stream.close:()V")
-        self.assertEqual(augmented_calls[-1]["protected_by_handler_targets"], [])
+        calls = probe.bounded_method_shape(augmented, cls, method)[
+            "register_elements_exception_table_witness"
+        ]["bounded_invoke_sites"]
+        self.assertEqual(calls[-1]["offset"], 30)
+        self.assertEqual(calls[-1]["protected_by_handler_targets"], [29])
+        self.assertEqual(calls[-1]["symbol"], "Method exact/Stream.close:()V")
 
         missing = source.replace("    Exception table:", "    Missing table:")
         with self.assertRaisesRegex(ValueError, "one exception table"):
             probe.bounded_method_shape(missing, cls, method)
-        missing_target = source.replace(
-            "0     2     5   Class", "0     2     99   Class"
-        )
+        bad_target = source.replace("7    26    29   any", "7    26    99   any")
         with self.assertRaisesRegex(ValueError, "invalid handler boundaries"):
-            probe.bounded_method_shape(missing_target, cls, method)
-        malformed = source.replace(
-            "0     2     5   Class", "0     2     ?   Class"
-        )
+            probe.bounded_method_shape(bad_target, cls, method)
+        malformed = source.replace("7    26    29   any", "7    26    ?   any")
         with self.assertRaisesRegex(ValueError, "malformed JVM handler row"):
             probe.bounded_method_shape(malformed, cls, method)
-        uncovered = source.replace(
-            "0     2     5   Class", "2     5     5   Class"
-        )
-        uncovered_witness = probe.bounded_method_shape(
-            uncovered, cls, method
-        )["register_elements_exception_table_witness"]
-        self.assertFalse(uncovered_witness["stream_foreach_directly_covered_by_handler"])
+        uncovered = source.replace("7    26    29   any", "16   26    29   any")
+        with self.assertRaisesRegex(ValueError, "monitor and protected handler positions"):
+            probe.bounded_method_shape(uncovered, cls, method)
+        missing_enter = source.replace("6: monitorenter", "6: aload_0")
+        missing_exit = source.replace("31: monitorexit", "31: aload_2")
+        for changed in (missing_enter, missing_exit):
+            with self.assertRaisesRegex(ValueError, "enter monitor and release"):
+                probe.bounded_method_shape(changed, cls, method)
 
     def test_full_26_2_client_pipeline_does_not_self_admit(self) -> None:
         raw = jar_bytes()

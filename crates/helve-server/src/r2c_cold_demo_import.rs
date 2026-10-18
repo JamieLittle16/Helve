@@ -115,6 +115,16 @@ pub struct R2cColdWorldHost {
     max_chunks: usize,
 }
 
+impl std::fmt::Debug for R2cColdWorldHost {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("R2cColdWorldHost")
+            .field("center", &self.center)
+            .field("resident_chunks", &self.chunks())
+            .field("source_receipts", &self.receipts.len())
+            .finish_non_exhaustive()
+    }
+}
+
 impl R2cColdWorldHost {
     /// Validate that a new session's actual pending teleport selects exactly
     /// the original server-owned source window before attaching its own cursor.

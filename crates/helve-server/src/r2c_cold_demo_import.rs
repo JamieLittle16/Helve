@@ -46,9 +46,11 @@ use helve_target_26_2::Target26_2R1xContext;
 /// **Bounded, development-only** initial load: no world generator, no
 /// cross-client cache. Separate source/profile/pack admission is required
 /// before using these source receipts to send any chunk.
-const CHUNKS: usize = 9;
-#[cfg(test)]
-const RENDER_HALO_CHUNKS: usize = 25;
+const REFERENCE_CHUNKS: usize = 9;
+/// The successful 26.2 stock-client visual profile needs one real 5×5
+/// neighborhood: the central 3×3 has all eight mesh neighbors available.
+/// This controls COLD source selection only, never Play publication authority.
+pub(crate) const SELECTED_VISIBLE_CHUNKS: usize = 25;
 const VIEW_DISTANCE: i32 = 10;
 const MAX_REGION_BYTES: usize = 64 * 1024 * 1024;
 const MAX_CHUNK_BYTES: usize = 16 * 1024 * 1024;
@@ -561,7 +563,7 @@ pub(crate) fn import_selected_cold_world(
     context: &Target26_2R1xContext,
     world: &Path,
 ) -> Result<ColdImportedView, String> {
-    import_selected_cold_world_bounded(session, context, world, CHUNKS)
+    import_selected_cold_world_bounded(session, context, world, REFERENCE_CHUNKS)
 }
 
 /// COLD-only additional authentic neighbor chunks for the first renderer
@@ -572,7 +574,7 @@ pub(crate) fn import_selected_cold_world_with_render_halo(
     context: &Target26_2R1xContext,
     world: &Path,
 ) -> Result<ColdImportedView, String> {
-    import_selected_cold_world_bounded(session, context, world, RENDER_HALO_CHUNKS)
+    import_selected_cold_world_bounded(session, context, world, SELECTED_VISIBLE_CHUNKS)
 }
 
 fn selected_overworld_profile() -> Result<DimensionRuntimeProfile, String> {
@@ -595,7 +597,7 @@ pub(crate) fn import_selected_cold_world_host(
         teleport.2,
         profile,
         VIEW_DISTANCE,
-        CHUNKS,
+        SELECTED_VISIBLE_CHUNKS,
     )
     .map_err(|error| format!("bootstrap teleport rejects hosted world: {error:?}"))?;
     let view = import_selected_cold_world_positions(context, world, profile, center, requested)?;

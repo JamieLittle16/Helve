@@ -1460,9 +1460,11 @@ mod r2c_cold_plan_tests {
 #[cfg(test)]
 mod r2c_stock_client_diagnostic {
     use std::env;
-    use std::net::TcpListener;
+    use std::io;
+    use std::net::{TcpListener, TcpStream};
     use std::path::PathBuf;
-    use std::time::Duration;
+    use std::thread;
+    use std::time::{Duration, Instant};
 
     use super::{
         R2bPlaytestExit, R2cColdWorldPlan, WorldPublicationMode, load_r2b_playtest_image,
@@ -1470,25 +1472,101 @@ mod r2c_stock_client_diagnostic {
     };
     use crate::{HELVE_STATUS_JSON, ServerSessionEpoch};
 
+    const MAX_PREPLAY_CONNECTIONS: usize = 8;
+    const MAX_LISTEN_TIME: Duration = Duration::from_mins(3);
+    const ACCEPT_POLL: Duration = Duration::from_millis(25);
+    const SOCKET_TIMEOUT: Duration = Duration::from_secs(15);
+
     fn required(name: &str) -> String {
         env::var(name).unwrap_or_else(|_| {
             panic!("test-only R2C diagnostic requires {name}; see R2C_STOCK_CLIENT_DEMO_RUNBOOK")
         })
     }
 
-    /// This is an explicit human-operated external vanilla-client experiment.
-    /// It is *never* executed by ordinary cargo test or GitHub CI, cannot be
-    /// linked into the production binary, and grants no 26.2 source admission.
-    /// Its only socket listener is 127.0.0.1. A failed client observation is
-    /// evidence for the precise selected-world / receiver boundary, not an
-    /// excuse to replace the existing publisher or packet codec.
+    /// A status probe or other pre-Play termination cannot prove world
+    /// projection. Do not treat it as a test failure or as a chunk success:
+    /// the next accepted socket must independently reach `WorldProjection`.
+    fn is_preplay_only(exit: R2bPlaytestExit) -> bool {
+        matches!(
+            exit,
+            R2bPlaytestExit::SessionClosedBeforeWorld | R2bPlaytestExit::PeerEofBeforeWorld
+        )
+    }
+
     #[test]
-    #[ignore = "requires a real local stock Java 26.2 client, qualified R2B image and selected 26.2 saved world; UNADMITTED diagnostic only"]
+    fn status_only_or_preworld_eof_is_not_r2c_completion() {
+        assert!(is_preplay_only(R2bPlaytestExit::SessionClosedBeforeWorld));
+        assert!(is_preplay_only(R2bPlaytestExit::PeerEofBeforeWorld));
+        assert!(!is_preplay_only(R2bPlaytestExit::KeepAliveTimedOut));
+        assert!(!is_preplay_only(R2bPlaytestExit::LivePeerEof {
+            teleport_acknowledged: true,
+            accepted_keep_alives: 1,
+            discarded_world_frames: 0,
+            latency_ms: 0,
+        }));
+    }
+
+    /// Only this COLD ignored test owns the listener. It is bounded both in
+    /// number of status/preplay probes and wall-clock admission time; there
+    /// is still only one R2B/Play driver per accepted physical connection.
+    fn next_client(listener: &TcpListener, deadline: Instant) -> TcpStream {
+        loop {
+            match listener.accept() {
+                Ok((socket, peer)) => {
+                    eprintln!("R2C diagnostic incoming peer={peer}");
+                    socket.set_nodelay(true).expect("one TCP peer");
+                    socket
+                        .set_read_timeout(Some(SOCKET_TIMEOUT))
+                        .expect("bounded initial handshake timeout");
+                    socket
+                        .set_write_timeout(Some(SOCKET_TIMEOUT))
+                        .expect("bounded write timeout");
+                    return socket;
+                }
+                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+                    assert!(
+                        Instant::now() < deadline,
+                        "R2C diagnostic listener timed out without a completed Play connection; try Direct Connection on the selected 26.2 offline profile"
+                    );
+                    thread::sleep(ACCEPT_POLL);
+                }
+                Err(error) => panic!("R2C localhost accept failed: {error}"),
+            }
+        }
+    }
+
+    fn assert_live_completion(exit: R2bPlaytestExit) {
+        match exit {
+            R2bPlaytestExit::LivePeerEof {
+                teleport_acknowledged: true,
+                accepted_keep_alives,
+                discarded_world_frames,
+                ..
+            } => {
+                assert!(
+                    accepted_keep_alives >= 1,
+                    "client must remain connected for at least one keep-alive cycle"
+                );
+                eprintln!(
+                    "R2C DIAGNOSTIC WIRE PASS | teleport ACK=accepted | keep-alives={accepted_keep_alives} | unclaimed gameplay frames={discarded_world_frames} | visual terrain observation is MANUAL | not production-admitted"
+                );
+            }
+            other => panic!(
+                "client reached a nonpassing post-handshake exit: {other:?}; capture client/latest.log"
+            ),
+        }
+    }
+
+    /// Human-operated localhost-only experiment, never ordinary CI or a
+    /// release binary. The actual chunk publisher remains cfg(test)-only;
+    /// pre-Play status connections are not silently called successful joins.
+    #[test]
+    #[ignore = "requires real stock Java 26.2 client, selected 26.2 save and source-free R2B image; UNADMITTED diagnostic only"]
     fn manual_stock_client_receives_real_anvil_chunks() {
         assert_eq!(
             required("HELVE_R2C_DIAGNOSTIC_CONFIRM"),
             "UNADMITTED_LOCAL_ONLY",
-            "must explicitly accept the unadmitted test-build-only client experiment"
+            "must explicitly accept unadmitted test-only client experiment"
         );
         let epoch = ServerSessionEpoch::parse_hex(&required("HELVE_R2C_DIAGNOSTIC_EPOCH"))
             .expect("capture-qualified offline R2B session epoch");
@@ -1507,49 +1585,39 @@ mod r2c_stock_client_diagnostic {
             .map_or_else(|_| Ok(25565_u16), |text| text.parse::<u16>())
             .expect("valid numeric loopback listener port");
         let listener = TcpListener::bind(("127.0.0.1", port))
-            .expect("loopback demo listener; close another server occupying the port");
+            .expect("local demo listener; close any server occupying the port");
+        listener
+            .set_nonblocking(true)
+            .expect("bounded test-only accept polling");
+        let deadline = Instant::now() + MAX_LISTEN_TIME;
         eprintln!(
-            "R2C UNADMITTED TEST-ONLY DIAGNOSTIC listening on {} | connect stock Minecraft Java 26.2 | source/VAR/SEM for live R2C NOT admitted | this is NOT a production server",
+            "R2C TEST-ONLY diagnostic listening on {} | connect Java 26.2 via Direct Connection | pre-Play probes tolerated, but only completed chunk batch and liveness can PASS | production_admitted=false",
             listener.local_addr().expect("bound address")
         );
-        let (mut socket, peer) = listener.accept().expect("one local client connection");
-        socket.set_nodelay(true).expect("same real TCP peer");
-        socket
-            .set_read_timeout(Some(Duration::from_secs(15)))
-            .expect("initial client handshake timeout");
-        socket
-            .set_write_timeout(Some(Duration::from_secs(15)))
-            .expect("client write timeout");
-        eprintln!(
-            "R2C diagnostic stock-client peer={peer}; source world audit and original R2B session follow"
-        );
-        let exit = serve_r2b_playtest_with_optional_r2c_plan(
-            &mut socket,
-            epoch,
-            &image,
-            Some(&plan),
-            WorldPublicationMode::UnadmittedStockClientDiagnostic,
-        )
-        .expect("canonical R2B + same-driver nine-chunk test-only source publication");
-        eprintln!("R2C unadmitted client experiment ended: {exit:?}");
-        match exit {
-            R2bPlaytestExit::LivePeerEof {
-                teleport_acknowledged: true,
-                accepted_keep_alives,
-                discarded_world_frames,
-                ..
-            } => {
-                assert!(
-                    accepted_keep_alives >= 1,
-                    "client must remain connected for at least one keep-alive cycle"
-                );
+        for attempt in 1..=MAX_PREPLAY_CONNECTIONS {
+            let mut socket = next_client(&listener, deadline);
+            let outcome = serve_r2b_playtest_with_optional_r2c_plan(
+                &mut socket,
+                epoch,
+                &image,
+                Some(&plan),
+                WorldPublicationMode::UnadmittedStockClientDiagnostic,
+            )
+            .unwrap_or_else(|error| {
+                panic!("R2C diagnostic connection {attempt} failed: {error:?}")
+            });
+            eprintln!("R2C diagnostic connection {attempt} ended: {outcome:?}");
+            if is_preplay_only(outcome) {
                 eprintln!(
-                    "R2C DIAGNOSTIC WIRE PASS | teleport ACK=accepted | keep-alives={accepted_keep_alives} | unclaimed gameplay frames={discarded_world_frames} | visual terrain observation is MANUAL, not implied | no source/production admission"
+                    "R2C diagnostic pre-Play-only connection {attempt}/{MAX_PREPLAY_CONNECTIONS}; no chunks sent. Awaiting real Login/Configuration/Play on a NEW connection. If Minecraft shows a failed join, retry Direct Connection and keep its latest.log."
                 );
+                continue;
             }
-            other => {
-                panic!("client left before a verified teleport/liveness completion: {other:?}")
-            }
+            assert_live_completion(outcome);
+            return;
         }
+        panic!(
+            "R2C diagnostic exhausted {MAX_PREPLAY_CONNECTIONS} pre-Play connections without reaching Play; examine client latest.log and selected offline name Stato16"
+        );
     }
 }

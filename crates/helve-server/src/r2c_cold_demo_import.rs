@@ -126,6 +126,26 @@ impl std::fmt::Debug for R2cColdWorldHost {
 }
 
 impl R2cColdWorldHost {
+    /// Test-only bridge from the real multi-region Anvil fixture. This shares
+    /// existing semantic residents and source receipts, never fabricates a
+    /// source-admission witness or makes the ordinary publisher constructible.
+    #[cfg(test)]
+    pub(crate) fn from_test_source(
+        dimension: ColdDimension,
+        receipts: Vec<SourceChunkPublicationReceipt>,
+        center: ChunkPos,
+        profile: DimensionRuntimeProfile,
+        max_chunks: usize,
+    ) -> Self {
+        Self {
+            dimension: Arc::new(dimension),
+            receipts: receipts.into(),
+            center,
+            profile,
+            max_chunks,
+        }
+    }
+
     /// Validate that a new session's actual pending teleport selects exactly
     /// the original server-owned source window before attaching its own cursor.
     /// No world data, receipt, or chunk memory is copied.
@@ -192,6 +212,14 @@ impl ColdImportedView {
             receipts: receipts.into(),
             batch,
         }
+    }
+
+    /// Test-only identity probe: a second join reuses exactly the same
+    /// resident directory and receipt storage, not an identical re-import.
+    #[cfg(test)]
+    pub(crate) fn shares_resident_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.dimension, &other.dimension)
+            && Arc::ptr_eq(&self.receipts, &other.receipts)
     }
 
     pub(crate) fn chunks(&self) -> usize {

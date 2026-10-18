@@ -27,6 +27,14 @@ CAPTURE_EPOCH = "4d7f604f196a43b08987f0b2a27c2663"
 TEST = "r2b_playtest::r2c_stock_client_diagnostic::manual_stock_client_receives_real_anvil_chunks"
 REHEARSAL = "r2c_disk_first_view::tests::nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch"
 CANDIDATE_BYTES = 32_366
+# R2B's pinned teleport (10.39, 84, -5.815) selects a 3x3 first view
+# spanning the four signed Anvil regions adjacent to world origin.
+# These are *existing bytes* from the user's vanilla save, never
+# fabricated chunks or an altered block-entity list.
+FIRST_VIEW_REGIONS = (
+    "r.-1.-1.mca", "r.-1.0.mca", "r.0.-1.mca", "r.0.0.mca",
+)
+REGION_BYTES_LIMIT = 64 * 1024 * 1024
 
 
 class DiagnosticError(ValueError):
@@ -57,6 +65,45 @@ def selected_world_root(world: Path) -> Path:
     # DataVersion/NBT and each requested Anvil region are checked again by the
     # exact existing Rust loader: do not create another NBT parser here.
     return world
+
+
+def stage_vanilla_overworld(source: Path, scratch: Path) -> Path:
+    """Copy only the four *original* Anvil regions into test-only layout.
+
+    The actual Rust bounded visitor and world metadata checker still own
+    all semantic qualification. Never rewrite source NBT or remove entities.
+    """
+    source = source.expanduser().absolute()
+    if source.is_symlink() or not source.is_dir():
+        raise DiagnosticError(f"vanilla save must be a real non-symlink directory: {source}")
+    if (source / "dimensions" / "minecraft" / "overworld").exists():
+        raise DiagnosticError("save already has a namespaced Overworld; omit --stage-vanilla-overworld")
+    region_dir = source / "region"
+    if region_dir.is_symlink() or not region_dir.is_dir():
+        raise DiagnosticError(f"expected a vanilla Overworld region/ directory: {region_dir}")
+    level = existing_file(
+        source / "level.dat", "vanilla level.dat", maximum=4 * 1024 * 1024,
+    )
+    regions = tuple(
+        existing_file(region_dir / name, f"required initial-view region {name}",
+                      maximum=REGION_BYTES_LIMIT)
+        for name in FIRST_VIEW_REGIONS
+    )
+    destination = scratch / "original-vanilla-overworld"
+    target_regions = destination / "dimensions" / "minecraft" / "overworld" / "region"
+    target_regions.mkdir(parents=True, exist_ok=False)
+    # A copy, not symlinks or hardlinks: Minecraft cannot modify the source
+    # after the snapshot, and R2C cannot modify the original save.
+    shutil.copyfile(level, destination / "level.dat")
+    for region in regions:
+        shutil.copyfile(region, target_regions / region.name)
+    print(
+        "R2C COLD staging: copied original vanilla level.dat and "
+        f"{len(regions)} signed Anvil regions to a disposable test-only view; "
+        "no block entities removed or rewritten",
+        flush=True,
+    )
+    return selected_world_root(destination)
 
 
 def selected_r2b_image(image: Path) -> Path:
@@ -98,6 +145,11 @@ def build_parser() -> argparse.ArgumentParser:
     heightmap = parser.add_mutually_exclusive_group(required=True)
     heightmap.add_argument("--heightmap-bin", type=Path, help="verified 32,366-byte official candidate from existing CI")
     heightmap.add_argument("--generate-heightmap", action="store_true", help="run the existing pinned Java 25 oracle and candidate converter")
+    parser.add_argument(
+        "--stage-vanilla-overworld", action="store_true",
+        help="COLD-copy the four unchanged first-view regions from an ordinary "
+             "vanilla save root containing region/ (no block-entity edits)",
+    )
     parser.add_argument("--port", type=int, default=25565, help="loopback port (default: 25565)")
     parser.add_argument("--preflight-only", action="store_true", help="validate inputs without building or opening any listener")
     parser.add_argument("--skip-rehearsal", action="store_true", help="skip the existing nine-chunk test (e.g. after green CI)")
@@ -107,7 +159,11 @@ def build_parser() -> argparse.ArgumentParser:
 def prepare(args: argparse.Namespace, scratch: Path) -> tuple[Path, Path, Path]:
     if not 1 <= args.port <= 65_535:
         raise DiagnosticError("port must be in the range 1..65535")
-    world = selected_world_root(args.world)
+    world = (
+        stage_vanilla_overworld(args.world, scratch)
+        if args.stage_vanilla_overworld
+        else selected_world_root(args.world)
+    )
 
     if args.r2b_image is not None:
         image = selected_r2b_image(args.r2b_image)

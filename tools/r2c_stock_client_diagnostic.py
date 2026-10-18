@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Sequence
 
 import r2b_pack_playtest as r2b
+import r2c_first_view_block_entities as saved_entities
 from r2c_heightmap_candidate_bytes import EXPECTED_DENSE_SHA256
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -65,6 +66,26 @@ def selected_world_root(world: Path) -> Path:
     # DataVersion/NBT and each requested Anvil region are checked again by the
     # exact existing Rust loader: do not create another NBT parser here.
     return world
+
+
+def preflight_render_halo(world: Path) -> None:
+    """COLD-only full source check, before Java generation or any listener.
+
+    Same existing Anvil/NBT inspection oracle as the manual first-view
+    diagnostic; no mutation and no authority to source-admit packets.
+    The real Rust importer still independently checks each source receipt.
+    """
+    try:
+        reports = saved_entities.audit_world(world, saved_entities.RENDER_HALO_CHUNKS)
+    except (OSError, saved_entities.SourceAuditError) as error:
+        raise DiagnosticError(f"25-chunk source preflight rejected: {error}") from error
+    if not saved_entities.print_report(reports):
+        raise DiagnosticError(
+            "25-chunk render halo has unsupported saved block entities or "
+            "missing explicitly-empty evidence; no heightmap generated and "
+            "no socket opened"
+        )
+    print("R2C COLD 25-source-chunk block-entity preflight PASSED", flush=True)
 
 
 def stage_vanilla_overworld(source: Path, scratch: Path) -> Path:
@@ -169,6 +190,8 @@ def prepare(args: argparse.Namespace, scratch: Path) -> tuple[Path, Path, Path]:
         if args.stage_vanilla_overworld
         else selected_world_root(args.world)
     )
+    if args.render_halo:
+        preflight_render_halo(world)
 
     if args.r2b_image is not None:
         image = selected_r2b_image(args.r2b_image)

@@ -49,10 +49,14 @@ def reports() -> tuple[dict, dict]:
         },
     }
     classes = []
-    for class_name, digest in binding.BUILDER_CLASSES.items():
+    owners = dict.fromkeys(
+        [*binding.BUILDER_CLASSES,
+         *(owner for owner, _ in binding.BUILDER_METHODS)]
+    )
+    for class_name in owners:
         classes.append({
             "class_name": class_name,
-            "classfile_sha256": digest,
+            "classfile_sha256": binding.BUILDER_CLASSES.get(class_name, "a" * 64),
             "selected_methods": [
                 {
                     "method_name": method,
@@ -65,7 +69,8 @@ def reports() -> tuple[dict, dict]:
         })
     # There really are overloaded decode/encode methods on the client.
     # Their presence must not overwrite the 42/54-instruction wire codec.
-    classes[-1]["selected_methods"].extend([
+    next(c for c in classes if c["class_name"] ==
+         "net.minecraft.network.codec.IdDispatchCodec")["selected_methods"].extend([
         {
             "method_name": "decode",
             "instruction_shape_sha256": "f" * 64,

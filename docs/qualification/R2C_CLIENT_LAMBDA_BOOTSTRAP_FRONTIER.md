@@ -112,6 +112,40 @@ that the `Either` branches always execute without exceptional
 interleavings, or that a nonempty error map aborts the final registry,
 nor VAR/SEM admission. No source, JAR or disassembly is checked in.
 
+## Callback operand-path candidate and partial-failure model
+
+The already rooted `RegistryLoadTask.lambda$registerElements$0/$1/$2`
+methods now have an additional **bounded opcode-only** client review
+candidate, using this same `javap -v -p -c` pass. For each method the
+inspector records at most 48 method-local opcode/offset pairs and the
+full instruction-content SHA-256, without exporting official source,
+literal operands, method bodies or disassembly. These are intended to
+make a later operand-stack/receiver proof reviewable; they **do not**
+by themselves prove that the `Either.ifLeft` return value is the
+receiver for `Either.ifRight`, which registry object is captured, or
+that `WritableRegistry.register` dispatches to the same
+`MappedRegistry` whose numeric insertion was observed.
+
+A separate **JDK 25 conditional failure oracle** in
+`tools/tests/R2cClientSequenceJdkOracle.java` now tests two
+distinct scenarios at all nonempty lengths 1, 2, 3, 4 and 66
+and every possible failing position:
+
+- A sequential `Stream.forEach` callback **throw** leaves the
+  previously committed model prefix intact, propagates the error, and
+  stops before the suffix. A JVM monitor is not a rollback mechanism.
+- A **reported** per-entry error routed to a model map while
+  other callbacks continue leaves a dense ordinal table of successful
+  entries; every entry *after* the skipped error shifts down by one.
+  The model cannot establish whether the actual client permits such
+  a registry to finalize.
+
+The latter is a deliberately adversarial **conditional model**:
+the actual stock client `Either` values, callback dataflow, error
+map processing, and registry finalization remain pending independent
+source/SEM review. Neither oracle results nor method-opcode metadata
+may inhabit R2C production authority.
+
 ## What this still cannot certify
 
 Even a fully resolved lambda bootstrap does not itself prove:

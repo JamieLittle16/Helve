@@ -79,7 +79,6 @@ pub use r2b_playtest::{
     R2bPlaytestError, R2bPlaytestExit, R2bPlaytestImage, R2bPlaytestImageError, R2cColdWorldPlan,
     R2cColdWorldPlanError, load_r2b_playtest_image, prepare_r2c_cold_world_host,
     serve_r2b_playtest_blocking_transport, serve_r2b_playtest_with_r2c_cold_host,
-    serve_r2b_playtest_with_r2c_cold_plan,
 };
 pub use r2b_server::{
     R2bEntryOutcome, R2bLivenessProcess, R2bPlayError, R2bPlayInbound, R2bPlayProcess,

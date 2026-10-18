@@ -256,6 +256,46 @@ preparation issues**; a packet mismatch or no visible terrain after
 an accepted batch is a narrower genuine receiving-client integration
 issue. Do not fix either by replaying captured Play world packets.
 
+## Interrupted or unaligned Anvil source: do not edit the region bytes
+
+A subsequent read-only 25-chunk audit of `Helve R2C Clean` on 18
+October rejected `r.0.-1.mca` because the whole region byte count was
+**not a multiple of 4,096**. This is a different failure from the
+earlier source-backed two block entities. The existing Rust
+`RegionView::new` and Python `vanilla_section_extractor` both
+correctly require at least two 4 KiB header sectors and fully aligned
+region size. We **must not round/truncate/pad** region bytes as a
+shortcut, especially not in the original save. This result alone
+does not identify whether an in-flight write, incomplete flush,
+interruption or persisted malformed save caused the mismatch.
+
+With the vanilla world **closed** (Save and Quit, and exit any
+other open single-player instances using this save), inspect the
+actual file and other signed source regions without opening
+the network or modifying them:
+
+```bash
+WORLD="$HOME/.local/share/PrismLauncher/instances/26.2/minecraft/saves/Helve R2C Clean"
+find "$WORLD/dimensions/minecraft/overworld/region" \
+  -maxdepth 1 -name 'r.*.*.mca' -type f \
+  -printf '%f bytes=%s modified=%TY-%Tm-%Td_%TH:%TM:%TS\n'
+python3 - "$WORLD/dimensions/minecraft/overworld/region/r.0.-1.mca" <<'PY'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+length = p.stat().st_size
+print(f"Anvil region: {p.name}; bytes={length}; trailing={length % 4096}; aligned={length >= 8192 and length % 4096 == 0}")
+PY
+```
+
+Rerun the read-only `--render-halo` audit only on a
+stable, saved/closed source. If the file remains misaligned, use a
+**different authentic vanilla save** for the finite demo, and preserve
+this one for diagnosis; do not manually append zero bytes or alter
+source chunks. If normal Save and Quit through vanilla makes the file
+valid, it must still independently pass the 25-chunk saved-entity
+audit and existing Rust source/receipt admission before another
+stock-client test.
+
 ## 25-chunk halo source failure: inspect before running Java or opening TCP
 
 The first `--render-halo` stock-client attempts on 18 October 2026

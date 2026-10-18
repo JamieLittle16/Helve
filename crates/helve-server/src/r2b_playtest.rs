@@ -840,7 +840,7 @@ enum WorldPlayIngress {
     Incomplete,
     Control(R2bPlayInbound),
     ChunkBatchAcknowledged,
-    Unclaimed,
+    Unclaimed { packet_id: i32 },
 }
 
 fn process_one_world_play_ingress(
@@ -859,13 +859,17 @@ fn process_one_world_play_ingress(
             R2cPlayInboundStep::ChunkBatchAcknowledged { .. } => {
                 Ok(WorldPlayIngress::ChunkBatchAcknowledged)
             }
-            R2cPlayInboundStep::Unclaimed { .. } => Ok(WorldPlayIngress::Unclaimed),
+            R2cPlayInboundStep::Unclaimed { packet_id } => {
+                Ok(WorldPlayIngress::Unclaimed { packet_id })
+            }
         };
     }
     match session.process_one_play_control(now_ms)? {
         R2bPlayProcess::Incomplete => Ok(WorldPlayIngress::Incomplete),
         R2bPlayProcess::Committed(event) => Ok(WorldPlayIngress::Control(event)),
-        R2bPlayProcess::Unclaimed { .. } => Ok(WorldPlayIngress::Unclaimed),
+        R2bPlayProcess::Unclaimed { packet_id } => {
+            Ok(WorldPlayIngress::Unclaimed { packet_id })
+        }
     }
 }
 
@@ -907,7 +911,18 @@ pub(crate) fn serve_world_projection_wait(
                     // independently admitted. The existing batch state has
                     // already transactionally consumed the ACK.
                 }
-                WorldPlayIngress::Unclaimed => {
+                WorldPlayIngress::Unclaimed { packet_id } => {
+                    // This route is an intentionally incomplete gameplay handler.
+                    // Expose the exact serverbound packet IDs observed during the
+                    // COLD-only stock-client experiment, without another parser,
+                    // packet copy or production HOT-path trace.
+                    #[cfg(test)]
+                    if publisher.is_some() && discarded_world_frames < 16 {
+                        eprintln!(
+                            "R2C TEST-ONLY unclaimed Play inbound | packet_id={packet_id} | elapsed_ms={now_ms} | action=discard_in_diagnostic_only"
+                        );
+                    }
+                    let _ = packet_id;
                     discard_one_complete_play_frame(session)?;
                     discarded_world_frames = discarded_world_frames
                         .checked_add(1)
@@ -1543,10 +1558,14 @@ mod r2c_stock_client_diagnostic {
                 discarded_world_frames,
                 ..
             } => {
-                assert!(
-                    accepted_keep_alives >= 1,
-                    "client must remain connected for at least one keep-alive cycle"
-                );
+                if accepted_keep_alives == 0 {
+                    eprintln!(
+                        "R2C DIAGNOSTIC PARTIAL WIRE RESULT | chunk batch and teleport ACK confirmed | unclaimed gameplay frames={discarded_world_frames} | peer closed before a keep-alive response | no visual success or complete liveness proof"
+                    );
+                    panic!(
+                        "client disconnected after completed chunk batch but before keep-alive; inspect PrismLauncher minecraft/logs/latest.log for client-side protocol decoder exception. Keep-alive is not proven faulty by early EOF."
+                    );
+                }
                 eprintln!(
                     "R2C DIAGNOSTIC WIRE PASS | teleport ACK=accepted | keep-alives={accepted_keep_alives} | unclaimed gameplay frames={discarded_world_frames} | visual terrain observation is MANUAL | not production-admitted"
                 );

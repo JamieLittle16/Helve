@@ -2,7 +2,7 @@
 
 **Date:** 18 October 2026  
 **Target:** unmodified Minecraft Java 26.2 / protocol 776 / DataVersion 4903  
-**Baseline:** `main` at `8ffc05b8828b7a1440abcabc41b8c3e0f3bf9c0e` (PR #375)  
+**Initial evidence baseline:** `8ffc05b8828b7a1440abcabc41b8c3e0f3bf9c0e` (PR #375); subsequent #376–#377 supplied demo-first status and test-only retained TCP harness. Use the latest verified green `main` for the actual test.  
 **Current status:** synthetic-client nine-chunk TCP path green; **stock-client visual demo not yet run**  
 **Status authority:** [R2C_CURRENT_STATE.md](R2C_CURRENT_STATE.md)
 
@@ -158,7 +158,68 @@ The command is intentionally not a hidden "turn on chunks" switch:
 passing `--r2c-heightmap-candidate` cannot construct the
 uninhabited production `R2cSourceAdmission`.
 
-## 3A. New: isolated local stock-client *diagnostic* over real TCP
+## 3A. One-command local stock-client launch (preferred)
+
+The source-free, COLD orchestrator `tools/r2c_stock_client_diagnostic.py`
+reuses the **existing** R1B-to-R2B packer, official Java 25 heightmap
+oracle, pinned candidate converter and Rust test harness. It never owns a
+Minecraft packet, creates a second Play driver or constructs a
+production R2C source-admission witness. It validates the saved-world
+directory shape, exact dense runtime candidate digest and R2B image
+magic/protocol **before** running any Rust test.
+
+Starting at the repository root, with your actual selected 26.2
+pregenerated **save root** and source-qualified R1B JSON from the
+existing R1B qualification:
+
+```bash
+python3 tools/r2c_stock_client_diagnostic.py \
+  --world "/absolute/path/to/26.2-save" \
+  --r1b-image "/absolute/path/to/qualified-r1b-join-replay-image.json" \
+  --generate-heightmap
+```
+
+This command builds a fresh `CRR2B001` image via the established
+R1B validator, generates and checks the 32,366-byte official runtime
+**candidate** (requires Java 25), runs the preexisting nine-chunk TCP
+rehearsal, then starts the **ignored** test-build-only server at
+`127.0.0.1:25565`. Once the console invites you, connect the
+unmodified Minecraft Java 26.2 client using **Multiplayer → Direct
+Connection → localhost:25565**. Leave the client connected long enough
+for at least one keep-alive reply, then disconnect normally; the Rust
+test can then report its full outcome.
+
+If you **already have** the source-free `CRR2B001` image and the
+pinned 32,366-byte official candidate artifact, skip all expensive
+preparation by using the same launcher with:
+
+```bash
+python3 tools/r2c_stock_client_diagnostic.py \
+  --world "/absolute/path/to/26.2-save" \
+  --r2b-image "/absolute/path/to/helve-r2b-playtest.bin" \
+  --heightmap-bin "/absolute/path/to/26.2-heightmap-state-facts-candidate.bin"
+```
+
+For a quick **no-socket** file preflight add `--preflight-only` to
+either invocation. For an already-green local nine-chunk rehearsal add
+`--skip-rehearsal`. To avoid a busy localhost port use
+`--port 25566` and connect to `localhost:25566`.
+
+The launcher and normal Rust tests cannot confirm rendered screen
+pixels. A diagnostic **PASS** requires a clean peer EOF, accepted
+teleport, at least one valid keep-alive and *all nine source-receipted
+chunk bodies completed with no unacknowledged batch*. The screen
+still must be checked manually, and even success is **not** a
+production/source-admitted R2C milestone.
+
+If the launcher fails, copy the first `R2C diagnostic NO-GO`
+message and its preceding Rust or client log. Wrong saved-world
+layout, missing capture image and missing/corrupt oracle are **input
+preparation issues**; a packet mismatch or no visible terrain after
+an accepted batch is a narrower genuine receiving-client integration
+issue. Do not fix either by replaying captured Play world packets.
+
+## 3B. New: isolated local stock-client *diagnostic* over real TCP
 
 The existing `cargo test` build now includes exactly one **ignored**
 external-client test:
@@ -204,8 +265,9 @@ is diagnostic evidence only, not source admission or production
 R2C milestone completion.** Record the first failing selected
 packet/client error if it does not render, rather than building another
 parser. A green Rust test proves the socket exited with accepted
-teleport and at least one keep-alive; it does **not** machine-verify
-screen pixels.
+teleport and at least one keep-alive, **and** the nine-chunk
+source-receipted batch completed with no pending rate ACK. It does
+**not** machine-verify screen pixels.
 
 The test is not run by ordinary CI, and Rust `--test` builds may be
 slower than the production release path. Never copy its positive

@@ -92,8 +92,14 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 if (cls, method) == ("net.minecraft.util.Util", "sequence"):
                     paths = record["util_sequence_three_normal_branch_witness"]
                     self.assertEqual([p["return_offset"] for p in paths], [4, 15, 23])
+                    operands = record["util_sequence_branch_operand_witness"]
+                    self.assertEqual([x["branch_offset"] for x in operands], [2, 13])
+                    self.assertEqual([x["producer_offset"] for x in operands], [1, 11])
+                    self.assertEqual(operands[0]["jvm_target_condition"], "isEmpty_false")
+                    self.assertEqual(operands[1]["jvm_fallthrough_condition"], "size_equal_one")
                 else:
                     self.assertIsNone(record["util_sequence_three_normal_branch_witness"])
+                    self.assertIsNone(record["util_sequence_branch_operand_witness"])
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),
                                  len(probe.REQUIRED_CALLS[(cls, method)]))
                 self.assertFalse(record["all_control_flow_paths_reviewed"])
@@ -214,6 +220,30 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
             ValueError, "missing or reordered|normal-return JVM path|critical invokes"
         ):
             probe.bounded_method_shape(third_exits_early, cls, method)
+
+    def test_util_sequence_branch_uses_exact_list_boolean_and_size_values(self) -> None:
+        cls, method = probe.METHODS[3]
+        correct = fixture(cls)
+        # All four corruptions preserve lexical call ordering and the three
+        # control-flow exits. The new bytecode operand witness must reject
+        # them rather than inferring semantics from a method name.
+        mutations = (
+            ("0: aload_0", "0: aload_1", "isEmpty boolean branch"),
+            ("10: aload_0", "10: aload_1", "size-equals-one branch"),
+            ("12: iconst_1", "12: iconst_2", "size-equals-one branch"),
+            ("exact/List.isEmpty:()Z", "exact/List.isEmpty:()I",
+             "isEmpty boolean branch"),
+            ("exact/List.size:()I", "exact/List.size:()Z",
+             "size-equals-one branch"),
+            ("2: ifeq", "2: ifne", "isEmpty boolean branch"),
+            ("13: if_icmpne", "13: if_icmpeq", "size-equals-one branch"),
+        )
+        for old, new, expected in mutations:
+            with self.subTest(change=old):
+                self.assertIn(old, correct)
+                altered = correct.replace(old, new, 1)
+                with self.assertRaisesRegex(ValueError, expected):
+                    probe.bounded_method_shape(altered, cls, method)
 
     def test_full_26_2_client_pipeline_does_not_self_admit(self) -> None:
         raw = jar_bytes()

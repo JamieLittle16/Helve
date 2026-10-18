@@ -431,8 +431,20 @@ def registration_exception_table_witness(
         for off, op, _ in instructions
         if op in ("monitorenter", "monitorexit")
     ]
-    if len(monitor_sites) > 8:
-        raise ValueError("registerElements monitor count exceeded budget")
+    if len(monitor_sites) != 3 or [
+        site["opcode"] for site in monitor_sites
+    ] != ["monitorenter", "monitorexit", "monitorexit"]:
+        raise ValueError("registerElements must enter monitor and release on both paths")
+    enter, normal_release, exception_release = monitor_sites
+    if not (
+        enter["offset"] < for_each[0] < normal_release["offset"]
+        < exception_release["offset"]
+        and any(row["from"] <= for_each[0] < normal_release["offset"]
+                < row["to_exclusive"] for row in rows)
+        and any(row["from"] <= exception_release["offset"]
+                < row["to_exclusive"] for row in rows)
+    ):
+        raise ValueError("registerElements monitor and protected handler positions drifted")
     return {
         "stream_foreach_offset": for_each[0],
         "bounded_invoke_sites": call_sites,

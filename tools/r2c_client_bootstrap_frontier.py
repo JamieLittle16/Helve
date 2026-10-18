@@ -192,6 +192,58 @@ REGISTER_DELEGATE_SITES = {
 }
 
 
+
+CALLBACK_INSN = re.compile(r"^\\s*(\\d+):\\s+([a-z][a-z0-9_]*)\\b(.*)$")
+
+
+def bounded_registration_callback_opcodes(disassembly: str) -> list[dict]:
+    """Source-free opcode skeletons for already-pinned Either callbacks.
+
+    Reuse this tool's exact method headers, without exporting full javap
+    listings or requiring another general bytecode interpretation engine.
+    """
+    lines = disassembly.splitlines()
+    declarations: list[tuple[int, str]] = []
+    for i, line in enumerate(lines):
+        found = DECLARATION.fullmatch(line)
+        if found:
+            declarations.append((i, found.group(1)))
+    output: list[dict] = []
+    for name in REGISTER_DELEGATE_SITES:
+        headers = [index for index, found in declarations if found == name]
+        if len(headers) != 1:
+            raise ValueError("ambiguous registration callback code owner")
+        begin = headers[0]
+        end = next((index for index, _ in declarations if index > begin), len(lines))
+        method_lines = lines[begin:end]
+        if not any(line.strip() == "Code:" for line in method_lines):
+            raise ValueError("callback has no executable Code")
+        rows = []
+        for line in method_lines:
+            match = CALLBACK_INSN.match(line)
+            if match:
+                offset, opcode, operand = int(match.group(1)), match.group(2), match.group(3).strip()
+                if rows and offset <= rows[-1][0]:
+                    raise ValueError("callback code offsets not strictly increasing")
+                rows.append((offset, opcode, operand))
+                if len(rows) > 48:
+                    raise ValueError("unbounded registration callback code")
+        if not rows or not rows[-1][1].endswith("return"):
+            raise ValueError("registration callback has no trailing return")
+        output.append({
+            "handler": name,
+            "source_free_opcode_offsets": [
+                {"offset": offset, "opcode": opcode}
+                for offset, opcode, _ in rows
+            ],
+            "bounded_instruction_count": len(rows),
+            "instruction_shape_sha256": hashlib.sha256(
+                "\\n".join(f"{offset}:{opcode} {operand}" for offset, opcode, operand in rows).encode()
+            ).hexdigest(),
+        })
+    return output
+
+
 def require_registration_delegate_sites(callbacks: list[dict]) -> None:
     """Reject wrong consumer methods, moved calls or error-side registration."""
     if [entry["handler"] for entry in callbacks] != list(REGISTER_DELEGATE_SITES):
@@ -244,6 +296,9 @@ def inspect_client(client: Path) -> list[dict]:
                 )
                 require_registration_delegate_sites(callbacks)
                 item["register_consumer_delegate_invocations_candidate"] = callbacks
+                item["register_consumer_opcode_shapes_candidate"] = (
+                    bounded_registration_callback_opcodes(process.stdout)
+                )
                 item["success_error_dispatch_callsite_shapes_pinned"] = True
                 item["full_register_or_error_semantics_proven"] = False
             records.append(item)

@@ -867,9 +867,7 @@ fn process_one_world_play_ingress(
     match session.process_one_play_control(now_ms)? {
         R2bPlayProcess::Incomplete => Ok(WorldPlayIngress::Incomplete),
         R2bPlayProcess::Committed(event) => Ok(WorldPlayIngress::Control(event)),
-        R2bPlayProcess::Unclaimed { packet_id } => {
-            Ok(WorldPlayIngress::Unclaimed { packet_id })
-        }
+        R2bPlayProcess::Unclaimed { packet_id } => Ok(WorldPlayIngress::Unclaimed { packet_id }),
     }
 }
 

@@ -47,6 +47,45 @@ impl<S: Copy + Eq> DirectBlockSection<S> {
         }
     }
 
+    /// Construct the reference owner directly from an already decoded,
+    /// complete Y/Z/X-linear section without simulating 4,096 mutations.
+    ///
+    /// One allocation/copy builds the direct cell image; one traversal of
+    /// source cells derives the *same* four summary counters as `replace`.
+    /// This remains the transparent reference representation, not a selected
+    /// M0.3D production storage policy or a mutation HOT-path change.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the caller violates the 4,096-cell imported-section
+    /// contract. The typed Anvil importer guarantees the exact cell count.
+    #[must_use]
+    pub fn from_decoded_cells<F: BlockStateFacts<S>>(states: &[S], facts: &F) -> Self {
+        assert_eq!(states.len(), BLOCK_SECTION_CELLS);
+        let cells: Box<[S; BLOCK_SECTION_CELLS]> = match states.to_vec().into_boxed_slice().try_into() {
+            Ok(cells) => cells,
+            Err(_) => unreachable!("validated complete decoded section cell count"),
+        };
+        let mut non_air_count = 0_u16;
+        let mut fluid_count = 0_u16;
+        let mut random_block_count = 0_u16;
+        let mut random_fluid_count = 0_u16;
+        for &state in cells.iter() {
+            let properties = facts.facts(state);
+            non_air_count += u16::from(properties.non_air());
+            fluid_count += u16::from(properties.counted_fluid());
+            random_block_count += u16::from(properties.random_block());
+            random_fluid_count += u16::from(properties.random_fluid());
+        }
+        Self {
+            cells,
+            non_air_count,
+            fluid_count,
+            random_block_count,
+            random_fluid_count,
+        }
+    }
+
     /// Recomputes all exact summaries by scanning the semantic cells.
     #[must_use]
     pub fn recompute_summary<F: BlockStateFacts<S>>(&self, facts: &F) -> SectionSummary {
@@ -225,6 +264,49 @@ mod tests {
         biome: u8,
     ) -> u8 {
         section.replace(pos, biome)
+    }
+
+    #[test]
+    fn directly_imported_mixed_section_matches_independent_mutation_reference() {
+        let states: Vec<State> = (0..BLOCK_SECTION_CELLS)
+            .map(|index| match index % 7 {
+                0 => State::Air,
+                1 => State::Solid,
+                2 => State::Fluid,
+                3 => State::RandomBlock,
+                4 => State::RandomFluid,
+                5 => State::BothRandom,
+                _ => State::Solid,
+            })
+            .collect();
+        let direct = DirectBlockSection::from_decoded_cells(&states, &Facts);
+        let mut mutation_reference = DirectBlockSection::filled(State::Air, &Facts);
+        for y in 0..16 {
+            for z in 0..16 {
+                for x in 0..16 {
+                    let position = SectionBlockPos::new(x, y, z).unwrap();
+                    mutation_reference.replace(position, states[position.index()], &Facts);
+                    assert_eq!(direct.get(position), mutation_reference.get(position));
+                }
+            }
+        }
+        assert_eq!(direct.summary(), mutation_reference.summary());
+        assert_eq!(direct.summary(), direct.recompute_summary(&Facts));
+
+        // Later individual mutation must still update the original four
+        // counters correctly; bulk import adds no independent summary owner.
+        let position = SectionBlockPos::new(2, 7, 11).unwrap();
+        let original = direct.get(position);
+        let mut changed = direct;
+        assert_eq!(changed.replace(position, State::RandomFluid, &Facts), original);
+        mutation_reference.replace(position, State::RandomFluid, &Facts);
+        assert_eq!(changed.summary(), mutation_reference.summary());
+    }
+
+    #[test]
+    #[should_panic(expected = "assertion")]
+    fn directly_imported_section_rejects_partial_cells() {
+        let _ = DirectBlockSection::from_decoded_cells(&[State::Solid; 64], &Facts);
     }
 
     #[test]

@@ -3,7 +3,7 @@
 //! Inputs are exactly 4096 resolved global state IDs in y-z-x order, read
 //! through one coherent caller borrow. This is not live storage or a packet.
 //! R2C block-wire source admission and stock-client qualification are pending.
-//! 26.2 uses fixed-size packed-word data, without a VarInt word-count prefix.
+//! 26.2 uses fixed-size packed-word data, without a `VarInt` word-count prefix.
 
 const CELLS: usize = 4096;
 const LOCAL_MAX: usize = 256;

@@ -62,10 +62,11 @@ impl<S: Copy + Eq> DirectBlockSection<S> {
     #[must_use]
     pub fn from_decoded_cells<F: BlockStateFacts<S>>(states: &[S], facts: &F) -> Self {
         assert_eq!(states.len(), BLOCK_SECTION_CELLS);
-        let cells: Box<[S; BLOCK_SECTION_CELLS]> = match states.to_vec().into_boxed_slice().try_into() {
-            Ok(cells) => cells,
-            Err(_) => unreachable!("validated complete decoded section cell count"),
-        };
+        let cells: Box<[S; BLOCK_SECTION_CELLS]> =
+            match states.to_vec().into_boxed_slice().try_into() {
+                Ok(cells) => cells,
+                Err(_) => unreachable!("validated complete decoded section cell count"),
+            };
         let mut non_air_count = 0_u16;
         let mut fluid_count = 0_u16;
         let mut random_block_count = 0_u16;
@@ -298,7 +299,10 @@ mod tests {
         let position = SectionBlockPos::new(2, 7, 11).unwrap();
         let original = direct.get(position);
         let mut changed = direct;
-        assert_eq!(changed.replace(position, State::RandomFluid, &Facts), original);
+        assert_eq!(
+            changed.replace(position, State::RandomFluid, &Facts),
+            original
+        );
         mutation_reference.replace(position, State::RandomFluid, &Facts);
         assert_eq!(changed.summary(), mutation_reference.summary());
     }

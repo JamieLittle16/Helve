@@ -257,6 +257,65 @@ def bounded_registration_callback_opcodes(disassembly: str) -> list[dict]:
     return output
 
 
+
+# Fixed exact official 26.2 callback instruction shapes. This checks
+# local JVM operand *construction* for Either routing, registry insertion
+# and map error capture; it is NOT a whole-method source SEM certificate.
+REGISTER_CALLBACK_OPCODE_PATHS = {
+    "lambda$registerElements$0": (
+        (0, "aload_1"), (1, "getfield"), (4, "aload_0"),
+        (5, "aload_1"), (6, "invokedynamic"), (11, "invokevirtual"),
+        (14, "aload_0"), (15, "aload_1"), (16, "invokedynamic"),
+        (21, "invokevirtual"), (24, "pop"), (25, "return"),
+    ),
+    "lambda$registerElements$1": (
+        (0, "aload_0"), (1, "getfield"), (4, "aload_1"),
+        (5, "getfield"), (8, "aload_2"), (9, "aload_1"),
+        (10, "getfield"), (13, "invokeinterface"),
+        (18, "pop"), (19, "return"),
+    ),
+    "lambda$registerElements$2": (
+        (0, "aload_0"), (1, "getfield"), (4, "aload_1"),
+        (5, "getfield"), (8, "aload_2"), (9, "invokeinterface"),
+        (14, "pop"), (15, "return"),
+    ),
+}
+REGISTER_CALLBACK_FIELDS = {
+    "lambda$registerElements$0": (
+        (1, "net/minecraft/resources/RegistryLoadTask$PendingRegistration.value:Lcom/mojang/datafixers/util/Either;"),
+    ),
+    "lambda$registerElements$1": (
+        (1, "registry:Lnet/minecraft/core/WritableRegistry;"),
+        (5, "net/minecraft/resources/RegistryLoadTask$PendingRegistration.key:Lnet/minecraft/resources/ResourceKey;"),
+        (10, "net/minecraft/resources/RegistryLoadTask$PendingRegistration.registrationInfo:Lnet/minecraft/core/RegistrationInfo;"),
+    ),
+    "lambda$registerElements$2": (
+        (1, "loadingErrors:Ljava/util/Map;"),
+        (5, "net/minecraft/resources/RegistryLoadTask$PendingRegistration.key:Lnet/minecraft/resources/ResourceKey;"),
+    ),
+}
+
+
+def require_registration_callback_operands(shapes: list[dict]) -> None:
+    """Require exact local stack-building ops before the pinned invoke sites."""
+    if [entry["handler"] for entry in shapes] != list(REGISTER_CALLBACK_OPCODE_PATHS):
+        raise ValueError("registerElements exact callback owner order drifted")
+    for item in shapes:
+        name = item["handler"]
+        opcodes = tuple(
+            (step["offset"], step["opcode"])
+            for step in item["source_free_opcode_offsets"]
+        )
+        fields = tuple(
+            (field["offset"], field["field"])
+            for field in item["bounded_field_refs"]
+        )
+        if opcodes != REGISTER_CALLBACK_OPCODE_PATHS[name]:
+            raise ValueError(f"registerElements {name} operand opcode path drifted")
+        if fields != REGISTER_CALLBACK_FIELDS[name]:
+            raise ValueError(f"registerElements {name} captured field identity drifted")
+
+
 def require_registration_delegate_sites(callbacks: list[dict]) -> None:
     """Reject wrong consumer methods, moved calls or error-side registration."""
     if [entry["handler"] for entry in callbacks] != list(REGISTER_DELEGATE_SITES):
@@ -309,10 +368,12 @@ def inspect_client(client: Path) -> list[dict]:
                 )
                 require_registration_delegate_sites(callbacks)
                 item["register_consumer_delegate_invocations_candidate"] = callbacks
-                item["register_consumer_opcode_shapes_candidate"] = (
-                    bounded_registration_callback_opcodes(process.stdout)
-                )
+                opcode_shapes = bounded_registration_callback_opcodes(process.stdout)
+                require_registration_callback_operands(opcode_shapes)
+                item["register_consumer_opcode_shapes_candidate"] = opcode_shapes
                 item["success_error_dispatch_callsite_shapes_pinned"] = True
+                item["local_callback_operand_construction_pinned"] = True
+                item["concrete_registry_dispatch_and_finalization_proven"] = False
                 item["full_register_or_error_semantics_proven"] = False
             records.append(item)
     return records

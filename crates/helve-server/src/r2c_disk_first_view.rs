@@ -1593,7 +1593,10 @@ mod tests {
                             assert!(in_batch, "chunk requires a started batch");
                             batch_chunk_count += 1;
                             chunks_seen += 1;
-                            assert!(chunks_seen <= selected, "unexpected chunk beyond source view");
+                            assert!(
+                                chunks_seen <= selected,
+                                "unexpected chunk beyond source view"
+                            );
                         }
                         id if id == i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED) => {
                             assert!(in_batch, "batch finish requires start");
@@ -1618,7 +1621,10 @@ mod tests {
                     continue;
                 }
                 let count = peer.read(&mut scratch).expect("bounded TCP chunk receive");
-                assert_ne!(count, 0, "peer closed before the complete source batch view");
+                assert_ne!(
+                    count, 0,
+                    "peer closed before the complete source batch view"
+                );
                 wire.push(&scratch[..count]).unwrap();
             }
         });
@@ -1661,7 +1667,10 @@ mod tests {
         let mut batch_count = 0_usize;
         let mut frame_cursor = 1_usize;
         while frame_cursor < frames.len() {
-            assert_eq!(frames[frame_cursor].0, i32::from(CLIENTBOUND_CHUNK_BATCH_START));
+            assert_eq!(
+                frames[frame_cursor].0,
+                i32::from(CLIENTBOUND_CHUNK_BATCH_START)
+            );
             assert!(frames[frame_cursor].1.is_empty());
             frame_cursor += 1;
             let mut batch_chunks = 0_usize;
@@ -1680,14 +1689,23 @@ mod tests {
             }
             assert!(batch_chunks > 0);
             assert!(frame_cursor < frames.len(), "unfinished source batch");
-            assert_eq!(frames[frame_cursor].0, i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED));
-            assert_eq!(frames[frame_cursor].1, [u8::try_from(batch_chunks).unwrap()]);
+            assert_eq!(
+                frames[frame_cursor].0,
+                i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+            );
+            assert_eq!(
+                frames[frame_cursor].1,
+                [u8::try_from(batch_chunks).unwrap()]
+            );
             frame_cursor += 1;
             batch_count += 1;
         }
         assert_eq!(position_cursor, selected);
         if selected > 9 {
-            assert!(batch_count >= 2, "25 chunks must exercise multiple ACK windows");
+            assert!(
+                batch_count >= 2,
+                "25 chunks must exercise multiple ACK windows"
+            );
         } else {
             assert_eq!(batch_count, 1);
         }

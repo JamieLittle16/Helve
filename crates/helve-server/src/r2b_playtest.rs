@@ -666,6 +666,10 @@ pub fn serve_r2b_playtest_blocking_transport(
 /// # Errors
 /// Fail closed on unsupported save, candidate biome order, initial teleport,
 /// source receipt, or optional official-heightmap candidate.
+#[expect(
+    clippy::redundant_closure_for_method_calls,
+    reason = "the callback borrows a registry with a closure-local lifetime; the method item is not sufficiently general"
+)]
 pub fn prepare_r2c_cold_world_host(
     image: &R2bPlaytestImage,
     plan: &R2cColdWorldPlan,

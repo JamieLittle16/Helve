@@ -1165,10 +1165,10 @@ mod tests {
             CLIENTBOUND_CHUNK_WITH_LIGHT,
         };
 
+        use crate::r2b_playtest::{R2bPlaytestExit, serve_world_projection_wait};
         use crate::r2c_cold_demo_import::{
             ColdImportedView, R2cSourceAdmission, SourceAdmittedPlayPublisher,
         };
-        use crate::r2b_playtest::{R2bPlaytestExit, serve_world_projection_wait};
         use std::io::{Read, Write};
         use std::net::{Shutdown, TcpListener, TcpStream};
         use std::time::Duration;

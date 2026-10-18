@@ -264,6 +264,28 @@ prints only finite handler metadata and separately asserts that the
 `rollback_or_partial_mutation_semantics_proven` field stays false.
 No official Mojang class text, source listing or disassembly is shipped.
 
+## Next review: invocation ownership inside registration's catch-all scope
+
+The #407 proof showed that the 26.2 client directly protects the
+`Stream.forEach` invocation inside `RegistryLoadTask.registerElements`,
+but it did **not** account for the other invoked methods in this bounded
+21-instruction routine. The same exact-root review now records **every
+bounded symbolic invoke site** in that method, with its offset and the
+catch-all handler range(s) covering that offset. This is reused
+`javap` method metadata, not a second source parser or unbounded
+client class scan.
+
+The next independent interpretation must distinguish the registration
+call from stream cleanup or throwable handling. The presence of a
+handler is *not* evidence that earlier successful registrations are
+rolled back. In particular, an uncaught decoder error and an error
+reported through the per-entry `Either` callbacks are different
+failure modes; the actual receiver's chosen behavior must be reviewed
+before committing a numeric-ID semantic law.
+
+No source text or disassembly is exported, and all source admission
+flags remain **false**.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

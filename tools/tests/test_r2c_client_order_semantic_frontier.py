@@ -392,7 +392,7 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         malformed = source.replace("7    26    29   any", "7    26    ?   any")
         with self.assertRaisesRegex(ValueError, "malformed JVM handler row"):
             probe.bounded_method_shape(malformed, cls, method)
-        uncovered = source.replace("7    26    29   any", "16   26    29   any")
+        uncovered = source.replace("7    26    29   any", "19   26    29   any")
         with self.assertRaisesRegex(ValueError, "monitor and protected handler positions"):
             probe.bounded_method_shape(uncovered, cls, method)
         missing_enter = source.replace("6: monitorenter", "6: aload_0")

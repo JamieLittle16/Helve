@@ -166,7 +166,7 @@ and backpressure check, not a 15-second real keep-alive test, an
 arbitrary slow-client quota, production admission or concurrent-server
 readiness claim.
 
-## Two physical TCP joins from one immutable world host (pending PR qualification)
+## Two physical TCP joins from one immutable world host (test-only regression)
 
 The existing source-backed four-signed-region 25-chunk loopback regression
 now has a second, explicit **two-connection** variant. It imports the same
@@ -187,8 +187,9 @@ assuming the oracle bytes are source admitted. This regression exercises
 consecutive sockets **after** R2B's handoff: it is not a full fresh
 Handshake/Login/Configuration reconnect, concurrent-client simulation,
 vanilla stock-client automated visual test, 15-second keep-alive proof,
-source/VAR/SEM admission, or product publication authority. Once CI is
-confirmed, update this pending qualifier to the recorded run and commit.
+source/VAR/SEM admission, or product publication authority. The dedicated
+official-heightmap workflow executes the exact two-socket regression; its
+passing result, not this document, determines CI qualification status.
 
 ## Post-visual evidence reproducibility tooling (unadmitted)
 

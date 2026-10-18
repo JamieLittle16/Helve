@@ -12,7 +12,6 @@ use std::sync::Arc;
 
 use helve_generated::{AIR, BlockStateId, GeneratedStateFacts};
 use helve_types::{ChunkPos, DimensionId, DimensionTypeId};
-use helve_world_contract::{BLOCK_SECTION_CELLS, BlockSection, SectionBlockPos};
 use helve_world_import::RegionLimits;
 use helve_world_import::{
     BiomeDecodeScratch, BlockSectionDecodeScratch, ChunkPayloadLimits, DeflateChunkPayloadDecoder,
@@ -67,18 +66,7 @@ impl ImportedBlockSectionBuilder<BlockStateId> for BlockBuilder {
     }
 
     fn build_states(&mut self, states: &[BlockStateId]) -> Self::Section {
-        debug_assert_eq!(states.len(), BLOCK_SECTION_CELLS);
-        let mut section = DirectBlockSection::filled(AIR, &GeneratedStateFacts);
-        for y in 0..16 {
-            for z in 0..16 {
-                for x in 0..16 {
-                    let pos = SectionBlockPos::new(x, y, z)
-                        .expect("bounded section-local cell coordinate");
-                    section.replace(pos, states[pos.index()], &GeneratedStateFacts);
-                }
-            }
-        }
-        section
+        DirectBlockSection::from_decoded_cells(states, &GeneratedStateFacts)
     }
 }
 

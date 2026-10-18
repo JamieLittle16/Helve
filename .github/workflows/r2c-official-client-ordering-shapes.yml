@@ -170,6 +170,20 @@ jobs:
               (114, "ifnonnull", 138),
               (144, "goto", 168),
           ]
+          handlers = method_map[
+              ("net.minecraft.resources.RegistryLoadTask", "registerElements")
+          ]["register_elements_exception_table_witness"]
+          assert handlers["rollback_or_partial_mutation_semantics_proven"] is False
+          assert handlers["jvm_exception_handlers"]
+          assert method_map[
+              ("net.minecraft.resources.RegistryLoadTask", "registerElements")
+          ]["return_instruction_offsets"] == [33, 34]
+          assert all(
+              row["register_elements_exception_table_witness"] is None
+              for row in methods if (row["class_name"], row["method_name"])
+              != ("net.minecraft.resources.RegistryLoadTask", "registerElements")
+          )
+          print("Official registerElements handler boundaries:", handlers)
           assert method_map[("net.minecraft.core.MappedRegistry", "register")]["return_instruction_offsets"] == [
               53, 89, 137, 275
           ]

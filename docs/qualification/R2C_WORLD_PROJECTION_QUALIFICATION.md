@@ -18,15 +18,31 @@ and client packet-number consistency against reviewed R0 dispatch law.
 
 **Two separate exit claims now apply:**
 
-- **R2C finite visual checkpoint:** a source-qualified, correct,
-  bounded, unmodified Java 26.2 client renders one pregenerated world
-  through the existing retained driver. The reference projection is
-  adequate if its exact profile, semantic/data authorities and
-  source gates are proven. This is still **not observed**.
+- **R2C finite visual checkpoint — observed test-only, not production admitted:**
+  on 18 October 2026 an unmodified Java 26.2 client visibly rendered
+  the **central 3×3** of a source-backed 25-Anvil-column 5×5 neighborhood
+  through the retained R2B Play driver. The outer 16 columns supplied
+  a loaded renderer halo. Positive R2C publication still requires an
+  `#[cfg(test)]`-only admission witness; complete client registry,
+  heightmap table, selected profile, outer chunk/lifecycle VAR/SEM and
+  exact product source admission are **not** established by visual success.
+  A source-admitted normal executable rendering the selected world
+  remains a distinct, unmet production criterion.
 - **Post-demo/pre-R2D production-performance gate:** complete the
   M0.3D section-policy decision and R2C.6 controlled mechanism
   tournament (including p99 and memory/copy/allocation evidence).
   Only then claim an optimized production mechanism.
+
+**Post-visual host ownership (PRs #389, #392, #393):** the ordinary
+executable prepares one 25-source-column, immutable COLD resident
+dimension before accepting clients, validates subsequent session
+teleports by a shared, allocation-free checked center, and attaches
+only per-client batch/ACK cursors. These product-facing ownership
+improvements remain **nonpublishing**; repeat-join concurrency,
+long-idle operation, optimized encoded fan-out and product source
+admission are not automatically qualified. The hermetic 25-column
+multi-region host regression verifies this narrow ownership boundary,
+not the complete stock-client/product exit gate.
 
 Deferring the *mechanism winner* does **not** defer vanilla source
 admission, representation-independent correctness, transactional

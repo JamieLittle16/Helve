@@ -1247,7 +1247,7 @@ mod tests {
 
         use crate::r2b_playtest::{R2bPlaytestExit, serve_world_projection_wait};
         use crate::r2c_cold_demo_import::{
-            ColdImportedView, R2cSourceAdmission, SourceAdmittedPlayPublisher,
+            R2cSourceAdmission, SourceAdmittedPlayPublisher,
         };
         use std::io::{Read, Write};
         use std::net::{Shutdown, TcpListener, TcpStream};

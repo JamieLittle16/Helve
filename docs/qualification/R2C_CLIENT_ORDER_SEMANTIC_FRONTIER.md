@@ -264,27 +264,44 @@ prints only finite handler metadata and separately asserts that the
 `rollback_or_partial_mutation_semantics_proven` field stays false.
 No official Mojang class text, source listing or disassembly is shipped.
 
-## Next review: invocation ownership inside registration's catch-all scope
+## Monitor-protected registration: exact client evidence
 
-The #407 proof showed that the 26.2 client directly protects the
-`Stream.forEach` invocation inside `RegistryLoadTask.registerElements`,
-but it did **not** account for the other invoked methods in this bounded
-21-instruction routine. The same exact-root review now records **every
-bounded symbolic invoke site** in that method, with its offset and the
-catch-all handler range(s) covering that offset. This is reused
-`javap` method metadata, not a second source parser or unbounded
-client class scan.
+The independently SHA/size-verified Java 26.2 receiving client confirms
+that `RegistryLoadTask.registerElements` executes registration inside a
+**JVM monitor**. The existing 21-instruction method inspector now binds,
+without emitting Java code or disassembly, these exact operation sites:
 
-The next independent interpretation must distinguish the registration
-call from stream cleanup or throwable handling. The presence of a
-handler is *not* evidence that earlier successful registrations are
-rolled back. In particular, an uncaught decoder error and an error
-reported through the per-entry `Either` callbacks are different
-failure modes; the actual receiver's chosen behavior must be reviewed
-before committing a numeric-ID semantic law.
+| JVM operation | Bytecode offset | Role established by the code shape |
+| --- | ---: | --- |
+| `monitorenter` | 6 | Enter the synchronized region |
+| `invokedynamic` consumer factory | 9 | Constructs the pinned registration consumer |
+| `Stream.forEach(Consumer)` | 14 | Invokes registration callback under the monitor |
+| `monitorexit` | 25 | Release along normal completion |
+| `monitorexit` | 31 | Release along the explicit exceptional path |
 
-No source text or disassembly is exported, and all source admission
-flags remain **false**.
+The only two **invoked-method** sites in this method are the consumer
+factory at 9 and `Stream.forEach` at 14. Both are covered by the
+previously pinned catch-all range `[7,26)` targeting 29. A second
+catch-all range `[29,32)` covers the exceptional monitor-release
+section. The specific source-free method symbols, JVM monitor offsets,
+handler targets, and full original method fingerprint are all asserted
+by the existing official-client Java 25 workflow. Malformed monitor
+counts, wrong order and incorrectly protected exits fail closed. There
+are **no Stream.close or Throwable.addSuppressed call sites** in this
+method; interpreting the handler as ordinary stream-resource cleanup
+would have been a source-review mistake.
+
+The monitor establishes a *synchronized execution region* for the
+receiving client's registration stream. It is useful concurrency
+evidence; nevertheless it is **not** a transaction or rollback protocol.
+An exception during element registration may leave earlier successful
+entries inserted. Furthermore, the monitor identity/aliasing relative
+to every other registry mutator, the handling of individual
+`Either.ifLeft/ifRight` results, concrete `WritableRegistry.register`
+dispatch and selected Configuration known packs still need source
+and/or bytecode semantic review. This result **cannot** elevate
+`client_numeric_id_assignment_proven`, `source_var_sem_admitted` or
+`production_admitted` from false.
 
 ## Interpret the evidence carefully
 

@@ -1603,7 +1603,9 @@ mod r2c_stock_client_diagnostic {
                 Some(&plan),
                 WorldPublicationMode::UnadmittedStockClientDiagnostic,
             )
-            .unwrap_or_else(|error| panic!("R2C diagnostic connection {attempt} failed: {error:?}"));
+            .unwrap_or_else(|error| {
+                panic!("R2C diagnostic connection {attempt} failed: {error:?}")
+            });
             eprintln!("R2C diagnostic connection {attempt} ended: {outcome:?}");
             if is_preplay_only(outcome) {
                 eprintln!(

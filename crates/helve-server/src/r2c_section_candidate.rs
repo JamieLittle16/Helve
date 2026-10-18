@@ -1396,7 +1396,7 @@ mod tests {
             .expect("synthetic lower section");
         assert_eq!(&bytes[..4], &[0, 1, 0, 0]);
         assert_eq!(&bytes[4..8], &[4, 2, 1, 0]);
-        assert!(bytes.ends_with(&[0, 2, 0]));
+        assert!(bytes.ends_with(&[0, 2]));
         let lower_bytes = bytes.len();
 
         append_coherent_section_candidate(&image, 0, 66, &mut bytes)

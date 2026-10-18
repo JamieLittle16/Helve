@@ -1431,7 +1431,6 @@ mod tests {
         reason = "shared nine/25-source real Anvil importer and retained TCP/ACK test, no alternate packet path"
     )]
     fn source_chunks_cross_four_regions_reach_receipted_tcp_batches(selected: usize, joins: usize) {
-        assert!(joins > 0);
         use helve_connection_core::{ConnectionLimits, IngressBuffer};
         use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
         use helve_target_26_2::r2c_play_wire::{
@@ -1445,6 +1444,7 @@ mod tests {
         use std::net::{Shutdown, TcpListener, TcpStream};
         use std::time::Duration;
 
+        assert!(joins > 0);
         let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
         let session = retained_session_with_teleport(0.25, 8.0, 0.25);
         let (center, positions) =

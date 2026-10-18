@@ -193,7 +193,7 @@ REGISTER_DELEGATE_SITES = {
 
 
 
-CALLBACK_INSN = re.compile(r"^\\s*(\\d+):\\s+([a-z][a-z0-9_]*)\\b(.*)$")
+CALLBACK_INSN = re.compile(r"^\s*(\d+):\s+([a-z][a-z0-9_]*)\b(.*)$")
 
 
 def bounded_registration_callback_opcodes(disassembly: str) -> list[dict]:
@@ -238,7 +238,7 @@ def bounded_registration_callback_opcodes(disassembly: str) -> list[dict]:
             ],
             "bounded_instruction_count": len(rows),
             "instruction_shape_sha256": hashlib.sha256(
-                "\\n".join(f"{offset}:{opcode} {operand}" for offset, opcode, operand in rows).encode()
+                "\n".join(f"{offset}:{opcode} {operand}" for offset, opcode, operand in rows).encode()
             ).hexdigest(),
         })
     return output

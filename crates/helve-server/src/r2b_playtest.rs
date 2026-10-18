@@ -670,11 +670,12 @@ pub fn prepare_r2c_cold_world_host(
     image: &R2bPlaytestImage,
     plan: &R2cColdWorldPlan,
 ) -> Result<R2cColdWorldHost, String> {
-    let count = with_candidate_biomes_from_context(
-        &image.configuration, |registry| registry.len(),
-    ).map_err(|error| format!("selected Configuration biome names rejected: {error:?}"))?;
+    let count = with_candidate_biomes_from_context(&image.configuration, |registry| registry.len())
+        .map_err(|error| format!("selected Configuration biome names rejected: {error:?}"))?;
     if count != 66 {
-        return Err(format!("selected Configuration expected 66 biome names, got {count}"));
+        return Err(format!(
+            "selected Configuration expected 66 biome names, got {count}"
+        ));
     }
     let teleport = selected_snapshot(&image.server_data).teleport;
     let host = import_selected_cold_world_host(
@@ -824,7 +825,10 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     // cannot emit Play chunks until separate client/source VAR/SEM admission.
     // Without the flag, the original R2B behavior remains byte-identical.
     let mut cold_view = if let Some(host) = host {
-        Some(host.attach(&session).map_err(|reason| R2bPlaytestError::WorldPlan { reason })?)
+        Some(
+            host.attach(&session)
+                .map_err(|reason| R2bPlaytestError::WorldPlan { reason })?,
+        )
     } else if let Some(plan) = plan {
         let overworld = plan.overworld_source_root();
         let imported = import_cold_world_for_demo(

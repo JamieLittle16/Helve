@@ -142,10 +142,17 @@ cargo run --release --locked -p helve-server --bin helve -- \
 
 Connect the unmodified client to `localhost:25565`. This route
 **already exists** and performs a real R2B bootstrap and optional
-COLD saved-world import/projection audit at Play handoff. CLI
-normalization supplies the capture-qualified session epoch; the
-server checks its image, `level.dat`, region location and candidate
-table at the appropriate boundaries.
+COLD saved-world import/projection audit **once at server startup, before
+accepting any client**. The server-owned COLD host now selects all 25
+source-backed 5×5 initial halo columns, matching the successful
+test-only visual profile (nine of these have a complete mesh halo).
+A nine-source-chunk-only save is no longer sufficient for this normal
+startup audit. Missing or nonempty saved block-entity evidence anywhere
+in the selected 25 still fails closed; the test-only nine-column
+reference rehearsal remains separate. CLI normalization supplies the
+capture-qualified session epoch; the server checks its image,
+`level.dat`, region location and candidate table before accepting
+connections.
 
 **Expected today:** console explicitly says
 `no chunk publication` / `production_admitted=false`. A stock

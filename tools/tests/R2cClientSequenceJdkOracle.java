@@ -117,11 +117,13 @@ public final class R2cClientSequenceJdkOracle {
         List<Integer> source = new ArrayList<>();
         for (int i = 0; i < size; i++) source.add(i);
         List<Integer> committed = new ArrayList<>();
+        Map<Integer, Integer> assignedOrdinals = new LinkedHashMap<>();
         Map<Integer, String> reportedErrors = new LinkedHashMap<>();
         source.stream().forEach(id -> {
             if (id == failedAt) {
                 reportedErrors.put(id, "decode-error");
             } else {
+                assignedOrdinals.put(id, committed.size());
                 committed.add(id);
             }
         });
@@ -132,8 +134,13 @@ public final class R2cClientSequenceJdkOracle {
         int position = 0;
         for (int i = 0; i < size; i++) {
             if (i == failedAt) continue;
-            check(committed.get(position++) == i,
+            check(committed.get(position) == i,
                     "surviving registration order changed");
+            check(assignedOrdinals.get(i) == position,
+                    "survivor ordinal not dense after reported error");
+            check(position == (i < failedAt ? i : i - 1),
+                    "a reported missing element must shift later dense IDs");
+            position++;
         }
         // Unlike a thrown exception, a reported error does not stop
         // this *modelled* stream; actual Minecraft error-map finalization

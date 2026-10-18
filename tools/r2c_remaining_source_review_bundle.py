@@ -63,7 +63,52 @@ def _inventory(path: Path, *, kind: str, required_false: tuple[str, ...]) -> dic
     encoded = json.dumps(data, ensure_ascii=True)
     if '"source_text"' in encoded or '"contains_official_source_text": true' in encoded:
         raise BundleError("source-free inventory unexpectedly contains official source")
-    return {"file": path.name, "bytes": path.stat().st_size, "sha256": _sha(path)}
+
+    # In pinned Atlas, some abstract declarations carry SHA256(empty) rather
+    # than NULL. An old report could claim these are executable bodies; do
+    # not bind a source-free review bundle to that misleading classification.
+    empty_body = biome.EMPTY_BODY_SHA256
+    empty_count = 0
+    declaration_only_count = 0
+    for group in data["groups"]:
+        if not isinstance(group, dict):
+            raise BundleError("source-free method group is malformed")
+        roots = group.get("roots", [group])
+        if not isinstance(roots, list):
+            raise BundleError("source-free method roots are malformed")
+        for root in roots:
+            if not isinstance(root, dict):
+                raise BundleError("source-free method root is malformed")
+            methods = root.get("methods", root.get("declarations", []))
+            if not isinstance(methods, list):
+                raise BundleError("source-free method declarations are malformed")
+            for method in methods:
+                if not isinstance(method, dict):
+                    raise BundleError("source-free method row is malformed")
+                body_hash = method.get("body_sha256")
+                no_body = body_hash is None or body_hash == empty_body
+                if no_body and method.get("declaration_only") is not True:
+                    raise BundleError("empty Atlas body must be declaration-only")
+                empty_count += int(body_hash == empty_body)
+                declaration_only_count += int(method.get("declaration_only") is True)
+    for target in data.get("targeted_methods", []):
+        if not isinstance(target, dict):
+            raise BundleError("targeted method group is malformed")
+        for method in target.get("overloads", []):
+            if not isinstance(method, dict):
+                raise BundleError("targeted method row is malformed")
+            body_hash = method.get("body_sha256")
+            if (body_hash is None or body_hash == empty_body) and method.get(
+                "declaration_only"
+            ) is not True:
+                raise BundleError("empty targeted method body must be declaration-only")
+    return {
+        "file": path.name,
+        "bytes": path.stat().st_size,
+        "sha256": _sha(path),
+        "empty_body_sha256_declarations": empty_count,
+        "declaration_only_methods": declaration_only_count,
+    }
 
 
 def _private_source(path: Path) -> dict:

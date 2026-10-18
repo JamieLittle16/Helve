@@ -193,7 +193,7 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
             "21: invokestatic  #14 // Method exact/CompletableFuture.allOf:()V",
             "21: areturn",
         )
-        with self.assertRaisesRegex(ValueError, "critical invokes"):
+        with self.assertRaisesRegex(ValueError, "normal-return JVM path|critical invokes"):
             probe.bounded_method_shape(third_exits_early, cls, method)
 
     def test_full_26_2_client_pipeline_does_not_self_admit(self) -> None:

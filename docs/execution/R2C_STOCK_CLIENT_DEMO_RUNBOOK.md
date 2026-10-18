@@ -256,6 +256,53 @@ preparation issues**; a packet mismatch or no visible terrain after
 an accepted batch is a narrower genuine receiving-client integration
 issue. Do not fix either by replaying captured Play world packets.
 
+## 18 October 2026: successful first visible chunk and renderer-neighbor halo
+
+After the fixed-length palette repair (#383), the **unmodified**
+Minecraft Java 26.2 client renders the center chunk in the genuine
+saved `Helve R2C Clean` world. The other eight chunks contain block
+collision (the operator could walk on them), but remain invisible.
+This is a **first real visual R2C proof**, not nine visibly rendered
+chunks or complete source/VAR/SEM production admission.
+
+This pattern is consistent with the official client initial section
+mesher's eight-loaded-and-lit-neighbor gate: a selected 3×3 area has
+only one chunk column with all surrounding columns loaded. To
+**test that specific hypothesis**, without altering the default,
+a new COLD-only `--render-halo` option selects **25 genuine
+source-backed chunks (5×5)** around the same R2B teleport.
+All of the center 3×3 then have their eight adjacent chunk columns
+available; the outermost 5×5 ring may still be unrendered until a
+larger halo is provided.
+
+Run the already working unmodified 26.2 save and captured image:
+
+```bash
+cd /home/Jamie/Crucible
+python3 tools/r2c_stock_client_diagnostic.py \
+  --world "$HOME/.local/share/PrismLauncher/instances/26.2/minecraft/saves/Helve R2C Clean" \
+  --r1b-image "$HOME/Downloads/r1b-join-replay-image.json" \
+  --generate-heightmap \
+  --render-halo
+```
+
+The unchanged **nine-chunk TCP/ACK rehearsal always runs first**.
+The actual ignored Rust test then reads and validates every one of
+the 25 real source chunks using the same one-pass Anvil visitor,
+transactional receipts, original R2B connection and publisher.
+This is an **opt-in diagnostic only**: the production COLD importer
+still selects its original nine chunks, and normal binaries do not
+recognize or construct positive R2C source admission.
+No missing chunk may be fabricated; any additional chunk's nonempty
+block entities, missing light or invalid source data still cause
+the whole test to reject before emitting a partial batch.
+
+Observe whether the inner 3×3 now render; preserve screenshots and
+the live ACK / keepalive trace. If they do, that supports the
+neighbor-gating explanation. The first visible chunk result alone
+does not prove all client rendering/wire semantics, and outer-ring
+visibility is **not** a required assertion for this experiment.
+
 ## First real source-backed nine-chunk client batch: protocol fault follow-up
 
 On **18 October 2026**, the fresh unmodified 26.2 structures-disabled

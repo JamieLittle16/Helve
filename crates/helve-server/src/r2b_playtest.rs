@@ -686,6 +686,31 @@ enum WorldPublicationMode {
     UnadmittedStockClientDiagnostic,
 }
 
+/// Bind only the opted-in test-only 25-source-chunk neighborhood to the
+/// existing COLD importer. Neither mode changes production publication.
+fn import_cold_world_for_demo(
+    session: &R2bPlaySession,
+    context: &Target26_2R1xContext,
+    world: &Path,
+    publication_mode: WorldPublicationMode,
+) -> Result<ColdImportedView, String> {
+    #[cfg(test)]
+    if matches!(
+        publication_mode,
+        WorldPublicationMode::UnadmittedStockClientDiagnostic
+    ) && let Some(value) = std::env::var_os("HELVE_R2C_DIAGNOSTIC_RENDER_HALO")
+    {
+        if value != "1" {
+            return Err("render-halo diagnostic flag must be exactly 1".to_owned());
+        }
+        return crate::r2c_cold_demo_import::import_selected_cold_world_with_render_halo(
+            session, context, world,
+        );
+    }
+    let _ = publication_mode;
+    crate::r2c_cold_demo_import::import_selected_cold_world(session, context, world)
+}
+
 #[expect(
     clippy::redundant_closure_for_method_calls,
     reason = "this callback borrows a registry with a closure-local lifetime; the method item fails the required FnOnce generality"
@@ -733,10 +758,11 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     // Without the flag, the original R2B behavior remains byte-identical.
     let mut cold_view = if let Some(plan) = plan {
         let overworld = plan.overworld_source_root();
-        let imported = crate::r2c_cold_demo_import::import_selected_cold_world(
+        let imported = import_cold_world_for_demo(
             &session,
             &image.configuration,
             &overworld,
+            publication_mode,
         )
         .map_err(|reason| R2bPlaytestError::WorldPlan { reason })?;
         eprintln!(

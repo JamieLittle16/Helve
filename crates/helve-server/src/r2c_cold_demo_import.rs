@@ -44,6 +44,8 @@ use helve_target_26_2::Target26_2R1xContext;
 /// cross-client cache. Separate source/profile/pack admission is required
 /// before using these source receipts to send any chunk.
 const CHUNKS: usize = 9;
+#[cfg(test)]
+const RENDER_HALO_CHUNKS: usize = 25;
 const VIEW_DISTANCE: i32 = 10;
 const MAX_REGION_BYTES: usize = 64 * 1024 * 1024;
 const MAX_CHUNK_BYTES: usize = 16 * 1024 * 1024;
@@ -467,10 +469,30 @@ pub(crate) fn import_selected_cold_world(
     context: &Target26_2R1xContext,
     world: &Path,
 ) -> Result<ColdImportedView, String> {
+    import_selected_cold_world_bounded(session, context, world, CHUNKS)
+}
+
+/// COLD-only additional authentic neighbor chunks for the first renderer
+/// experiment. Never exposes a source-admission witness in product builds.
+#[cfg(test)]
+pub(crate) fn import_selected_cold_world_with_render_halo(
+    session: &R2bPlaySession,
+    context: &Target26_2R1xContext,
+    world: &Path,
+) -> Result<ColdImportedView, String> {
+    import_selected_cold_world_bounded(session, context, world, RENDER_HALO_CHUNKS)
+}
+
+fn import_selected_cold_world_bounded(
+    session: &R2bPlaySession,
+    context: &Target26_2R1xContext,
+    world: &Path,
+    max_chunks: usize,
+) -> Result<ColdImportedView, String> {
     let profile = DimensionRuntimeProfile::new(DimensionTypeId(0), -64, 384, true)
         .map_err(|error| format!("selected overworld profile invalid: {error:?}"))?;
     let mut dimension = ColdDimension::new(DimensionId(0), profile);
-    let mut receipts = Vec::with_capacity(CHUNKS);
+    let mut receipts = Vec::with_capacity(max_chunks);
     let resolver = Target262BlockStateResolver;
     let mut blocks = BlockBuilder;
     let mut block_scratch = BlockSectionDecodeScratch::new();
@@ -496,7 +518,7 @@ pub(crate) fn import_selected_cold_world(
                 world,
                 profile,
                 view_distance: VIEW_DISTANCE,
-                max_chunks: CHUNKS,
+                max_chunks,
                 limits: PregeneratedRegionLimits {
                     region: RegionLimits::new(MAX_REGION_BYTES, MAX_CHUNK_BYTES),
                     max_external_bytes: MAX_CHUNK_BYTES,

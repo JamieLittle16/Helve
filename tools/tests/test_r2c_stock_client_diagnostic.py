@@ -135,6 +135,28 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(calls[1][1]["HELVE_R2C_DIAGNOSTIC_CONFIRM"], "UNADMITTED_LOCAL_ONLY")
         self.assertEqual(calls[1][1]["HELVE_R2C_DIAGNOSTIC_PORT"], "25566")
         self.assertEqual(calls[1][1]["HELVE_R2C_DIAGNOSTIC_EPOCH"], diagnostic.CAPTURE_EPOCH)
+        self.assertNotIn("HELVE_R2C_DIAGNOSTIC_RENDER_HALO", calls[0][1])
+        self.assertNotIn("HELVE_R2C_DIAGNOSTIC_RENDER_HALO", calls[1][1])
+
+    def test_renderer_halo_never_changes_the_rehearsal_and_is_opt_in_only(self) -> None:
+        calls = []
+
+        def fake_run(command, *, cwd, env, check):
+            calls.append((command, env.copy()))
+            return SimpleNamespace(returncode=0)
+
+        with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum), \
+                patch.object(diagnostic.shutil, "which", return_value="/mock/cargo"), \
+                patch.object(diagnostic.subprocess, "run", side_effect=fake_run), \
+                patch.dict(diagnostic.os.environ, {"HELVE_R2C_DIAGNOSTIC_RENDER_HALO": "unsafe"}):
+            self.assertEqual(diagnostic.main([
+                "--world", str(self.world), "--r2b-image", str(self.r2b),
+                "--heightmap-bin", str(self.facts), "--render-halo",
+            ]), 0)
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(calls[0][0], diagnostic.rust_test_command(diagnostic.REHEARSAL, ignored=False))
+        self.assertEqual(calls[1][0], diagnostic.rust_test_command(diagnostic.TEST, ignored=True))
+        self.assertEqual(calls[1][1]["HELVE_R2C_DIAGNOSTIC_RENDER_HALO"], "1")
 
     def test_preflight_only_never_launches_a_test(self) -> None:
         with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum), \

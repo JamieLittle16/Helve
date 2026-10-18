@@ -10,6 +10,44 @@ not another storage system or packet encoder: it is an exact pinned 26.2 source
 proof that the candidate's outer identity, fields and publication order agree
 with vanilla.
 
+## 18 October 2026: first stock-client palette fault and correction
+
+A real Minecraft Java 26.2 client connected to the opt-in *test-only*
+R2C nine-chunk sender, consumed the chunk batch and sent its batch ACK,
+then failed while **applying** one `ClientboundLevelChunkWithLightPacket`:
+
+```text
+ArrayIndexOutOfBoundsException: Index 2 out of bounds for length 2
+  at LinearPalette.read
+  at PalettedContainer.read
+  at LevelChunkSection.read
+  at LevelChunk.replaceWithPacketData
+```
+
+The immediately actionable mismatch is the **extra VarInt packed-word
+array length** in Helve's block and quart-biome containers. The
+already-recorded selected 26.2
+`SEM-NET-R2C-WORLD-BIOME-CONTAINER-WIRE` source law in
+`vanilla/semantics/network/R2C_WORLD_STATE_SEMANTICS.md` specifies
+a **fixed-size** long array, not a length-prefixed array. Both
+`PackedBlockContainer` and `PackedBiomeSectionReference`
+previously emitted `VarInt(words.len())` immediately before raw
+longs; that shifts the client's packed bit values and can drive a
+2-value local palette to invalid index 2. Both encoders now append the
+words *directly* after the width byte and palette representation.
+The raw word count is still internally exactly
+`ceil(entries / floor(64 / bits))`; width zero writes no words.
+The 26.2 `LevelChunkSection` field order **does** include the
+non-air and fluid shorts and those are left intact.
+
+This is a correction to an **existing dormant source candidate**, not
+a declaration that all outer chunk/light/registry/known-pack source
+review, visual-client qualification, or production admission has
+closed. After landing, rerun the exact same clean-source live
+diagnostic; record both the new console result and the original
+client `latest.log`. Only observed rendered terrain with a
+successful maintained connection qualifies as the first visual pass.
+
 ## Narrow, finite official-source review
 
 The 4-class plan at

@@ -182,6 +182,13 @@ jobs:
               {"from": 29, "to_exclusive": 32, "target": 29,
                "catch_type": "any", "handler_opcode": "astore_3"},
           ]
+          assert 1 <= len(handlers["bounded_invoke_sites"]) <= 16
+          assert all(
+              site["offset"] >= 0 and site["opcode"].startswith("invoke")
+              and site["symbol"] for site in handlers["bounded_invoke_sites"]
+          )
+          print("Official registerElements bounded invocation coverage:",
+                handlers["bounded_invoke_sites"])
           assert method_map[
               ("net.minecraft.resources.RegistryLoadTask", "registerElements")
           ]["return_instruction_offsets"] == [33, 34]

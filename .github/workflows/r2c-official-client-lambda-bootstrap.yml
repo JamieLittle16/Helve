@@ -114,6 +114,12 @@ jobs:
           print("Exact source-free callback opcode skeletons:",
                 [(entry["handler"], entry["source_free_opcode_offsets"])
                  for entry in opcode_shapes])
+          print("Exact source-free callback field references:",
+                [(entry["handler"], entry["bounded_field_refs"])
+                 for entry in opcode_shapes])
+          print("Exact client callback instruction shape SHA256:",
+                [(entry["handler"], entry["instruction_shape_sha256"])
+                 for entry in opcode_shapes])
           callbacks = task_root["register_consumer_delegate_invocations_candidate"]
           assert [entry["handler"] for entry in callbacks] == [
               "lambda$registerElements$0",

@@ -120,9 +120,9 @@ impl R2cColdWorldHost {
     /// the original server-owned source window before attaching its own cursor.
     /// No world data, receipt, or chunk memory is copied.
     pub(crate) fn attach(&self, session: &R2bPlaySession) -> Result<ColdImportedView, String> {
-        let (center, selected) = plan_pending_teleport_first_view(
-            session, self.profile, VIEW_DISTANCE, self.max_chunks,
-        ).map_err(|error| format!("session teleport differs from hosted view: {error:?}"))?;
+        let (center, selected) =
+            plan_pending_teleport_first_view(session, self.profile, VIEW_DISTANCE, self.max_chunks)
+                .map_err(|error| format!("session teleport differs from hosted view: {error:?}"))?;
         if center != self.center || selected.len() != self.receipts.len() {
             return Err("session first view differs from server-owned source selection".to_owned());
         }
@@ -143,9 +143,15 @@ impl R2cColdWorldHost {
 
     /// Do one server-lifetime candidate preflight, not a full re-encode at
     /// every join. Publication remains disabled until independent VAR/SEM.
-    pub(crate) fn audit_candidate_bodies(&self, heightmap_candidate: &[u8]) -> Result<ColdCandidateAudit, String> {
+    pub(crate) fn audit_candidate_bodies(
+        &self,
+        heightmap_candidate: &[u8],
+    ) -> Result<ColdCandidateAudit, String> {
         audit_receipt_bound_candidate_bodies(
-            &self.dimension, &self.receipts, heightmap_candidate, 66,
+            &self.dimension,
+            &self.receipts,
+            heightmap_candidate,
+            66,
         )
     }
 }
@@ -547,8 +553,14 @@ pub(crate) fn import_selected_cold_world_host(
 ) -> Result<R2cColdWorldHost, String> {
     let profile = selected_overworld_profile()?;
     let (center, requested) = plan_explicit_teleport_first_view(
-        teleport.0, teleport.1, teleport.2, profile, VIEW_DISTANCE, CHUNKS,
-    ).map_err(|error| format!("bootstrap teleport rejects hosted world: {error:?}"))?;
+        teleport.0,
+        teleport.1,
+        teleport.2,
+        profile,
+        VIEW_DISTANCE,
+        CHUNKS,
+    )
+    .map_err(|error| format!("bootstrap teleport rejects hosted world: {error:?}"))?;
     let view = import_selected_cold_world_positions(context, world, profile, center, requested)?;
     Ok(R2cColdWorldHost {
         dimension: view.dimension,
@@ -566,9 +578,9 @@ fn import_selected_cold_world_bounded(
     max_chunks: usize,
 ) -> Result<ColdImportedView, String> {
     let profile = selected_overworld_profile()?;
-    let (center, requested) = plan_pending_teleport_first_view(
-        session, profile, VIEW_DISTANCE, max_chunks,
-    ).map_err(|error| format!("selected pending teleport rejected: {error:?}"))?;
+    let (center, requested) =
+        plan_pending_teleport_first_view(session, profile, VIEW_DISTANCE, max_chunks)
+            .map_err(|error| format!("selected pending teleport rejected: {error:?}"))?;
     import_selected_cold_world_positions(context, world, profile, center, requested)
 }
 

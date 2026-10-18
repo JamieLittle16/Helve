@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import os
 import struct
 import sys
+import stat
 import tempfile
 import unittest
 from pathlib import Path
@@ -37,6 +40,119 @@ class LauncherTests(unittest.TestCase):
             "--heightmap-bin", str(self.facts),
             *extra,
         ])
+
+    def make_evidence_regions(self) -> None:
+        regions = self.world / "dimensions/minecraft/overworld/region"
+        for index, name in enumerate(diagnostic.FIRST_VIEW_REGIONS):
+            (regions / name).write_bytes(
+                b"existing source region content " + bytes([index]) * 36
+            )
+
+    def test_source_evidence_preflight_is_private_source_free_and_new_only(self) -> None:
+        self.make_evidence_regions()
+        destination = self.root / "evidence.json"
+        with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum):
+            self.assertEqual(diagnostic.main([
+                "--world", str(self.world), "--r2b-image", str(self.r2b),
+                "--heightmap-bin", str(self.facts), "--preflight-only",
+                "--evidence-json", str(destination),
+            ]), 0)
+        record = json.loads(destination.read_text())
+        self.assertEqual(record["kind"], "r2c-26_2-local-stock-client-input-evidence-v1")
+        self.assertEqual(record["outcome"], "PREFLIGHT_ONLY_NO_CLIENT")
+        self.assertFalse(record["source_var_sem_admitted"])
+        self.assertFalse(record["production_chunk_publication_admitted"])
+        self.assertFalse(record["stock_client_pixels_independently_verified"])
+        self.assertTrue(record["input_files_unchanged"])
+        self.assertEqual(len(record["inputs"]["world_files"]), 5)
+        self.assertEqual(len(record["inputs"]["selected_chunks"]), 9)
+        self.assertEqual(record["inputs"]["r2b_image"]["sha256"],
+                         hashlib.sha256(self.r2b.read_bytes()).hexdigest())
+        self.assertEqual(record["inputs"]["heightmap_candidate"]["sha256"], self.checksum)
+        self.assertEqual(stat.S_IMODE(destination.stat().st_mode), 0o600)
+        self.assertNotIn(str(self.root), destination.read_text())
+        self.assertNotIn("validated by Rust", destination.read_text())
+        with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum):
+            self.assertEqual(diagnostic.main([
+                "--world", str(self.world), "--r2b-image", str(self.r2b),
+                "--heightmap-bin", str(self.facts), "--preflight-only",
+                "--evidence-json", str(destination),
+            ]), 2)
+        self.assertEqual(json.loads(destination.read_text()), record)
+
+    def test_source_manifest_rejects_missing_symlinked_and_changed_inputs(self) -> None:
+        self.make_evidence_regions()
+        args = self.arguments("--evidence-json", str(self.root / "frozen.json"))
+        with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum):
+            baseline = diagnostic.evidence_snapshot(args, self.world, self.r2b, self.facts)
+            observed = diagnostic.evidence_snapshot(args, self.world, self.r2b, self.facts)
+        self.assertEqual(baseline, observed)
+        moved = self.world / "dimensions/minecraft/overworld/region" / diagnostic.FIRST_VIEW_REGIONS[0]
+        content = moved.read_bytes()
+        moved.write_bytes(content + b"changed after preflight")
+        with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum):
+            self.assertNotEqual(baseline, diagnostic.evidence_snapshot(
+                args, self.world, self.r2b, self.facts,
+            ))
+        moved.unlink()
+        moved.symlink_to(self.world / "level.dat")
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "non-symlink"):
+            diagnostic.evidence_snapshot(args, self.world, self.r2b, self.facts)
+
+    def test_evidence_failure_after_diagnostic_does_not_emit_success_report(self) -> None:
+        self.make_evidence_regions()
+        output = self.root / "should-not-exist.json"
+        calls = 0
+
+        def mutate_on_launch(command, *, cwd, env, check):
+            nonlocal calls
+            del command, cwd, env, check
+            calls += 1
+            if calls == 2:
+                (self.world / "level.dat").write_bytes(b"world changed during run")
+            return SimpleNamespace(returncode=0)
+
+        with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum), \
+                patch.object(diagnostic.shutil, "which", return_value="/mock/cargo"), \
+                patch.object(diagnostic.subprocess, "run", side_effect=mutate_on_launch):
+            self.assertEqual(diagnostic.main([
+                "--world", str(self.world), "--r2b-image", str(self.r2b),
+                "--heightmap-bin", str(self.facts),
+                "--evidence-json", str(output),
+            ]), 2)
+        self.assertEqual(calls, 2)
+        self.assertFalse(output.exists())
+
+    def test_staged_vanilla_source_evidence_checks_original_byte_identity(self) -> None:
+        self.make_evidence_regions()
+        vanilla = self.root / "vanilla-source"
+        (vanilla / "region").mkdir(parents=True)
+        (vanilla / "level.dat").write_bytes((self.world / "level.dat").read_bytes())
+        for name in diagnostic.FIRST_VIEW_REGIONS:
+            (vanilla / "region" / name).write_bytes(
+                (self.world / "dimensions/minecraft/overworld/region" / name).read_bytes()
+            )
+        staged = self.root / "stage"
+        selected = diagnostic.stage_vanilla_overworld(vanilla, staged)
+        args = self.arguments("--stage-vanilla-overworld")
+        args.world = vanilla
+        first = diagnostic.evidence_snapshot(args, selected, self.r2b, self.facts)
+        self.assertEqual(len(first["original_vanilla_files"]), 5)
+        (vanilla / "level.dat").write_bytes(b"mutated origin")
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "differs from original"):
+            diagnostic.evidence_snapshot(args, selected, self.r2b, self.facts)
+
+    def test_source_evidence_destination_rejects_repo_and_symlinks(self) -> None:
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "outside the repository"):
+            diagnostic.evidence_destination(diagnostic.REPO_ROOT / "bad-evidence.json")
+        target = self.root / "existing.json"
+        target.write_text("not replaceable")
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "never overwrite"):
+            diagnostic.evidence_destination(target)
+        link = self.root / "link.json"
+        link.symlink_to(target)
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "never overwrite"):
+            diagnostic.evidence_destination(link)
 
     def test_stage_existing_vanilla_regions_without_changing_any_source_bytes(self) -> None:
         vanilla = self.root / "vanilla-save"

@@ -698,15 +698,14 @@ fn import_cold_world_for_demo(
     if matches!(
         publication_mode,
         WorldPublicationMode::UnadmittedStockClientDiagnostic
-    ) {
-        if let Some(value) = std::env::var_os("HELVE_R2C_DIAGNOSTIC_RENDER_HALO") {
-            if value != "1" {
-                return Err("render-halo diagnostic flag must be exactly 1".to_owned());
-            }
-            return crate::r2c_cold_demo_import::import_selected_cold_world_with_render_halo(
-                session, context, world,
-            );
+    ) && let Some(value) = std::env::var_os("HELVE_R2C_DIAGNOSTIC_RENDER_HALO")
+    {
+        if value != "1" {
+            return Err("render-halo diagnostic flag must be exactly 1".to_owned());
         }
+        return crate::r2c_cold_demo_import::import_selected_cold_world_with_render_halo(
+            session, context, world,
+        );
     }
     let _ = publication_mode;
     crate::r2c_cold_demo_import::import_selected_cold_world(session, context, world)
@@ -759,8 +758,12 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     // Without the flag, the original R2B behavior remains byte-identical.
     let mut cold_view = if let Some(plan) = plan {
         let overworld = plan.overworld_source_root();
-        let imported =
-            import_cold_world_for_demo(&session, &image.configuration, &overworld, publication_mode)
+        let imported = import_cold_world_for_demo(
+            &session,
+            &image.configuration,
+            &overworld,
+            publication_mode,
+        )
         .map_err(|reason| R2bPlaytestError::WorldPlan { reason })?;
         eprintln!(
             "R2C COLD import | root={} | resident_chunks={} | verified_source_receipts={} | world_read=true | chunk_sent=false | source_admitted=false",

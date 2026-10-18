@@ -45,6 +45,21 @@ def fixture(class_name: str) -> str:
                 "      23: areturn",
             ])
             continue
+        if (root, method) == ("net.minecraft.resources.RegistryLoadTask", "registerElements"):
+            out.extend([
+                "  public void registerElements();", "    Code:",
+                "       0: aload_0",
+                "       1: invokeinterface #14 // Method exact/Stream.forEach:()V",
+                "       2: goto          10",
+                "       5: astore_1",
+                "       6: aload_1",
+                "       7: athrow",
+                "      10: return",
+                "    Exception table:",
+                "       from    to  target type",
+                "           0     2     5   Class java/lang/Throwable",
+            ])
+            continue
         if (root, method) == ("net.minecraft.core.MappedRegistry", "register"):
             out.extend([
                 "  public java.lang.Object register();", "    Code:",
@@ -110,7 +125,10 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     record["conditional_branch_edges"][0]["to"],
-                    10 if (cls, method) == ("net.minecraft.util.Util", "sequence")
+                    10 if (cls, method) in (
+                        ("net.minecraft.util.Util", "sequence"),
+                        ("net.minecraft.resources.RegistryLoadTask", "registerElements"),
+                    )
                     else 5 if (cls, method) == ("net.minecraft.core.MappedRegistry", "register")
                     else 4,
                 )
@@ -137,6 +155,16 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                     )
                 else:
                     self.assertIsNone(record["mapped_registry_terminal_path_witness"])
+                if (cls, method) == (
+                    "net.minecraft.resources.RegistryLoadTask", "registerElements"
+                ):
+                    handlers = record["register_elements_exception_table_witness"]
+                    self.assertEqual(handlers["stream_foreach_offset"], 1)
+                    self.assertTrue(handlers["stream_foreach_directly_covered_by_handler"])
+                    self.assertFalse(handlers["rollback_or_partial_mutation_semantics_proven"])
+                    self.assertEqual(handlers["jvm_exception_handlers"][0]["target"], 5)
+                else:
+                    self.assertIsNone(record["register_elements_exception_table_witness"])
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),
                                  len(probe.REQUIRED_CALLS[(cls, method)]))
                 self.assertFalse(record["all_control_flow_paths_reviewed"])
@@ -308,6 +336,34 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "missing or reordered"):
             probe.bounded_method_shape(missing_write, cls, method)
+
+    def test_register_elements_handler_boundaries_are_not_inferred(self) -> None:
+        cls, method = probe.METHODS[-2]
+        source = fixture(cls)
+        record = probe.bounded_method_shape(source, cls, method)
+        self.assertEqual(len(record["register_elements_exception_table_witness"][
+            "jvm_exception_handlers"
+        ]), 1)
+        missing = source.replace("    Exception table:", "    Missing table:")
+        with self.assertRaisesRegex(ValueError, "one exception table"):
+            probe.bounded_method_shape(missing, cls, method)
+        missing_target = source.replace(
+            "0     2     5   Class", "0     2     99   Class"
+        )
+        with self.assertRaisesRegex(ValueError, "invalid handler boundaries"):
+            probe.bounded_method_shape(missing_target, cls, method)
+        malformed = source.replace(
+            "0     2     5   Class", "0     2     ?   Class"
+        )
+        with self.assertRaisesRegex(ValueError, "malformed JVM handler row"):
+            probe.bounded_method_shape(malformed, cls, method)
+        uncovered = source.replace(
+            "0     2     5   Class", "2     5     5   Class"
+        )
+        uncovered_witness = probe.bounded_method_shape(
+            uncovered, cls, method
+        )["register_elements_exception_table_witness"]
+        self.assertFalse(uncovered_witness["stream_foreach_directly_covered_by_handler"])
 
     def test_full_26_2_client_pipeline_does_not_self_admit(self) -> None:
         raw = jar_bytes()

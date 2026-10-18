@@ -129,7 +129,10 @@ The existing official 26.2 client branch/shape reviewer now verifies the
 `net.minecraft.util.Util#sequence` method. It follows both arms of the
 two conditional branches on the *original client instruction sequence*,
 rejects cycles/unsupported transfers or unexpected exits, and enforces
-the following **structural** checkpoint partitions:
+the following **structural** checkpoint partitions. The table lists
+**distinct critical calls in first-occurrence order**; any additional
+`List.size` invocation on a path is retained in the evidence without
+silently claiming single invocation count:
 
 | Normal return offset | Conditional branch decisions | Ordered critical invocation sites |
 | --- | --- | --- |

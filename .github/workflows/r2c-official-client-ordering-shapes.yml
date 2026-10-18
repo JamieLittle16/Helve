@@ -182,6 +182,27 @@ jobs:
               {"from": 29, "to_exclusive": 32, "target": 29,
                "catch_type": "any", "handler_opcode": "astore_3"},
           ]
+          assert handlers["bounded_invoke_sites"] == [
+              {
+                  "offset": 9, "opcode": "invokedynamic",
+                  "protected_by_handler_targets": [29],
+                  "symbol": "InvokeDynamic #0:accept:(Lnet/minecraft/resources/RegistryLoadTask;)Ljava/util/function/Consumer;",
+              },
+              {
+                  "offset": 14, "opcode": "invokeinterface",
+                  "protected_by_handler_targets": [29],
+                  "symbol": "InterfaceMethod java/util/stream/Stream.forEach:(Ljava/util/function/Consumer;)V",
+              },
+          ]
+          assert handlers["monitor_sites"] == [
+              {"offset": 6, "opcode": "monitorenter"},
+              {"offset": 25, "opcode": "monitorexit"},
+              {"offset": 31, "opcode": "monitorexit"},
+          ]
+          print("Official registerElements bounded invocation coverage:",
+                handlers["bounded_invoke_sites"])
+          print("Official registerElements JVM monitor events:",
+                handlers["monitor_sites"])
           assert method_map[
               ("net.minecraft.resources.RegistryLoadTask", "registerElements")
           ]["return_instruction_offsets"] == [33, 34]

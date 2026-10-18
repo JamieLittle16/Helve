@@ -264,6 +264,45 @@ prints only finite handler metadata and separately asserts that the
 `rollback_or_partial_mutation_semantics_proven` field stays false.
 No official Mojang class text, source listing or disassembly is shipped.
 
+## Monitor-protected registration: exact client evidence
+
+The independently SHA/size-verified Java 26.2 receiving client confirms
+that `RegistryLoadTask.registerElements` executes registration inside a
+**JVM monitor**. The existing 21-instruction method inspector now binds,
+without emitting Java code or disassembly, these exact operation sites:
+
+| JVM operation | Bytecode offset | Role established by the code shape |
+| --- | ---: | --- |
+| `monitorenter` | 6 | Enter the synchronized region |
+| `invokedynamic` consumer factory | 9 | Constructs the pinned registration consumer |
+| `Stream.forEach(Consumer)` | 14 | Invokes registration callback under the monitor |
+| `monitorexit` | 25 | Release along normal completion |
+| `monitorexit` | 31 | Release along the explicit exceptional path |
+
+The only two **invoked-method** sites in this method are the consumer
+factory at 9 and `Stream.forEach` at 14. Both are covered by the
+previously pinned catch-all range `[7,26)` targeting 29. A second
+catch-all range `[29,32)` covers the exceptional monitor-release
+section. The specific source-free method symbols, JVM monitor offsets,
+handler targets, and full original method fingerprint are all asserted
+by the existing official-client Java 25 workflow. Malformed monitor
+counts, wrong order and incorrectly protected exits fail closed. There
+are **no Stream.close or Throwable.addSuppressed call sites** in this
+method; interpreting the handler as ordinary stream-resource cleanup
+would have been a source-review mistake.
+
+The monitor establishes a *synchronized execution region* for the
+receiving client's registration stream. It is useful concurrency
+evidence; nevertheless it is **not** a transaction or rollback protocol.
+An exception during element registration may leave earlier successful
+entries inserted. Furthermore, the monitor identity/aliasing relative
+to every other registry mutator, the handling of individual
+`Either.ifLeft/ifRight` results, concrete `WritableRegistry.register`
+dispatch and selected Configuration known packs still need source
+and/or bytecode semantic review. This result **cannot** elevate
+`client_numeric_id_assignment_proven`, `source_var_sem_admitted` or
+`production_admitted` from false.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

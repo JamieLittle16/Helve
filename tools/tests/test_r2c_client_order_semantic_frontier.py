@@ -46,18 +46,30 @@ def fixture(class_name: str) -> str:
             ])
             continue
         if (root, method) == ("net.minecraft.resources.RegistryLoadTask", "registerElements"):
+            # Only synthetic source-free control-flow; fixed real client
+            # offsets and method identities are checked separately in CI.
             out.extend([
                 "  public void registerElements();", "    Code:",
                 "       0: aload_0",
-                "       1: invokeinterface #14 // Method exact/Stream.forEach:()V",
-                "       2: goto          10",
-                "       5: astore_1",
-                "       6: aload_1",
-                "       7: athrow",
-                "      10: return",
+                "       4: dup",
+                "       5: astore_2",
+                "       6: monitorenter",
+                "       7: aload_1",
+                "       9: invokedynamic #14 // InvokeDynamic #0:accept:()Ljava/util/function/Consumer;",
+                "      14: invokeinterface #14 // Method exact/Stream.forEach:()V",
+                "      19: aload_2",
+                "      25: monitorexit",
+                "      26: goto          34",
+                "      29: astore_3",
+                "      30: aload_2",
+                "      31: monitorexit",
+                "      32: aload_3",
+                "      33: athrow",
+                "      34: return",
                 "    Exception table:",
                 "       from    to  target type",
-                "           0     2     5   Class java/lang/Throwable",
+                "           7    26    29   any",
+                "          29    32    29   any",
             ])
             continue
         if (root, method) == ("net.minecraft.core.MappedRegistry", "register"):
@@ -125,9 +137,9 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     record["conditional_branch_edges"][0]["to"],
-                    10 if (cls, method) in (
-                        ("net.minecraft.util.Util", "sequence"),
-                        ("net.minecraft.resources.RegistryLoadTask", "registerElements"),
+                    10 if (cls, method) == ("net.minecraft.util.Util", "sequence")
+                    else 34 if (cls, method) == (
+                        "net.minecraft.resources.RegistryLoadTask", "registerElements"
                     )
                     else 5 if (cls, method) == ("net.minecraft.core.MappedRegistry", "register")
                     else 4,
@@ -159,10 +171,20 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                     "net.minecraft.resources.RegistryLoadTask", "registerElements"
                 ):
                     handlers = record["register_elements_exception_table_witness"]
-                    self.assertEqual(handlers["stream_foreach_offset"], 1)
+                    self.assertEqual(handlers["stream_foreach_offset"], 14)
                     self.assertTrue(handlers["stream_foreach_directly_covered_by_handler"])
                     self.assertFalse(handlers["rollback_or_partial_mutation_semantics_proven"])
-                    self.assertEqual(handlers["jvm_exception_handlers"][0]["target"], 5)
+                    self.assertEqual(handlers["jvm_exception_handlers"][0]["target"], 29)
+                    self.assertEqual(handlers["monitor_sites"], [
+                        {"offset": 6, "opcode": "monitorenter"},
+                        {"offset": 25, "opcode": "monitorexit"},
+                        {"offset": 31, "opcode": "monitorexit"},
+                    ])
+                    self.assertEqual(
+                        [(site["offset"], site["protected_by_handler_targets"])
+                         for site in handlers["bounded_invoke_sites"]],
+                        [(9, [29]), (14, [29])],
+                    )
                 else:
                     self.assertIsNone(record["register_elements_exception_table_witness"])
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),
@@ -340,30 +362,44 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
     def test_register_elements_handler_boundaries_are_not_inferred(self) -> None:
         cls, method = probe.METHODS[-2]
         source = fixture(cls)
-        record = probe.bounded_method_shape(source, cls, method)
-        self.assertEqual(len(record["register_elements_exception_table_witness"][
-            "jvm_exception_handlers"
-        ]), 1)
+        evidence = probe.bounded_method_shape(source, cls, method)[
+            "register_elements_exception_table_witness"
+        ]
+        self.assertEqual(len(evidence["jvm_exception_handlers"]), 2)
+        self.assertEqual(evidence["stream_foreach_offset"], 14)
+        self.assertEqual([x["offset"] for x in evidence["monitor_sites"]], [6, 25, 31])
+
+        # The bounded metadata retains a new invoked method and records its
+        # handler ownership, but does not automatically declare it as Mojang's
+        # actual source or infer its semantics.
+        augmented = source.replace(
+            "      30: aload_2",
+            "      30: invokevirtual #14 // Method exact/Stream.close:()V",
+        )
+        calls = probe.bounded_method_shape(augmented, cls, method)[
+            "register_elements_exception_table_witness"
+        ]["bounded_invoke_sites"]
+        self.assertEqual(calls[-1]["offset"], 30)
+        self.assertEqual(calls[-1]["protected_by_handler_targets"], [29])
+        self.assertEqual(calls[-1]["symbol"], "Method exact/Stream.close:()V")
+
         missing = source.replace("    Exception table:", "    Missing table:")
         with self.assertRaisesRegex(ValueError, "one exception table"):
             probe.bounded_method_shape(missing, cls, method)
-        missing_target = source.replace(
-            "0     2     5   Class", "0     2     99   Class"
-        )
+        bad_target = source.replace("7    26    29   any", "7    26    99   any")
         with self.assertRaisesRegex(ValueError, "invalid handler boundaries"):
-            probe.bounded_method_shape(missing_target, cls, method)
-        malformed = source.replace(
-            "0     2     5   Class", "0     2     ?   Class"
-        )
+            probe.bounded_method_shape(bad_target, cls, method)
+        malformed = source.replace("7    26    29   any", "7    26    ?   any")
         with self.assertRaisesRegex(ValueError, "malformed JVM handler row"):
             probe.bounded_method_shape(malformed, cls, method)
-        uncovered = source.replace(
-            "0     2     5   Class", "2     5     5   Class"
-        )
-        uncovered_witness = probe.bounded_method_shape(
-            uncovered, cls, method
-        )["register_elements_exception_table_witness"]
-        self.assertFalse(uncovered_witness["stream_foreach_directly_covered_by_handler"])
+        uncovered = source.replace("7    26    29   any", "19   26    29   any")
+        with self.assertRaisesRegex(ValueError, "monitor and protected handler positions"):
+            probe.bounded_method_shape(uncovered, cls, method)
+        missing_enter = source.replace("6: monitorenter", "6: aload_0")
+        missing_exit = source.replace("31: monitorexit", "31: aload_2")
+        for changed in (missing_enter, missing_exit):
+            with self.assertRaisesRegex(ValueError, "enter monitor and release"):
+                probe.bounded_method_shape(changed, cls, method)
 
     def test_full_26_2_client_pipeline_does_not_self_admit(self) -> None:
         raw = jar_bytes()

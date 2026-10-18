@@ -30,6 +30,9 @@ PLAN = REPO_ROOT / "vanilla/reviews/network/r2c-chunk-wire-source-frontier.json"
 KIND = "r2c-chunk-wire-source-declarations-unadmitted-v1"
 PLAN_ID = "REVIEW-NET-R2C-CHUNK-WIRE-26_2-001"
 SOURCE_SHA256 = "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750"
+# An Atlas SHA-256 of zero body bytes is a declaration anchor, not executable
+# implementation evidence (seen on abstract Registry interface methods).
+EMPTY_BODY_SHA256 = hashlib.sha256(b"").hexdigest()
 TARGET = {"minecraft": "26.2", "protocol": 776, "data_version": 4903}
 ROOTS = (
     ("CHUNK-PACKET-ENVELOPE", "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket"),
@@ -111,7 +114,7 @@ def exact_declarations(conn: sqlite3.Connection, name: str) -> list[dict[str, ob
             "signature": source["signature"],
             "normalized_sha256": source["normalized_sha256"],
             "body_sha256": body,
-            "declaration_only": body is None,
+            "declaration_only": body is None or body == EMPTY_BODY_SHA256,
             "hazard_leads": template["atlas_observed_hazards"],
         })
     return result

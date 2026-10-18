@@ -211,6 +211,29 @@ server-owned world. This is a bounded COLD import-path simplification,
 source-admission claim, or extra HOT block mutation work**. M0.3D
 target-machine qualification remains open.
 
+## Remaining source-review handoff (pre-admission tooling)
+
+The post-visual **client numeric biome IDs, 32,366 per-state heightmap
+predicates and outer chunk/light Play lifecycle** are still independently
+source/VAR/SEM unadmitted. The already admitted **58-method/20-rule**
+world-state gate from #268 remains unchanged.
+
+The new [single-entry source review bundle](../qualification/R2C_REMAINING_SOURCE_REVIEW_BUNDLE.md)
+reuses the three existing pinned review frontiers **without creating a
+second source parser or packet implementation**. It prepares two
+source-free biome-ID/packet declaration inventories and one *separate*
+private local four-file heightmap source-text review. A source-free
+index binds their digests and enumerates the exact remaining independent
+source-review obligations, with all semantic/admission/product
+permission flags **false**. The private directory and its Mojang
+source-rich JSON must never be uploaded or committed. Existing
+first-view and actual stock-client functionality are unaffected.
+
+**This is reproducible reviewer preparation, not a completed human
+VAR/SEM review or promotion**, and it does not make the ordinary
+server's `R2cSourceAdmission` constructible. Only a separate
+independent source gate can authorize that later product change.
+
 ## Performance policy: between the R2C demo and R2D
 
 For the **first constrained R2C demo**, prefer the already-correct

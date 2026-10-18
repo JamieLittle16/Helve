@@ -160,10 +160,6 @@ pub(crate) enum PendingTeleportViewError {
 ///
 /// Rejects absent/non-finite/out-of-lattice/unrepresentable teleport
 /// coordinates and invalid finite first-view bounds before filesystem I/O.
-#[expect(
-    clippy::cast_possible_truncation,
-    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
-)]
 pub(crate) fn plan_pending_teleport_first_view(
     session: &R2bPlaySession,
     profile: DimensionRuntimeProfile,
@@ -174,20 +170,46 @@ pub(crate) fn plan_pending_teleport_first_view(
         .teleport_transaction()
         .awaiting()
         .ok_or(PendingTeleportViewError::MissingTeleport)?;
-    if !(pending.x.is_finite() && pending.y.is_finite() && pending.z.is_finite()) {
+    plan_explicit_teleport_first_view(
+        pending.x,
+        pending.y,
+        pending.z,
+        profile,
+        view_distance,
+        max_chunks,
+    )
+}
+
+/// The exact same finite-coordinate, vertical-lattice and signed chunk
+/// selection law can be checked at server startup from the selected R2B
+/// bootstrap destination, before a client or Play session exists. At join
+/// time the pending teleport must still select the same resident view.
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "floored float chunk coordinates are explicitly checked within the full signed i32 range"
+)]
+pub(crate) fn plan_explicit_teleport_first_view(
+    x: f64,
+    y: f64,
+    z: f64,
+    profile: DimensionRuntimeProfile,
+    view_distance: i32,
+    max_chunks: usize,
+) -> Result<(ChunkPos, Vec<ChunkPos>), PendingTeleportViewError> {
+    if !(x.is_finite() && y.is_finite() && z.is_finite()) {
         return Err(PendingTeleportViewError::NonFiniteTeleport);
     }
-    if pending.y < f64::from(profile.min_block_y())
-        || pending.y >= f64::from(profile.max_block_y_exclusive())
+    if y < f64::from(profile.min_block_y())
+        || y >= f64::from(profile.max_block_y_exclusive())
     {
         return Err(PendingTeleportViewError::OutsideVerticalLattice {
-            y: pending.y,
+            y: y,
             minimum: profile.min_block_y(),
             maximum_exclusive: profile.max_block_y_exclusive(),
         });
     }
-    let x = (pending.x / 16.0).floor();
-    let z = (pending.z / 16.0).floor();
+    let x = (x / 16.0).floor();
+    let z = (z / 16.0).floor();
     if x < f64::from(i32::MIN)
         || x > f64::from(i32::MAX)
         || z < f64::from(i32::MIN)

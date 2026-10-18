@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only diagnosis of R2C's nine source chunks and saved block entities.
+"""Read-only diagnosis of R2C's selected 9 or 25 saved chunk block entities.
 
 Cold developer inspection, NOT source admission: reuses the existing Python
 qualification Anvil/NBT reader. Does not edit the save, mint receipts, bypass
@@ -18,10 +18,11 @@ import vanilla_section_extractor as oracle
 
 # Source: retained selected R2B teleport x=10.390952..., z=-5.815159...
 # floor(x/16), floor(z/16) -> (0,-1). R2C first view: sort by squared
-# horizontal distance, then chunk X and Z, take the nearest nine.
+# horizontal distance, then chunk X and Z, take the nearest 9 or 25.
 # Never use this COLD inspection constant to authorize product publication.
 PINNED_FIRST_VIEW_CENTER = (0, -1)
 INITIAL_CHUNKS = 9
+RENDER_HALO_CHUNKS = 25
 REGION_SIZE_LIMIT = 64 * 1024 * 1024
 CHUNK_DECOMPRESSED_LIMIT = 16 * 1024 * 1024
 
@@ -39,9 +40,12 @@ class ChunkBlockEntityReport:
     region_sha256: str
 
 
-def first_view_positions() -> tuple[tuple[int, int], ...]:
+def first_view_positions(count: int = INITIAL_CHUNKS) -> tuple[tuple[int, int], ...]:
+    """Mirror the COLD nearest-first candidate selection for 9 or 25 chunks."""
+    if count not in (INITIAL_CHUNKS, RENDER_HALO_CHUNKS):
+        raise SourceAuditError(f"unsupported R2C test-only first-view count: {count}")
     cx, cz = PINNED_FIRST_VIEW_CENTER
-    # Equivalent first nine selected source positions (all radius <= 2).
+    # The nearest 25 form an exact 5x5 halo; the nearest 9 the inner 3x3.
     positions = [
         (cx + dx, cz + dz)
         for dx in range(-2, 3)
@@ -52,7 +56,7 @@ def first_view_positions() -> tuple[tuple[int, int], ...]:
         pos[0],
         pos[1],
     ))
-    return tuple(positions[:INITIAL_CHUNKS])
+    return tuple(positions[:count])
 
 
 def _regular(path: Path, *, maximum: int | None = None) -> Path:
@@ -118,7 +122,9 @@ def _read_one(
     return ChunkBlockEntityReport(x, z, "NONEMPTY (unsupported)", tuple(entries), digest)
 
 
-def audit_world(world: Path) -> tuple[ChunkBlockEntityReport, ...]:
+def audit_world(
+    world: Path, count: int = INITIAL_CHUNKS,
+) -> tuple[ChunkBlockEntityReport, ...]:
     world = world.expanduser().absolute()
     if world.is_symlink() or not world.is_dir():
         raise SourceAuditError(f"not a real, non-symlink world directory: {world}")
@@ -129,7 +135,7 @@ def audit_world(world: Path) -> tuple[ChunkBlockEntityReport, ...]:
 
     cached: dict[Path, tuple[bytes, list[tuple[int, int]], str]] = {}
     reports = []
-    for x, z in first_view_positions():
+    for x, z in first_view_positions(count):
         path = _region_source(world, x, z)
         if path not in cached:
             _regular(path, maximum=REGION_SIZE_LIMIT)
@@ -147,7 +153,10 @@ def audit_world(world: Path) -> tuple[ChunkBlockEntityReport, ...]:
 
 
 def print_report(reports: tuple[ChunkBlockEntityReport, ...]) -> bool:
-    print(f"R2C COLD SOURCE AUDIT | nine nearest chunks to {PINNED_FIRST_VIEW_CENTER}")
+    print(
+        f"R2C COLD SOURCE AUDIT | {len(reports)} nearest chunks "
+        f"to {PINNED_FIRST_VIEW_CENTER}"
+    )
     ready = True
     for record in reports:
         print(
@@ -160,7 +169,9 @@ def print_report(reports: tuple[ChunkBlockEntityReport, ...]) -> bool:
         for kind, x, y, z in record.entries:
             print(f"    saved block entity: id={kind} x={x} y={y} z={z}")
     if ready:
-        print("COLD BLOCK-ENTITY PROFILE PASS: nine explicitly empty source lists.")
+        print(
+            f"COLD BLOCK-ENTITY PROFILE PASS: {len(reports)} explicitly empty source lists."
+        )
         print("Other semantic/light/biome/packet admission still checked by the actual Rust path.")
     else:
         print("COLD BLOCK-ENTITY PROFILE NO-GO: do not discard/overwrite any saved entity.")
@@ -172,12 +183,17 @@ def print_report(reports: tuple[ChunkBlockEntityReport, ...]) -> bool:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Inspect the exact nine 26.2 source chunks for block-entity presence without changing the save"
+        description="Read-only inspect the selected 9 or 25 source chunks without changing the save"
     )
     parser.add_argument("--world", type=Path, required=True)
+    parser.add_argument(
+        "--render-halo", action="store_true",
+        help="inspect all 25 actual saved chunks of the test-only 5x5 renderer halo",
+    )
     args = parser.parse_args(argv)
     try:
-        return 0 if print_report(audit_world(args.world)) else 2
+        count = RENDER_HALO_CHUNKS if args.render_halo else INITIAL_CHUNKS
+        return 0 if print_report(audit_world(args.world, count)) else 2
     except (OSError, SourceAuditError) as error:
         print(f"R2C COLD SOURCE AUDIT NO-GO: {error}", file=sys.stderr)
         return 2

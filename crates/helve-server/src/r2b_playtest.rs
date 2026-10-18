@@ -775,6 +775,30 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
         publication_mode,
         WorldPublicationMode::UnadmittedStockClientDiagnostic
     ) {
+        return serve_unadmitted_stock_client_test(
+            transport,
+            &mut session,
+            &mut cold_view,
+            plan,
+        );
+    }
+    // Admission is intentionally uninhabited in product builds. This path
+    // keeps the original R2B client behavior unchanged until source VAR/SEM
+    // promotes the exact 26.2 source/known-pack/heightmap/Play contract.
+    let _ = publication_mode;
+    serve_world_projection_wait(transport, &mut session, cold_view.as_mut(), None)
+}
+
+/// Strictly test-build-only real-client probe using the original R2B
+/// session, resident source receipts and existing receipt-bound publisher.
+/// Product builds cannot call or construct this admission path.
+#[cfg(test)]
+fn serve_unadmitted_stock_client_test(
+    transport: &mut TcpStream,
+    session: &mut R2bPlaySession,
+    cold_view: &mut Option<ColdImportedView>,
+    plan: Option<&R2cColdWorldPlan>,
+) -> Result<R2bPlaytestExit, R2bPlaytestError> {
         let table = plan
             .and_then(R2cColdWorldPlan::candidate_heightmap_bytes)
             .ok_or_else(|| R2bPlaytestError::WorldPlan {
@@ -797,7 +821,7 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
         );
         let exit = serve_world_projection_wait(
             transport,
-            &mut session,
+            session,
             Some(&mut *world),
             Some(&mut publisher),
         )?;
@@ -814,13 +838,8 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
                 "R2C TEST-ONLY CHUNK BATCH ACK PASS | published_chunks={sent} | source_receipts={expected} | unacknowledged_batches=0 | visual rendering remains MANUAL"
             );
         }
-        return Ok(exit);
-    }
-    // Admission is intentionally uninhabited in product builds. This path
-    // keeps the original R2B client behavior unchanged until source VAR/SEM
-    // promotes the exact 26.2 source/known-pack/heightmap/Play contract.
-    let _ = publication_mode;
-    serve_world_projection_wait(transport, &mut session, cold_view.as_mut(), None)
+        Ok(exit)
+
 }
 
 /// One event on the original R2B driver; the optional world owner can

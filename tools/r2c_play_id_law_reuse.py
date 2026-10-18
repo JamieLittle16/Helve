@@ -114,7 +114,8 @@ def bind(play: dict, builder: dict, root: Path = ROOT) -> dict:
         require((item["instruction_count"], item["all_instructions_sha256"],
                  item["candidate_complete_add_packet_registrations"]) ==
                 (count, digest, registrations),
-                f"pinned Play registration method drift: {name}")
+                f"pinned Play registration method drift: {name}: "
+                f"observed={(item['instruction_count'], item['all_instructions_sha256'], item['candidate_complete_add_packet_registrations'])!r}")
         require(item["no_conditional_builder_registration_observed"] is True,
                 f"conditional Play builder: {name}")
     # The clientbound bundle is a *counted* packet at ordinal zero,

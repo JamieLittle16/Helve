@@ -189,6 +189,8 @@ jobs:
           )
           print("Official registerElements bounded invocation coverage:",
                 handlers["bounded_invoke_sites"])
+          print("Official registerElements JVM monitor events:",
+                handlers["monitor_sites"])
           assert method_map[
               ("net.minecraft.resources.RegistryLoadTask", "registerElements")
           ]["return_instruction_offsets"] == [33, 34]

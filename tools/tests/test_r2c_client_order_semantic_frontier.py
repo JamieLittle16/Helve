@@ -46,18 +46,30 @@ def fixture(class_name: str) -> str:
             ])
             continue
         if (root, method) == ("net.minecraft.resources.RegistryLoadTask", "registerElements"):
+            # Only synthetic source-free control-flow; fixed real client
+            # offsets and method identities are checked separately in CI.
             out.extend([
                 "  public void registerElements();", "    Code:",
                 "       0: aload_0",
-                "       1: invokeinterface #14 // Method exact/Stream.forEach:()V",
-                "       2: goto          10",
-                "       5: astore_1",
-                "       6: aload_1",
-                "       7: athrow",
-                "      10: return",
+                "       4: dup",
+                "       5: astore_2",
+                "       6: monitorenter",
+                "       7: aload_1",
+                "       9: invokedynamic #14 // InvokeDynamic #0:accept:()Ljava/util/function/Consumer;",
+                "      14: invokeinterface #14 // Method exact/Stream.forEach:()V",
+                "      19: aload_2",
+                "      25: monitorexit",
+                "      26: goto          34",
+                "      29: astore_3",
+                "      30: aload_2",
+                "      31: monitorexit",
+                "      32: aload_3",
+                "      33: athrow",
+                "      34: return",
                 "    Exception table:",
                 "       from    to  target type",
-                "           0     2     5   Class java/lang/Throwable",
+                "           7    26    29   any",
+                "          29    32    29   any",
             ])
             continue
         if (root, method) == ("net.minecraft.core.MappedRegistry", "register"):
@@ -125,9 +137,9 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 )
                 self.assertEqual(
                     record["conditional_branch_edges"][0]["to"],
-                    10 if (cls, method) in (
-                        ("net.minecraft.util.Util", "sequence"),
-                        ("net.minecraft.resources.RegistryLoadTask", "registerElements"),
+                    10 if (cls, method) == ("net.minecraft.util.Util", "sequence")
+                    else 34 if (cls, method) == (
+                        "net.minecraft.resources.RegistryLoadTask", "registerElements"
                     )
                     else 5 if (cls, method) == ("net.minecraft.core.MappedRegistry", "register")
                     else 4,
@@ -159,16 +171,20 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                     "net.minecraft.resources.RegistryLoadTask", "registerElements"
                 ):
                     handlers = record["register_elements_exception_table_witness"]
-                    self.assertEqual(handlers["stream_foreach_offset"], 1)
+                    self.assertEqual(handlers["stream_foreach_offset"], 14)
                     self.assertTrue(handlers["stream_foreach_directly_covered_by_handler"])
                     self.assertFalse(handlers["rollback_or_partial_mutation_semantics_proven"])
-                    self.assertEqual(handlers["jvm_exception_handlers"][0]["target"], 5)
-                    self.assertEqual(handlers["bounded_invoke_sites"], [{
-                        "offset": 1,
-                        "opcode": "invokeinterface",
-                        "symbol": "Method exact/Stream.forEach:()V",
-                        "protected_by_handler_targets": [5],
-                    }])
+                    self.assertEqual(handlers["jvm_exception_handlers"][0]["target"], 29)
+                    self.assertEqual(handlers["monitor_sites"], [
+                        {"offset": 6, "opcode": "monitorenter"},
+                        {"offset": 25, "opcode": "monitorexit"},
+                        {"offset": 31, "opcode": "monitorexit"},
+                    ])
+                    self.assertEqual(
+                        [(site["offset"], site["protected_by_handler_targets"])
+                         for site in handlers["bounded_invoke_sites"]],
+                        [(9, [29]), (14, [29])],
+                    )
                 else:
                     self.assertIsNone(record["register_elements_exception_table_witness"])
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),

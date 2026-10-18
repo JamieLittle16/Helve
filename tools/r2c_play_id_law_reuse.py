@@ -60,6 +60,16 @@ BUILDER_METHODS = {
     ("net.minecraft.network.codec.IdDispatchCodec", "encode"):
         ("efe32a2a267cf7eb1cd25737f35534f4ae9cc2026a121e35d0a243ef88f4a8ea", 54),
 }
+BUILDER_CLASSES = {
+    "net.minecraft.network.protocol.ProtocolInfoBuilder":
+        "7af68e5a84feaa5c7b4f2c6bff09e8ee2b8f679256624419428c774cf88e8bde",
+    "net.minecraft.network.protocol.ProtocolCodecBuilder":
+        "bd344893e334305216765d20497912600db813229cb4adadc90f549e374c7cd3",
+    "net.minecraft.network.codec.IdDispatchCodec$Builder":
+        "fc0a71b133aea8f0e7e0abc7a263b049158de2dab4cf09f0ca76c0d0e41d608a",
+    "net.minecraft.network.codec.IdDispatchCodec":
+        "0055112127f7f55a79601906ed1267569ec6fe8c511a409ee57c3cd5b35c4f74",
+}
 SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
@@ -122,6 +132,13 @@ def bind(play: dict, builder: dict, root: Path = ROOT) -> dict:
     require(builder.get("independent_source_var_sem_admitted") is False
             and builder.get("builder_append_to_numeric_id_law_proven") is False,
             "builder probe has invented admission authority")
+    class_hashes = {
+        cls["class_name"]: cls["classfile_sha256"]
+        for cls in builder["builder_class_candidates"]
+    }
+    for class_name, digest in BUILDER_CLASSES.items():
+        require(class_hashes.get(class_name) == digest,
+                f"official client builder class identity drift: {class_name}")
     observed = {}
     for cls in builder["builder_class_candidates"]:
         for method in cls["selected_methods"]:

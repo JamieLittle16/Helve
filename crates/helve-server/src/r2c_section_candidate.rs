@@ -1401,7 +1401,7 @@ mod tests {
 
         append_coherent_section_candidate(&image, 0, 66, &mut bytes)
             .expect("synthetic upper section");
-        assert_eq!(&bytes[lower_bytes..], &[0, 0, 0, 0, 0, 0, 0, 0, 5]);
+        assert_eq!(&bytes[lower_bytes..], &[0, 0, 0, 0, 0, 0, 0, 5]);
         assert_eq!(bytes.as_ptr(), allocation);
         assert_eq!(image.stamp(), original_stamp);
         assert_eq!(semantic.stamp(), original_stamp);

@@ -348,10 +348,8 @@ mod tests {
         // immediately followed by 256 packed 4-bit longs (4096/16).
         // A VarInt(256) here would be [0x80, 0x02] and the actual
         // client would misinterpret it as the start of the packed longs.
-        let packed = PackedBlockContainer::derive(32_366, |i| {
-            if i & 1 == 0 { 1 } else { 2 }
-        })
-        .unwrap();
+        let packed =
+            PackedBlockContainer::derive(32_366, |i| if i & 1 == 0 { 1 } else { 2 }).unwrap();
         assert_eq!(packed.storage_bits(), 4);
         assert_eq!(packed.local_palette(), &[1, 2]);
         let encoded = packed.encode_container();
@@ -363,12 +361,13 @@ mod tests {
 
         // A global palette has no local count/entries and likewise
         // starts directly with packed longs after the width byte.
-        let global = PackedBlockContainer::derive(32_366, |i| {
-            u16::try_from(i % 257).unwrap()
-        })
-        .unwrap();
+        let global =
+            PackedBlockContainer::derive(32_366, |i| u16::try_from(i % 257).unwrap()).unwrap();
         assert_eq!(global.mode(), BlockPaletteMode::Global);
-        assert_eq!(global.encode_container().len(), 1 + global.packed_words().len() * 8);
+        assert_eq!(
+            global.encode_container().len(),
+            1 + global.packed_words().len() * 8
+        );
     }
 
     #[test]

@@ -37,7 +37,7 @@ def fixture(class_name: str) -> str:
                 "      11: invokeinterface #14 // Method exact/List.size:()I",
                 "      12: iconst_1",
                 "      13: if_icmpne     20",
-                "      14: invokestatic  #14 // Method exact/single:()V",
+                "      14: invokevirtual #14 // Method exact/CompletableFuture.thenApply:()V",
                 "      15: areturn",
                 "      20: aload_0",
                 "      21: invokestatic  #14 // Method exact/CompletableFuture.allOf:()V",
@@ -167,6 +167,10 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         source = fixture(cls)
         certificate = probe.bounded_method_shape(source, cls, method)
         paths = certificate["util_sequence_three_normal_branch_witness"]
+        self.assertEqual(
+            paths[1]["ordered_distinct_critical_invokes"],
+            ["List.isEmpty:", "List.size:", "CompletableFuture.thenApply:"],
+        )
         self.assertEqual(
             [p["conditional_choices"] for p in paths],
             [

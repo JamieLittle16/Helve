@@ -76,11 +76,11 @@ def stage_vanilla_overworld(source: Path, scratch: Path) -> Path:
     source = source.expanduser().absolute()
     if source.is_symlink() or not source.is_dir():
         raise DiagnosticError(f"vanilla save must be a real non-symlink directory: {source}")
+    if (source / "dimensions" / "minecraft" / "overworld").exists():
+        raise DiagnosticError("save already has a namespaced Overworld; omit --stage-vanilla-overworld")
     region_dir = source / "region"
     if region_dir.is_symlink() or not region_dir.is_dir():
         raise DiagnosticError(f"expected a vanilla Overworld region/ directory: {region_dir}")
-    if (source / "dimensions" / "minecraft" / "overworld").exists():
-        raise DiagnosticError("save already has a namespaced Overworld; omit --stage-vanilla-overworld")
     level = existing_file(
         source / "level.dat", "vanilla level.dat", maximum=4 * 1024 * 1024,
     )

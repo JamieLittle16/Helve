@@ -1566,7 +1566,9 @@ mod tests {
         let mut reference_wire_frames = None;
         for join_index in 0..joins {
             let mut session = retained_session_with_teleport(0.25, 8.0, 0.25);
-            let mut view = host.attach(&session).expect("reconnecting session attaches");
+            let mut view = host
+                .attach(&session)
+                .expect("reconnecting session attaches");
             assert!(view.shares_resident_with(&second));
             assert_eq!(view.diagnostic_batch_progress(), (0, selected, 0));
             // The sole positive admission witness exists only in Rust tests.

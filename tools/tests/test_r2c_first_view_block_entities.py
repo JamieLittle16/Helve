@@ -161,6 +161,29 @@ class FirstViewBlockEntityAuditTests(unittest.TestCase):
         self.assertEqual(reports[0].evidence, "ABSENT (not admitted as empty)")
         self.assertFalse(audit.print_report(reports))
 
+    def test_non_sector_aligned_real_region_reports_exact_length_and_never_edits(self) -> None:
+        self.make_world(count=audit.RENDER_HALO_CHUNKS)
+        path = self.world / "dimensions/minecraft/overworld/region/r.0.-1.mca"
+        raw = path.read_bytes()
+        self.assertEqual(len(raw) % 4096, 0)
+        truncated = raw[:-19]
+        path.write_bytes(truncated)
+        with self.assertRaises(audit.SourceAuditError) as caught:
+            audit.audit_world(self.world, audit.RENDER_HALO_CHUNKS)
+        self.assertIn(f"unaligned Anvil region: {path}", str(caught.exception))
+        self.assertIn(f"observed_bytes={len(truncated)}", str(caught.exception))
+        self.assertIn("sector_bytes=4096, trailing_bytes=4077", str(caught.exception))
+        self.assertEqual(path.read_bytes(), truncated)
+
+    def test_short_region_header_is_not_misreported_as_trailing_alignment(self) -> None:
+        self.make_world()
+        path = self.world / "dimensions/minecraft/overworld/region/r.0.-1.mca"
+        path.write_bytes(b"\x00" * 100)
+        with self.assertRaisesRegex(
+            audit.SourceAuditError, "shorter than mandatory 8192-byte Anvil header"
+        ):
+            audit.audit_world(self.world)
+
     def test_wrong_saved_version_and_missing_region_fail_closed(self) -> None:
         self.make_world()
         original_path = self.world / "dimensions/minecraft/overworld/region/r.0.-1.mca"

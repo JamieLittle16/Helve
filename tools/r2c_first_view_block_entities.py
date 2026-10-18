@@ -140,8 +140,20 @@ def audit_world(
         if path not in cached:
             _regular(path, maximum=REGION_SIZE_LIMIT)
             raw = path.read_bytes()
-            if len(raw) < oracle.REGION_HEADER_BYTES or len(raw) % oracle.SECTOR_BYTES:
-                raise SourceAuditError(f"region sector shape invalid: {path}")
+            if len(raw) < oracle.REGION_HEADER_BYTES:
+                raise SourceAuditError(
+                    f"region file shorter than mandatory {oracle.REGION_HEADER_BYTES}-byte "
+                    f"Anvil header: {path} (observed_bytes={len(raw)})"
+                )
+            remainder = len(raw) % oracle.SECTOR_BYTES
+            if remainder:
+                raise SourceAuditError(
+                    f"unaligned Anvil region: {path} "
+                    f"(observed_bytes={len(raw)}, sector_bytes={oracle.SECTOR_BYTES}, "
+                    f"trailing_bytes={remainder}). Close the vanilla world and "
+                    "Save and Quit before re-auditing; do not manually pad or "
+                    "rewrite the source file."
+                )
             try:
                 locations = oracle._region_locations(raw, path)
             except oracle.ExtractorError as error:

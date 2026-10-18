@@ -150,6 +150,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="COLD-copy the four unchanged first-view regions from an ordinary "
              "vanilla save root containing region/ (no block-entity edits)",
     )
+    parser.add_argument(
+        "--render-halo", action="store_true",
+        help="COLD test-only: publish 25 actual source chunks (5x5) so the interior "
+             "3x3 has loaded rendering neighbors; default remains 9 chunks",
+    )
     parser.add_argument("--port", type=int, default=25565, help="loopback port (default: 25565)")
     parser.add_argument("--preflight-only", action="store_true", help="validate inputs without building or opening any listener")
     parser.add_argument("--skip-rehearsal", action="store_true", help="skip the existing nine-chunk test (e.g. after green CI)")
@@ -221,12 +226,23 @@ def main(argv: Sequence[str] | None = None) -> int:
                 "HELVE_R2C_HEIGHTMAP_CANDIDATE": str(candidate),
                 "HELVE_R2C_DIAGNOSTIC_PORT": str(args.port),
             })
+            # Never inherit a positive test-only halo gate from an unrelated
+            # shell environment; only this explicit launcher option may set it.
+            env.pop("HELVE_R2C_DIAGNOSTIC_RENDER_HALO", None)
+            if args.render_halo:
+                env["HELVE_R2C_DIAGNOSTIC_RENDER_HALO"] = "1"
             if not args.skip_rehearsal:
                 print("R2C: running existing nine-chunk source-receipt + real TCP/ACK rehearsal", flush=True)
                 outcome = subprocess.run(rust_test_command(REHEARSAL, ignored=False),
                                          cwd=REPO_ROOT, env=env, check=False)
                 if outcome.returncode != 0:
                     raise DiagnosticError("nine-chunk TCP rehearsal failed; live client test withheld")
+            if args.render_halo:
+                print(
+                    "R2C TEST-ONLY renderer halo: 25 genuine source chunks (5x5); "
+                    "interior 3x3 can meet the eight-neighbor mesh requirement",
+                    flush=True,
+                )
             print(f"Connect UNMODIFIED Minecraft Java 26.2 to localhost:{args.port}", flush=True)
             print("Keep the connection open through a keep-alive, then disconnect to end the test.", flush=True)
             print("WARNING: this is UNADMITTED, TEST-ONLY. Console success does NOT prove visible pixels.", flush=True)

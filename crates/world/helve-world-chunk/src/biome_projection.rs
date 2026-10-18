@@ -4,6 +4,7 @@
 //! authority. It consumes fully resolved *registry ordinal* IDs from the coherent chunk
 //! owner, checks the independently qualified registry length, and produces exactly one
 //! section's paletted container bytes. It cannot certify the provenance of those IDs.
+//! 26.2 packed data is fixed-size, without any word-count VarInt.
 //!
 //! The caller must admit the complete source registry order and outer chunk packet law
 //! independently. Do not send a partial section as a standalone protocol packet.
@@ -199,9 +200,8 @@ impl PackedBiomeSectionReference {
             }
             BiomePaletteMode::RegistryGlobal => 0,
         };
-        1 + palette_bytes
-            + varint_len(u32::try_from(self.words.len()).expect("<=64"))
-            + self.words.len() * 8
+        // The client derives packed-word count from width and 64 biome cells.
+        1 + palette_bytes + self.words.len() * 8
     }
 
     /// Appends the exact source-law container bytes into a caller-owned buffer.
@@ -229,7 +229,7 @@ impl PackedBiomeSectionReference {
             }
             BiomePaletteMode::RegistryGlobal => {}
         }
-        push_varint(bytes, u32::try_from(self.words.len()).expect("<=64"));
+        // Fixed-size long array follows the palette immediately.
         for &word in &self.words {
             bytes.extend_from_slice(&word.to_be_bytes());
         }
@@ -351,7 +351,7 @@ mod tests {
         assert_eq!(encoded.storage_bits(), 0);
         assert_eq!(encoded.local_palette(), &[2]);
         assert!(encoded.packed_words().is_empty());
-        assert_eq!(encoded.encode_container(), [0, 2, 0]);
+        assert_eq!(encoded.encode_container(), [0, 2]);
         assert!(encoded.is_current_for(&state));
     }
 
@@ -386,6 +386,27 @@ mod tests {
     }
 
     #[test]
+    fn fixed_size_biome_data_has_no_spurious_array_length() {
+        let mut state = owner();
+        // Exactly two palette values: 1 bit per quart cell, one raw word.
+        for i in 0..64 {
+            state
+                .replace_biome(-1, quart_index(i), 2 + u16::try_from(i & 1).unwrap())
+                .unwrap();
+        }
+        let encoded = PackedBiomeSectionReference::derive(&state, -1, 66).unwrap();
+        assert_eq!(encoded.mode(), BiomePaletteMode::LinearLocal);
+        assert_eq!(encoded.storage_bits(), 1);
+        assert_eq!(encoded.local_palette(), &[2, 3]);
+        let wire = encoded.encode_container();
+        assert_eq!(&wire[..4], &[1, 2, 2, 3]);
+        assert_eq!(wire.len(), 12);
+        assert_eq!(&wire[4..], &0xaaaa_aaaa_aaaa_aaaa_u64.to_be_bytes());
+        let uniform = PackedBiomeSectionReference::derive(&owner(), -1, 66).unwrap();
+        assert_eq!(uniform.encode_container(), [0, 2]);
+    }
+
+    #[test]
     fn more_than_eight_values_switches_to_registry_global_ids_not_local_indices() {
         let mut state = owner();
         for i in 0..64 {
@@ -408,8 +429,7 @@ mod tests {
         }
         let wire = projected.encode_container();
         assert_eq!(wire[0], 7);
-        assert_eq!(usize::from(wire[1]), projected.packed_words().len());
-        assert_eq!(wire.len(), 2 + projected.packed_words().len() * 8);
+        assert_eq!(wire.len(), 1 + projected.packed_words().len() * 8);
     }
 
     #[test]
@@ -429,7 +449,7 @@ mod tests {
             let stand_alone = projected.encode_container();
             assert_eq!(projected.encoded_len(), stand_alone.len());
             if unique == 1 {
-                assert_eq!(stand_alone, [0, 0x82, 0x01, 0]);
+                assert_eq!(stand_alone, [0, 0x82, 0x01]);
             }
             let before = destination.len();
             projected.append_container(&mut destination);

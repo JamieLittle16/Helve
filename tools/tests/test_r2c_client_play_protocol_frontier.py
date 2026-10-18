@@ -122,7 +122,7 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
             "GamePacketTypes.CLIENTBOUND_BUNDLE:",
             "GamePacketTypes.CLIENTBOUND_TEST_0:"
         )
-        with self.assertRaisesRegex(ValueError,"bundle is not registration zero"):
+        with self.assertRaisesRegex(ValueError,"bundle builder consumes wrong packet type"):
             probe.inspect(without_bundle)
         with self.assertRaisesRegex(ValueError,"duplicate"):
             probe.inspect(fixture().replace(

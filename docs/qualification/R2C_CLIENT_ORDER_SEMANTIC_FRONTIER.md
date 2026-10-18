@@ -236,6 +236,20 @@ unbounded tables fail closed. The emitted source-free record also
 identifies the exact `Stream.forEach` call offset and whether an
 exception-table range covers that *direct invocation*.
 
+The 26.2 official-client workflow observed and now independently
+pins the exact following handler rows for
+`RegistryLoadTask.registerElements`:
+
+| Protected JVM range (end exclusive) | Handler target | Catch type |
+| --- | --- | --- |
+| `[7, 26)` — includes `Stream.forEach` at 14 | 29 (`astore_3`) | `any` |
+| `[29, 32)` — within the handler region | 29 (`astore_3`) | `any` |
+
+The latter row is recorded **as observed**, rather than interpreted as
+a second independent registration operation. The method exits already
+pinned by the same workflow are explicit `athrow` at 33 and normal
+`return` at 34. These are exact *JVM structural* observations.
+
 This is not the same as complete exceptional execution semantics.
 The table's protection range can include more than one invoked method,
 and a caught throwable can originate from downstream code. Nor does

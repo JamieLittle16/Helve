@@ -4,7 +4,7 @@
 //! authority. It consumes fully resolved *registry ordinal* IDs from the coherent chunk
 //! owner, checks the independently qualified registry length, and produces exactly one
 //! section's paletted container bytes. It cannot certify the provenance of those IDs.
-//! 26.2 packed data is fixed-size, without any word-count VarInt.
+//! 26.2 packed data is fixed-size, without any word-count `VarInt`.
 //!
 //! The caller must admit the complete source registry order and outer chunk packet law
 //! independently. Do not send a partial section as a standalone protocol packet.

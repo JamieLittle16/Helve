@@ -408,8 +408,27 @@ def registration_exception_table_witness(
         raise ValueError("registerElements ambiguous Stream.forEach")
     covered = [row for row in rows
                if row["from"] <= for_each[0] < row["to_exclusive"]]
+    # Record only bounded method-reference metadata; never expose bytecode
+    # operands, decompilation, source snippets or a full instruction listing.
+    call_sites = [
+        {
+            "offset": off,
+            "opcode": op,
+            "symbol": _target(rest),
+            "protected_by_handler_targets": [
+                row["target"] for row in rows
+                if row["from"] <= off < row["to_exclusive"]
+            ],
+        }
+        for off, op, rest in instructions if op.startswith("invoke")
+    ]
+    if not 1 <= len(call_sites) <= 16 or any(
+        not site["symbol"] or len(site["symbol"]) > 2048 for site in call_sites
+    ):
+        raise ValueError("registerElements invokes are missing or unbounded")
     return {
         "stream_foreach_offset": for_each[0],
+        "bounded_invoke_sites": call_sites,
         "jvm_exception_handlers": rows,
         "stream_foreach_directly_covered_by_handler": bool(covered),
         "rollback_or_partial_mutation_semantics_proven": False,

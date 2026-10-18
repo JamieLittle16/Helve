@@ -13,6 +13,8 @@ use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
 use crate::r2c_cold_demo_import::{ColdImportedView, SourceAdmittedPlayPublisher};
+#[cfg(test)]
+use crate::r2c_cold_demo_import::R2cSourceAdmission;
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_play_inbound::R2cPlayInboundStep;
 use std::time::{Duration, Instant};
@@ -644,7 +646,13 @@ pub fn serve_r2b_playtest_blocking_transport(
     session_epoch: ServerSessionEpoch,
     image: &R2bPlaytestImage,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
-    serve_r2b_playtest_with_optional_r2c_plan(transport, session_epoch, image, None)
+    serve_r2b_playtest_with_optional_r2c_plan(
+        transport,
+        session_epoch,
+        image,
+        None,
+        WorldPublicationMode::NoChunks,
+    )
 }
 
 /// Retains the *same* R2B Play owner, with an explicitly selected COLD
@@ -659,7 +667,22 @@ pub fn serve_r2b_playtest_with_r2c_cold_plan(
     image: &R2bPlaytestImage,
     plan: &R2cColdWorldPlan,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
-    serve_r2b_playtest_with_optional_r2c_plan(transport, session_epoch, image, Some(plan))
+    serve_r2b_playtest_with_optional_r2c_plan(
+        transport,
+        session_epoch,
+        image,
+        Some(plan),
+        WorldPublicationMode::NoChunks,
+    )
+}
+
+/// Every product caller supplies `NoChunks`. The only positive variant
+/// exists in Rust's test build, where it remains an unadmitted visual
+/// diagnostic rather than an R2C source/VAR/SEM acceptance decision.
+enum WorldPublicationMode {
+    NoChunks,
+    #[cfg(test)]
+    UnadmittedStockClientDiagnostic,
 }
 
 #[expect(
@@ -671,6 +694,7 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
     session_epoch: ServerSessionEpoch,
     image: &R2bPlaytestImage,
     plan: Option<&R2cColdWorldPlan>,
+    publication_mode: WorldPublicationMode,
 ) -> Result<R2bPlaytestExit, R2bPlaytestError> {
     if plan.is_some() {
         // Reuse the already-tested borrowed Configuration bridge exactly
@@ -741,9 +765,48 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             .awaiting()
             .map(|pending| pending.id)
     );
+    // Only the `cargo test --lib` diagnostic build can produce a positive
+    // witness. This deliberately exercises the *existing* real socket,
+    // importer and publisher, but is neither a production switch nor a
+    // source-admitted R2C client demonstration.
+    #[cfg(test)]
+    if matches!(
+        publication_mode,
+        WorldPublicationMode::UnadmittedStockClientDiagnostic
+    ) {
+        let table = plan
+            .and_then(R2cColdWorldPlan::candidate_heightmap_bytes)
+            .ok_or_else(|| R2bPlaytestError::WorldPlan {
+                reason: "diagnostic live R2C requires an explicitly selected official heightmap candidate".to_owned(),
+            })?;
+        let world = cold_view.as_mut().ok_or_else(|| R2bPlaytestError::WorldPlan {
+            reason: "diagnostic live R2C requires a verified imported saved world".to_owned(),
+        })?;
+        // Both the receipt audit above and the publisher's own facts/limit
+        // validation must pass before the first chunk enters the driver.
+        let admission = R2cSourceAdmission;
+        let mut publisher = SourceAdmittedPlayPublisher::new(
+            &mut session,
+            table,
+            0,
+            &admission,
+        ).map_err(|reason| R2bPlaytestError::WorldPublish { reason })?;
+        eprintln!(
+            "R2C TEST-ONLY LIVE DIAGNOSTIC | chunks={} | source_receipts={} | stock_client_observation_required=true | source_admitted_for_live_r2c=false | production_admitted=false",
+            world.chunks(),
+            world.receipts(),
+        );
+        return serve_world_projection_wait(
+            transport,
+            &mut session,
+            Some(world),
+            Some(&mut publisher),
+        );
+    }
     // Admission is intentionally uninhabited in product builds. This path
     // keeps the original R2B client behavior unchanged until source VAR/SEM
     // promotes the exact 26.2 source/known-pack/heightmap/Play contract.
+    let _ = publication_mode;
     serve_world_projection_wait(transport, &mut session, cold_view.as_mut(), None)
 }
 

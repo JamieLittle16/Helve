@@ -546,9 +546,7 @@ mod tests {
         ] {
             let session = retained_session_with_teleport(x, y, z);
             assert!(super::checked_pending_teleport_center(&session, profile).is_err());
-            assert!(super::plan_pending_teleport_first_view(
-                &session, profile, 10, 25
-            ).is_err());
+            assert!(super::plan_pending_teleport_first_view(&session, profile, 10, 25).is_err());
         }
     }
 
@@ -1403,7 +1401,9 @@ mod tests {
         // vertical lattice) attach without rebuilding the view or changing
         // the host's source receipts.
         let same_chunk = retained_session_with_teleport(15.99, 15.9, 15.99);
-        let third = host.attach(&same_chunk).expect("same selected chunk center");
+        let third = host
+            .attach(&same_chunk)
+            .expect("same selected chunk center");
         assert!(third.shares_resident_with(&view));
         assert_eq!(third.diagnostic_batch_progress(), (0, 9, 0));
         assert!(

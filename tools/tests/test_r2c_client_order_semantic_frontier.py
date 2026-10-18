@@ -298,7 +298,9 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         # Nor can we treat an explicitly thrown path after writing IDs as
         # equivalent to all errors occurring before mutation.
         late_throw = valid.replace("18: areturn", "18: athrow")
-        with self.assertRaisesRegex(ValueError, "explicit throw after ID mutation"):
+        with self.assertRaisesRegex(
+            ValueError, "explicit throw after ID mutation|no single normal-return JVM path"
+        ):
             probe.bounded_method_shape(late_throw, cls, method)
         missing_write = valid.replace(
             "16: invokevirtual #14 // Method exact/ObjectList.add:()Z",

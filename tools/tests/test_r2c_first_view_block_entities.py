@@ -168,12 +168,11 @@ class FirstViewBlockEntityAuditTests(unittest.TestCase):
         self.assertEqual(len(raw) % 4096, 0)
         truncated = raw[:-19]
         path.write_bytes(truncated)
-        with self.assertRaisesRegex(
-            audit.SourceAuditError,
-            rf"unaligned Anvil region: .*r\\.0\\.-1\\.mca "
-            rf"\\(observed_bytes={len(truncated)}, sector_bytes=4096, trailing_bytes=4077\\)",
-        ):
+        with self.assertRaises(audit.SourceAuditError) as caught:
             audit.audit_world(self.world, audit.RENDER_HALO_CHUNKS)
+        self.assertIn(f"unaligned Anvil region: {path}", str(caught.exception))
+        self.assertIn(f"observed_bytes={len(truncated)}", str(caught.exception))
+        self.assertIn("sector_bytes=4096, trailing_bytes=4077", str(caught.exception))
         self.assertEqual(path.read_bytes(), truncated)
 
     def test_short_region_header_is_not_misreported_as_trailing_alignment(self) -> None:

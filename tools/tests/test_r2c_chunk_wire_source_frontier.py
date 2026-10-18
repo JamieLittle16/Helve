@@ -111,6 +111,19 @@ class ChunkWireSourceFrontierTests(unittest.TestCase):
         finally:
             conn.close()
 
+    def test_empty_atlas_body_hash_is_not_implementation_evidence(self) -> None:
+        conn = mock_atlas()
+        try:
+            conn.execute(
+                "UPDATE methods SET body_sha256=? WHERE id=1",
+                (frontier.EMPTY_BODY_SHA256,),
+            )
+            [method] = frontier.exact_declarations(conn, frontier.ROOTS[0][1])
+            self.assertEqual(method["body_sha256"], frontier.EMPTY_BODY_SHA256)
+            self.assertTrue(method["declaration_only"])
+        finally:
+            conn.close()
+
     def test_abstract_declaration_is_not_a_body_proof(self) -> None:
         conn = mock_atlas()
         try:

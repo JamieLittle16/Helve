@@ -464,10 +464,12 @@ mod tests {
             for dx in -1..=1 {
                 for neighbor_z in -1..=1 {
                     for neighbor_x in -1..=1 {
-                        assert!(positions.contains(&(
-                            center.x + dx + neighbor_x,
-                            center.z + dz + neighbor_z,
-                        )));
+                        assert!(
+                            positions.contains(&(
+                                center.x + dx + neighbor_x,
+                                center.z + dz + neighbor_z,
+                            ))
+                        );
                     }
                 }
             }

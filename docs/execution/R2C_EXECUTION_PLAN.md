@@ -37,8 +37,23 @@ already independently admitted the 58-method BIOMES / HEIGHTMAPS /
 LIGHT source bundle; PRs #373–374 already exercise nine real Anvil
 test-fixture chunks over the original retained Play TCP loop; PR #375
 reuses reviewed R0 source semantics for the selected Play packet IDs.
-The separate receiving-client/profile and outer Play source-SEM
-admission and the **actual stock-client rendered world** remain open.
+The receiving-client/profile and outer Play source-SEM
+admission remain open. A **test-only** stock 26.2 client rendered
+the central 3×3 of a genuine 25-Anvil-column source-backed view on
+18 October 2026; production source admission and an ordinary
+non-test positive world publisher remain open.
+
+**Current world ownership after PRs #389, #392 and #393:** the
+normal executable opens a single nonpublishing server-lifetime COLD
+world with 25 real selected halo columns, rather than importing a
+nine-column view per connection. A checked pending-teleport center
+binds each client to the same resident and each owns only its batch
+cursor. The existing 9-column reference and 25-column ignored
+positive diagnostic are not additional product world owners. The
+four-signed-region 25-column hermetic regression qualifies the
+source-receipt sharing boundary, not multi-client concurrency or
+independently admitted publication. **Do not repeat this ownership
+migration as an outstanding R2C feature.**
 
 For the **first finite R2C visual demo**, implement/qualify the simple
 bounded transparent reference projector and original retained connection

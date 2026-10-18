@@ -1,8 +1,20 @@
 # R2C World-State Admission Promotion
 
-Status: **human source review complete; independent local Atlas admission and repository promotion pending**  
+Status: **independently source-admitted and promoted in PR #268; this is the historical reproduction/promotion procedure**  
 Target: **Minecraft: Java Edition 26.2 / protocol 776 / DataVersion 4903**  
 Parent: `R2C_WORLD_PROJECTION_QUALIFICATION.md`
+
+> **Current-state correction (18 October 2026):** The procedure below has
+> already completed successfully. The 58-method, 20-rule admitted
+> BIOMES / HEIGHTMAPS / LIGHT bundle exists in
+> `vanilla/reports/r2c-world-state-source-admission-26.2.json` and
+> `vanilla/reports/r2c-world-state-admitted-bundle-manifest.json`
+> (`source_admitted=true`). Do **not** repeat promotion to finish R2C,
+> and do not construe this historical "next step" procedure as an
+> unclosed source-review gate. See
+> `../execution/R2C_CURRENT_STATE.md` for the live demo-first ledger.
+> The admitted world-state SEM does not automatically admit the separate
+> official-runtime *per-state* fact table or outer Play/client lifecycle.
 
 ## Purpose
 
@@ -216,4 +228,4 @@ The completed human review and this promotion mechanism do **not** establish tha
 - hosted CI is performance admission;
 - world-entry, packet-id, pacing, block-entity or the remaining world-projection groups are admitted by this three-group gate.
 
-They establish that the BIOMES/HEIGHTMAPS/LIGHT review is explicit and source-free, and that a successful local Atlas result can be promoted deterministically, byte-bound and fail-closed.
+The described process was successfully used for PR #268. The repository's admitted bundle and independent gate report are now committed; later R2C work must reuse them.

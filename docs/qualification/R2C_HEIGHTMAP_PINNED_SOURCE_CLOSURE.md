@@ -1,6 +1,6 @@
 # R2C — exact-source closure for 32,366 heightmap state predicates
 
-**Status:** source review required; production and independent VAR/SEM gates **closed**.
+**Status (18 October 2026):** the three generic heightmap map-type/predicate/storage SEM laws are **already independently source-admitted** in PR #268 (58-method R2C world-state bundle). **Only** the dense 32,366-state official-runtime flag lookup and its reached delegate/source binding remain separately production-unadmitted. The runtime candidate is twice reproduced; do not restart the admitted generic SEM review.
 
 The first-pass 19-method review of biome ordering and chunk outer wire
 is retained at `vanilla/reviews/network/r2c-first-pass-source-free-observations.json`.

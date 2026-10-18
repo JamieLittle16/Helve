@@ -2,7 +2,7 @@
 
 This gate is the stock-client runtime checkpoint immediately before R2C world projection.
 
-It proves the route Crucible intends to keep:
+It proves the route Helve keeps:
 
 ```text
 stock Minecraft Java 26.2 client
@@ -68,7 +68,7 @@ Starting from the same qualified source-free JSON used by the R1X smoke route:
 ```text
 python3 tools/r2b_pack_playtest.py \
   ~/Downloads/r1b-join-replay-image.json \
-  --output /tmp/crucible-r2b-playtest.bin
+  --output /tmp/helve-r2b-playtest.bin
 ```
 
 The packer must report:
@@ -83,8 +83,8 @@ production_admitted=false
 
 ```text
 cargo run --release --locked \
-  --package crucible-server -- \
-  --r2b-playtest-image=/tmp/crucible-r2b-playtest.bin
+  -p helve-server --bin helve -- \
+  --r2b-playtest-image=/tmp/helve-r2b-playtest.bin
 ```
 
 Connect an unmodified Minecraft Java **26.2** client to:
@@ -128,7 +128,7 @@ This closes the visual R2B development checkpoint. The next visual milestone bel
 For a stock-client failure, retain both:
 
 - the exact Minecraft disconnect/loading-screen behavior;
-- the complete `crucible-server` terminal output for that connection.
+- the complete `helve-server` terminal output for that connection.
 
 Do not repair this gate by reintroducing captured Play traffic or synthetic chunk/world packets. A
 failure before `WorldProjectionReady` belongs to the R2B runtime composition; a failure caused by the

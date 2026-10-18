@@ -3,7 +3,9 @@
 **Status:** executable milestone plan  
 **Target:** Minecraft: Java Edition 26.2 / protocol 776  
 **Architecture:** `../architecture/R2C_WORLD_PROJECTION_IMPLEMENTATION.md`  
-**Qualification:** `../qualification/R2C_WORLD_PROJECTION_QUALIFICATION.md`
+**Qualification:** `../qualification/R2C_WORLD_PROJECTION_QUALIFICATION.md`  
+**Current status:** `R2C_CURRENT_STATE.md` (18 October 2026 demo-first ledger)  
+**First-client gate:** `R2C_STOCK_CLIENT_DEMO_RUNBOOK.md`
 
 ## Purpose
 
@@ -26,6 +28,31 @@ stock-client product checkpoint
 ```
 
 That order prevents the fastest-to-write representation from becoming permanent architecture by accident.
+
+## October 2026 milestone re-sequencing: correctness demo first
+
+The original table below is the **complete production optimisation
+programme**, not a claim that every item is still missing. PR #268
+already independently admitted the 58-method BIOMES / HEIGHTMAPS /
+LIGHT source bundle; PRs #373–374 already exercise nine real Anvil
+test-fixture chunks over the original retained Play TCP loop; PR #375
+reuses reviewed R0 source semantics for the selected Play packet IDs.
+The separate receiving-client/profile and outer Play source-SEM
+admission and the **actual stock-client rendered world** remain open.
+
+For the **first finite R2C visual demo**, implement/qualify the simple
+bounded transparent reference projector and original retained connection
+driver, then run the unmodified 26.2 client. Correctness/source
+admission, byte-equivalence, transactional backpressure and finite
+resource bounds remain *mandatory*. Choosing the globally fastest
+production section/cache/share mechanism is **not** a prerequisite
+for seeing a bounded pregenerated world.
+
+**Move R2C.6's full target-hardware tournament and M0.3D section-policy
+winner-selection to a post-R2C-demo / pre-R2D hardening phase.** Do not
+weaken the architectural guard: a reference-only demo is not a
+production-performance winner. Existing implementation must be reused
+rather than rebuilt to follow the historical ordering of this plan.
 
 ## R2C-wide rules
 
@@ -358,7 +385,12 @@ The reference projector is byte/semantic correct for the complete selected profi
 
 ---
 
-## R2C.6 — production projection mechanism tournament
+## R2C.6 — production projection mechanism tournament (post-demo)
+
+**Sequencing update:** this full section now belongs between the first
+stock-client-visible R2C checkpoint and the broader R2D rollout.
+Use the correct bounded reference path for the initial visual gate;
+do not mistake that reference path for a measured optimal mechanism.
 
 ### Goal
 
@@ -492,12 +524,18 @@ Handshake/Login
 6. server-side world/projection hashes match the qualified fixture;
 7. no second driver/queue/read scratch appears at R2C handoff;
 8. memory remains bounded through repeated connection attempts;
-9. unchanged shared artifacts are reused according to the selected production policy;
+9. finite resource caps, transactional backpressure and freshness remain intact on the qualified reference baseline;
 10. failures are attributable and fail closed rather than falling back to replay.
 
 ### Exit
 
-R2C is complete. Terrain is now Helve-owned end to end. R2D begins the broader persistent-visible-world red team: indefinite residence, deterministic reconnect, repeated joins and resource stability.
+The first **R2C visible-world demonstration** is complete and terrain is
+Helve-owned end-to-end for the admitted selected world/profile. The
+post-demo / pre-R2D phase must still select/qualify the production
+section and projection mechanisms against controlled performance
+evidence before claiming an optimized sustained-operation profile.
+R2D then expands persistence, repeat joins, broader worlds and
+generation; none is a dependency of the first visible-world demo.
 
 ---
 
@@ -517,11 +555,12 @@ Keep source/semantic and mechanism changes reviewable. A good initial sequence i
 | R2C.4a | biome/height semantic substrate |
 | R2C.4b | light semantic/import substrate |
 | R2C.5 | complete reference world projector |
-| R2C.6a | projection benchmark/evidence harness |
-| R2C.6b+ | one candidate per PR where practical |
-| R2C.6 final | production projection decision/cleanup |
-| R2C.7 | same-driver bounded world publication integration |
-| R2C.8 | stock-client native-world gate + milestone record |
+| R2C.7 | finish selected admission, connect existing same-driver publisher |
+| R2C.8 | **first** stock-client native-world demo + evidence record |
+| post-demo R2C.6a | projection benchmark/evidence harness |
+| post-demo R2C.6b+ | one qualified mechanism candidate per PR |
+| post-demo R2C.6 final | production projection and M0.3D policy decision/cleanup |
+| R2D | sustained-world/generation expansion after the bounded demo |
 
 Do not force exactly this PR count if a source frontier naturally closes in a different bounded slice. The rule is one independently reviewable claim per change, not bureaucracy.
 

@@ -4,7 +4,36 @@
 **Target:** Minecraft: Java Edition 26.2 / protocol 776  
 **Architecture:** `../architecture/R2C_WORLD_PROJECTION_IMPLEMENTATION.md`  
 **Execution:** `../execution/R2C_EXECUTION_PLAN.md`  
-**Performance standard:** `PERFORMANCE_QUALIFICATION_STANDARD.md`
+**Performance standard:** `PERFORMANCE_QUALIFICATION_STANDARD.md`  
+**Current demo status:** `../execution/R2C_CURRENT_STATE.md`  
+**Visual gate runbook:** `../execution/R2C_STOCK_CLIENT_DEMO_RUNBOOK.md`
+
+## Current milestone/evidence sequencing (18 October 2026)
+
+This is the **complete production qualification programme**, not a
+checklist of still-unimplemented R2C foundations. PR #268 already
+admitted the 58-method BIOMES/HEIGHTMAPS/LIGHT source bundle, and
+PRs #373–375 established the nine-chunk retained-loop TCP rehearsal
+and client packet-number consistency against reviewed R0 dispatch law.
+
+**Two separate exit claims now apply:**
+
+- **R2C finite visual checkpoint:** a source-qualified, correct,
+  bounded, unmodified Java 26.2 client renders one pregenerated world
+  through the existing retained driver. The reference projection is
+  adequate if its exact profile, semantic/data authorities and
+  source gates are proven. This is still **not observed**.
+- **Post-demo/pre-R2D production-performance gate:** complete the
+  M0.3D section-policy decision and R2C.6 controlled mechanism
+  tournament (including p99 and memory/copy/allocation evidence).
+  Only then claim an optimized production mechanism.
+
+Deferring the *mechanism winner* does **not** defer vanilla source
+admission, representation-independent correctness, transactional
+backpressure, resource caps or an actual stock-client test. Sections
+about target hardware and production mechanism choice remain
+normative for that later claim, not prerequisites for an initial
+finite correctness demo.
 
 ## 1. Purpose
 
@@ -728,4 +757,8 @@ R2C qualification is complete only when:
 - liveness and teleport behavior remain correct;
 - all claims are scoped to the exact admitted profile rather than generalized beyond evidence.
 
-At that point R2D can focus on persistent-product qualification rather than repairing R2C architecture.
+The finite stock-client visual checkpoint may be recorded as
+R2C demonstrated even if the separate performance-tournament decision
+has not yet been made. Before declaring the wider optimised production
+profile ready for R2D, complete the post-demo performance and section
+policy qualification described above.

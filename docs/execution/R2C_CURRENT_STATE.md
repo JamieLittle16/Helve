@@ -2,6 +2,7 @@
 
 **As of:** 18 October 2026  
 **Post-visual audited `main` baseline:** `093ae2cee68c86706beebaeb6986d5c088d62e57` (PR #387)  
+**Server-lifetime COLD owner merged:** `c9a03549c4de915129591c693a36b8960e7445bb` (PR #389; normal server path, nonpublishing)  
 **Target:** Minecraft Java 26.2, protocol 776, DataVersion 4903  
 **Milestone state:** **VISUAL TEST-ONLY CHECKPOINT ACHIEVED: 25 real Anvil chunks sent, central 3×3 visibly rendered in the unmodified stock client; production source admission and optimized product integration NOT YET CLOSED**  
 **Next action:** [Post-visual architecture audit and pre-R2D closure plan](R2C_POST_VISUAL_PRE_R2D_AUDIT_2026-10-18.md) and [stock-client runbook](R2C_STOCK_CLIENT_DEMO_RUNBOOK.md)
@@ -61,6 +62,32 @@ However, its receiving peer is a synthetic client and its positive source
 witness exists **only under `cfg(test)`**. The fixture is not proof of
 a complete real pregenerated-world stock-client join.
 
+## Post-visual server ownership integration (PR #389)
+
+The ordinary server executable now prepares one source-checked **COLD**
+`R2cColdWorldHost` **before accepting connections**. It holds one immutable
+`SemanticDimensionInstance` and the original source receipts, shared across
+sequential R2B client lifetimes. Each client attaches only a fresh
+`R2cChunkBatchState`; no Anvil re-import or candidate re-encode audit occurs
+at each ordinary join. Its pending teleport must pass the same
+finite/lattice/signed-coordinate first-view planner and match the hosted view.
+
+The pinned nine-Anvil-chunk regression exercises two independent session
+attachments to exactly the same resident and receipt allocations, a mismatched
+teleport rejection, and independent batch cursors. PR #389's CI, R0 server
+gate and official heightmap facts workflow were green at reviewed head
+`eed6bcedfbb43b155f8f16e87c4e775595f3f592`.
+The public legacy per-connection world import entrypoint was removed.
+
+**Scope is deliberately limited:** this is a server-lifetime
+**immutable COLD world**, not a writable region-owned simulation executor.
+`TcpListener::accept` still serves client connections serially, the opted-in
+25-source-chunk *stock-client diagnostic* still imports in its isolated
+test-only route, and the ordinary executable still cannot construct
+`R2cSourceAdmission` or send chunk packets. Selected 26.2
+source/VAR/SEM, production section policy, shared projection/fan-out and
+multi-client long-lived concurrency remain independently open.
+
 ## Actual stock-client checkpoint (18 October 2026)
 
 PRs #377–387 introduced the opt-in ignored **real** client diagnostic and source-preserving 25-chunk renderer-halo path. The unmodified stock client joins the replay-free R2B handoff and now visibly renders the **inner 3×3** of 25 genuine Anvil-sourced columns; the other 16 form an outer loaded but unmeshed ring. The two saved block entities in the expanded halo were removed through the vanilla client, not through an importer omission. An earlier nine-chunk test rendered only the center column. The observed client crash at `LinearPalette.read` identified an extra packed-long array length prefix; #383 corrected the block/biome encoders with independent byte-level regressions.
@@ -73,7 +100,7 @@ The **next actions are not another rewrite of the importer or session spine**. F
 
 1. Freeze reproducible visual-world evidence and its negative tests.
 2. Close only residual selected client registry/heightmap/outer packet/Play VAR/SEM obligations, reusing the independently admitted 58-method world-state gate.
-3. Turn the admitted world into a server-owned dimension shared across sessions instead of the test-only per-connection `ColdImportedView`; activate normal positive publisher only after the admission gate.
+3. Extend and qualify PR #389's server-lifetime **nonpublishing COLD world host** for the selected product route; retain one semantic authority, validate repeated sessions/concurrency separately, and activate positive publication only after the independent admission gate.
 4. Finish M0.3D section selection and R2C.6 reference/direct/cache/share performance tournament using controlled target-hardware evidence.
 5. Red-team bounded TCP/ACK/keepalive/reconnect/memory/resource behavior before beginning R2D sustained-world qualification.
 

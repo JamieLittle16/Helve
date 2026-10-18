@@ -1473,7 +1473,7 @@ mod r2c_stock_client_diagnostic {
     use crate::{HELVE_STATUS_JSON, ServerSessionEpoch};
 
     const MAX_PREPLAY_CONNECTIONS: usize = 8;
-    const MAX_LISTEN_TIME: Duration = Duration::from_secs(180);
+    const MAX_LISTEN_TIME: Duration = Duration::from_mins(3);
     const ACCEPT_POLL: Duration = Duration::from_millis(25);
     const SOCKET_TIMEOUT: Duration = Duration::from_secs(15);
 
@@ -1485,7 +1485,7 @@ mod r2c_stock_client_diagnostic {
 
     /// A status probe or other pre-Play termination cannot prove world
     /// projection. Do not treat it as a test failure or as a chunk success:
-    /// the next accepted socket must independently reach WorldProjection.
+    /// the next accepted socket must independently reach `WorldProjection`.
     fn is_preplay_only(exit: R2bPlaytestExit) -> bool {
         matches!(
             exit,

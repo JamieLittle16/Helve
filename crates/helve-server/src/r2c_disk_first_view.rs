@@ -1168,7 +1168,10 @@ mod tests {
         use crate::r2c_cold_demo_import::{
             ColdImportedView, R2cSourceAdmission, SourceAdmittedPlayPublisher,
         };
-        use crate::r2c_play_inbound::R2cPlayInboundStep;
+        use crate::r2b_playtest::{R2bPlaytestExit, serve_world_projection_wait};
+        use std::io::{Read, Write};
+        use std::net::{Shutdown, TcpListener, TcpStream};
+        use std::time::Duration;
 
         let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
         let mut session = retained_session_with_teleport(0.25, 8.0, 0.25);
@@ -1263,22 +1266,67 @@ mod tests {
         let original_read_scratch = session.read_scratch.as_ptr();
         let mut sender =
             SourceAdmittedPlayPublisher::new(&mut session, &oracle, 0, &admission).unwrap();
-        assert_eq!(sender.service(&mut session, &mut view, 0).unwrap(), 12);
+        // The client analogue receives this batch over a *real loopback
+        // socket* from the product's retained R2B Play service loop. It is
+        // deliberately NOT an official client or a production admission.
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        let mut peer = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+        peer.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+        let (mut transport, _) = listener.accept().unwrap();
+
+        // Decode precisely the same transactional length-framed wire
+        // that the original connection driver writes, without assuming
+        // one read() per packet or adding a parallel production codec.
+        let client = std::thread::spawn(move || {
+            let limits = ConnectionLimits::new(65_535, 524_288, 524_288).unwrap();
+            let mut wire = IngressBuffer::new(limits);
+            let mut scratch = [0_u8; 16_384];
+            let mut frames = Vec::with_capacity(12);
+            while frames.len() < 12 {
+                if let Some(frame) = wire.peek_frame().unwrap() {
+                    let packet = (frame.packet_id(), frame.payload().to_vec());
+                    let consumed = frame.stream_bytes();
+                    wire.consume(consumed).unwrap();
+                    frames.push(packet);
+                    continue;
+                }
+                let count = peer.read(&mut scratch).expect("bounded TCP chunk receive");
+                assert_ne!(count, 0, "peer closed before the complete nine-chunk batch");
+                wire.push(&scratch[..count]).unwrap();
+            }
+            assert_eq!(wire.buffered_len(), 0, "no unexpected Play tail");
+            // The real R2B Play driver must process this ACK via its
+            // already-connected R2C ingress consumer, then observe EOF.
+            peer.write_all(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+            peer.shutdown(Shutdown::Write).unwrap();
+            frames
+        });
+
+        let exit = serve_world_projection_wait(
+            &mut transport,
+            &mut session,
+            Some(&mut view),
+            Some(&mut sender),
+        )
+        .expect("source-test-admitted nine-chunk Play socket path");
+        let frames = client.join().expect("loopback receiver");
+        assert!(matches!(
+            exit,
+            R2bPlaytestExit::LivePeerEof {
+                teleport_acknowledged: false,
+                accepted_keep_alives: 0,
+                discarded_world_frames: 0,
+                ..
+            }
+        ));
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
-        let limits = ConnectionLimits::new(65_535, 524_288, 524_288).unwrap();
-        let mut wire = IngressBuffer::new(limits);
-        wire.push(session.pending_play_egress()).unwrap();
+        assert_eq!(session.queued_egress(), 0);
+        assert_eq!(frames.len(), 12);
 
-        let center_frame = wire.peek_frame().unwrap().unwrap();
-        assert_eq!(center_frame.packet_id(), 94);
-        assert_eq!(center_frame.payload(), [0, 0]);
-        let consumed = center_frame.stream_bytes();
-        wire.consume(consumed).unwrap();
-
-        let start = wire.peek_frame().unwrap().unwrap();
-        assert_eq!(start.packet_id(), i32::from(CLIENTBOUND_CHUNK_BATCH_START));
-        let consumed = start.stream_bytes();
-        wire.consume(consumed).unwrap();
+        assert_eq!(frames[0].0, 94);
+        assert_eq!(frames[0].1, [0, 0]);
+        assert_eq!(frames[1].0, i32::from(CLIENTBOUND_CHUNK_BATCH_START));
+        assert!(frames[1].1.is_empty());
 
         // All nine real Anvil chunks contain one solid stone section at Y=0.
         // Independently build the three five-bit per-column wire heightmaps.
@@ -1288,34 +1336,15 @@ mod tests {
         }
         let mut maps = Vec::new();
         append_heightmap_map_candidate(&mut maps, 16, [&words; 3]).unwrap();
-        for position in expected_positions {
-            let frame = wire.peek_frame().unwrap().unwrap();
-            assert_eq!(frame.packet_id(), i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
-            assert_eq!(&frame.payload()[..4], &position.x.to_be_bytes());
-            assert_eq!(&frame.payload()[4..8], &position.z.to_be_bytes());
-            assert_eq!(&frame.payload()[8..8 + maps.len()], maps);
-            let consumed = frame.stream_bytes();
-            wire.consume(consumed).unwrap();
+        for (frame, position) in frames[2..11].iter().zip(expected_positions) {
+            assert_eq!(frame.0, i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
+            assert_eq!(&frame.1[..4], &position.x.to_be_bytes());
+            assert_eq!(&frame.1[4..8], &position.z.to_be_bytes());
+            assert_eq!(&frame.1[8..8 + maps.len()], maps);
+            assert!(frame.1.len() > 8 + maps.len());
         }
-        let finish = wire.peek_frame().unwrap().unwrap();
-        assert_eq!(
-            finish.packet_id(),
-            i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
-        );
-        assert_eq!(finish.payload(), [9]);
-        let consumed = finish.stream_bytes();
-        wire.consume(consumed).unwrap();
-        assert_eq!(wire.buffered_len(), 0);
-
-        // ACK is parsed by the same R2B driver; no second ingress buffer,
-        // dispatcher or chunk scheduler is created by the product path.
-        session.ingest_play(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
-        assert_eq!(
-            view.process_one_play_inbound(&mut session, 0).unwrap(),
-            R2cPlayInboundStep::ChunkBatchAcknowledged {
-                desired_per_tick: 9.0
-            }
-        );
+        assert_eq!(frames[11].0, i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED));
+        assert_eq!(frames[11].1, [9]);
         assert_eq!(sender.service(&mut session, &mut view, 50).unwrap(), 0);
     }
 

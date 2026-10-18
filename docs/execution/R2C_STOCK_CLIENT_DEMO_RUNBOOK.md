@@ -149,7 +149,19 @@ test-only visual profile (nine of these have a complete mesh halo).
 A nine-source-chunk-only save is no longer sufficient for this normal
 startup audit. Missing or nonempty saved block-entity evidence anywhere
 in the selected 25 still fails closed; the test-only nine-column
-reference rehearsal remains separate. CLI normalization supplies the
+reference rehearsal remains separate.
+
+**Automated ownership regression:** the standard Rust test
+`twenty_five_disk_chunks_share_one_host_and_missing_region_fails_closed`
+builds a disposable 25-column Anvil-format fixture spanning four signed
+regions. It verifies exact nearest-first source receipts, the single
+`R2cColdWorldHost` resident allocation shared across independent
+sessions, and no Play egress. It also removes one required region file:
+existing hosted residents must remain attachable, while a new import
+must reject the now-incomplete source. The test uses the established
+**uncompressed** synthetic Anvil writer; it does not replace the
+official 26.2 source save, actual-client log or full independent wire
+source qualification. CLI normalization supplies the
 capture-qualified session epoch; the server checks its image,
 `level.dat`, region location and candidate table before accepting
 connections.

@@ -297,8 +297,8 @@ mod tests {
         assert_eq!(upper.mode(), BiomePaletteMode::SingleValue);
         assert_eq!(lower.local_palette(), &[2]);
         assert_eq!(upper.local_palette(), &[5]);
-        assert_eq!(lower.encode_container(), vec![0, 2, 0]);
-        assert_eq!(upper.encode_container(), vec![0, 5, 0]);
+        assert_eq!(lower.encode_container(), vec![0, 2]);
+        assert_eq!(upper.encode_container(), vec![0, 5]);
         assert!(lower.is_current_for(&semantic));
         assert!(upper.is_current_for(&semantic));
         assert_eq!(image.stamp(), semantic.stamp());

@@ -12,9 +12,9 @@ use std::io::{self, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 
-use crate::r2c_cold_demo_import::{ColdImportedView, SourceAdmittedPlayPublisher};
 #[cfg(test)]
 use crate::r2c_cold_demo_import::R2cSourceAdmission;
+use crate::r2c_cold_demo_import::{ColdImportedView, SourceAdmittedPlayPublisher};
 use crate::r2c_configured_biomes::with_candidate_biomes_from_context;
 use crate::r2c_play_inbound::R2cPlayInboundStep;
 use std::time::{Duration, Instant};
@@ -780,18 +780,16 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
             .ok_or_else(|| R2bPlaytestError::WorldPlan {
                 reason: "diagnostic live R2C requires an explicitly selected official heightmap candidate".to_owned(),
             })?;
-        let world = cold_view.as_mut().ok_or_else(|| R2bPlaytestError::WorldPlan {
-            reason: "diagnostic live R2C requires a verified imported saved world".to_owned(),
-        })?;
+        let world = cold_view
+            .as_mut()
+            .ok_or_else(|| R2bPlaytestError::WorldPlan {
+                reason: "diagnostic live R2C requires a verified imported saved world".to_owned(),
+            })?;
         // Both the receipt audit above and the publisher's own facts/limit
         // validation must pass before the first chunk enters the driver.
         let admission = R2cSourceAdmission;
-        let mut publisher = SourceAdmittedPlayPublisher::new(
-            &mut session,
-            table,
-            0,
-            &admission,
-        ).map_err(|reason| R2bPlaytestError::WorldPublish { reason })?;
+        let mut publisher = SourceAdmittedPlayPublisher::new(&mut session, table, 0, &admission)
+            .map_err(|reason| R2bPlaytestError::WorldPublish { reason })?;
         eprintln!(
             "R2C TEST-ONLY LIVE DIAGNOSTIC | chunks={} | source_receipts={} | stock_client_observation_required=true | source_admitted_for_live_r2c=false | production_admitted=false",
             world.chunks(),
@@ -1434,7 +1432,6 @@ mod r2c_cold_plan_tests {
     }
 }
 
-
 #[cfg(test)]
 mod r2c_stock_client_diagnostic {
     use std::env;
@@ -1443,8 +1440,8 @@ mod r2c_stock_client_diagnostic {
     use std::time::Duration;
 
     use super::{
-        R2bPlaytestExit, R2cColdWorldPlan, WorldPublicationMode,
-        load_r2b_playtest_image, serve_r2b_playtest_with_optional_r2c_plan,
+        R2bPlaytestExit, R2cColdWorldPlan, WorldPublicationMode, load_r2b_playtest_image,
+        serve_r2b_playtest_with_optional_r2c_plan,
     };
     use crate::{HELVE_STATUS_JSON, ServerSessionEpoch};
 
@@ -1477,15 +1474,12 @@ mod r2c_stock_client_diagnostic {
         .expect("exact source/capture-committed R2B playtest image");
         let plan = R2cColdWorldPlan::new(PathBuf::from(required("HELVE_R2C_DIAGNOSTIC_WORLD")))
             .expect("bounded real 26.2 saved-world root")
-            .with_candidate_heightmap_file(
-                &PathBuf::from(required("HELVE_R2C_HEIGHTMAP_CANDIDATE")),
-            )
+            .with_candidate_heightmap_file(&PathBuf::from(required(
+                "HELVE_R2C_HEIGHTMAP_CANDIDATE",
+            )))
             .expect("exact pinned, bounded 32,366-state official-runtime candidate");
         let port = env::var("HELVE_R2C_DIAGNOSTIC_PORT")
-            .map_or_else(
-                |_| Ok(25565_u16),
-                |text| text.parse::<u16>(),
-            )
+            .map_or_else(|_| Ok(25565_u16), |text| text.parse::<u16>())
             .expect("valid numeric loopback listener port");
         let listener = TcpListener::bind(("127.0.0.1", port))
             .expect("loopback demo listener; close another server occupying the port");
@@ -1501,7 +1495,9 @@ mod r2c_stock_client_diagnostic {
         socket
             .set_write_timeout(Some(Duration::from_secs(15)))
             .expect("client write timeout");
-        eprintln!("R2C diagnostic stock-client peer={peer}; source world audit and original R2B session follow");
+        eprintln!(
+            "R2C diagnostic stock-client peer={peer}; source world audit and original R2B session follow"
+        );
         let exit = serve_r2b_playtest_with_optional_r2c_plan(
             &mut socket,
             epoch,
@@ -1526,7 +1522,9 @@ mod r2c_stock_client_diagnostic {
                     "R2C DIAGNOSTIC WIRE PASS | teleport ACK=accepted | keep-alives={accepted_keep_alives} | unclaimed gameplay frames={discarded_world_frames} | visual terrain observation is MANUAL, not implied | no source/production admission"
                 );
             }
-            other => panic!("client left before a verified teleport/liveness completion: {other:?}"),
+            other => {
+                panic!("client left before a verified teleport/liveness completion: {other:?}")
+            }
         }
     }
 }

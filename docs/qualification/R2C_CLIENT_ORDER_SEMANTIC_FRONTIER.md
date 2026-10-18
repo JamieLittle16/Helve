@@ -137,7 +137,7 @@ silently claiming single invocation count:
 | Normal return offset | Conditional branch decisions | Ordered critical invocation sites |
 | --- | --- | --- |
 | 15 | 6: fallthrough | `List.isEmpty` |
-| 43 | 6: target; 23: fallthrough | `List.isEmpty`, `List.size` |
+| 43 | 6: target; 23: fallthrough | `List.isEmpty`, `List.size`, `CompletableFuture.thenApply` |
 | 71 | 6: target; 23: target | `List.isEmpty`, `List.size`, `CompletableFuture.allOf`, `CompletableFuture.thenApply` |
 
 These exact offsets are pinned independently by the official-client
@@ -149,6 +149,10 @@ the link to three structurally distinct client paths; it does
 **not** prove the values on the operand stack, branch operands,
 empty/singleton/multiple preconditions, actual source-level exception
 handler coverage or all asynchronous callbacks.
+
+The singleton path's `thenApply` is separate from the multi-future
+`allOf(...).thenApply(...)` chain: sharing a callback API does **not**
+mean the two paths have the same scheduling or exception behavior.
 
 The result therefore remains a **source-free candidate**. In particular
 `complete_semantic_review=false`,

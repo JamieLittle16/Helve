@@ -256,6 +256,46 @@ preparation issues**; a packet mismatch or no visible terrain after
 an accepted batch is a narrower genuine receiving-client integration
 issue. Do not fix either by replaying captured Play world packets.
 
+## Source diagnosis before another live-client attempt
+
+Both the original oracle and the separate Prism `New World` real 26.2
+saves have now failed at precisely the same **nonempty saved
+block-entity source list** guard, after the replay-free Login/Configuration
+path entered WorldProjection. Re-running unchanged inputs cannot resolve
+that provenance constraint.
+
+Use the **read-only** official-save qualification parser before the
+next expensive Java heightmap run or stock-client connection:
+
+```bash
+cd /home/Jamie/Crucible
+python3 tools/r2c_first_view_block_entities.py \
+  --world "/home/Jamie/.local/share/PrismLauncher/instances/26.2/minecraft/saves/New World"
+```
+
+For comparison, run the same command with
+`--world "$HOME/.crucible/oracles/minecraft-26.2/world"`.
+The tool inspects **only the nine actual requested chunks** nearest the
+fixed R2B teleport centre `(0,-1)` and prints each chunk coordinate,
+explicit empty/absent/nonempty evidence, exact saved `id`, `x`,
+`y`, `z` for any nonempty entry and a region SHA-256 prefix. It
+reuses `tools/vanilla_section_extractor.py` for region framing,
+compression and NBT parsing, rather than adding a second saved-world
+codec. The audit never writes to the save and returns nonzero if any
+of those nine source chunks is not positively explicitly empty.
+
+**Do not remove a named source entity automatically.** If it is
+legitimate gameplay content (e.g., a chest, sign, bed or furnace), the
+correct general fix is an independently source-qualified
+nonempty-block-entity chunk packet encoder. For a **narrow first
+visibility diagnostic**, start a *separate* vanilla 26.2 world with
+structures disabled and without any manually placed block entities,
+ensure the nine target chunks around `(0,-1)` are generated and
+saved, then run this audit first. Do not use NBT edits or fake
+empty-list substitutions; a clean diagnostic fixture must still be an
+authentic vanilla save. Client-visible success remains a separate
+observation even after this COLD audit passes.
+
 ## 3A.1. Real-save fallback when the original oracle contains block entities
 
 The selected oracle may contain a valid saved block entity in the nine-chunk

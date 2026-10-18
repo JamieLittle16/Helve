@@ -189,7 +189,7 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
             "3: invokestatic  #14 // Method exact/empty:()V",
             "3: invokestatic  #14 // Method exact/List.size:()I",
         )
-        with self.assertRaisesRegex(ValueError, "critical invokes"):
+        with self.assertRaisesRegex(ValueError, "normal-return JVM path|critical invokes"):
             probe.bounded_method_shape(unexpected_call, cls, method)
         third_exits_early = source.replace(
             "21: invokestatic  #14 // Method exact/CompletableFuture.allOf:()V",

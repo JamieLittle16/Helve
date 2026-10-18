@@ -71,6 +71,14 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
         self.assertEqual(entry["complete_builder_argument_order_for_five_types_candidate"],
                          probe.EXPECTED_ORDINALS)
         methods=entry["selected_registration_methods"]
+        self.assertEqual(methods[0]["first_registration_candidate"], {
+            "field": "CLIENTBOUND_BUNDLE",
+            "candidate_ordinal": 0,
+            "getstatic_offset": 0,
+            "add_packet_offset": 3,
+            "bundle_registration": True,
+        })
+        self.assertFalse(methods[1]["first_registration_candidate"]["bundle_registration"])
         self.assertEqual(methods[0]["candidate_complete_add_packet_registrations"],95)
         self.assertEqual(methods[1]["candidate_complete_add_packet_registrations"],13)
         self.assertEqual([m["field"] for method in methods

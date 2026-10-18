@@ -446,6 +446,38 @@ mod tests {
     }
 
     #[test]
+    fn twenty_five_source_chunks_form_complete_neighbor_halo_for_inner_nine() {
+        use std::collections::HashSet;
+
+        let center = helve_types::ChunkPos { x: 0, z: -1 };
+        let requested = super::plan_first_view_positions(center, 10, 25).unwrap();
+        assert_eq!(requested.len(), 25);
+        assert_eq!(requested[0], center);
+        let positions: HashSet<_> = requested.iter().map(|pos| (pos.x, pos.z)).collect();
+        assert_eq!(positions.len(), 25);
+        for dz in -2..=2 {
+            for dx in -2..=2 {
+                assert!(positions.contains(&(center.x + dx, center.z + dz)));
+            }
+        }
+        for dz in -1..=1 {
+            for dx in -1..=1 {
+                for neighbor_z in -1..=1 {
+                    for neighbor_x in -1..=1 {
+                        assert!(positions.contains(&(
+                            center.x + dx + neighbor_x,
+                            center.z + dz + neighbor_z,
+                        )));
+                    }
+                }
+            }
+        }
+        // Unlike the interior 3x3, the outer ring still has missing
+        // neighbors: this is a finite first visual test, not a full world.
+        assert!(!positions.contains(&(center.x + 3, center.z)));
+    }
+
+    #[test]
     fn initial_request_is_bound_to_actual_pending_r2b_teleport_not_spawn_origin() {
         let session =
             retained_session_with_teleport(10.390_952_126_751_907, 84.0, -5.815_159_807_324_014);

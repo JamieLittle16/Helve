@@ -68,8 +68,13 @@ class FirstViewBlockEntityAuditTests(unittest.TestCase):
         self.world = Path(self.temp.name) / "source-world"
         self.positions = audit.first_view_positions()
 
-    def make_world(self, *, override: dict[tuple[int, int], bytes] | None = None) -> None:
-        sources = {(x, z): _chunk(x, z) for x, z in self.positions}
+    def make_world(
+        self, *, override: dict[tuple[int, int], bytes] | None = None,
+        count: int = audit.INITIAL_CHUNKS,
+    ) -> None:
+        sources = {
+            (x, z): _chunk(x, z) for x, z in audit.first_view_positions(count)
+        }
         sources.update(override or {})
         _regions(self.world, sources)
 
@@ -81,6 +86,53 @@ class FirstViewBlockEntityAuditTests(unittest.TestCase):
         self.assertEqual({
             (x // 32, z // 32) for x, z in self.positions
         }, {(-1, -1), (-1, 0), (0, -1), (0, 0)})
+
+    def test_25_halo_is_exact_5x5_and_extends_original_nine(self) -> None:
+        positions = audit.first_view_positions(audit.RENDER_HALO_CHUNKS)
+        self.assertEqual(positions[:9], self.positions)
+        self.assertEqual(len(positions), 25)
+        self.assertEqual(len(set(positions)), 25)
+        self.assertEqual(
+            set(positions),
+            {(dx, -1 + dz) for dx in range(-2, 3) for dz in range(-2, 3)},
+        )
+        with self.assertRaisesRegex(audit.SourceAuditError, "unsupported"):
+            audit.first_view_positions(24)
+
+    def test_new_halo_border_entities_fail_without_source_mutation(self) -> None:
+        outside = (-2, -3)
+        self.assertNotIn(outside, self.positions)
+        self.make_world(
+            count=audit.RENDER_HALO_CHUNKS,
+            override={
+                outside: _chunk(
+                    *outside, entities=(
+                        _entity("minecraft:beehive", -24, 71, -48),
+                        _entity("minecraft:beehive", -23, 72, -47),
+                    ),
+                ),
+            },
+        )
+        region = self.world / "dimensions/minecraft/overworld/region/r.-1.-1.mca"
+        before = region.read_bytes()
+        first = audit.audit_world(self.world)
+        self.assertTrue(audit.print_report(first))
+        extended = audit.audit_world(self.world, audit.RENDER_HALO_CHUNKS)
+        self.assertEqual(len(extended), 25)
+        evidence = [record for record in extended if record.entries]
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0].entries, (
+            ("minecraft:beehive", -24, 71, -48),
+            ("minecraft:beehive", -23, 72, -47),
+        ))
+        self.assertFalse(audit.print_report(extended))
+        self.assertEqual(region.read_bytes(), before)
+
+    def test_all_25_explicitly_empty_halo_lists_are_eligible(self) -> None:
+        self.make_world(count=audit.RENDER_HALO_CHUNKS)
+        reports = audit.audit_world(self.world, audit.RENDER_HALO_CHUNKS)
+        self.assertEqual(len(reports), 25)
+        self.assertTrue(audit.print_report(reports))
 
     def test_all_explicit_empty_lists_are_only_cold_eligible(self) -> None:
         self.make_world()

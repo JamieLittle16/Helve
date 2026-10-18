@@ -135,6 +135,18 @@ impl ColdImportedView {
         self.receipts.len()
     }
 
+    /// The ignored local stock-client test can inspect the existing batch
+    /// state after the TCP peer closes. No counters are added to the
+    /// production connection driver or ordinary R2C HOT path.
+    #[cfg(test)]
+    pub(crate) fn diagnostic_batch_progress(&self) -> (usize, usize, u8) {
+        (
+            self.batch.next_chunk_index(),
+            self.receipts.len(),
+            self.batch.unacknowledged_batches(),
+        )
+    }
+
     /// Reuse R2B control and already implemented R2C batch-ACK parsing on
     /// the *original* Play ingress owner. This is safe before admission:
     /// without any published finished batch, an unsolicited ACK fails

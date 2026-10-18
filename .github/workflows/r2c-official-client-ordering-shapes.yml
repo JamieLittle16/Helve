@@ -101,6 +101,35 @@ jobs:
           sequence_paths = method_map[("net.minecraft.util.Util", "sequence")][
               "util_sequence_three_normal_branch_witness"
           ]
+          operand_proof = method_map[("net.minecraft.util.Util", "sequence")][
+              "util_sequence_branch_operand_witness"
+          ]
+          assert operand_proof == [
+              {
+                  "branch_offset": 6,
+                  "branch_opcode": "ifeq",
+                  "receiver_opcode": "aload_0",
+                  "producer_offset": 1,
+                  "producer_symbol": "List.isEmpty:()Z",
+                  "jvm_target_condition": "isEmpty_false",
+                  "jvm_fallthrough_condition": "isEmpty_true",
+              },
+              {
+                  "branch_offset": 23,
+                  "branch_opcode": "if_icmpne",
+                  "receiver_opcode": "aload_0",
+                  "producer_offset": 17,
+                  "producer_symbol": "List.size:()I",
+                  "comparison_opcode": "iconst_1",
+                  "jvm_target_condition": "size_not_equal_one",
+                  "jvm_fallthrough_condition": "size_equal_one",
+              },
+          ]
+          assert all(
+              m["util_sequence_branch_operand_witness"] is None for m in methods
+              if (m["class_name"], m["method_name"]) !=
+                 ("net.minecraft.util.Util", "sequence")
+          )
           assert [path["return_offset"] for path in sequence_paths] == [15, 43, 71]
           assert [path["conditional_choices"] for path in sequence_paths] == [
               [{"branch_offset": 6, "arm": "fallthrough"}],

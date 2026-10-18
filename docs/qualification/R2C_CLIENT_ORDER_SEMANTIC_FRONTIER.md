@@ -165,6 +165,39 @@ the full source VAR/SEM independent gate still has to be passed.
 No new Java parser, source corpus, registry implementation or
 product admission path was introduced.
 
+## Client sequence branch-operand provenance (source-free JVM evidence)
+
+The existing bounded `Util.sequence` official-client probe additionally
+checks the **immediately adjacent operand producers** at both conditional
+jumps, not just their names or control-flow destinations. It requires:
+
+- `aload_0` followed by `invokeinterface List.isEmpty:()Z`, then
+  `ifeq` at bytecode offset 6. According to JVM `ifeq` semantics,
+  false jumps to offset 16; true falls through to the empty-path
+  return at offset 15.
+- `aload_0` followed by `invokeinterface List.size:()I`, then
+  `iconst_1` and `if_icmpne` at offset 23. A size unequal to one
+  jumps to offset 44; equality falls through to the singleton path.
+
+The official 26.2 client CI pins the exact producer offsets
+(`isEmpty` at 1, `size` at 17), opcodes, method descriptors,
+comparison constant, branch polarity and return offsets. The report
+exports only this concise source-free operand witness. Regression tests
+modify the receiver local, invoked method descriptor, comparison
+constant and conditional opcode while preserving the earlier ordered
+calls and normal CFG: each must fail closed.
+
+**Scope of this evidence:** both immediate branch conditions are now
+locally tied to the receiver list and JVM predicates. This is a
+specific, reviewable slice of operand dataflow, not full operand-stack
+interpretation of every instruction, not a proof that the input list
+originates unchanged from the Configuration payload, and not a proof
+that any CompletableFuture callback runs or registers entries in order.
+In particular, exception tables, async scheduling, registration
+duplicate/error handling, known-pack selection and **independent
+VAR/SEM source admission** remain open. Never set any authority flag
+based on this operand witness.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

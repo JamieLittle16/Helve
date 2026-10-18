@@ -218,6 +218,66 @@ def sequence_normal_branch_witness(
     return found
 
 
+
+def sequence_branch_operand_witness(
+    instructions: list[tuple[int, str, str]],
+) -> list[dict]:
+    """Pin exact JVM operand producers at the two Util.sequence branches.
+
+    This is intentionally local to the straight-line branch predecessors, not
+    a general JVM stack interpreter. Every relevant producer must be adjacent
+    to the consumer; otherwise the claimed operand flow fails closed.
+    """
+    branches = [
+        i for i, (_, op, _) in enumerate(instructions) if op.startswith("if")
+    ]
+    if len(branches) != 2:
+        raise ValueError("Util.sequence must have exactly two operand branches")
+    empty_at, size_at = branches
+    if empty_at < 2 or size_at < 3:
+        raise ValueError("Util.sequence branch producer instructions missing")
+    receiver, empty_call, empty_branch = instructions[empty_at - 2:empty_at + 1]
+    size_receiver, size_call, literal, size_branch = instructions[
+        size_at - 3:size_at + 1
+    ]
+    if (
+        receiver[1] != "aload_0"
+        or empty_call[1] != "invokeinterface"
+        or "List.isEmpty:()Z" not in _target(empty_call[2])
+        or empty_branch[1] != "ifeq"
+    ):
+        raise ValueError("Util.sequence isEmpty boolean branch operands drifted")
+    if (
+        size_receiver[1] != "aload_0"
+        or size_call[1] != "invokeinterface"
+        or "List.size:()I" not in _target(size_call[2])
+        or literal[1] != "iconst_1"
+        or size_branch[1] != "if_icmpne"
+    ):
+        raise ValueError("Util.sequence size-equals-one branch operands drifted")
+    return [
+        {
+            "branch_offset": empty_branch[0],
+            "branch_opcode": "ifeq",
+            "receiver_opcode": "aload_0",
+            "producer_offset": empty_call[0],
+            "producer_symbol": "List.isEmpty:()Z",
+            "jvm_target_condition": "isEmpty_false",
+            "jvm_fallthrough_condition": "isEmpty_true",
+        },
+        {
+            "branch_offset": size_branch[0],
+            "branch_opcode": "if_icmpne",
+            "receiver_opcode": "aload_0",
+            "producer_offset": size_call[0],
+            "producer_symbol": "List.size:()I",
+            "comparison_opcode": "iconst_1",
+            "jvm_target_condition": "size_not_equal_one",
+            "jvm_fallthrough_condition": "size_equal_one",
+        },
+    ]
+
+
 def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict:
     """Extract one declared method, never include a neighbor's instructions."""
     if len(disassembly) > MAX_DISASSEMBLY_CHARS:
@@ -295,6 +355,10 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         if (class_name, method) == ("net.minecraft.util.Util", "sequence")
         else None
     )
+    sequence_operands = (
+        sequence_branch_operand_witness(instructions)
+        if sequence_paths is not None else None
+    )
     # Do not ship full disassembly/instruction lists. Hash the selected raw
     # opcode/operand rows to pin human review of *all* instructions, including
     # branch and exceptional paths that a call-only witness cannot inspect.
@@ -315,6 +379,7 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         "ordered_callsite_witness_matches": True,
         "single_normal_return_cfg_path_through_all_calls": cfg_path_exists,
         "util_sequence_three_normal_branch_witness": sequence_paths,
+        "util_sequence_branch_operand_witness": sequence_operands,
         "exception_handler_and_dataflow_semantics_unreviewed": True,
         "all_control_flow_paths_reviewed": False,
         "exception_and_duplicate_semantics_proven": False,

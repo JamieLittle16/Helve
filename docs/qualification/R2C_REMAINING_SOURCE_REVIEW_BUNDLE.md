@@ -116,6 +116,59 @@ branch reachability, actual receiving-client behavior or an independent
 gate result. Never construct production `R2cSourceAdmission` from this
 document or any of the above inventory hashes.
 
+## Verified post-#401 source-free review (18 October 2026)
+
+The operator reran the three existing source inspectors after #401 and
+provided `helve-r2c-post401.tar.gz`. We verified that the archive contains
+**exactly** the three expected source-free JSON members, that both inventory
+byte lengths and SHA-256 values match `source-free-review-index.json`,
+and that the index binds the pinned source archive SHA-256
+`1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750`.
+No source-rich Java file was included.
+
+| Audit identity | Verified result |
+| --- | --- |
+| Uploaded source-free tar.gz SHA-256 | `0954be9b19a499cb20f41402cdc39e7160b9d0150121f1a90e95e40c5f47f045` |
+| Biome declaration inventory | 52,888 bytes; `1f463c0ff1144e605053e4e0362bdfb85b08935600fbeebf78622978b588ba03` |
+| Chunk wire inventory | 19,694 bytes; `f02742fd0238c60417aab736dd2f9a729fdf149a537fc2881bfaedacdbafede3` |
+| Biome source methods | 127 across eight root types; **23** `declaration_only=true`, all SHA256(empty): 22 `Registry` and one `RegistryLoadTask.load` |
+| Biome targeted method | One nonempty `net.minecraft.util.Util.sequence(List<CompletableFuture<...>>)` overload; hazard `CONCURRENCY` |
+| Outer chunk/light/Play methods | 44 across four root types; zero declaration-only |
+| Heightmap local four-file artifact | Reported privately generated, 76,644 bytes, SHA-256 `b4d63be3fd59748b83277a8b3dfd77755f84661e6d6974f71ade1c85d08c552f` (source **not** inspected here) |
+| All new source/VAR/SEM and production authority flags | **false**; the old #268 admitted world-state gate remains true |
+
+The previous SHA-256/length pair (52,911 bytes for biome) described the
+**pre-#401** classification and remains historical evidence only.
+The corrected **52,888-byte** biome report closes the inventory labelling
+bug, **not** semantic review. Neither SHA nor a hazard label proves an
+execution branch, exception behavior or exact delegate semantics.
+
+### Exact method-scope disposition for the next review
+
+To avoid a second broad 171-method trawl, inspect these *body-fingerprint-
+bound* primary roots, and only expand to reached delegates. Digests below
+are the first 16 hex characters of the SHA-256 recorded **in the verified
+post-#401 inventory**; any future VAR/SEM must bind the **full** digest,
+qualified owner, exact overload signature, source lock and hazards.
+
+| Track | Pinned concrete root(s) — body SHA-256 prefix | Required semantic proof, not yet established |
+| --- | --- | --- |
+| Biome ID allocation | `MappedRegistry.register` `db84c1d045aa4053`; `getId` `0e7e3fa87f368763`; `byId` `6834b6aa6df88167` | Dense ID allocation and duplicate/invalid registration behavior; never substitute the 22 abstract `Registry` interface declarations |
+| Selected known packs and Configuration | `SynchronizeRegistriesTask.sendRegistries` `37c0f1be0c2c9a78`; `handleResponse` `4b2cef65c9d1b60f`; `ClientboundRegistryDataPacket.<clinit>` `8a4ff8201f2a585f` | Chosen pack negotiation, insertion/packet list order, codec/dispatch and full error branches; expand to actual serialization delegate |
+| Registry-to-palette binding | `RegistryDataLoader.load(Map,...)` `ebfb8faf885bd3f8`; `PalettedContainerFactory.create(RegistryAccess)` `fae7ad93397fd5e6` | Verify same loaded biome registry/order is used by chunk quart-biome palette |
+| Client decode and ordered registration | `NetworkRegistryLoadTask.load` `ff9aab1016f44e66`; `RegistryLoadTask.registerElements` `47b4a6fdb2b7989`; `Util.sequence` `34d09271fc819361` | Ordered futures for empty/single/multiple/error cases, no mutation races, actual client listener and lambda callback, duplicate/error outcome. Reuse already-pinned actual **client** bytecode/BootstrapMethods and JDK oracle |
+| Chunk packet envelope | `ClientboundLevelChunkWithLightPacket.<clinit>` `1b44c24dfefe344f`; `write` `301b54bda0182b88` | Target 26.2 packet registration/ID, constructor/serializer/decoder field order |
+| Chunk payload and empty block entities | `ClientboundLevelChunkPacketData.write` `4aef2d360efc79fc`; `extractChunkData` `ed3c3a556dc02ec3`; `getBlockEntitiesTags` `3b91b0ba4af8e1fa` | Source-qualified selected empty-tag count, map/section payload framing and nonempty-block-entity rejection |
+| Initial light | `ClientboundLightUpdatePacketData.write` `c985bb5295297713`; `prepareSectionData` `81b84d2c2f709f2f` | Four mask order, section data counts, selected source-light and decoding behavior; reuse existing admitted inner light SEM |
+| Pacing and ACK | `PlayerChunkSender.sendNextChunks` `9d3c4a2790bad34d`; `sendChunk` `e068870637f26c7a`; `collectChunksToSend` `843b1a2817ef75f5`; `onChunkBatchReceivedByClient` `7f168dfb63b21f43` | Exact transaction/window/rate ordering and errors. 25-source TCP backpressure tests provide independent behavior confirmation, **not** source admission |
+| Dense state predicates | Private `Heightmap.java`, `BlockBehaviour.java`, `FluidState.java`, `LeavesBlock.java` (existing file digests) | Review the four local source texts and *all reached* solidity/collision-shape delegates; reconcile with the pinned 32,366-entry official runtime candidate; do not infer per-state flags from mutation bits |
+
+**Finish line:** independently source-reviewed full-fingerprint VARs, explicit
+SEM decisions, complete reachable error/delegate closure, independent
+Atlas/source gate and then a *separate* product change to inhabit
+`R2cSourceAdmission`. Do not convert this shortlist or any source-free
+inventory into production admission.
+
 ## Required next human and independent gate work
 
 Review the private heightmap predicates and reached delegates using the pinned source, together with the **source-free** inventory of biome/packet declarations. Record exact method/delegate source VARs, human-authored semantic rules and explicit hazard closure, including actual receiving-client ordering and error branches—not only identical runtime ordinals or a stock-client screenshot. Then run Helve's independent pinned Atlas/source admission gate. Only **after** that independent gate passes can a separate reviewed product change construct production source admission, enable the existing publisher and repeat the stock-client product test.

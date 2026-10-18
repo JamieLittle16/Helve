@@ -426,9 +426,17 @@ def registration_exception_table_witness(
         not site["symbol"] or len(site["symbol"]) > 2048 for site in call_sites
     ):
         raise ValueError("registerElements invokes are missing or unbounded")
+    monitor_sites = [
+        {"offset": off, "opcode": op}
+        for off, op, _ in instructions
+        if op in ("monitorenter", "monitorexit")
+    ]
+    if len(monitor_sites) > 8:
+        raise ValueError("registerElements monitor count exceeded budget")
     return {
         "stream_foreach_offset": for_each[0],
         "bounded_invoke_sites": call_sites,
+        "monitor_sites": monitor_sites,
         "jvm_exception_handlers": rows,
         "stream_foreach_directly_covered_by_handler": bool(covered),
         "rollback_or_partial_mutation_semantics_proven": False,

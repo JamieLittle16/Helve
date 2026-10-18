@@ -1,12 +1,13 @@
 # R2C Current State — Demo-First Ledger
 
 **As of:** 18 October 2026  
-**Verified `main` baseline:** `8ffc05b8828b7a1440abcabc41b8c3e0f3bf9c0e` (PR #375)  
+**Post-visual audited `main` baseline:** `093ae2cee68c86706beebaeb6986d5c088d62e57` (PR #387)  
 **Target:** Minecraft Java 26.2, protocol 776, DataVersion 4903  
-**Milestone state:** **NOT YET DEMONSTRATED IN THE UNMODIFIED STOCK CLIENT**  
-**Next action:** [R2C stock-client demo runbook](R2C_STOCK_CLIENT_DEMO_RUNBOOK.md)
+**Milestone state:** **VISUAL TEST-ONLY CHECKPOINT ACHIEVED: 25 real Anvil chunks sent, central 3×3 visibly rendered in the unmodified stock client; production source admission and optimized product integration NOT YET CLOSED**  
+**Next action:** [Post-visual architecture audit and pre-R2D closure plan](R2C_POST_VISUAL_PRE_R2D_AUDIT_2026-10-18.md) and [stock-client runbook](R2C_STOCK_CLIENT_DEMO_RUNBOOK.md)
 
-This is the canonical *current* implementation/qualification ledger. Older
+This is the canonical *current* implementation/qualification ledger. The detailed
+post-visual closure plan is linked above. Older
 per-slice handoffs and candidate-frontier documents record the history of
 individual investigations; they do **not** override later merged admissions,
 implementations or CI results. Git history retains the earlier detailed ledger.
@@ -47,11 +48,11 @@ promoted as an independent source-admitted production table.
 | Biome ID agreement | All 66 loaded official biome IDs cross-checked directly against the pinned runtime's `byId/getId/getKey` and the Configuration stream; selected R1B image checked ordinal-by-ordinal | Receiving-client known-pack and registry-registration SEM fully admitted |
 | Heightmap data | Twice-reproduced official runtime 32,366-state candidate; frozen dense SHA; bounded, fail-closed COLD consumer; receipt-bound projected heightmaps | Full per-state source/VAR/SEM closure for production |
 | Chunk/light projection | Existing reference section, heightmap, biome and light serializers; selected block-entity list explicitly empty in the tested profile; nine chunk bodies audited | General block-entity or arbitrary-world support |
-| Same-driver delivery | R2C cache centre, batch start/finish, chunk-with-light, quota, ACK and 20 Hz service already implemented; retained socket-loop test (PRs #373–374) | An unmodified stock client has rendered terrain |
+| Same-driver delivery | R2C cache centre, batch start/finish, chunk-with-light, quota, ACK and 20 Hz service implemented; subsequent ignored stock-client test published real source chunks | Source-admitted normal product server publication |
 | Play IDs | Five R2C positions bound against nine *already reviewed* R0 builder/dispatch VAR laws, 141/69 client Play registration census, zero-indexed bundle law (PR #375) | Full outer Play lifecycle admission |
-| Product R2C publication | `R2cSourceAdmission` is **uninhabited** outside Rust tests; production passes `None` to the existing publisher | Publication is not activated merely by CLI flags |
+| Product R2C publication | `R2cSourceAdmission` remains **uninhabited** outside Rust tests, even after the stock-client proof; production passes `None` to the existing publisher | Publication is not activated by CLI flags, source save selection or live-client observation |
 
-**Most important integration result:** PR #374 sends nine genuine
+**Historical pre-visual integration baseline:** PR #374 sends nine genuine
 Anvil-*formatted test fixture* chunks spanning four region files through
 the **original retained Play TCP loop**, verifies their frame bodies
 and serverbound rate ACK over localhost, and checks original driver/egress
@@ -60,55 +61,21 @@ However, its receiving peer is a synthetic client and its positive source
 witness exists **only under `cfg(test)`**. The fixture is not proof of
 a complete real pregenerated-world stock-client join.
 
-## Precisely what is still between us and the demo
+## Actual stock-client checkpoint (18 October 2026)
 
-1. **Select one exact compatible pregenerated 26.2 save/profile and
-   client session.** Confirm the actual existing `level.dat`, namespaced
-   Overworld region files, source position/empty block entities,
-   light-correctness, selected packs/biomes and source-receipt coverage.
-   The current CLI already admits a *non-publishing* COLD import/audit.
-2. **Close only residual *selected* receiving-client and outer-Play
-   obligations.** Reuse the world-state 58-method gate, R0 packet-ID
-   builder VAR/SEM and the frozen runtime/capture cross-oracles. The
-   source-free client order/known-pack probe and Play lifecycle first-pass
-   inventories remain review leads, not automatic R2C VAR/SEM admission.
-   Write a minimal missing-method/branch inventory; do not rebuild the
-   heightmap, registry parser, client builder or world importer.
-3. **Wire the existing publisher through the product boundary *only after*
-   the selected remaining source/VAR/SEM and world-profile gate passes.**
-   In production `serve_r2b_playtest_with_r2c_cold_plan` currently
-   passes `None` to `serve_world_projection_wait`; never bypass the
-   uninhabited witness with an environment variable, unchecked feature
-   or an asserted boolean.
-4. **Run the first actual stock-client experiment** with unmodified 26.2,
-   the one admitted pregenerated save, zero captured Play world packets,
-   and the existing R2B-to-R2C driver. Preserve logs, packet counts,
-   exact save/runtime/commit identities and a screen/video of rendered
-   terrain. Keep a negative test that proves removal of the chunk
-   publisher prevents the demo from passing.
+PRs #377–387 introduced the opt-in ignored **real** client diagnostic and source-preserving 25-chunk renderer-halo path. The unmodified stock client joins the replay-free R2B handoff and now visibly renders the **inner 3×3** of 25 genuine Anvil-sourced columns; the other 16 form an outer loaded but unmeshed ring. The two saved block entities in the expanded halo were removed through the vanilla client, not through an importer omission. An earlier nine-chunk test rendered only the center column. The observed client crash at `LinearPalette.read` identified an extra packed-long array length prefix; #383 corrected the block/biome encoders with independent byte-level regressions.
 
-The **only** milestone exit is *unmodified stock-client renders Helve-owned
-pregenerated terrain while the same connection remains live*. No
-Rust test, JVM bytecode hash, capture digest or simulated ACK alone
-meets that exit.
+This is **true visual feasibility**, beyond synthetic TCP/ACK rehearsal. Preserve the clean source save and full terminal/client log, including exact chunk-batch/teleport/keep-alive counts and the visual screenshot. Those detailed 25-chunk counters were not independently reproduced in the repository review and must not be inferred solely from the screenshot.
 
-## Demo-ready actions, in order
+The positive R2C publisher is still **only constructible under `#[cfg(test)]`**. Product `--r2c-world-plan` does a COLD nonpublishing import and audit. Visual success does not source-admit the runtime 66-biome receiving-client order, the 32,366-heightmap-state table, the outer chunk/Play lifecycle, or arbitrary block-entity-bearing save files.
 
-See `R2C_STOCK_CLIENT_DEMO_RUNBOOK.md` for exact commands and
-observations. The steps are ordered deliberately:
+The **next actions are not another rewrite of the importer or session spine**. Follow the [pre-R2D architecture closure plan](R2C_POST_VISUAL_PRE_R2D_AUDIT_2026-10-18.md):
 
-1. Start from the green, verified main commit and reconfirm the
-   admission bundle using the already existing verifier.
-2. Run the existing official Java 25 heightmap job and
-   `nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch`
-   with the *actual* candidate table. Preserve the source-free outputs.
-3. Validate the actual demo save and R2B image through the **existing**
-   CLI's `--r2b-playtest-image`, `--r2c-world-plan` and optional
-   `--r2c-heightmap-candidate` flags. **Today this is COLD and never
-   sends chunks**; treating it as a visual demonstration would be false.
-4. Resolve the bounded final source/selected-profile gap, activate the
-   existing `SourceAdmittedPlayPublisher` without duplicating the
-   network/world owner, then perform the stock-client visual gate.
+1. Freeze reproducible visual-world evidence and its negative tests.
+2. Close only residual selected client registry/heightmap/outer packet/Play VAR/SEM obligations, reusing the independently admitted 58-method world-state gate.
+3. Turn the admitted world into a server-owned dimension shared across sessions instead of the test-only per-connection `ColdImportedView`; activate normal positive publisher only after the admission gate.
+4. Finish M0.3D section selection and R2C.6 reference/direct/cache/share performance tournament using controlled target-hardware evidence.
+5. Red-team bounded TCP/ACK/keepalive/reconnect/memory/resource behavior before beginning R2D sustained-world qualification.
 
 ## Performance policy: between the R2C demo and R2D
 
@@ -142,7 +109,7 @@ compatibility are not part of the finite initial visual checkpoint.
   **strong cross-oracle candidates**, with distinct remaining source
   admission obligations.
 - Production live R2C publication: **false** on this baseline.
-- Stock-client visible world: **not yet demonstrated**.
+- Stock-client visible world: **test-only 25-source-chunk visual demonstration observed, central 3×3 rendered; production product not yet admitted**.
 
 If a future PR changes one of these statuses, update *this* ledger,
 link the exact new evidence, and delete or qualify the superseded

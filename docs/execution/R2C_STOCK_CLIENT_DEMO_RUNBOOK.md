@@ -205,6 +205,43 @@ either invocation. For an already-green local nine-chunk rehearsal add
 `--skip-rehearsal`. To avoid a busy localhost port use
 `--port 25566` and connect to `localhost:25566`.
 
+The test-only listener now accepts a **bounded eight pre-Play
+connections within 180 seconds**. A status-only query or early pre-Play
+EOF is recorded as a **nonpassing probe**, and the listener remains
+ready for a *new* direct-login socket. Once any connection actually
+reaches Play, only the original R2B → R2C socket/driver is used,
+and genuine Play errors never trigger a silent retry. This is a
+test-harness fix for `SessionClosedBeforeWorld`; it does not prove that
+a particular prior close was a status ping.
+
+**Selected capture profile:** the R1B fixture is pinned to offline
+player name `Stato16` (offline UUID
+`682014fe-ad63-3699-aada-79aa08d95b45`). In Prism Launcher,
+select a matching **offline** account for this qualification run,
+rather than silently changing Helve's fixed source-backed capture
+identity. Client version must remain vanilla **26.2**.
+A wrong name/version may be a real Login error, not a status probe.
+
+For a concrete local re-run using the already found paths:
+
+```bash
+cd /home/Jamie/Crucible
+git switch main
+git pull --ff-only
+python3 tools/r2c_stock_client_diagnostic.py \
+  --world "/home/Jamie/.crucible/oracles/minecraft-26.2/world" \
+  --r1b-image "/home/Jamie/Downloads/r1b-join-replay-image.json" \
+  --generate-heightmap
+```
+
+After `listening on 127.0.0.1:25565`, connect with Minecraft 26.2
+**Multiplayer → Direct Connection**, not just the multiplayer
+server-list ping. If console says `pre-Play-only connection`, do
+not conclude R2C failed: another login connection is still awaited.
+If joining fails again, preserve the **first** Rust preplay/packet
+error and `$HOME/.local/share/PrismLauncher/instances/26.2/minecraft/logs/latest.log`.
+No production feature flag or source-law downgrade is appropriate.
+
 The launcher and normal Rust tests cannot confirm rendered screen
 pixels. A diagnostic **PASS** requires a clean peer EOF, accepted
 teleport, at least one valid keep-alive and *all nine source-receipted

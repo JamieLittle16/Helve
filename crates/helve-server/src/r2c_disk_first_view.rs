@@ -199,9 +199,7 @@ pub(crate) fn plan_explicit_teleport_first_view(
     if !(x.is_finite() && y.is_finite() && z.is_finite()) {
         return Err(PendingTeleportViewError::NonFiniteTeleport);
     }
-    if y < f64::from(profile.min_block_y())
-        || y >= f64::from(profile.max_block_y_exclusive())
-    {
+    if y < f64::from(profile.min_block_y()) || y >= f64::from(profile.max_block_y_exclusive()) {
         return Err(PendingTeleportViewError::OutsideVerticalLattice {
             y,
             minimum: profile.min_block_y(),

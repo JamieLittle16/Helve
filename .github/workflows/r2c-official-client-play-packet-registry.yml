@@ -4,6 +4,13 @@ on:
   pull_request:
     paths:
       - tools/r2c_client_play_protocol_frontier.py
+      - tools/r2c_client_packet_builder_frontier.py
+      - tools/r2c_play_id_law_reuse.py
+      - tools/tests/test_r2c_play_id_law_reuse.py
+      - docs/qualification/R2C_PLAY_PACKET_REVIEWED_ID_LAW_REUSE.md
+      - vanilla/gates/network/GATE-NET-STATUS-26_2-001.json
+      - vanilla/semantics/network/R0_STATUS_SEMANTICS.md
+      - vanilla/records/network/r0/**
       - tools/tests/test_r2c_client_play_protocol_frontier.py
       - tools/r2c_official_client_registry_inventory.py
       - tools/official_state_data.py
@@ -38,6 +45,47 @@ jobs:
         run: |
           python3 tools/r2c_client_play_protocol_frontier.py \
             --output /tmp/26.2-r2c-stock-client-play-packet-registration.json
+
+      - name: Reuse exact pinned client builder and reviewed R0 packet-ID semantics
+        run: |
+          python3 -m unittest discover -s tools/tests -p 'test_r2c_play_id_law_reuse.py' -v
+          python3 tools/r2c_client_packet_builder_frontier.py \
+            --output /tmp/r2c-26.2-stock-client-builder-for-play-id.json
+          python3 tools/r2c_play_id_law_reuse.py \
+            --play /tmp/26.2-r2c-stock-client-play-packet-registration.json \
+            --builder /tmp/r2c-26.2-stock-client-builder-for-play-id.json \
+            --output /tmp/r2c-26.2-reviewed-play-packet-id-law-reuse.json
+
+      - name: Fail closed on reviewed-law composition authority
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          item=json.loads(Path(
+              "/tmp/r2c-26.2-reviewed-play-packet-id-law-reuse.json"
+          ).read_text())
+          assert item["target"] == {
+              "minecraft":"26.2", "protocol":776, "data_version":4903
+          }
+          assert item["packet_numbers_candidate"] == {
+              "CLIENTBOUND_CHUNK_BATCH_FINISHED":11,
+              "CLIENTBOUND_CHUNK_BATCH_START":12,
+              "CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT":45,
+              "CLIENTBOUND_SET_CHUNK_CACHE_CENTER":94,
+              "SERVERBOUND_CHUNK_BATCH_RECEIVED":11,
+          }
+          assert item["source_bound_packet_id_composition_consistent"] is True
+          assert item["clientbound_bundle_counted_at_zero"] is True
+          assert len(item["reviewed_r0_var_records_reused"]) == 9
+          for field in (
+              "independent_r2c_atlas_source_gate_passed",
+              "r2c_play_lifecycle_var_sem_admitted",
+              "r2c_biome_var_sem_admitted",
+              "r2c_heightmap_var_sem_admitted",
+              "production_admitted",
+          ):
+              assert item[field] is False, field
+          PY
 
       - name: Fail closed on missing target fields or invented source admission
         run: |
@@ -105,6 +153,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: r2c-26.2-stock-client-play-packet-registration-candidates
-          path: /tmp/26.2-r2c-stock-client-play-packet-registration.json
+          path: |
+            /tmp/26.2-r2c-stock-client-play-packet-registration.json
+            /tmp/r2c-26.2-reviewed-play-packet-id-law-reuse.json
           if-no-files-found: error
           retention-days: 7

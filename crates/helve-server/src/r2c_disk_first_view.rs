@@ -1326,13 +1326,29 @@ mod tests {
             assert!(receipt.resolve_explicitly_empty(&dimension).is_ok());
         }
 
+        // One retained source owner survives independent client lifetimes.
+        // The ordinary server imports only once before accept; this hermetic
+        // nine-chunk fixture verifies that each session shares the exact
+        // original dimension and receipt allocations, but not its ACK cursor.
+        let host = crate::r2c_cold_demo_import::R2cColdWorldHost::from_test_source(
+            dimension, receipts, center, profile, 9,
+        );
+        let second_session = retained_session_with_teleport(0.25, 8.0, 0.25);
+        let second = host.attach(&second_session).expect("second session attaches");
+        let mut view = host.attach(&session).expect("first session attaches");
+        assert!(view.shares_resident_with(&second));
+        assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
+        assert!(host
+            .attach(&retained_session_with_teleport(1024.0, 8.0, 0.25))
+            .is_err());
+        assert_eq!(host.chunks(), 9);
+
         // Hermetic CI proves source import and receipt order. Only the
         // pinned Java 25 workflow supplies actual 26.2 heightmap facts.
         let Some(path) = std::env::var_os("HELVE_R2C_HEIGHTMAP_CANDIDATE") else {
             return;
         };
         let oracle = fs::read(path).expect("official source-locked heightmap table");
-        let mut view = ColdImportedView::from_test_source(dimension, receipts, batch);
         let audit = view
             .audit_candidate_bodies(&oracle)
             .expect("nine bounded source bodies");
@@ -1401,6 +1417,8 @@ mod tests {
         ));
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
         assert_eq!(session.queued_egress(), 0);
+        assert!(view.shares_resident_with(&second));
+        assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
         assert_eq!(frames.len(), 12);
 
         assert_eq!(frames[0].0, 94);

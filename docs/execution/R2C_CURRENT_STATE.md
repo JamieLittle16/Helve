@@ -127,6 +127,30 @@ The **next actions are not another rewrite of the importer or session spine**. F
 4. Finish M0.3D section selection and R2C.6 reference/direct/cache/share performance tournament using controlled target-hardware evidence.
 5. Red-team bounded TCP/ACK/keepalive/reconnect/memory/resource behavior before beginning R2D sustained-world qualification.
 
+## Nine/25-chunk retained TCP/ACK qualification (post-visual hardening)
+
+The original nine-Anvil-chunk/four-signed-region retained-driver test
+now shares its source loader, wire checker and localhost peer with a
+**25-source-chunk** variant. Both use the *same* original R2B Play
+driver, source receipts, immutable server-owned COLD host and
+test-only R2C publication witness. The peer reads framed TCP chunks,
+acknowledges **each finished batch** through the original inbound
+handler, and only half-closes once every source-backed column was
+received. The 25-column case forces more than one batch/ACK window;
+independent assertions verify center-first ordering, exact signed
+chunk positions, source-backed heightmap wire words, batch counts,
+outbound drain, per-client receipt cursor completion and zero pending
+ACKs. All tests using real source-specific heightmap candidate bytes
+remain conditional on the pinned official heightmap workflow; the
+ordinary hermetic CI path still checks the 9/25 multi-region source
+and shared ownership before that candidate is present.
+
+This closes a **finite 25-column TCP/ACK integration regression**,
+not a full vanilla-client runtime proof, source/VAR/SEM admission,
+product chunk publication, hardware performance winner or sustained
+reconnect/concurrency validation. The nine-source regression stays
+available to the existing local launcher unchanged.
+
 ## Post-visual evidence reproducibility tooling (unadmitted)
 
 The existing `tools/r2c_stock_client_diagnostic.py` launcher now offers

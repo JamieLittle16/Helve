@@ -151,6 +151,21 @@ startup audit. Missing or nonempty saved block-entity evidence anywhere
 in the selected 25 still fails closed; the test-only nine-column
 reference rehearsal remains separate.
 
+**Multi-batch live TCP regression:** The existing test
+`nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch`
+has a companion
+`twenty_five_disk_chunks_cross_four_regions_and_reach_receipted_tcp_batches`.
+Both use the same real localhost retained R2B Play service, genuine
+test-Anvil source receipts and independent packet framing checks.
+With `HELVE_R2C_HEIGHTMAP_CANDIDATE` set to the already pinned dense
+Java 25 output, the 25-source test consumes the full view, ACKs every
+finished batch, proves that more than one ACK window was needed and
+checks zero outstanding batch ACKs on peer EOF. Without those actual
+candidate bytes, it still executes the identical source/host
+preflight but deliberately skips candidate packet publication.
+These are **test-only witnesses**; neither a synthetic localhost
+client nor this setting may construct production source admission.
+
 **Automated ownership regression:** the standard Rust test
 `twenty_five_disk_chunks_share_one_host_and_missing_region_fails_closed`
 builds a disposable 25-column Anvil-format fixture spanning four signed

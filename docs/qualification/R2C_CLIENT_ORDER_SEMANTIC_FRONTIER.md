@@ -303,6 +303,39 @@ and/or bytecode semantic review. This result **cannot** elevate
 `client_numeric_id_assignment_proven`, `source_var_sem_admitted` or
 `production_admitted` from false.
 
+## Conditional failure semantics: distinct failure classes (JDK 25 oracle)
+
+The already existing `R2cClientSequenceJdkOracle.java` now exercises
+the *standard-library consequences* of the independently identified
+receiving-client callsite shapes, at input lengths **0, 1, 2, 3, 4 and 66**
+and **every possible failing index** for each nonempty case:
+
+| Modeled event | Tested conditional JDK consequence | Actual 26.2 client source claim |
+| --- | --- | --- |
+| Decode future completes exceptionally | `allOf`/singleton future makes the successful completion consumer unreachable; error is propagated | Full failure/callback scheduling still needs source/bytecode SEM |
+| Sequential `Stream.forEach` callback **throws** while registering entry *i* | The error is propagated; the prior successful prefix of *i* entries remains in the model, and the suffix is never visited | **No rollback or atomicity proven** for actual `WritableRegistry` |
+| One per-entry failure is **reported**, not thrown, to the modeled `Map.put` error branch | The model records the error, continues registering other entries, and packs surviving IDs densely | Whether the actual client finalizes/rejects the partially populated registry is **unproven** |
+
+The last model deliberately checks the dangerous conditional case:
+if the entry at original position `i` is skipped and later successes
+continue, each later model ordinal becomes `original_position - 1`.
+The fact that the real client previously exposed separately pinned
+`Either.ifLeft`/`Either.ifRight`, `WritableRegistry.register`,
+and `Map.put` callsites does **not** establish that it behaves
+exactly as this model. This oracle tests only Java/JDK behavior plus
+explicit synthetic callback assumptions, not Mojang's `Either`,
+decoder, error-map finalization, or concrete registry rollback.
+
+**Required independent semantic conclusion before admission:** prove from
+the exact pinned 26.2 source and client callback behavior either (a)
+that every entry in the selected 66-biome Configuration registry
+registers successfully and in received order, with no failure/duplicate,
+or (b) that any incomplete/erroneous registry is rejected before
+its IDs can be consumed. Do not use the partial-success model as
+authority for a production success or failure policy; leave
+`client_numeric_id_assignment_proven=false` and
+`source_var_sem_admitted=false` until those proof obligations close.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

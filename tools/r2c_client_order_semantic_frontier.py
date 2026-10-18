@@ -354,6 +354,68 @@ def registry_terminal_path_witness(
     ]
 
 
+
+EXCEPTION_TABLE_ROW = re.compile(
+    r"^\s*(\d+)\s+(\d+)\s+(\d+)\s+(any|Class\s+[^\s]+)\s*$"
+)
+
+
+def registration_exception_table_witness(
+    method_lines: list[str], instructions: list[tuple[int, str, str]],
+) -> dict:
+    """Bound JVM handler ranges around RegistryLoadTask.registerElements.
+
+    This records an exact exception-table coverage fact and the handler's
+    bytecode identity, not any claim about rollback or handler dataflow.
+    """
+    headers = [i for i, line in enumerate(method_lines)
+               if line.strip() == "Exception table:"]
+    if len(headers) != 1:
+        raise ValueError("registerElements must contain one exception table")
+    start = headers[0] + 1
+    if start >= len(method_lines) or method_lines[start].split() != [
+        "from", "to", "target", "type"
+    ]:
+        raise ValueError("registerElements exception table header drifted")
+    offsets = {off: (op, rest) for off, op, rest in instructions}
+    rows = []
+    for line in method_lines[start + 1:]:
+        if not line.strip():
+            break
+        match = EXCEPTION_TABLE_ROW.fullmatch(line)
+        if match is None:
+            raise ValueError("registerElements malformed JVM handler row")
+        begin, end, handler = map(int, match.groups()[:3])
+        if not (0 <= begin < end <= max(offsets) + 16
+                and begin in offsets and handler in offsets):
+            raise ValueError("registerElements invalid handler boundaries")
+        rows.append({
+            "from": begin,
+            "to_exclusive": end,
+            "target": handler,
+            "catch_type": match.group(4),
+            "handler_opcode": offsets[handler][0],
+        })
+        if len(rows) > 16:
+            raise ValueError("registerElements too many exception handlers")
+    if not rows:
+        raise ValueError("registerElements exception table is empty")
+    for_each = [
+        off for off, op, rest in instructions if op.startswith("invoke")
+        and "Stream.forEach:" in _target(rest)
+    ]
+    if len(for_each) != 1:
+        raise ValueError("registerElements ambiguous Stream.forEach")
+    covered = [row for row in rows
+               if row["from"] <= for_each[0] < row["to_exclusive"]]
+    return {
+        "stream_foreach_offset": for_each[0],
+        "jvm_exception_handlers": rows,
+        "stream_foreach_directly_covered_by_handler": bool(covered),
+        "rollback_or_partial_mutation_semantics_proven": False,
+    }
+
+
 def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict:
     """Extract one declared method, never include a neighbor's instructions."""
     if len(disassembly) > MAX_DISASSEMBLY_CHARS:
@@ -440,6 +502,11 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         if (class_name, method) == ("net.minecraft.core.MappedRegistry", "register")
         else None
     )
+    registration_handlers = (
+        registration_exception_table_witness(section, instructions)
+        if (class_name, method) == ("net.minecraft.resources.RegistryLoadTask", "registerElements")
+        else None
+    )
     # Do not ship full disassembly/instruction lists. Hash the selected raw
     # opcode/operand rows to pin human review of *all* instructions, including
     # branch and exceptional paths that a call-only witness cannot inspect.
@@ -462,6 +529,7 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         "util_sequence_three_normal_branch_witness": sequence_paths,
         "util_sequence_branch_operand_witness": sequence_operands,
         "mapped_registry_terminal_path_witness": registry_exits,
+        "register_elements_exception_table_witness": registration_handlers,
         "exception_handler_and_dataflow_semantics_unreviewed": True,
         "all_control_flow_paths_reviewed": False,
         "exception_and_duplicate_semantics_proven": False,

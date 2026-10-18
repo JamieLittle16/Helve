@@ -775,38 +775,63 @@ fn serve_r2b_playtest_with_optional_r2c_plan(
         publication_mode,
         WorldPublicationMode::UnadmittedStockClientDiagnostic
     ) {
-        let table = plan
-            .and_then(R2cColdWorldPlan::candidate_heightmap_bytes)
-            .ok_or_else(|| R2bPlaytestError::WorldPlan {
-                reason: "diagnostic live R2C requires an explicitly selected official heightmap candidate".to_owned(),
-            })?;
-        let world = cold_view
-            .as_mut()
-            .ok_or_else(|| R2bPlaytestError::WorldPlan {
-                reason: "diagnostic live R2C requires a verified imported saved world".to_owned(),
-            })?;
-        // Both the receipt audit above and the publisher's own facts/limit
-        // validation must pass before the first chunk enters the driver.
-        let admission = R2cSourceAdmission;
-        let mut publisher = SourceAdmittedPlayPublisher::new(&mut session, table, 0, &admission)
-            .map_err(|reason| R2bPlaytestError::WorldPublish { reason })?;
-        eprintln!(
-            "R2C TEST-ONLY LIVE DIAGNOSTIC | chunks={} | source_receipts={} | stock_client_observation_required=true | source_admitted_for_live_r2c=false | production_admitted=false",
-            world.chunks(),
-            world.receipts(),
-        );
-        return serve_world_projection_wait(
-            transport,
-            &mut session,
-            Some(world),
-            Some(&mut publisher),
-        );
+        return serve_unadmitted_stock_client_test(transport, &mut session, &mut cold_view, plan);
     }
     // Admission is intentionally uninhabited in product builds. This path
     // keeps the original R2B client behavior unchanged until source VAR/SEM
     // promotes the exact 26.2 source/known-pack/heightmap/Play contract.
     let _ = publication_mode;
     serve_world_projection_wait(transport, &mut session, cold_view.as_mut(), None)
+}
+
+/// Strictly test-build-only real-client probe using the original R2B
+/// session, resident source receipts and existing receipt-bound publisher.
+/// Product builds cannot call or construct this admission path.
+#[cfg(test)]
+fn serve_unadmitted_stock_client_test(
+    transport: &mut TcpStream,
+    session: &mut R2bPlaySession,
+    cold_view: &mut Option<ColdImportedView>,
+    plan: Option<&R2cColdWorldPlan>,
+) -> Result<R2bPlaytestExit, R2bPlaytestError> {
+    let table = plan
+        .and_then(R2cColdWorldPlan::candidate_heightmap_bytes)
+        .ok_or_else(|| R2bPlaytestError::WorldPlan {
+            reason:
+                "diagnostic live R2C requires an explicitly selected official heightmap candidate"
+                    .to_owned(),
+        })?;
+    let world = cold_view
+        .as_mut()
+        .ok_or_else(|| R2bPlaytestError::WorldPlan {
+            reason: "diagnostic live R2C requires a verified imported saved world".to_owned(),
+        })?;
+    // Both the receipt audit above and the publisher's own facts/limit
+    // validation must pass before the first chunk enters the driver.
+    let admission = R2cSourceAdmission;
+    let mut publisher = SourceAdmittedPlayPublisher::new(session, table, 0, &admission)
+        .map_err(|reason| R2bPlaytestError::WorldPublish { reason })?;
+    eprintln!(
+        "R2C TEST-ONLY LIVE DIAGNOSTIC | chunks={} | source_receipts={} | stock_client_observation_required=true | source_admitted_for_live_r2c=false | production_admitted=false",
+        world.chunks(),
+        world.receipts(),
+    );
+    let exit =
+        serve_world_projection_wait(transport, session, Some(&mut *world), Some(&mut publisher))?;
+    if matches!(exit, R2bPlaytestExit::LivePeerEof { .. }) {
+        let (sent, expected, unacknowledged) = world.diagnostic_batch_progress();
+        if sent != expected || unacknowledged != 0 {
+            return Err(R2bPlaytestError::WorldPublish {
+                reason: format!(
+                    "diagnostic chunk batch incomplete at peer EOF: published={sent}/{expected}, pending_ACKs={unacknowledged}"
+                ),
+            });
+        }
+        eprintln!(
+            "R2C TEST-ONLY CHUNK BATCH ACK PASS | published_chunks={sent} | source_receipts={expected} | unacknowledged_batches=0 | visual rendering remains MANUAL"
+        );
+    }
+    Ok(exit)
 }
 
 /// One event on the original R2B driver; the optional world owner can

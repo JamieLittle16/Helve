@@ -142,6 +142,29 @@ class BiomeSourceFrontierTests(unittest.TestCase):
         finally:
             db.close()
 
+    def test_empty_body_hash_never_establishes_concrete_method(self) -> None:
+        # The real pinned inventory contains 23 such fingerprints,
+        # mostly from the Registry interface. Preserve their exact Atlas
+        # identity without claiming any executable source body.
+        db = mock_atlas()
+        try:
+            db.execute(
+                "UPDATE methods SET body_sha256=? WHERE id IN (1,3)",
+                (frontier.EMPTY_BODY_SHA256,),
+            )
+            [method] = frontier.exact_type_declarations(
+                db, "net.minecraft.core.MappedRegistry"
+            )
+            self.assertEqual(method["body_sha256"], frontier.EMPTY_BODY_SHA256)
+            self.assertTrue(method["declaration_only"])
+            [delegate] = frontier.exact_named_declarations(
+                db, "net.minecraft.util.Util", "sequence"
+            )
+            self.assertEqual(delegate["body_sha256"], frontier.EMPTY_BODY_SHA256)
+            self.assertTrue(delegate["declaration_only"])
+        finally:
+            db.close()
+
     def test_abstract_interface_method_is_not_a_verified_implementation(self) -> None:
         db = mock_atlas()
         try:

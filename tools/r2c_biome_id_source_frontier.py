@@ -28,6 +28,9 @@ import vanilla_atlas
 
 KIND = "r2c-biome-id-source-declaration-inventory-v1"
 SOURCE_SHA256 = "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750"
+# An Atlas SHA-256 of zero body bytes is a declaration anchor, not executable
+# implementation evidence (seen on abstract Registry interface methods).
+EMPTY_BODY_SHA256 = hashlib.sha256(b"").hexdigest()
 PLAN_ID = "REVIEW-NET-R2C-BIOME-IDS-26_2-001"
 TARGET = {"minecraft": "26.2", "protocol": 776, "data_version": 4903}
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -127,15 +130,16 @@ def exact_type_declarations(
         body_sha = source.get("body_sha256")
         if body_sha is not None and not isinstance(body_sha, str):
             raise BiomeIdSourceError("Atlas returned a malformed method body fingerprint")
-        # Interfaces and abstract declarations can carry a source signature
-        # without a method body. Their source-bound declaration hash remains
-        # useful discovery evidence; they cannot be elevated to a reviewed
-        # *implementation* without following the concrete delegate.
+        # Interfaces and abstract declarations can have a null body hash
+        # OR the SHA-256 of an empty token body. Neither establishes an
+        # executable implementation, even if Atlas returned a hash string.
+        # Preserve that exact hash for provenance, but require a concrete
+        # source-backed delegate before asserting executable semantics.
         results.append({
             "signature": source["signature"],
             "normalized_sha256": source["normalized_sha256"],
             "body_sha256": body_sha,
-            "declaration_only": body_sha is None,
+            "declaration_only": body_sha is None or body_sha == EMPTY_BODY_SHA256,
             "hazard_leads": template["atlas_observed_hazards"],
         })
     return results
@@ -192,7 +196,7 @@ def exact_named_declarations(
                 "signature": source["signature"],
                 "normalized_sha256": source["normalized_sha256"],
                 "body_sha256": body_sha,
-                "declaration_only": body_sha is None,
+                "declaration_only": body_sha is None or body_sha == EMPTY_BODY_SHA256,
                 "hazard_leads": template["atlas_observed_hazards"],
             })
         return result

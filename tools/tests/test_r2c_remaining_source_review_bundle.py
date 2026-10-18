@@ -158,6 +158,31 @@ class SourceReviewBundleTests(unittest.TestCase):
         with self.assertRaises(bundle.BundleError):
             bundle._private_source(private)
 
+    def test_empty_body_sha_can_never_be_false_concrete_implementation(self) -> None:
+        path = self.root / "old-biome-review.json"
+        self.fake_biome(["--output", str(path)])
+        data = json.loads(path.read_text())
+        abstract = {
+            "signature": "getId(T value)",
+            "body_sha256": bundle.biome.EMPTY_BODY_SHA256,
+            "declaration_only": False,
+        }
+        data["groups"][0] = {"roots": [{"methods": [abstract]}]}
+        path.write_text(json.dumps(data))
+        with self.assertRaisesRegex(bundle.BundleError, "empty Atlas body"):
+            bundle._inventory(
+                path, kind=bundle.biome.KIND,
+                required_false=("source_inspected", "production_admitted"),
+            )
+        abstract["declaration_only"] = True
+        path.write_text(json.dumps(data))
+        summary = bundle._inventory(
+            path, kind=bundle.biome.KIND,
+            required_false=("source_inspected", "production_admitted"),
+        )
+        self.assertEqual(summary["empty_body_sha256_declarations"], 1)
+        self.assertEqual(summary["declaration_only_methods"], 1)
+
     def test_failed_inspector_never_produces_success_manifest(self) -> None:
         with patch.object(bundle.biome, "main", side_effect=self.fake_biome), \
                 patch.object(bundle.wire, "main", return_value=2), \

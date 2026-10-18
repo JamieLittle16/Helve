@@ -782,7 +782,7 @@ fn process_one_world_play_ingress(
     }
 }
 
-fn serve_world_projection_wait(
+pub(crate) fn serve_world_projection_wait(
     transport: &mut TcpStream,
     session: &mut R2bPlaySession,
     mut cold_view: Option<&mut ColdImportedView>,

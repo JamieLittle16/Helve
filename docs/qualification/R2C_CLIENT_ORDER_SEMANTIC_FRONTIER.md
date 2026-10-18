@@ -130,9 +130,9 @@ The existing official 26.2 client branch/shape reviewer now verifies the
 two conditional branches on the *original client instruction sequence*,
 rejects cycles/unsupported transfers or unexpected exits, and enforces
 the following **structural** checkpoint partitions. The table lists
-**distinct critical calls in first-occurrence order**; any additional
-`List.size` invocation on a path is retained in the evidence without
-silently claiming single invocation count:
+the **exact** critical invocation sequence observed on each branch:
+any additional, omitted or reordered matching API call fails the pinned
+26.2 review contract:
 
 | Normal return offset | Conditional branch decisions | Ordered critical invocation sites |
 | --- | --- | --- |

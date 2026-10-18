@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
+import stat
 import shutil
 import struct
 import subprocess
@@ -148,6 +150,114 @@ def selected_heightmap(candidate: Path) -> Path:
     return candidate
 
 
+
+def evidence_destination(path: Path) -> Path:
+    """Require one fresh local file outside the repository, never overwrite."""
+    path = path.expanduser().absolute()
+    if path.exists() or path.is_symlink():
+        raise DiagnosticError("R2C evidence output must be a new file; never overwrite a prior run")
+    if path.parent.is_symlink() or not path.parent.is_dir():
+        raise DiagnosticError("R2C evidence output parent must be an existing real directory")
+    if path.resolve(strict=False).is_relative_to(REPO_ROOT.resolve()):
+        raise DiagnosticError("R2C local source evidence must remain outside the repository")
+    return path
+
+
+def evidence_file(path: Path, relative: str, limit: int) -> dict:
+    """Snapshot bounded file identity and digest without exposing local paths.
+
+    Open without following symlinks; reject source changes during hashing.
+    This is reproducible input identity, not NBT or semantic qualification.
+    """
+    existing_file(path, relative, maximum=limit)
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(fd, "rb") as stream:
+        before = os.fstat(stream.fileno())
+        if not stat.S_ISREG(before.st_mode) or before.st_size > limit:
+            raise DiagnosticError(f"evidence source not a bounded regular file: {relative}")
+        digest = hashlib.sha256()
+        total = 0
+        while block := stream.read(128 * 1024):
+            total += len(block)
+            if total > limit:
+                raise DiagnosticError(f"evidence source exceeds bounded limit: {relative}")
+            digest.update(block)
+        after = os.fstat(stream.fileno())
+    path_now = path.lstat()
+    if (before.st_ino, before.st_dev, before.st_size, before.st_mtime_ns) != (
+        after.st_ino, after.st_dev, after.st_size, after.st_mtime_ns
+    ) or (after.st_ino, after.st_dev, after.st_size, after.st_mtime_ns) != (
+        path_now.st_ino, path_now.st_dev, path_now.st_size, path_now.st_mtime_ns
+    ) or total != after.st_size or not stat.S_ISREG(path_now.st_mode):
+        raise DiagnosticError(f"evidence source changed while being read: {relative}")
+    return {"relative_path": relative, "bytes": total, "sha256": digest.hexdigest()}
+
+
+def evidence_snapshot(args: argparse.Namespace, world: Path, image: Path, candidate: Path) -> dict:
+    """Freeze the exact preselected source inputs, using the existing view law."""
+    count = saved_entities.RENDER_HALO_CHUNKS if args.render_halo else saved_entities.INITIAL_CHUNKS
+    positions = saved_entities.first_view_positions(count)
+    regions = sorted({
+        f"r.{x // 32}.{z // 32}.mca" for x, z in positions
+    })
+    def source_files(root: Path, *, staged: bool) -> list[dict]:
+        prefix = ("region/" if staged else "dimensions/minecraft/overworld/region/")
+        files = [evidence_file(root / "level.dat", "level.dat", 4 * 1024 * 1024)]
+        files.extend(
+            evidence_file(root / prefix / name, prefix + name, REGION_BYTES_LIMIT)
+            for name in regions
+        )
+        return files
+
+    selected_files = source_files(world, staged=False)
+    original_files = (
+        source_files(args.world.expanduser().absolute(), staged=True)
+        if args.stage_vanilla_overworld else None
+    )
+    if original_files is not None and [
+        (item["bytes"], item["sha256"]) for item in original_files
+    ] != [
+        (item["bytes"], item["sha256"]) for item in selected_files
+    ]:
+        raise DiagnosticError("disposable staging differs from original vanilla save bytes")
+    return {
+        "world_files": selected_files,
+        "original_vanilla_files": original_files,
+        "r2b_image": evidence_file(image, "r2b-playtest-image", 300_000),
+        "heightmap_candidate": evidence_file(candidate, "heightmap-state-candidate", CANDIDATE_BYTES),
+        "selected_chunks": [[x, z] for x, z in positions],
+    }
+
+
+def write_evidence(path: Path, snapshot: dict, *, preflight_only: bool) -> None:
+    """Persist a source-free, operator-owned *diagnostic*, never an admission."""
+    destination = evidence_destination(path)
+    report = {
+        "schema": 1,
+        "kind": "r2c-26_2-local-stock-client-input-evidence-v1",
+        "target": {"minecraft": "26.2", "protocol": 776, "data_version": 4903},
+        "outcome": (
+            "PREFLIGHT_ONLY_NO_CLIENT"
+            if preflight_only else "TEST_ONLY_TRANSPORT_COMPLETED_VISUAL_MANUAL"
+        ),
+        "input_files_unchanged": True,
+        "inputs": snapshot,
+        "source_var_sem_admitted": False,
+        "production_chunk_publication_admitted": False,
+        "stock_client_pixels_independently_verified": False,
+        "client_logs_and_screenshot": "RETAIN_AND_REVIEW_SEPARATELY",
+        "operator_repository_commit": "RECORD_SEPARATELY",
+    }
+    payload = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    fd = os.open(
+        destination,
+        os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0),
+        0o600,
+    )
+    with os.fdopen(fd, "w", encoding="utf-8") as stream:
+        stream.write(payload)
+
+
 def rust_test_command(name: str, *, ignored: bool) -> list[str]:
     arguments = ["cargo", "test", "--locked", "-p", "helve-server", "--lib", name, "--", "--exact"]
     if ignored:
@@ -178,6 +288,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--port", type=int, default=25565, help="loopback port (default: 25565)")
     parser.add_argument("--preflight-only", action="store_true", help="validate inputs without building or opening any listener")
+    parser.add_argument(
+        "--evidence-json", type=Path,
+        help="write one new, private, source-free input digest report outside the repo "
+             "after preflight or successful test; never source admission",
+    )
     parser.add_argument("--skip-rehearsal", action="store_true", help="skip the existing nine-chunk test (e.g. after green CI)")
     return parser
 
@@ -229,13 +344,25 @@ def prepare(args: argparse.Namespace, scratch: Path) -> tuple[Path, Path, Path]:
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
+        evidence_path = (
+            evidence_destination(args.evidence_json)
+            if args.evidence_json is not None else None
+        )
         with tempfile.TemporaryDirectory(prefix="helve-r2c-diagnostic-") as directory:
             world, image, candidate = prepare(args, Path(directory))
+            snapshot = (
+                evidence_snapshot(args, world, image, candidate)
+                if evidence_path is not None else None
+            )
             print("R2C local test-only preflight PASSED", flush=True)
             print(f"  world: {world}", flush=True)
             print(f"  R2B image: {image} (full commitments revalidated by Rust)", flush=True)
             print(f"  heightmap candidate: {candidate} (NOT source-admitted)", flush=True)
             if args.preflight_only:
+                if evidence_path is not None and snapshot is not None:
+                    if evidence_snapshot(args, world, image, candidate) != snapshot:
+                        raise DiagnosticError("R2C preflight evidence inputs changed")
+                    write_evidence(evidence_path, snapshot, preflight_only=True)
                 print("No TCP listener opened. This is NOT a visible-world result.", flush=True)
                 return 0
             if shutil.which("cargo") is None:
@@ -273,6 +400,14 @@ def main(argv: Sequence[str] | None = None) -> int:
                                      cwd=REPO_ROOT, env=env, check=False)
             if outcome.returncode != 0:
                 raise DiagnosticError(f"R2C live client diagnostic exited with code {outcome.returncode}")
+            if evidence_path is not None and snapshot is not None:
+                if evidence_snapshot(args, world, image, candidate) != snapshot:
+                    raise DiagnosticError(
+                        "R2C source/image/heightmap inputs changed during diagnostic; "
+                        "evidence file withheld"
+                    )
+                write_evidence(evidence_path, snapshot, preflight_only=False)
+                print(f"R2C source-free local evidence written: {evidence_path}", flush=True)
             print("R2C diagnostic socket/teleport/keep-alive passed. Visual rendering remains a MANUAL observation.", flush=True)
             print("Production R2C source admission remains unavailable.", flush=True)
             return 0

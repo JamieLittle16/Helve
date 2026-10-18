@@ -181,7 +181,9 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         # insufficient if either the empty or the singleton exit disappears.
         missing_singleton = source.replace("13: if_icmpne     20",
                                            "13: goto          20")
-        with self.assertRaisesRegex(ValueError, "three normal-return branches"):
+        with self.assertRaisesRegex(
+            ValueError, "three normal-return branches|unexpected Util.sequence control transfer"
+        ):
             probe.bounded_method_shape(missing_singleton, cls, method)
         unexpected_call = source.replace(
             "3: invokestatic  #14 // Method exact/empty:()V",

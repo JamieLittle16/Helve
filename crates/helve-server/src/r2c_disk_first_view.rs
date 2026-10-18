@@ -1300,10 +1300,6 @@ mod tests {
     }
 
     #[test]
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one 25-source multi-region regression checks complete ownership, repeat attachment, and missing-source fail-closed behavior"
-    )]
     fn twenty_five_disk_chunks_share_one_host_and_missing_region_fails_closed() {
         use crate::r2c_cold_demo_import::{
             ColdDimension, R2cColdWorldHost, SELECTED_VISIBLE_CHUNKS,

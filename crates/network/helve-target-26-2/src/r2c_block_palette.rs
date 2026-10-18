@@ -3,6 +3,7 @@
 //! Inputs are exactly 4096 resolved global state IDs in y-z-x order, read
 //! through one coherent caller borrow. This is not live storage or a packet.
 //! R2C block-wire source admission and stock-client qualification are pending.
+//! 26.2 uses fixed-size packed-word data, without a `VarInt` word-count prefix.
 
 const CELLS: usize = 4096;
 const LOCAL_MAX: usize = 256;
@@ -163,9 +164,9 @@ impl PackedBlockContainer {
             }
             BlockPaletteMode::Global => 0,
         };
-        1 + palette_bytes
-            + varint_len(u32::try_from(self.words.len()).expect("<=4096"))
-            + self.words.len() * 8
+        // Client PalettedContainer.Data.read consumes exactly the implied
+        // number of longs; an encoded word count desynchronizes the section.
+        1 + palette_bytes + self.words.len() * 8
     }
 
     /// Appends isolated container bytes to a reusable caller-owned destination.
@@ -188,7 +189,7 @@ impl PackedBlockContainer {
             }
             BlockPaletteMode::Global => {}
         }
-        push_varint(output, u32::try_from(self.words.len()).expect("<=4096"));
+        // Wire data is a fixed-size long array, not a VarInt-prefixed list.
         for &word in &self.words {
             output.extend_from_slice(&word.to_be_bytes());
         }
@@ -293,7 +294,9 @@ mod tests {
         } else {
             Vec::new()
         };
-        let count = read_varint(bytes, &mut cursor);
+        let count = 64_usize
+            .checked_div(width)
+            .map_or(0, |per_word| CELLS.div_ceil(per_word));
         assert_eq!(bytes.len() - cursor, count * 8);
         let words: Vec<u64> = bytes[cursor..]
             .chunks_exact(8)
@@ -333,8 +336,36 @@ mod tests {
         assert_eq!(packed.mode(), BlockPaletteMode::Single);
         assert_eq!(packed.local_palette(), &[251]);
         assert!(packed.packed_words().is_empty());
-        assert_eq!(packed.encode_container(), [0, 251, 1, 0]);
+        assert_eq!(packed.encode_container(), [0, 251, 1]);
         assert_eq!(decode(&packed.encode_container(), 32_366), vec![251; CELLS]);
+    }
+
+    #[test]
+    fn fixed_size_words_follow_palette_without_a_length_varint() {
+        // Two-item palette: one width byte, count=2, two global IDs,
+        // immediately followed by 256 packed 4-bit longs (4096/16).
+        // A VarInt(256) here would be [0x80, 0x02] and the actual
+        // client would misinterpret it as the start of the packed longs.
+        let packed =
+            PackedBlockContainer::derive(32_366, |i| if i & 1 == 0 { 1 } else { 2 }).unwrap();
+        assert_eq!(packed.storage_bits(), 4);
+        assert_eq!(packed.local_palette(), &[1, 2]);
+        let encoded = packed.encode_container();
+        assert_eq!(&encoded[..4], &[4, 2, 1, 2]);
+        assert_eq!(packed.packed_words().len(), 256);
+        assert_eq!(encoded.len(), 4 + 256 * 8);
+        assert_eq!(&encoded[4..12], &0x1010_1010_1010_1010_u64.to_be_bytes());
+        assert_eq!(decode(&encoded, 32_366)[1], 2);
+
+        // A global palette has no local count/entries and likewise
+        // starts directly with packed longs after the width byte.
+        let global =
+            PackedBlockContainer::derive(32_366, |i| u16::try_from(i % 257).unwrap()).unwrap();
+        assert_eq!(global.mode(), BlockPaletteMode::Global);
+        assert_eq!(
+            global.encode_container().len(),
+            1 + global.packed_words().len() * 8
+        );
     }
 
     #[test]

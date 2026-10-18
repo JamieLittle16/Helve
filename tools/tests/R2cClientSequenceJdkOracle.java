@@ -1,5 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -76,14 +78,79 @@ public final class R2cClientSequenceJdkOracle {
         check(callbackCalls.get() == 0, "no successful registration callback on error");
     }
 
+    /**
+     * JDK Stream.forEach is not a transaction.  This model mirrors the
+     * separately pinned success-side WritableRegistry.register invocation,
+     * but intentionally does not instantiate Minecraft or infer its state.
+     */
+    private static void checkPartialRegistrationOnThrownError(int size, int failedAt) {
+        List<Integer> source = new ArrayList<>();
+        for (int i = 0; i < size; i++) source.add(i);
+        List<Integer> committed = new ArrayList<>();
+        IllegalStateException marker = new IllegalStateException("registration failure");
+        RuntimeException observed = null;
+        try {
+            source.stream().forEach(id -> {
+                if (id == failedAt) throw marker;
+                committed.add(id);
+            });
+        } catch (RuntimeException exception) {
+            observed = exception;
+        }
+        check(observed == marker, "forEach must propagate the original thrown error");
+        check(committed.size() == failedAt,
+                "forEach must retain prefix before thrown error at " + failedAt);
+        for (int i = 0; i < failedAt; i++) {
+            check(committed.get(i) == i, "partial registration prefix reordered");
+        }
+        // This observable retained prefix is the reason we cannot claim
+        // registry rollback from JVM monitorenter/monitorexit alone.
+    }
+
+    /**
+     * Synthetic *per-entry reported error* model, not a recreation of
+     * Mojang's Either type or registration dataflow. The actual client
+     * independently pins Either.ifLeft -> WritableRegistry.register and
+     * Either.ifRight -> Map.put; source review must still bind their values.
+     */
+    private static void checkReportedEntryError(int size, int failedAt) {
+        List<Integer> source = new ArrayList<>();
+        for (int i = 0; i < size; i++) source.add(i);
+        List<Integer> committed = new ArrayList<>();
+        Map<Integer, String> reportedErrors = new LinkedHashMap<>();
+        source.stream().forEach(id -> {
+            if (id == failedAt) {
+                reportedErrors.put(id, "decode-error");
+            } else {
+                committed.add(id);
+            }
+        });
+        check(reportedErrors.size() == 1, "per-entry error must be reported once");
+        check("decode-error".equals(reportedErrors.get(failedAt)),
+              "wrong per-entry error identity");
+        check(committed.size() == size - 1, "reported error must not register an entry");
+        int position = 0;
+        for (int i = 0; i < size; i++) {
+            if (i == failedAt) continue;
+            check(committed.get(position++) == i,
+                    "surviving registration order changed");
+        }
+        // Unlike a thrown exception, a reported error does not stop
+        // this *modelled* stream; actual Minecraft error-map finalization
+        // and whether any registry can be published remain unproven.
+    }
+
     public static void main(String[] args) {
         for (int size : new int[]{0, 1, 2, 3, 4, 66}) {
             checkOutOfOrderCompletion(size);
             for (int failedAt = 0; failedAt < size; failedAt++) {
                 checkExceptionalCompletion(size, failedAt);
+                checkPartialRegistrationOnThrownError(size, failedAt);
+                checkReportedEntryError(size, failedAt);
             }
         }
-        System.out.println("JDK 25 ordered-future and exceptional-completion semantics verified; "
-                + "client source/VAR/SEM admission still pending");
+        System.out.println("JDK 25 future order, thrown registration prefix, "
+                + "and reported-entry-error models verified; actual client "
+                + "error handling and source/VAR/SEM admission still pending");
     }
 }

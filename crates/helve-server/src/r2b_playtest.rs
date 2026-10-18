@@ -250,7 +250,7 @@ pub enum R2bPlaytestExit {
     ClockInvalid,
 }
 
-/// Opt-in, **non-publishing** first world preview for one R2B development session.
+/// Opt-in, **non-publishing** selected-world request for the server's lifetime.
 /// The selected save root follows the exact official 26.2 namespaced
 /// Overworld layout; optional COLD inspection never sends a Play packet.
 #[derive(Clone, Debug)]
@@ -721,28 +721,6 @@ pub fn serve_r2b_playtest_with_r2c_cold_host(
         image,
         None,
         Some(host),
-        WorldPublicationMode::NoChunks,
-    )
-}
-
-/// Retains the *same* R2B Play owner, with an explicitly selected COLD
-/// nonpublishing pregenerated-world request for later R2C source admission.
-/// This route must not be used to infer that a client can see a world.
-///
-/// # Errors
-/// Returns normal R2B I/O/control errors, or a typed fail-closed teleport plan error.
-pub fn serve_r2b_playtest_with_r2c_cold_plan(
-    transport: &mut TcpStream,
-    session_epoch: ServerSessionEpoch,
-    image: &R2bPlaytestImage,
-    plan: &R2cColdWorldPlan,
-) -> Result<R2bPlaytestExit, R2bPlaytestError> {
-    serve_r2b_playtest_with_optional_r2c_plan(
-        transport,
-        session_epoch,
-        image,
-        Some(plan),
-        None,
         WorldPublicationMode::NoChunks,
     )
 }

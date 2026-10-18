@@ -1305,14 +1305,15 @@ mod tests {
         reason = "one 25-source multi-region regression checks complete ownership, repeat attachment, and missing-source fail-closed behavior"
     )]
     fn twenty_five_disk_chunks_share_one_host_and_missing_region_fails_closed() {
-        use crate::r2c_cold_demo_import::{ColdDimension, R2cColdWorldHost, SELECTED_VISIBLE_CHUNKS};
+        use crate::r2c_cold_demo_import::{
+            ColdDimension, R2cColdWorldHost, SELECTED_VISIBLE_CHUNKS,
+        };
 
         let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
         let first = retained_session_with_teleport(0.25, 8.0, 0.25);
-        let (center, positions) = super::plan_pending_teleport_first_view(
-            &first, profile, 10, SELECTED_VISIBLE_CHUNKS,
-        )
-        .expect("25-source first view");
+        let (center, positions) =
+            super::plan_pending_teleport_first_view(&first, profile, 10, SELECTED_VISIBLE_CHUNKS)
+                .expect("25-source first view");
         assert_eq!(center, ChunkPos { x: 0, z: 0 });
         assert_eq!(positions.len(), SELECTED_VISIBLE_CHUNKS);
         assert_eq!(positions[0], center);
@@ -1373,8 +1374,14 @@ mod tests {
         let second = retained_session_with_teleport(15.75, 9.0, 15.75);
         let second_view = host.attach(&second).expect("same-center client attaches");
         assert!(first_view.shares_resident_with(&second_view));
-        assert_eq!(first_view.diagnostic_batch_progress(), (0, SELECTED_VISIBLE_CHUNKS, 0));
-        assert_eq!(second_view.diagnostic_batch_progress(), (0, SELECTED_VISIBLE_CHUNKS, 0));
+        assert_eq!(
+            first_view.diagnostic_batch_progress(),
+            (0, SELECTED_VISIBLE_CHUNKS, 0)
+        );
+        assert_eq!(
+            second_view.diagnostic_batch_progress(),
+            (0, SELECTED_VISIBLE_CHUNKS, 0)
+        );
         assert_eq!(host.chunks(), SELECTED_VISIBLE_CHUNKS);
         assert_eq!(host.receipts(), SELECTED_VISIBLE_CHUNKS);
 
@@ -1386,16 +1393,18 @@ mod tests {
         assert!(after_source_removed.shares_resident_with(&first_view));
         let mut absent_dimension = ColdDimension::new(DimensionId(2), profile);
         let mut absent_receipts = Vec::new();
-        assert!(super::import_pending_teleport_disk_first_view(
-            &first,
-            request,
-            &mut absent_dimension,
-            &mut importer,
-            &mut biome_decoder,
-            &mut absent_receipts,
-            || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
-        )
-        .is_err());
+        assert!(
+            super::import_pending_teleport_disk_first_view(
+                &first,
+                request,
+                &mut absent_dimension,
+                &mut importer,
+                &mut biome_decoder,
+                &mut absent_receipts,
+                || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
+            )
+            .is_err()
+        );
         assert_eq!(first.queued_egress(), 0);
         assert_eq!(second.queued_egress(), 0);
     }

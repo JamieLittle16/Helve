@@ -278,6 +278,82 @@ def sequence_branch_operand_witness(
     ]
 
 
+
+def registry_terminal_path_witness(
+    instructions: list[tuple[int, str, str]],
+) -> list[dict]:
+    """Classify all bounded NORMAL and explicit-throw paths in register().
+
+    A path's only recognized mutation checkpoints are the three already
+    pinned dense-ID operations. This does not model implicit exceptions
+    thrown by callees, guards' operands or registry rollback semantics.
+    """
+    if not 1 <= len(instructions) <= MAX_INSTRUCTIONS:
+        raise ValueError("registry terminal path instruction budget")
+    offsets = {off: i for i, (off, _, _) in enumerate(instructions)}
+    if len(offsets) != len(instructions):
+        raise ValueError("duplicate registry bytecode offset")
+    critical = REQUIRED_CALLS[("net.minecraft.core.MappedRegistry", "register")]
+    results: list[tuple[int, str, tuple[str, ...]]] = []
+    work = [(0, (), frozenset())]
+    while work:
+        i, calls, visited = work.pop()
+        if i in visited:
+            raise ValueError("registry control-flow cycle outside bounded review")
+        visited = visited | {i}
+        off, op, rest = instructions[i]
+        if op.startswith("invoke"):
+            for symbol in critical:
+                if symbol in _target(rest):
+                    calls = (*calls, symbol)
+        if op == "athrow" or op.endswith("return"):
+            results.append((off, op, calls))
+            if len(results) > 32:
+                raise ValueError("registry termination path bound exceeded")
+            continue
+        if op in ("tableswitch", "lookupswitch", "jsr", "jsr_w", "ret"):
+            raise ValueError("unsupported registry jump opcode")
+        if op.startswith("if") or op in ("goto", "goto_w"):
+            m = BRANCH_TARGET.match(rest)
+            if m is None or int(m.group(1)) not in offsets:
+                raise ValueError("malformed registry branch target")
+            work.append((offsets[int(m.group(1))], calls, visited))
+            if op in ("goto", "goto_w"):
+                continue
+        if i + 1 == len(instructions):
+            raise ValueError("registry bytecode falls off end")
+        work.append((i + 1, calls, visited))
+        if len(work) > 32:
+            raise ValueError("registry CFG frontier exceeded")
+    if not results:
+        raise ValueError("registry has no reachable termination")
+    # A non-exceptional return must pass the full dense-ID triple, in
+    # source order. Explicit early throws must not happen after mutation.
+    for _, opcode, calls in results:
+        if opcode == "athrow":
+            if calls:
+                raise ValueError("registry explicit throw after ID mutation")
+        elif calls != critical:
+            raise ValueError("registry normal return without complete ID insertion")
+    by_offset: dict[int, tuple[str, tuple[str, ...]]] = {}
+    for off, opcode, calls in results:
+        entry = (opcode, calls)
+        if off in by_offset and by_offset[off] != entry:
+            raise ValueError("registry exit has incompatible critical call histories")
+        by_offset[off] = entry
+    if len(by_offset) > 8:
+        raise ValueError("too many distinct registry terminal offsets")
+    return [
+        {
+            "exit_offset": off,
+            "exit_opcode": opcode,
+            "critical_invokes_before_exit": list(calls),
+            "normal_return": opcode != "athrow",
+        }
+        for off, (opcode, calls) in sorted(by_offset.items())
+    ]
+
+
 def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict:
     """Extract one declared method, never include a neighbor's instructions."""
     if len(disassembly) > MAX_DISASSEMBLY_CHARS:
@@ -359,6 +435,11 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         sequence_branch_operand_witness(instructions)
         if sequence_paths is not None else None
     )
+    registry_exits = (
+        registry_terminal_path_witness(instructions)
+        if (class_name, method) == ("net.minecraft.core.MappedRegistry", "register")
+        else None
+    )
     # Do not ship full disassembly/instruction lists. Hash the selected raw
     # opcode/operand rows to pin human review of *all* instructions, including
     # branch and exceptional paths that a call-only witness cannot inspect.
@@ -380,6 +461,7 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         "single_normal_return_cfg_path_through_all_calls": cfg_path_exists,
         "util_sequence_three_normal_branch_witness": sequence_paths,
         "util_sequence_branch_operand_witness": sequence_operands,
+        "mapped_registry_terminal_path_witness": registry_exits,
         "exception_handler_and_dataflow_semantics_unreviewed": True,
         "all_control_flow_paths_reviewed": False,
         "exception_and_duplicate_semantics_proven": False,

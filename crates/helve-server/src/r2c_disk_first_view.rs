@@ -1406,11 +1406,22 @@ mod tests {
     }
 
     #[test]
+    fn nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch() {
+        source_chunks_cross_four_regions_reach_receipted_tcp_batches(9);
+    }
+
+    #[test]
+    fn twenty_five_disk_chunks_cross_four_regions_and_reach_receipted_tcp_batches() {
+        source_chunks_cross_four_regions_reach_receipted_tcp_batches(
+            crate::r2c_cold_demo_import::SELECTED_VISIBLE_CHUNKS,
+        );
+    }
+
     #[expect(
         clippy::too_many_lines,
-        reason = "one finite end-to-end fixture checks nine real Anvil receipts and their complete test-gated packet batch"
+        reason = "shared nine/25-source real Anvil importer and retained TCP/ACK test, no alternate packet path"
     )]
-    fn nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch() {
+    fn source_chunks_cross_four_regions_reach_receipted_tcp_batches(selected: usize) {
         use helve_connection_core::{ConnectionLimits, IngressBuffer};
         use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
         use helve_target_26_2::r2c_play_wire::{
@@ -1427,7 +1438,7 @@ mod tests {
         let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
         let mut session = retained_session_with_teleport(0.25, 8.0, 0.25);
         let (center, positions) =
-            super::plan_pending_teleport_first_view(&session, profile, 10, 9).unwrap();
+            super::plan_pending_teleport_first_view(&session, profile, 10, selected).unwrap();
         let expected_positions = [
             ChunkPos { x: 0, z: 0 },
             ChunkPos { x: -1, z: 0 },
@@ -1440,7 +1451,8 @@ mod tests {
             ChunkPos { x: 1, z: 1 },
         ];
         assert_eq!(center, expected_positions[0]);
-        assert_eq!(positions, expected_positions);
+        assert_eq!(&positions[..9], &expected_positions);
+        assert_eq!(positions.len(), selected);
 
         let world = WorldFixture::new();
         world.write_chunks(&positions);
@@ -1474,9 +1486,9 @@ mod tests {
                 world: &world.root,
                 profile,
                 view_distance: 10,
-                max_chunks: 9,
+                max_chunks: selected,
                 limits: PregeneratedRegionLimits {
-                    region: RegionLimits::new(8 * SECTOR, SECTOR),
+                    region: RegionLimits::new(32 * SECTOR, SECTOR),
                     max_external_bytes: 8 * SECTOR,
                 },
             },
@@ -1486,20 +1498,20 @@ mod tests {
             &mut receipts,
             || DirectBlockSection::filled(AIR, &GeneratedStateFacts),
         )
-        .expect("nine source chunks from four real Anvil region files");
+        .expect("source chunks from four real Anvil region files");
         assert_eq!(imported_center, center);
-        assert_eq!(dimension.resident_chunk_count(), 9);
-        assert_eq!(receipts.len(), 9);
+        assert_eq!(dimension.resident_chunk_count(), selected);
+        assert_eq!(receipts.len(), selected);
         assert_eq!(batch.next_chunk_index(), 0);
         assert_eq!(session.queued_egress(), 0);
-        for (receipt, position) in receipts.iter().zip(expected_positions) {
-            assert_eq!(receipt.installed().handle.position, position);
+        for (receipt, position) in receipts.iter().zip(&positions) {
+            assert_eq!(receipt.installed().handle.position, *position);
             assert!(receipt.resolve_explicitly_empty(&dimension).is_ok());
         }
 
         // One retained source owner survives independent client lifetimes.
         // The ordinary server imports only once before accept; this hermetic
-        // nine-chunk fixture verifies that each session shares the exact
+        // nine/25-column fixtures verify every session shares the exact
         // original dimension and receipt allocations, but not its ACK cursor.
         let host = crate::r2c_cold_demo_import::R2cColdWorldHost::from_test_source(
             dimension, receipts, center, profile,
@@ -1510,7 +1522,7 @@ mod tests {
             .expect("second session attaches");
         let mut view = host.attach(&session).expect("first session attaches");
         assert!(view.shares_resident_with(&second));
-        assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
+        assert_eq!(second.diagnostic_batch_progress(), (0, selected, 0));
         // Different positions within the same preselected chunk (and valid
         // vertical lattice) attach without rebuilding the view or changing
         // the host's source receipts.
@@ -1519,12 +1531,12 @@ mod tests {
             .attach(&same_chunk)
             .expect("same selected chunk center");
         assert!(third.shares_resident_with(&view));
-        assert_eq!(third.diagnostic_batch_progress(), (0, 9, 0));
+        assert_eq!(third.diagnostic_batch_progress(), (0, selected, 0));
         assert!(
             host.attach(&retained_session_with_teleport(1024.0, 8.0, 0.25))
                 .is_err()
         );
-        assert_eq!(host.chunks(), 9);
+        assert_eq!(host.chunks(), selected);
 
         // Hermetic CI proves source import and receipt order. Only the
         // pinned Java 25 workflow supplies actual 26.2 heightmap facts.
@@ -1534,10 +1546,10 @@ mod tests {
         let oracle = fs::read(path).expect("official source-locked heightmap table");
         let audit = view
             .audit_candidate_bodies(&oracle)
-            .expect("nine bounded source bodies");
-        assert_eq!(audit.chunks, 9);
+            .expect("bounded source bodies");
+        assert_eq!(audit.chunks, selected);
         assert!(audit.maximum_body_bytes > 8);
-        assert!(audit.total_body_bytes >= audit.maximum_body_bytes * 9);
+        assert!(audit.total_body_bytes >= audit.maximum_body_bytes * selected);
 
         // The sole positive admission witness exists only in Rust tests.
         // This is not a stock-client run or a production gate promotion.
@@ -1553,32 +1565,62 @@ mod tests {
         peer.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
         let (mut transport, _) = listener.accept().unwrap();
 
-        // Decode precisely the same transactional length-framed wire
-        // that the original connection driver writes, without assuming
-        // one read() per packet or adding a parallel production codec.
+        // The same retained TCP ingress/egress is used for both 9 and 25
+        // authentic Anvil source receipts. At 25, the simulated client must
+        // acknowledge multiple *finished* batches before the sender can
+        // finish; no packet replay, second server driver, or test-only codec.
         let client = std::thread::spawn(move || {
             let limits = ConnectionLimits::new(65_535, 524_288, 524_288).unwrap();
             let mut wire = IngressBuffer::new(limits);
             let mut scratch = [0_u8; 16_384];
-            let mut frames = Vec::with_capacity(12);
-            while frames.len() < 12 {
+            let mut frames = Vec::with_capacity(selected + 8);
+            let mut chunks_seen = 0_usize;
+            let mut finished_chunks = 0_usize;
+            let mut batch_chunk_count = 0_usize;
+            let mut in_batch = false;
+            loop {
                 if let Some(frame) = wire.peek_frame().unwrap() {
                     let packet = (frame.packet_id(), frame.payload().to_vec());
                     let consumed = frame.stream_bytes();
                     wire.consume(consumed).unwrap();
+                    match packet.0 {
+                        id if id == i32::from(CLIENTBOUND_CHUNK_BATCH_START) => {
+                            assert!(!in_batch, "source batch starts cannot nest");
+                            in_batch = true;
+                            batch_chunk_count = 0;
+                        }
+                        id if id == i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT) => {
+                            assert!(in_batch, "chunk requires a started batch");
+                            batch_chunk_count += 1;
+                            chunks_seen += 1;
+                            assert!(chunks_seen <= selected, "unexpected chunk beyond source view");
+                        }
+                        id if id == i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED) => {
+                            assert!(in_batch, "batch finish requires start");
+                            assert_eq!(packet.1, [u8::try_from(batch_chunk_count).unwrap()]);
+                            assert!(batch_chunk_count > 0);
+                            finished_chunks += batch_chunk_count;
+                            assert_eq!(finished_chunks, chunks_seen);
+                            in_batch = false;
+                            // Exact existing serverbound 26.2 chunk-batch ACK:
+                            // 5-byte payload length, ID 11, f32 rate 9.0.
+                            peer.write_all(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+                        }
+                        94 => assert!(frames.is_empty(), "cache center must be first"),
+                        id => panic!("unexpected test world Play frame: {id}"),
+                    }
                     frames.push(packet);
+                    if finished_chunks == selected {
+                        assert_eq!(wire.buffered_len(), 0, "no unexpected Play tail");
+                        peer.shutdown(Shutdown::Write).unwrap();
+                        return frames;
+                    }
                     continue;
                 }
                 let count = peer.read(&mut scratch).expect("bounded TCP chunk receive");
-                assert_ne!(count, 0, "peer closed before the complete nine-chunk batch");
+                assert_ne!(count, 0, "peer closed before the complete source batch view");
                 wire.push(&scratch[..count]).unwrap();
             }
-            assert_eq!(wire.buffered_len(), 0, "no unexpected Play tail");
-            // The real R2B Play driver must process this ACK via its
-            // already-connected R2C ingress consumer, then observe EOF.
-            peer.write_all(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
-            peer.shutdown(Shutdown::Write).unwrap();
-            frames
         });
 
         let exit = serve_world_projection_wait(
@@ -1587,7 +1629,7 @@ mod tests {
             Some(&mut view),
             Some(&mut sender),
         )
-        .expect("source-test-admitted nine-chunk Play socket path");
+        .expect("source-test-admitted complete selected Play socket path");
         let frames = client.join().expect("loopback receiver");
         assert!(matches!(
             exit,
@@ -1601,31 +1643,55 @@ mod tests {
         assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
         assert_eq!(session.queued_egress(), 0);
         assert!(view.shares_resident_with(&second));
-        assert_eq!(second.diagnostic_batch_progress(), (0, 9, 0));
-        assert_eq!(frames.len(), 12);
-
+        assert_eq!(second.diagnostic_batch_progress(), (0, selected, 0));
+        assert!(frames.len() >= selected + 3);
         assert_eq!(frames[0].0, 94);
         assert_eq!(frames[0].1, [0, 0]);
-        assert_eq!(frames[1].0, i32::from(CLIENTBOUND_CHUNK_BATCH_START));
-        assert!(frames[1].1.is_empty());
 
-        // All nine real Anvil chunks contain one solid stone section at Y=0.
-        // Independently build the three five-bit per-column wire heightmaps.
+        // All real Anvil fixtures contain one solid stone section at Y=0.
+        // Construct the three five-bit per-column wire heightmaps without
+        // calling the implementation's heightmap/packet builder.
         let mut words = [0_u64; 22];
         for column in 0..256_usize {
             words[column / 12] |= 16_u64 << ((column % 12) * 5);
         }
         let mut maps = Vec::new();
         append_heightmap_map_candidate(&mut maps, 16, [&words; 3]).unwrap();
-        for (frame, position) in frames[2..11].iter().zip(expected_positions) {
-            assert_eq!(frame.0, i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT));
-            assert_eq!(&frame.1[..4], &position.x.to_be_bytes());
-            assert_eq!(&frame.1[4..8], &position.z.to_be_bytes());
-            assert_eq!(&frame.1[8..8 + maps.len()], maps);
-            assert!(frame.1.len() > 8 + maps.len());
+        let mut position_cursor = 0_usize;
+        let mut batch_count = 0_usize;
+        let mut frame_cursor = 1_usize;
+        while frame_cursor < frames.len() {
+            assert_eq!(frames[frame_cursor].0, i32::from(CLIENTBOUND_CHUNK_BATCH_START));
+            assert!(frames[frame_cursor].1.is_empty());
+            frame_cursor += 1;
+            let mut batch_chunks = 0_usize;
+            while frame_cursor < frames.len()
+                && frames[frame_cursor].0 == i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT)
+            {
+                let payload = &frames[frame_cursor].1;
+                let position = positions[position_cursor];
+                assert_eq!(&payload[..4], &position.x.to_be_bytes());
+                assert_eq!(&payload[4..8], &position.z.to_be_bytes());
+                assert_eq!(&payload[8..8 + maps.len()], maps);
+                assert!(payload.len() > 8 + maps.len());
+                batch_chunks += 1;
+                position_cursor += 1;
+                frame_cursor += 1;
+            }
+            assert!(batch_chunks > 0);
+            assert!(frame_cursor < frames.len(), "unfinished source batch");
+            assert_eq!(frames[frame_cursor].0, i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED));
+            assert_eq!(frames[frame_cursor].1, [u8::try_from(batch_chunks).unwrap()]);
+            frame_cursor += 1;
+            batch_count += 1;
         }
-        assert_eq!(frames[11].0, i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED));
-        assert_eq!(frames[11].1, [9]);
+        assert_eq!(position_cursor, selected);
+        if selected > 9 {
+            assert!(batch_count >= 2, "25 chunks must exercise multiple ACK windows");
+        } else {
+            assert_eq!(batch_count, 1);
+        }
+        assert_eq!(view.diagnostic_batch_progress(), (selected, selected, 0));
         assert_eq!(sender.service(&mut session, &mut view, 50).unwrap(), 0);
     }
 

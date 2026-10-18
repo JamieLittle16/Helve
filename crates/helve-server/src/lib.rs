@@ -81,11 +81,11 @@ pub use r2b_playtest::{
     serve_r2b_playtest_blocking_transport, serve_r2b_playtest_with_r2c_cold_host,
     serve_r2b_playtest_with_r2c_cold_plan,
 };
-pub use r2c_cold_demo_import::R2cColdWorldHost;
 pub use r2b_server::{
     R2bEntryOutcome, R2bLivenessProcess, R2bPlayError, R2bPlayInbound, R2bPlayProcess,
     R2bPlaySession, R2bServerError, enter_r2b_play_blocking_transport,
 };
+pub use r2c_cold_demo_import::R2cColdWorldHost;
 
 use std::io::{Read, Write};
 use std::num::NonZeroUsize;

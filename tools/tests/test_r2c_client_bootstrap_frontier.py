@@ -101,13 +101,13 @@ def registration_consumer_fixture() -> str:
     Code:
        0: aload_0
       13: invokeinterface #104,  4 // InterfaceMethod net/minecraft/core/WritableRegistry.register:(Lnet/minecraft/resources/ResourceKey;Ljava/lang/Object;Lnet/minecraft/core/RegistrationInfo;)Lnet/minecraft/core/Holder$Reference;
-       4: return
+      14: return
   private void lambda$registerElements$2(net.minecraft.resources.RegistryLoadTask$PendingRegistration, java.lang.Exception);
     descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Exception;)V
     Code:
        0: aload_0
        9: invokeinterface #105,  3 // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-       4: return
+      10: return
 }
 BootstrapMethods:
   0: #120 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(...)
@@ -185,6 +185,29 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
                 self.assertEqual(secondary["impl_handle_kind"], "REF_invokeVirtual")
                 self.assertIn("CompletableFuture.join",
                               secondary["impl_handle_target_candidate"])
+
+    def test_register_delegate_opcode_skeletons_are_bounded_and_exact(self) -> None:
+        src = registration_consumer_fixture()
+        rows = probe.bounded_registration_callback_opcodes(src)
+        self.assertEqual([r["handler"] for r in rows], [
+            "lambda$registerElements$0",
+            "lambda$registerElements$1",
+            "lambda$registerElements$2",
+        ])
+        self.assertEqual(
+            [[x["offset"] for x in r["source_free_opcode_offsets"]] for r in rows],
+            [[0, 1, 6, 11, 16, 21, 25], [0, 13, 14], [0, 9, 10]],
+        )
+        self.assertEqual([r["bounded_instruction_count"] for r in rows], [7, 3, 3])
+        wrong_name = src.replace("lambda$registerElements$2(", "wrongCallback(", 1)
+        with self.assertRaisesRegex(ValueError, "ambiguous registration callback"):
+            probe.bounded_registration_callback_opcodes(wrong_name)
+        malformed = src.replace("13: invokeinterface", "0: invokeinterface")
+        with self.assertRaisesRegex(ValueError, "strictly increasing"):
+            probe.bounded_registration_callback_opcodes(malformed)
+        no_return = src.replace("25: return", "25: nop")
+        with self.assertRaisesRegex(ValueError, "trailing return"):
+            probe.bounded_registration_callback_opcodes(no_return)
 
     def test_register_delegate_requires_success_and_error_separation(self) -> None:
         from copy import deepcopy

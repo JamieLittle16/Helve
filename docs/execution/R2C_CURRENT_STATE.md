@@ -151,6 +151,21 @@ product chunk publication, hardware performance winner or sustained
 reconnect/concurrency validation. The nine-source regression stays
 available to the existing local launcher unchanged.
 
+**25-source ACK/backpressure + Play-control fairness regression:** The
+existing official-heightmap-backed, source-Anvil, retained-TCP test
+now *withholds the first finished-batch ACK* for a bounded socket
+timeout. The simulated client asserts no subsequent wire bytes arrive
+until it grants progress, then submits the already-pending teleport
+confirmation (serverbound Play ID 0, sequence 1) immediately before
+the 26.2 batch ACK (ID 11), on the **same TCP stream**. The original
+Play ingress parser must accept the teleport and advance the batch
+without duplicate, reordered or prematurely emitted chunks, and drain
+all 25 receipts with zero unacknowledged batches. The nine-column
+reference remains unchanged. This is a finite synthetic-peer fairness
+and backpressure check, not a 15-second real keep-alive test, an
+arbitrary slow-client quota, production admission or concurrent-server
+readiness claim.
+
 ## Post-visual evidence reproducibility tooling (unadmitted)
 
 The existing `tools/r2c_stock_client_diagnostic.py` launcher now offers

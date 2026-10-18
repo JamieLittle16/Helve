@@ -48,6 +48,27 @@ This makes final-representation materialization visible instead of hiding it beh
 "import" number. Production remains free to select another section mechanism only through the
 section qualification programme.
 
+## Post-visual R2C COLD direct-reference construction
+
+The **server-hosted development** reference path now uses
+`DirectBlockSection::from_decoded_cells` for a nonuniform imported
+section rather than building an all-air section and making 4,096
+`replace` calls. The constructor copies an exact 4,096-cell decoded
+slice into one owned boxed array and derives all four summary counters
+in one pass. Mixed-state per-cell/summary equivalence against the
+original mutation loop, post-import mutation and malformed length
+are tested. The existing 9/25-source Anvil/receipt and socket
+regressions still exercise this hosted importer.
+
+**Important distinct measurement scopes:** the qualification harness
+described below owns its **own direct section builder**, explicitly
+accounting for copied and retained cells, so the new server-host
+constructor does not silently alter or retrospectively improve the
+historical CPU distributions here. A controlled same-machine
+baseline of the actual server-host implementation remains necessary
+before claiming any end-to-end performance gain or selecting an
+M0.3D production policy.
+
 ## Measured stages
 
 `r2c_import_resident_bench` records separate distributions for:

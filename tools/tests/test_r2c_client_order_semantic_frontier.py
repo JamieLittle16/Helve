@@ -45,6 +45,27 @@ def fixture(class_name: str) -> str:
                 "      23: areturn",
             ])
             continue
+        if (root, method) == ("net.minecraft.core.MappedRegistry", "register"):
+            out.extend([
+                "  public java.lang.Object register();", "    Code:",
+                "       0: aload_0",
+                "       1: ifnonnull     5",
+                "       2: aload_0",
+                "       3: athrow",
+                "       5: aload_0",
+                "       6: ifnonnull     10",
+                "       7: aload_0",
+                "       8: athrow",
+                "      10: aload_0",
+                "      11: ifnonnull     15",
+                "      12: aload_0",
+                "      13: athrow",
+                "      15: invokevirtual #14 // Method exact/ObjectList.size:()I",
+                "      16: invokevirtual #14 // Method exact/ObjectList.add:()Z",
+                "      17: invokevirtual #14 // Method exact/Reference2IntMap.put:()I",
+                "      18: areturn",
+            ])
+            continue
         out.extend([f"  public void {method}();", "    Code:",
                     "       0: aload_0", "       1: ifnonnull     4"])
         for i, target in enumerate(probe.REQUIRED_CALLS[(root, method)]):
@@ -81,13 +102,17 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 self.assertTrue(record["ordered_callsite_witness_matches"])
                 self.assertTrue(record["single_normal_return_cfg_path_through_all_calls"])
                 self.assertTrue(record["exception_handler_and_dataflow_semantics_unreviewed"])
-                self.assertEqual(len(record["conditional_branch_edges"]),
-                                 2 if (cls, method) == (
-                                     "net.minecraft.util.Util", "sequence") else 1)
+                self.assertEqual(
+                    len(record["conditional_branch_edges"]),
+                    2 if (cls, method) == ("net.minecraft.util.Util", "sequence")
+                    else 3 if (cls, method) == ("net.minecraft.core.MappedRegistry", "register")
+                    else 1,
+                )
                 self.assertEqual(
                     record["conditional_branch_edges"][0]["to"],
-                    10 if (cls, method) == (
-                        "net.minecraft.util.Util", "sequence") else 4,
+                    10 if (cls, method) == ("net.minecraft.util.Util", "sequence")
+                    else 5 if (cls, method) == ("net.minecraft.core.MappedRegistry", "register")
+                    else 4,
                 )
                 if (cls, method) == ("net.minecraft.util.Util", "sequence"):
                     paths = record["util_sequence_three_normal_branch_witness"]
@@ -100,6 +125,18 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 else:
                     self.assertIsNone(record["util_sequence_three_normal_branch_witness"])
                     self.assertIsNone(record["util_sequence_branch_operand_witness"])
+                if (cls, method) == ("net.minecraft.core.MappedRegistry", "register"):
+                    exits = record["mapped_registry_terminal_path_witness"]
+                    self.assertEqual(
+                        [(x["exit_offset"], x["exit_opcode"]) for x in exits],
+                        [(3, "athrow"), (8, "athrow"), (13, "athrow"), (18, "areturn")],
+                    )
+                    self.assertEqual(
+                        exits[-1]["critical_invokes_before_exit"],
+                        list(probe.REQUIRED_CALLS[(cls, method)]),
+                    )
+                else:
+                    self.assertIsNone(record["mapped_registry_terminal_path_witness"])
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),
                                  len(probe.REQUIRED_CALLS[(cls, method)]))
                 self.assertFalse(record["all_control_flow_paths_reviewed"])
@@ -244,6 +281,33 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 altered = correct.replace(old, new, 1)
                 with self.assertRaisesRegex(ValueError, expected):
                     probe.bounded_method_shape(altered, cls, method)
+
+    def test_mapped_registry_throws_before_mutating_and_returns_after_all_writes(self) -> None:
+        cls, method = probe.METHODS[-1]
+        valid = fixture(cls)
+        exits = probe.bounded_method_shape(valid, cls, method)[
+            "mapped_registry_terminal_path_witness"
+        ]
+        self.assertEqual(sum(x["normal_return"] for x in exits), 1)
+        self.assertTrue(all(not x["critical_invokes_before_exit"] for x in exits[:-1]))
+        # A success-looking return that skips even one write must not be
+        # promoted simply because another CFG path has all three calls.
+        early_return = valid.replace("8: athrow", "8: areturn")
+        with self.assertRaisesRegex(ValueError, "normal return without complete"):
+            probe.bounded_method_shape(early_return, cls, method)
+        # Nor can we treat an explicitly thrown path after writing IDs as
+        # equivalent to all errors occurring before mutation.
+        late_throw = valid.replace("18: areturn", "18: athrow")
+        with self.assertRaisesRegex(
+            ValueError, "explicit throw after ID mutation|no single normal-return JVM path"
+        ):
+            probe.bounded_method_shape(late_throw, cls, method)
+        missing_write = valid.replace(
+            "16: invokevirtual #14 // Method exact/ObjectList.add:()Z",
+            "16: invokevirtual #14 // Method exact/ObjectList.size:()I",
+        )
+        with self.assertRaisesRegex(ValueError, "missing or reordered"):
+            probe.bounded_method_shape(missing_write, cls, method)
 
     def test_full_26_2_client_pipeline_does_not_self_admit(self) -> None:
         raw = jar_bytes()

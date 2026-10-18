@@ -16,7 +16,7 @@ import r2c_client_play_protocol_frontier as probe
 BYTECODE=b"\xca\xfe\xba\xbesynthetic-client-game-protocol"
 
 def fixture(fields:tuple[str,...]=probe.FIELDS)->str:
-    present=set(fields)
+    present=set(fields)|{"CLIENTBOUND_BUNDLE"}
     client_targets={11:"CLIENTBOUND_CHUNK_BATCH_FINISHED",
                     12:"CLIENTBOUND_CHUNK_BATCH_START",
                     45:"CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT",
@@ -108,6 +108,22 @@ class ClientPlayProtocolFrontierTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError,"non-linear"):
             probe.inspect(branched)
+        # The bundle is an actual first entry in the clientbound list,
+        # not a meta-packet that may be added later or subtracted from IDs.
+        without_bundle=fixture().replace(
+            "GamePacketTypes.CLIENTBOUND_BUNDLE:",
+            "GamePacketTypes.CLIENTBOUND_TEST_0:"
+        )
+        with self.assertRaisesRegex(ValueError,"bundle is not registration zero"):
+            probe.inspect(without_bundle)
+        with self.assertRaisesRegex(ValueError,"ambiguous clientbound Play bundle"):
+            probe.inspect(fixture().replace(
+                "GamePacketTypes.CLIENTBOUND_TEST_1:",
+                "GamePacketTypes.CLIENTBOUND_BUNDLE:"
+            ).replace(
+                "ProtocolInfoBuilder.addPacket:",
+                "ProtocolInfoBuilder.withBundlePacket:",1
+            ))
         with self.assertRaisesRegex(ValueError,"cannot parse"):
             probe.inspect("nothing here")
 

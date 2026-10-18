@@ -38,6 +38,45 @@ class LauncherTests(unittest.TestCase):
             *extra,
         ])
 
+    def test_stage_existing_vanilla_regions_without_changing_any_source_bytes(self) -> None:
+        vanilla = self.root / "vanilla-save"
+        (vanilla / "region").mkdir(parents=True)
+        level = b"preserve vanilla saved world metadata"
+        (vanilla / "level.dat").write_bytes(level)
+        originals = {}
+        for i, name in enumerate(diagnostic.FIRST_VIEW_REGIONS):
+            body = b"original anvil region " + bytes([i]) * (i + 1)
+            (vanilla / "region" / name).write_bytes(body)
+            originals[name] = body
+
+        staging = self.root / "disposable"
+        staged = diagnostic.stage_vanilla_overworld(vanilla, staging)
+        self.assertNotEqual(staged, vanilla)
+        self.assertEqual((staged / "level.dat").read_bytes(), level)
+        for name, body in originals.items():
+            copied = staged / "dimensions/minecraft/overworld/region" / name
+            self.assertEqual(copied.read_bytes(), body)
+            self.assertNotEqual(copied.stat().st_ino, (vanilla / "region" / name).stat().st_ino)
+            self.assertEqual((vanilla / "region" / name).read_bytes(), body)
+
+    def test_missing_required_region_or_symlink_never_creates_fake_chunks(self) -> None:
+        vanilla = self.root / "vanilla-save"
+        (vanilla / "region").mkdir(parents=True)
+        (vanilla / "level.dat").write_bytes(b"untouched level")
+        for name in diagnostic.FIRST_VIEW_REGIONS[1:]:
+            (vanilla / "region" / name).write_bytes(b"source")
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "required initial-view region"):
+            diagnostic.stage_vanilla_overworld(vanilla, self.root / "attempt")
+        self.assertFalse((self.root / "attempt").exists())
+        missing = diagnostic.FIRST_VIEW_REGIONS[0]
+        (vanilla / "region" / missing).symlink_to(vanilla / "region" / diagnostic.FIRST_VIEW_REGIONS[1])
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "non-symlink"):
+            diagnostic.stage_vanilla_overworld(vanilla, self.root / "attempt")
+
+    def test_existing_namespaced_overworld_rejects_redundant_vanilla_staging(self) -> None:
+        with self.assertRaisesRegex(diagnostic.DiagnosticError, "already has a namespaced Overworld"):
+            diagnostic.stage_vanilla_overworld(self.world, self.root / "unused")
+
     def test_frozen_heightmap_identity_preflight(self) -> None:
         args = self.arguments("--preflight-only")
         with patch.object(diagnostic, "EXPECTED_DENSE_SHA256", self.checksum):

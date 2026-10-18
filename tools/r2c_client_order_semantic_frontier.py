@@ -126,6 +126,98 @@ def normal_cfg_checkpoint_path(
     return False
 
 
+
+def sequence_normal_branch_witness(
+    instructions: list[tuple[int, str, str]],
+) -> list[dict]:
+    """Check the three exclusive NORMAL exits of pinned client Util.sequence.
+
+    This is structural CFG evidence only. It does not evaluate operands,
+    resolve exception handlers or prove the semantic meaning of a condition.
+    """
+    offsets = {offset: i for i, (offset, _, _) in enumerate(instructions)}
+    if len(offsets) != len(instructions):
+        raise ValueError("duplicate JVM instruction offset in sequence")
+    wanted = REQUIRED_CALLS[("net.minecraft.util.Util", "sequence")]
+    if len(instructions) > MAX_INSTRUCTIONS:
+        raise ValueError("oversized sequence CFG")
+    found: list[dict] = []
+    # Each DFS path is finite and acyclic for this exact two-branch method.
+    # Refuse unexpected loops/branch constructs rather than silently cut off.
+    work = [(0, (), (), frozenset())]
+    while work:
+        i, decisions, calls, visited = work.pop()
+        if i in visited:
+            raise ValueError("sequence normal-path control-flow cycle")
+        visited = visited | {i}
+        offset, opcode, remainder = instructions[i]
+        if opcode.startswith("invoke"):
+            target = _target(remainder)
+            for wanted_symbol in wanted:
+                if wanted_symbol in target:
+                    calls = (*calls, wanted_symbol)
+        if opcode.endswith("return"):
+            found.append({
+                "return_offset": offset,
+                "conditional_choices": [
+                    {"branch_offset": branch, "arm": arm}
+                    for branch, arm in decisions
+                ],
+                "ordered_critical_invokes": list(calls),
+            })
+            if len(found) > 3:
+                raise ValueError("unexpected extra Util.sequence normal-return path")
+            continue
+        if opcode == "athrow":
+            raise ValueError("unexpected explicit Util.sequence throw path")
+        if opcode in ("goto", "goto_w", "jsr", "jsr_w", "ret",
+                      "tableswitch", "lookupswitch"):
+            raise ValueError("unexpected Util.sequence control transfer")
+        if opcode.startswith("if"):
+            match = BRANCH_TARGET.match(remainder)
+            if match is None or int(match.group(1)) not in offsets:
+                raise ValueError("malformed Util.sequence conditional jump")
+            if i + 1 == len(instructions):
+                raise ValueError("conditional fallthrough past method")
+            work.append((
+                offsets[int(match.group(1))],
+                (*decisions, (offset, "target")), calls, visited,
+            ))
+            work.append((
+                i + 1, (*decisions, (offset, "fallthrough")), calls, visited,
+            ))
+        else:
+            if i + 1 == len(instructions):
+                raise ValueError("sequence falls off end without return")
+            work.append((i + 1, decisions, calls, visited))
+        if len(work) > 8:
+            raise ValueError("unexpected Util.sequence normal branch complexity")
+    if len(found) != 3:
+        raise ValueError("Util.sequence must have three normal-return branches")
+    found.sort(key=lambda item: item["return_offset"])
+    # The offset identities are checked independently in the official 26.2
+    # workflow. Here we require distinct control paths through the expected
+    # API checkpoints, ruling out mutually exclusive or missing exits.
+    branches = [tuple(c["arm"] for c in item["conditional_choices"])
+                for item in found]
+    if branches != [
+        ("fallthrough",),
+        ("target", "fallthrough"),
+        ("target", "target"),
+    ]:
+        raise ValueError("Util.sequence empty/single/multiple branch shape drift")
+    # The singleton future also has its own thenApply(List::of) path;
+    # only the multiple-future branch invokes allOf before thenApply.
+    expected_calls = [
+        list(wanted[:1]),
+        [wanted[0], wanted[1], wanted[3]],
+        list(wanted),
+    ]
+    if [item["ordered_critical_invokes"] for item in found] != expected_calls:
+        raise ValueError("Util.sequence exact critical calls do not partition by exit")
+    return found
+
+
 def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict:
     """Extract one declared method, never include a neighbor's instructions."""
     if len(disassembly) > MAX_DISASSEMBLY_CHARS:
@@ -198,6 +290,11 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
     )
     if not cfg_path_exists:
         raise ValueError("ordered invoke checkpoints have no single normal-return JVM path")
+    sequence_paths = (
+        sequence_normal_branch_witness(instructions)
+        if (class_name, method) == ("net.minecraft.util.Util", "sequence")
+        else None
+    )
     # Do not ship full disassembly/instruction lists. Hash the selected raw
     # opcode/operand rows to pin human review of *all* instructions, including
     # branch and exceptional paths that a call-only witness cannot inspect.
@@ -217,6 +314,7 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         "required_ordered_invoke_checkpoints": checkpoints,
         "ordered_callsite_witness_matches": True,
         "single_normal_return_cfg_path_through_all_calls": cfg_path_exists,
+        "util_sequence_three_normal_branch_witness": sequence_paths,
         "exception_handler_and_dataflow_semantics_unreviewed": True,
         "all_control_flow_paths_reviewed": False,
         "exception_and_duplicate_semantics_proven": False,

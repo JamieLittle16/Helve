@@ -98,6 +98,35 @@ jobs:
           assert method_map[("net.minecraft.util.Util", "sequence")]["return_instruction_offsets"] == [
               15, 43, 71
           ]
+          sequence_paths = method_map[("net.minecraft.util.Util", "sequence")][
+              "util_sequence_three_normal_branch_witness"
+          ]
+          assert [path["return_offset"] for path in sequence_paths] == [15, 43, 71]
+          assert [path["conditional_choices"] for path in sequence_paths] == [
+              [{"branch_offset": 6, "arm": "fallthrough"}],
+              [{"branch_offset": 6, "arm": "target"},
+               {"branch_offset": 23, "arm": "fallthrough"}],
+              [{"branch_offset": 6, "arm": "target"},
+               {"branch_offset": 23, "arm": "target"}],
+          ]
+          assert [path["ordered_critical_invokes"] for path in sequence_paths] == [
+              ["List.isEmpty:"],
+              ["List.isEmpty:", "List.size:", "CompletableFuture.thenApply:"],
+              ["List.isEmpty:", "List.size:", "CompletableFuture.allOf:",
+               "CompletableFuture.thenApply:"],
+          ]
+          # Exact source-verified critical invocation counts, including the
+          # singleton thenApply, must not acquire extra calls silently.
+          print("Official Util.sequence critical calls by normal return:", [
+              (path["return_offset"], path["ordered_critical_invokes"])
+              for path in sequence_paths
+          ])
+          assert all(
+              record["util_sequence_three_normal_branch_witness"] is None
+              for record in methods
+              if (record["class_name"], record["method_name"]) !=
+                 ("net.minecraft.util.Util", "sequence")
+          )
           assert branch_edges("net.minecraft.resources.NetworkRegistryLoadTask", "load") == [
               (18, "ifnonnull", 26),
               (89, "ifeq", 187),

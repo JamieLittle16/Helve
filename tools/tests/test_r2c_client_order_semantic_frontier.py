@@ -24,6 +24,27 @@ def fixture(class_name: str) -> str:
     for root, method in probe.METHODS:
         if root != class_name:
             continue
+        if (root, method) == ("net.minecraft.util.Util", "sequence"):
+            # Three deliberately distinguishable, source-FREE method paths.
+            out.extend([
+                "  public void sequence();", "    Code:",
+                "       0: aload_0",
+                "       1: invokeinterface #14 // Method exact/List.isEmpty:()Z",
+                "       2: ifeq          10",
+                "       3: invokestatic  #14 // Method exact/empty:()V",
+                "       4: areturn",
+                "      10: aload_0",
+                "      11: invokeinterface #14 // Method exact/List.size:()I",
+                "      12: iconst_1",
+                "      13: if_icmpne     20",
+                "      14: invokevirtual #14 // Method exact/CompletableFuture.thenApply:()V",
+                "      15: areturn",
+                "      20: aload_0",
+                "      21: invokestatic  #14 // Method exact/CompletableFuture.allOf:()V",
+                "      22: invokevirtual #14 // Method exact/CompletableFuture.thenApply:()V",
+                "      23: areturn",
+            ])
+            continue
         out.extend([f"  public void {method}();", "    Code:",
                     "       0: aload_0", "       1: ifnonnull     4"])
         for i, target in enumerate(probe.REQUIRED_CALLS[(root, method)]):
@@ -60,8 +81,19 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
                 self.assertTrue(record["ordered_callsite_witness_matches"])
                 self.assertTrue(record["single_normal_return_cfg_path_through_all_calls"])
                 self.assertTrue(record["exception_handler_and_dataflow_semantics_unreviewed"])
-                self.assertEqual(len(record["conditional_branch_edges"]), 1)
-                self.assertEqual(record["conditional_branch_edges"][0]["to"], 4)
+                self.assertEqual(len(record["conditional_branch_edges"]),
+                                 2 if (cls, method) == (
+                                     "net.minecraft.util.Util", "sequence") else 1)
+                self.assertEqual(
+                    record["conditional_branch_edges"][0]["to"],
+                    10 if (cls, method) == (
+                        "net.minecraft.util.Util", "sequence") else 4,
+                )
+                if (cls, method) == ("net.minecraft.util.Util", "sequence"):
+                    paths = record["util_sequence_three_normal_branch_witness"]
+                    self.assertEqual([p["return_offset"] for p in paths], [4, 15, 23])
+                else:
+                    self.assertIsNone(record["util_sequence_three_normal_branch_witness"])
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),
                                  len(probe.REQUIRED_CALLS[(cls, method)]))
                 self.assertFalse(record["all_control_flow_paths_reviewed"])
@@ -111,7 +143,7 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
             probe.bounded_method_shape(unsupported, cls, method)
 
     def test_malformed_control_flow_and_uncertain_calls_fail_closed(self) -> None:
-        cls, method = probe.METHODS[3]
+        cls, method = probe.METHODS[1]
         source = fixture(cls)
         with self.assertRaisesRegex(ValueError, "jumps outside parsed"):
             probe.bounded_method_shape(
@@ -129,6 +161,59 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "oversized"):
             probe.bounded_method_shape("!" * (probe.MAX_DISASSEMBLY_CHARS + 1),
                                        cls, method)
+
+    def test_util_sequence_three_exits_are_distinct_and_complete(self) -> None:
+        cls, method = probe.METHODS[3]
+        source = fixture(cls)
+        certificate = probe.bounded_method_shape(source, cls, method)
+        paths = certificate["util_sequence_three_normal_branch_witness"]
+        self.assertEqual(
+            paths[1]["ordered_critical_invokes"],
+            ["List.isEmpty:", "List.size:", "CompletableFuture.thenApply:"],
+        )
+        self.assertEqual(
+            [p["conditional_choices"] for p in paths],
+            [
+                [{"branch_offset": 2, "arm": "fallthrough"}],
+                [{"branch_offset": 2, "arm": "target"},
+                 {"branch_offset": 13, "arm": "fallthrough"}],
+                [{"branch_offset": 2, "arm": "target"},
+                 {"branch_offset": 13, "arm": "target"}],
+            ],
+        )
+        extra_size = source.replace(
+            "20: aload_0", "20: invokevirtual #14 // Method exact/List.size:()I",
+        )
+        with self.assertRaisesRegex(ValueError, "exact critical calls"):
+            probe.bounded_method_shape(extra_size, cls, method)
+        duplicate_allof = source.replace(
+            "20: aload_0",
+            "20: invokestatic #14 // Method exact/CompletableFuture.allOf:()V",
+        )
+        with self.assertRaisesRegex(ValueError, "exact critical calls"):
+            probe.bounded_method_shape(duplicate_allof, cls, method)
+        # Lexical ordered calls and even an existential *multi* path are
+        # insufficient if either the empty or the singleton exit disappears.
+        missing_singleton = source.replace("13: if_icmpne     20",
+                                           "13: goto          20")
+        with self.assertRaisesRegex(
+            ValueError, "three normal-return branches|unexpected Util.sequence control transfer"
+        ):
+            probe.bounded_method_shape(missing_singleton, cls, method)
+        unexpected_call = source.replace(
+            "3: invokestatic  #14 // Method exact/empty:()V",
+            "3: invokestatic  #14 // Method exact/List.size:()I",
+        )
+        with self.assertRaisesRegex(ValueError, "normal-return JVM path|critical invokes"):
+            probe.bounded_method_shape(unexpected_call, cls, method)
+        third_exits_early = source.replace(
+            "21: invokestatic  #14 // Method exact/CompletableFuture.allOf:()V",
+            "21: areturn",
+        )
+        with self.assertRaisesRegex(
+            ValueError, "missing or reordered|normal-return JVM path|critical invokes"
+        ):
+            probe.bounded_method_shape(third_exits_early, cls, method)
 
     def test_full_26_2_client_pipeline_does_not_self_admit(self) -> None:
         raw = jar_bytes()

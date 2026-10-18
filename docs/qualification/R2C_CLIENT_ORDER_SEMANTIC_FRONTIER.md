@@ -122,6 +122,49 @@ to prove what happens on empty/missing/duplicate/error registrations.
 Then source-gate the narrowed registry/Configuration/client decision
 set. No new source parser or runtime biome registry is needed.
 
+## Distinct normal-return cases for `Util.sequence` (current review)
+
+The existing official 26.2 client branch/shape reviewer now verifies the
+**three separate normal-return execution paths** of the exact pinned
+`net.minecraft.util.Util#sequence` method. It follows both arms of the
+two conditional branches on the *original client instruction sequence*,
+rejects cycles/unsupported transfers or unexpected exits, and enforces
+the following **structural** checkpoint partitions. The table lists
+the **exact** critical invocation sequence observed on each branch:
+any additional, omitted or reordered matching API call fails the pinned
+26.2 review contract:
+
+| Normal return offset | Conditional branch decisions | Ordered critical invocation sites |
+| --- | --- | --- |
+| 15 | 6: fallthrough | `List.isEmpty` |
+| 43 | 6: target; 23: fallthrough | `List.isEmpty`, `List.size`, `CompletableFuture.thenApply` |
+| 71 | 6: target; 23: target | `List.isEmpty`, `List.size`, `CompletableFuture.allOf`, `CompletableFuture.thenApply` |
+
+These exact offsets are pinned independently by the official-client
+workflow along with whole-instruction method fingerprints. The
+standalone Java 25 JDK oracle already verifies ordered completion and
+exceptional propagation **for the modeled JDK operation sequence**
+at lengths 0, 1, 2, 3, 4 and 66. The new CFG evidence strengthens
+the link to three structurally distinct client paths; it does
+**not** prove the values on the operand stack, branch operands,
+empty/singleton/multiple preconditions, actual source-level exception
+handler coverage or all asynchronous callbacks.
+
+The singleton path's `thenApply` is separate from the multi-future
+`allOf(...).thenApply(...)` chain: sharing a callback API does **not**
+mean the two paths have the same scheduling or exception behavior.
+
+The result therefore remains a **source-free candidate**. In particular
+`complete_semantic_review=false`,
+`client_numeric_id_assignment_proven=false`,
+`source_var_sem_admitted=false`, and
+`production_admitted=false` remain mandatory. The next human
+source/bytecode review must check the operand/dataflow semantics at the
+branches and the registration callback's failure and duplicate paths;
+the full source VAR/SEM independent gate still has to be passed.
+No new Java parser, source corpus, registry implementation or
+product admission path was introduced.
+
 ## Interpret the evidence carefully
 
 Structural call ordering is **necessary but not sufficient** to establish

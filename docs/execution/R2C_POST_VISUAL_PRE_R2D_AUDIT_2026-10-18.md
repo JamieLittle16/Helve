@@ -2,6 +2,15 @@
 
 Baseline: `093ae2cee68c86706beebaeb6986d5c088d62e57`; official Minecraft Java 26.2, protocol 776, DataVersion 4903.
 
+**Historical audit update (PR #389, 18 October):** The ordinary
+executable now creates a single nonpublishing COLD `R2cColdWorldHost`
+before the accept loop and reuses its resident directory/receipts across
+sequential client lifetimes, with a fresh client batch cursor. The
+per-connection import finding below describes the *pre-PR #389* baseline
+and still applies to the isolated ignored stock-client diagnostic.
+Source-admitted Play publication, concurrency and R3 active region ownership
+remain open. See `R2C_CURRENT_STATE.md` for the authoritative current ledger.
+
 **New manual evidence:** user reports a successful test-only native 25-source-chunk join: the center 3×3 chunk columns are visibly rendered in unmodified Minecraft; the surrounding ring is loaded but unmeshed, matching the expected neighbor dependency. This proves real visible terrain from the Anvil-backed Helve pipeline, not complete VAR/SEM production admission or measured multi-client throughput. The two offending block entities in the extended halo were removed using vanilla before the successful test. Archive exact world/client/source hashes, screenshot, complete server log and accepted batch/teleport/keep-alive status separately; visual success alone does not certify those counters.
 
 ## Architecture findings

@@ -110,6 +110,17 @@ def consecutive_registration_order(rows:list[tuple[int,str,str]], direction:str)
                 raise ValueError("unbounded packet builder registrations")
     if packet is not None or not entries:
         raise ValueError("incomplete packet type registration chain")
+    # This is a real ordinal, not an out-of-band protocol flag. The
+    # clientbound bundler must consume slot zero; it must never shift the
+    # independently counted ordinary addPacket registrations afterward.
+    if direction == "clientbound":
+        if (entries[0]["field"] != "CLIENTBOUND_BUNDLE"
+                or not entries[0]["bundle_registration"]):
+            raise ValueError("clientbound Play bundle is not registration zero")
+        if sum(entry["bundle_registration"] for entry in entries) != 1:
+            raise ValueError("ambiguous clientbound Play bundle registration")
+    elif any(entry["bundle_registration"] for entry in entries):
+        raise ValueError("serverbound Play builder unexpectedly contains a bundle")
     return entries
 
 def inspect(disassembly: str) -> dict:

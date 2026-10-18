@@ -193,6 +193,11 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         }
         for item in matched
     ]
+    cfg_path_exists = normal_cfg_checkpoint_path(
+        instructions, [checkpoint["offset"] for checkpoint in checkpoints]
+    )
+    if not cfg_path_exists:
+        raise ValueError("ordered invoke checkpoints have no single normal-return JVM path")
     # Do not ship full disassembly/instruction lists. Hash the selected raw
     # opcode/operand rows to pin human review of *all* instructions, including
     # branch and exceptional paths that a call-only witness cannot inspect.
@@ -211,6 +216,8 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         ],
         "required_ordered_invoke_checkpoints": checkpoints,
         "ordered_callsite_witness_matches": True,
+        "single_normal_return_cfg_path_through_all_calls": cfg_path_exists,
+        "exception_handler_and_dataflow_semantics_unreviewed": True,
         "all_control_flow_paths_reviewed": False,
         "exception_and_duplicate_semantics_proven": False,
     }

@@ -112,6 +112,66 @@ that the `Either` branches always execute without exceptional
 interleavings, or that a nonempty error map aborts the final registry,
 nor VAR/SEM admission. No source, JAR or disassembly is checked in.
 
+## Callback operand-path candidate and partial-failure model
+
+The already rooted `RegistryLoadTask.lambda$registerElements$0/$1/$2`
+methods now have an additional **bounded local operand-construction
+witness**, using this same `javap -v -p -c` pass. For each method the
+inspector records at most 48 opcode/offset pairs, exact reached
+`getfield` identities and the complete method-instruction SHA-256,
+without exporting original source, raw instruction operands, method
+bodies or disassembly. The official-client workflow independently pins
+the three full fingerprints:
+
+| Client callback | Exact official method SHA-256 |
+| --- | --- |
+| `lambda$registerElements$0` | `428ca10f04d28d66ea7ada23b67f72c7ee819ff87842554e83ef798333cdba55` |
+| `lambda$registerElements$1` | `3ceaf249ecfe9c115211442c7a8ce1a18d9f5842a76f3bf2aba3e7b0dda6342e` |
+| `lambda$registerElements$2` | `7a8e087f0a776b2f2db35b4622a7e1fbcd2685a074059fefe782475fec5f27d2` |
+
+This closes a bounded **JVM operand provenance** gap. The exact
+`$0` instruction sequence loads `PendingRegistration.value:Either`,
+creates the left-side `Consumer` and calls `Either.ifLeft`.
+Its returned `Either` remains the operand-stack receiver while a
+right-side `Consumer` is constructed and `Either.ifRight` is called;
+the result is popped. The `$1` success lambda loads
+`RegistryLoadTask.registry:WritableRegistry`,
+`PendingRegistration.key`, the decoded value (`aload_2`)
+and `PendingRegistration.registrationInfo`, then invokes the
+`WritableRegistry.register` interface. The `$2` error lambda
+loads `RegistryLoadTask.loadingErrors:Map`, the same entry key and
+the exception (`aload_2`), then invokes `Map.put`.
+
+These are actual official-client *local* operand constructions and
+distinct capture destinations, not a transcribed source-code guess.
+They still do **not** independently prove the library's actual
+`Either.ifLeft/ifRight` behavior, the concrete `WritableRegistry`
+receiver's runtime implementation, order/error effects of entire
+registry loading, or that a partially successful registry is refused
+at finalization. In particular, method shapes do not prove that
+`WritableRegistry.register` dispatches to the separately reviewed
+`MappedRegistry` for every relevant client execution.
+
+A separate **JDK 25 conditional failure oracle** in
+`tools/tests/R2cClientSequenceJdkOracle.java` now tests two
+distinct scenarios at all nonempty lengths 1, 2, 3, 4 and 66
+and every possible failing position:
+
+- A sequential `Stream.forEach` callback **throw** leaves the
+  previously committed model prefix intact, propagates the error, and
+  stops before the suffix. A JVM monitor is not a rollback mechanism.
+- A **reported** per-entry error routed to a model map while
+  other callbacks continue leaves a dense ordinal table of successful
+  entries; every entry *after* the skipped error shifts down by one.
+  The model cannot establish whether the actual client permits such
+  a registry to finalize.
+
+The latter is a deliberately adversarial **conditional model**:
+the actual stock client `Either` values, callback dataflow, error
+map processing, and registry finalization remain pending independent
+source/SEM review. Neither oracle results nor method-opcode metadata
+may inhabit R2C production authority.
+
 ## What this still cannot certify
 
 Even a fully resolved lambda bootstrap does not itself prove:

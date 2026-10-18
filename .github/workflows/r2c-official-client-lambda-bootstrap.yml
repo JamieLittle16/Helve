@@ -104,6 +104,32 @@ jobs:
                          "RegistryLoadTask.lambda$registerElements$2:")
           assert task_root["success_error_dispatch_callsite_shapes_pinned"]
           assert not task_root["full_register_or_error_semantics_proven"]
+          assert task_root["local_callback_operand_construction_pinned"] is True
+          assert task_root["concrete_registry_dispatch_and_finalization_proven"] is False
+          opcode_shapes = task_root["register_consumer_opcode_shapes_candidate"]
+          assert [entry["handler"] for entry in opcode_shapes] == [
+              "lambda$registerElements$0", "lambda$registerElements$1",
+              "lambda$registerElements$2",
+          ]
+          assert all(1 <= entry["bounded_instruction_count"] <= 48
+                     for entry in opcode_shapes)
+          # Independent from the probe's structural checks: exact full
+          # instruction hashes of all three official SHA/size-pinned
+          # Minecraft Java 26.2 receiving-client callback methods.
+          assert [entry["instruction_shape_sha256"] for entry in opcode_shapes] == [
+              "428ca10f04d28d66ea7ada23b67f72c7ee819ff87842554e83ef798333cdba55",
+              "3ceaf249ecfe9c115211442c7a8ce1a18d9f5842a76f3bf2aba3e7b0dda6342e",
+              "7a8e087f0a776b2f2db35b4622a7e1fbcd2685a074059fefe782475fec5f27d2",
+          ]
+          print("Exact source-free callback opcode skeletons:",
+                [(entry["handler"], entry["source_free_opcode_offsets"])
+                 for entry in opcode_shapes])
+          print("Exact source-free callback field references:",
+                [(entry["handler"], entry["bounded_field_refs"])
+                 for entry in opcode_shapes])
+          print("Exact client callback instruction shape SHA256:",
+                [(entry["handler"], entry["instruction_shape_sha256"])
+                 for entry in opcode_shapes])
           callbacks = task_root["register_consumer_delegate_invocations_candidate"]
           assert [entry["handler"] for entry in callbacks] == [
               "lambda$registerElements$0",

@@ -89,25 +89,42 @@ def registration_consumer_fixture() -> str:
   private void lambda$registerElements$0(net.minecraft.resources.RegistryLoadTask$PendingRegistration);
     descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)V
     Code:
-       0: aload_0
-       1: aload_1
+       0: aload_1
+       1: getfield #200 // Field net/minecraft/resources/RegistryLoadTask$PendingRegistration.value:Lcom/mojang/datafixers/util/Either;
+       4: aload_0
+       5: aload_1
        6: invokedynamic #111,  0 // InvokeDynamic #1:accept:(Lnet/minecraft/resources/RegistryLoadTask;Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)Ljava/util/function/Consumer;
       11: invokevirtual #103 // Method com/mojang/datafixers/util/Either.ifLeft:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
+      14: aload_0
+      15: aload_1
       16: invokedynamic #112,  0 // InvokeDynamic #2:accept:(Lnet/minecraft/resources/RegistryLoadTask;Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;)Ljava/util/function/Consumer;
       21: invokevirtual #106 // Method com/mojang/datafixers/util/Either.ifRight:(Ljava/util/function/Consumer;)Lcom/mojang/datafixers/util/Either;
+      24: pop
       25: return
   private void lambda$registerElements$1(net.minecraft.resources.RegistryLoadTask$PendingRegistration, java.lang.Object);
     descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Object;)V
     Code:
        0: aload_0
+       1: getfield #201 // Field registry:Lnet/minecraft/core/WritableRegistry;
+       4: aload_1
+       5: getfield #202 // Field net/minecraft/resources/RegistryLoadTask$PendingRegistration.key:Lnet/minecraft/resources/ResourceKey;
+       8: aload_2
+       9: aload_1
+      10: getfield #203 // Field net/minecraft/resources/RegistryLoadTask$PendingRegistration.registrationInfo:Lnet/minecraft/core/RegistrationInfo;
       13: invokeinterface #104,  4 // InterfaceMethod net/minecraft/core/WritableRegistry.register:(Lnet/minecraft/resources/ResourceKey;Ljava/lang/Object;Lnet/minecraft/core/RegistrationInfo;)Lnet/minecraft/core/Holder$Reference;
-       4: return
+      18: pop
+      19: return
   private void lambda$registerElements$2(net.minecraft.resources.RegistryLoadTask$PendingRegistration, java.lang.Exception);
     descriptor: (Lnet/minecraft/resources/RegistryLoadTask$PendingRegistration;Ljava/lang/Exception;)V
     Code:
        0: aload_0
+       1: getfield #204 // Field loadingErrors:Ljava/util/Map;
+       4: aload_1
+       5: getfield #205 // Field net/minecraft/resources/RegistryLoadTask$PendingRegistration.key:Lnet/minecraft/resources/ResourceKey;
+       8: aload_2
        9: invokeinterface #105,  3 // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-       4: return
+      14: pop
+      15: return
 }
 BootstrapMethods:
   0: #120 REF_invokeStatic java/lang/invoke/LambdaMetafactory.metafactory:(...)
@@ -185,6 +202,44 @@ class ClientLambdaBootstrapFrontierTests(unittest.TestCase):
                 self.assertEqual(secondary["impl_handle_kind"], "REF_invokeVirtual")
                 self.assertIn("CompletableFuture.join",
                               secondary["impl_handle_target_candidate"])
+
+    def test_register_delegate_opcode_skeletons_are_bounded_and_exact(self) -> None:
+        src = registration_consumer_fixture()
+        rows = probe.bounded_registration_callback_opcodes(src)
+        self.assertEqual([r["handler"] for r in rows], [
+            "lambda$registerElements$0",
+            "lambda$registerElements$1",
+            "lambda$registerElements$2",
+        ])
+        self.assertEqual(
+            [[x["offset"] for x in r["source_free_opcode_offsets"]] for r in rows],
+            [[0, 1, 4, 5, 6, 11, 14, 15, 16, 21, 24, 25],
+             [0, 1, 4, 5, 8, 9, 10, 13, 18, 19],
+             [0, 1, 4, 5, 8, 9, 14, 15]],
+        )
+        self.assertEqual([r["bounded_instruction_count"] for r in rows], [12, 10, 8])
+        probe.require_registration_callback_operands(rows)
+        self.assertEqual(
+            [len(r["bounded_field_refs"]) for r in rows], [1, 3, 2]
+        )
+        from copy import deepcopy
+        wrong_receiver = deepcopy(rows)
+        wrong_receiver[1]["bounded_field_refs"][0]["field"] = "errors:Ljava/util/Map;"
+        with self.assertRaisesRegex(ValueError, "captured field identity"):
+            probe.require_registration_callback_operands(wrong_receiver)
+        different_source = deepcopy(rows)
+        different_source[0]["source_free_opcode_offsets"][0]["opcode"] = "aload_0"
+        with self.assertRaisesRegex(ValueError, "operand opcode path"):
+            probe.require_registration_callback_operands(different_source)
+        wrong_name = src.replace("lambda$registerElements$2(", "wrongCallback(", 1)
+        with self.assertRaisesRegex(ValueError, "ambiguous registration callback"):
+            probe.bounded_registration_callback_opcodes(wrong_name)
+        malformed = src.replace("13: invokeinterface", "0: invokeinterface")
+        with self.assertRaisesRegex(ValueError, "strictly increasing"):
+            probe.bounded_registration_callback_opcodes(malformed)
+        no_return = src.replace("25: return", "25: nop")
+        with self.assertRaisesRegex(ValueError, "trailing return"):
+            probe.bounded_registration_callback_opcodes(no_return)
 
     def test_register_delegate_requires_success_and_error_separation(self) -> None:
         from copy import deepcopy

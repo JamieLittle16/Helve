@@ -1,7 +1,8 @@
-//! Explicit, source-unadmitted **COLD** Anvil import for the opted-in R2B
-//! playtest. No target packet ID, new world owner, outbound queue, or Play
-//! publication. The returned one-authority resident is retained by the
-//! original connection service loop, not discarded after import.
+//! Explicit, source-unadmitted **COLD** Anvil import for the R2C development
+//! boundary. The ordinary executable creates one server-lifetime resident
+//! dimension and immutable source receipts before accepting clients, while
+//! the stock-client diagnostic retains its separate test-only import path.
+//! Sessions own cursors, not chunks. No second queue or Play publication.
 //!
 //! Reference sections are a correctness baseline for the *development demo*
 //! only, not the M0.3D/issue #19 production section representation decision.

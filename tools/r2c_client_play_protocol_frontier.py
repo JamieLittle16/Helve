@@ -188,6 +188,7 @@ def inspect(disassembly: str) -> dict:
                     )
         methods.append({
             "candidate_complete_add_packet_registrations":len(order),
+            "first_registration_candidate":order[0] if order else None,
             "target_packet_ordinals_candidate":[
                 entry for entry in order if entry["field"] in FIELDS
             ],

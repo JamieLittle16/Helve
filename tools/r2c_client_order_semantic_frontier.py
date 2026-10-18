@@ -90,6 +90,42 @@ def _ordered_subsequence(actual: list[str], required: tuple[str, ...]) -> list[d
     return selected
 
 
+
+def normal_cfg_checkpoint_path(
+    instructions: list[tuple[int, str, str]], wanted: list[int],
+) -> bool:
+    """Check existence of one normal-return bytecode path visiting all calls."""
+    where = {offset: i for i, (offset, _, _) in enumerate(instructions)}
+    if not wanted or any(offset not in where for offset in wanted):
+        raise ValueError("missing CFG checkpoint")
+    states = [(0, 0)]
+    seen: set[tuple[int, int]] = set()
+    while states:
+        i, n = states.pop()
+        if (i, n) in seen:
+            continue
+        seen.add((i, n))
+        offset, op, rest = instructions[i]
+        if n < len(wanted) and offset == wanted[n]:
+            n += 1
+        if op.endswith("return") and n == len(wanted):
+            return True
+        if op.endswith("return") or op == "athrow":
+            continue
+        if op.startswith("if") or op in ("goto", "goto_w"):
+            m = BRANCH_TARGET.match(rest)
+            if m is None or int(m.group(1)) not in where:
+                raise ValueError("invalid CFG branch")
+            states.append((where[int(m.group(1))], n))
+            if op.startswith("goto"):
+                continue
+        elif op in ("tableswitch", "lookupswitch", "jsr", "ret", "jsr_w"):
+            raise ValueError("unsupported CFG transfer")
+        if i + 1 < len(instructions):
+            states.append((i + 1, n))
+    return False
+
+
 def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict:
     """Extract one declared method, never include a neighbor's instructions."""
     if len(disassembly) > MAX_DISASSEMBLY_CHARS:
@@ -157,6 +193,11 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         }
         for item in matched
     ]
+    cfg_path_exists = normal_cfg_checkpoint_path(
+        instructions, [checkpoint["offset"] for checkpoint in checkpoints]
+    )
+    if not cfg_path_exists:
+        raise ValueError("ordered invoke checkpoints have no single normal-return JVM path")
     # Do not ship full disassembly/instruction lists. Hash the selected raw
     # opcode/operand rows to pin human review of *all* instructions, including
     # branch and exceptional paths that a call-only witness cannot inspect.
@@ -175,6 +216,8 @@ def bounded_method_shape(disassembly: str, class_name: str, method: str) -> dict
         ],
         "required_ordered_invoke_checkpoints": checkpoints,
         "ordered_callsite_witness_matches": True,
+        "single_normal_return_cfg_path_through_all_calls": cfg_path_exists,
+        "exception_handler_and_dataflow_semantics_unreviewed": True,
         "all_control_flow_paths_reviewed": False,
         "exception_and_duplicate_semantics_proven": False,
     }

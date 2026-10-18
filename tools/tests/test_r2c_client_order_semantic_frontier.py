@@ -58,6 +58,8 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
             with self.subTest(cls=cls, method=method):
                 record = probe.bounded_method_shape(fixture(cls), cls, method)
                 self.assertTrue(record["ordered_callsite_witness_matches"])
+                self.assertTrue(record["single_normal_return_cfg_path_through_all_calls"])
+                self.assertTrue(record["exception_handler_and_dataflow_semantics_unreviewed"])
                 self.assertEqual(len(record["conditional_branch_edges"]), 1)
                 self.assertEqual(record["conditional_branch_edges"][0]["to"], 4)
                 self.assertEqual(len(record["required_ordered_invoke_checkpoints"]),
@@ -90,6 +92,23 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         no_body = original.replace("    Code:", "    Missing:", 1)
         with self.assertRaisesRegex(ValueError, "no executable Code"):
             probe.bounded_method_shape(no_body, cls, method)
+
+    def test_textual_call_order_must_also_have_one_executable_cfg_path(self) -> None:
+        cls, method = probe.METHODS[0]
+        original = fixture(cls)
+        # Both calls still occur in textual order, but the unconditional jump
+        # bypasses the first call. A substring-only probe falsely accepts it.
+        unreachable = original.replace("1: ifnonnull     4", "1: goto          5")
+        with self.assertRaisesRegex(ValueError, "no single normal-return JVM path"):
+            probe.bounded_method_shape(unreachable, cls, method)
+        self.assertTrue(
+            probe.bounded_method_shape(original, cls, method)[
+                "single_normal_return_cfg_path_through_all_calls"
+            ]
+        )
+        unsupported = original.replace("1: ifnonnull     4", "1: tableswitch  4")
+        with self.assertRaisesRegex(ValueError, "unsupported CFG transfer"):
+            probe.bounded_method_shape(unsupported, cls, method)
 
     def test_malformed_control_flow_and_uncertain_calls_fail_closed(self) -> None:
         cls, method = probe.METHODS[3]

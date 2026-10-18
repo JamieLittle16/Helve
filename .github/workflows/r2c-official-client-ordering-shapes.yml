@@ -118,6 +118,8 @@ jobs:
 
           for record in methods:
               assert record["ordered_callsite_witness_matches"]
+              assert record["single_normal_return_cfg_path_through_all_calls"]
+              assert record["exception_handler_and_dataflow_semantics_unreviewed"]
               assert not record["all_control_flow_paths_reviewed"]
               assert not record["exception_and_duplicate_semantics_proven"]
               assert len(record["conditional_branch_edges"]) <= 96

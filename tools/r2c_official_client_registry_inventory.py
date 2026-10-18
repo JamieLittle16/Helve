@@ -288,6 +288,119 @@ def loader_async_lambda_candidates(disassembly: str) -> list[dict]:
     ]
 
 
+
+def factory_lambda_bootstrap_candidates(
+    verbose: str, declared_lambdas: set[str],
+) -> list[dict]:
+    """Link the receiver-reached LoaderFactory overload's invokedynamic sites.
+
+    javap -v provides the actual BootstrapMethods indices and implementation
+    handles. This verifies *constant-pool linkage*, not Java control flow,
+    async completion order, or independently reviewed source semantics.
+    Method bodies and raw class bytes are not returned to the report.
+    """
+    lines = verbose.splitlines()
+    if len(verbose) > 4_000_000:
+        raise ValueError("registry loader verbose class inspection exceeds bound")
+    method_header = re.compile(
+        r"  (?:[^;{}]+ )?([\w$<>]+)\([^;]*\)(?: throws [^;]+)?;"
+    )
+    headers = [
+        (index, line)
+        for index, line in enumerate(lines)
+        if method_header.fullmatch(line) is not None
+    ]
+    selected = [
+        (index, signature) for index, signature in headers
+        if " load(" in signature
+        and "net.minecraft.resources.RegistryDataLoader$LoaderFactory" in signature
+        and signature.count("java.util.List") >= 2
+        and "java.util.concurrent.Executor" in signature
+        and "net.minecraft.server.packs.resources.ResourceProvider" not in signature
+    ]
+    if len(selected) != 1:
+        raise ValueError("verbose registry loader factory overload must resolve exactly once")
+    start, _ = selected[0]
+    end = next((index for index, _ in headers if index > start), len(lines))
+    callsites: list[tuple[int, int, str]] = []
+    for line in lines[start:end]:
+        match = re.fullmatch(
+            r"\s*(\d+):\s+invokedynamic\s+#\d+,\s*\d+"
+            r"\s+// InvokeDynamic #(\d+):([A-Za-z_$][\w$]*):\S+",
+            line,
+        )
+        if match is not None:
+            callsites.append((int(match[1]), int(match[2]), match[3]))
+            if len(callsites) > MAX_LOADER_LAMBDAS:
+                raise ValueError("factory invokedynamic call-site cap exceeded")
+    if not callsites:
+        raise ValueError("factory has no inspected invokedynamic call sites")
+    if len({offset for offset, _, _ in callsites}) != len(callsites):
+        raise ValueError("factory has duplicate invokedynamic instruction offsets")
+
+    sections = [i for i, line in enumerate(lines) if line == "BootstrapMethods:"]
+    if len(sections) != 1:
+        raise ValueError("exactly one BootstrapMethods table is required")
+    records: dict[int, dict] = {}
+    current: int | None = None
+    for line in lines[sections[0] + 1:]:
+        if line and not line[0].isspace():
+            break
+        header = re.fullmatch(r"  (\d+): #\d+ (REF_\w+) (\S+)", line)
+        if header is not None:
+            index = int(header[1])
+            if index in records or len(records) >= 256:
+                raise ValueError("duplicate or excessive BootstrapMethods entries")
+            records[index] = {"bootstrap_kind": header[2],
+                              "bootstrap_target": header[3], "arguments": []}
+            current = index
+            continue
+        argument = re.fullmatch(r"\s+#\d+ (REF_\w+) (\S+)", line)
+        if argument is not None and current is not None:
+            values = records[current]["arguments"]
+            if len(values) >= 32:
+                raise ValueError("bootstrap method argument cap exceeded")
+            values.append((argument[1], argument[2]))
+
+    result: list[dict] = []
+    for offset, bootstrap_index, functional_name in callsites:
+        bootstrap = records.get(bootstrap_index)
+        if bootstrap is None:
+            raise ValueError("factory invokedynamic refers to absent bootstrap index")
+        if (bootstrap["bootstrap_kind"] != "REF_invokeStatic"
+            or not bootstrap["bootstrap_target"].startswith(
+                "java/lang/invoke/LambdaMetafactory.metafactory:"
+            )):
+            raise ValueError("factory invokedynamic is not the selected LambdaMetafactory")
+        linked = []
+        for kind, target in bootstrap["arguments"]:
+            match = re.fullmatch(
+                r"(?:net/minecraft/resources/|net\.minecraft\.resources\.)"
+                r"RegistryDataLoader\.(lambda\$load\$\d+):(\S+)",
+                target,
+            )
+            if match is not None:
+                linked.append((kind, match[1], match[2]))
+        if len(linked) != 1 or linked[0][1] not in declared_lambdas:
+            raise ValueError("ambiguous or undeclared factory lambda implementation handle")
+        kind, method, descriptor = linked[0]
+        if kind not in ("REF_invokeStatic", "REF_invokeVirtual", "REF_invokeSpecial"):
+            raise ValueError("unsupported factory lambda implementation handle kind")
+        result.append({
+            "invokedynamic_offset": offset,
+            "bootstrap_table_index": bootstrap_index,
+            "functional_name": functional_name,
+            "implementation_method_candidate": method,
+            "implementation_handle_kind": kind,
+            "implementation_descriptor_sha256": hashlib.sha256(
+                descriptor.encode("utf-8")
+            ).hexdigest(),
+            "constant_pool_linkage_inspected": True,
+            "invocation_order_semantics_admitted": False,
+        })
+    return result
+
+
 def registry_loader_overload_candidate(client: Path) -> dict:
     """Resolve *one* five-argument loader actually invoked by the collector.
 
@@ -350,6 +463,15 @@ def registry_loader_overload_candidate(client: Path) -> dict:
     if not 4 <= len(raw) <= MAX_CLASS_BYTES or raw[:4] != b"\xca\xfe\xba\xbe":
         raise ValueError("official RegistryDataLoader classfile is malformed")
     lambda_candidates = loader_async_lambda_candidates(result.stdout)
+    verbose = subprocess.run(
+        ["javap", "-v", "-c", "-p", "-classpath", str(client), LOADER_CLASS],
+        capture_output=True, text=True, timeout=30, check=False,
+    )
+    if verbose.returncode or len(verbose.stdout) > 4_000_000:
+        raise ValueError("official registry loader bootstrap inspection unavailable or unbounded")
+    bootstrap_candidates = factory_lambda_bootstrap_candidates(
+        verbose.stdout, {value["method_name"] for value in lambda_candidates},
+    )
     return {
         "class_name": LOADER_CLASS,
         "classfile_sha256_candidate": hashlib.sha256(raw).hexdigest(),
@@ -362,6 +484,8 @@ def registry_loader_overload_candidate(client: Path) -> dict:
         ).hexdigest(),
         "factory_overload_invoke_sites_candidate": factory_sites,
         "async_lambda_candidates": lambda_candidates,
+        "factory_lambda_bootstrap_candidates": bootstrap_candidates,
+        "bootstrap_linkage_source_reviewed": False,
         "source_inspected": False,
         "client_registration_order_admitted": False,
     }

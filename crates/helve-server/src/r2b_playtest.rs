@@ -679,6 +679,7 @@ pub fn serve_r2b_playtest_with_r2c_cold_plan(
 /// Every product caller supplies `NoChunks`. The only positive variant
 /// exists in Rust's test build, where it remains an unadmitted visual
 /// diagnostic rather than an R2C source/VAR/SEM acceptance decision.
+#[derive(Clone, Copy)]
 enum WorldPublicationMode {
     NoChunks,
     #[cfg(test)]

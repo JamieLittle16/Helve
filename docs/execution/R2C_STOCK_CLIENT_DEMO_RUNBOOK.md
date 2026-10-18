@@ -219,6 +219,46 @@ python3 tools/r2c_stock_client_diagnostic.py \
   --heightmap-bin "/absolute/path/to/26.2-heightmap-state-facts-candidate.bin"
 ```
 
+### Freeze exact source evidence for a diagnostic run
+
+The existing launcher supports an optional **local source-free evidence
+manifest**, written to a **new, private** JSON file *outside* Helve.
+It reuses the existing first-view selection, source audit, R2B packer,
+heightmap validator and Rust test: no second NBT decoder or source-law
+shortcut is introduced.
+
+```bash
+python3 tools/r2c_stock_client_diagnostic.py \
+  --world "/absolute/path/to/26.2-save" \
+  --r2b-image "/absolute/path/to/helve-r2b-playtest.bin" \
+  --heightmap-bin "/absolute/path/to/26.2-heightmap-state-facts-candidate.bin" \
+  --render-halo \
+  --evidence-json "/tmp/helve-r2c-25-source-evidence.json"
+```
+
+This records the **ordered 25 source coordinates**, SHA-256 and byte
+lengths of `level.dat` and each selected signed Anvil region, and
+digests for the R2B image and dense heightmap candidate. It rejects
+missing, oversized or linked files. With `--stage-vanilla-overworld`,
+the disposable snapshot must match the original save byte-for-byte.
+All input hashes are checked again **after** the test; source drift
+withholds the success report rather than claiming a reproducible run.
+
+The report is created mode `0600`, never overwritten or committed under
+the repository. It contains **only relative filenames and hashes**,
+not NBT payloads, Mojang source, saved chunks, absolute user paths or
+network captures. It explicitly fixes
+`source_var_sem_admitted=false`,
+`production_chunk_publication_admitted=false`, and
+`stock_client_pixels_independently_verified=false`.
+
+Add `--preflight-only` for a digest snapshot without any listener:
+`PREFLIGHT_ONLY_NO_CLIENT`. A successfully completed ignored TCP
+diagnostic instead records `TEST_ONLY_TRANSPORT_COMPLETED_VISUAL_MANUAL`.
+Neither proves pixels or source admission. Record the exact Git commit,
+complete terminal/client logs, ACK/keep-alive observations and a
+screenshot/video separately. Do not upload private source worlds.
+
 For a quick **no-socket** file preflight add `--preflight-only` to
 either invocation. For an already-green local nine-chunk rehearsal add
 `--skip-rehearsal`. To avoid a busy localhost port use
@@ -263,8 +303,8 @@ No production feature flag or source-law downgrade is appropriate.
 
 The launcher and normal Rust tests cannot confirm rendered screen
 pixels. A diagnostic **PASS** requires a clean peer EOF, accepted
-teleport, at least one valid keep-alive and *all nine source-receipted
-chunk bodies completed with no unacknowledged batch*. The screen
+teleport, at least one valid keep-alive and *all selected source-receipted chunk bodies completed with no
+unacknowledged batch* (nine by default, 25 with `--render-halo`). The screen
 still must be checked manually, and even success is **not** a
 production/source-admitted R2C milestone.
 

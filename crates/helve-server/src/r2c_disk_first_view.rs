@@ -1407,13 +1407,22 @@ mod tests {
 
     #[test]
     fn nine_disk_chunks_cross_four_regions_and_reach_one_receipted_batch() {
-        source_chunks_cross_four_regions_reach_receipted_tcp_batches(9);
+        source_chunks_cross_four_regions_reach_receipted_tcp_batches(9, 1);
     }
 
     #[test]
     fn twenty_five_disk_chunks_cross_four_regions_and_reach_receipted_tcp_batches() {
         source_chunks_cross_four_regions_reach_receipted_tcp_batches(
             crate::r2c_cold_demo_import::SELECTED_VISIBLE_CHUNKS,
+            1,
+        );
+    }
+
+    #[test]
+    fn twenty_five_disk_chunks_reconnect_on_two_tcp_sessions_with_one_world_host() {
+        source_chunks_cross_four_regions_reach_receipted_tcp_batches(
+            crate::r2c_cold_demo_import::SELECTED_VISIBLE_CHUNKS,
+            2,
         );
     }
 
@@ -1421,7 +1430,7 @@ mod tests {
         clippy::too_many_lines,
         reason = "shared nine/25-source real Anvil importer and retained TCP/ACK test, no alternate packet path"
     )]
-    fn source_chunks_cross_four_regions_reach_receipted_tcp_batches(selected: usize) {
+    fn source_chunks_cross_four_regions_reach_receipted_tcp_batches(selected: usize, joins: usize) {
         use helve_connection_core::{ConnectionLimits, IngressBuffer};
         use helve_target_26_2::r2c_chunk_data::append_heightmap_map_candidate;
         use helve_target_26_2::r2c_play_wire::{
@@ -1435,8 +1444,9 @@ mod tests {
         use std::net::{Shutdown, TcpListener, TcpStream};
         use std::time::Duration;
 
+        assert!(joins > 0);
         let profile = DimensionRuntimeProfile::new(DimensionTypeId(1), 0, 16, true).unwrap();
-        let mut session = retained_session_with_teleport(0.25, 8.0, 0.25);
+        let session = retained_session_with_teleport(0.25, 8.0, 0.25);
         let (center, positions) =
             super::plan_pending_teleport_first_view(&session, profile, 10, selected).unwrap();
         let expected_positions = [
@@ -1520,7 +1530,7 @@ mod tests {
         let second = host
             .attach(&second_session)
             .expect("second session attaches");
-        let mut view = host.attach(&session).expect("first session attaches");
+        let view = host.attach(&session).expect("first session attaches");
         assert!(view.shares_resident_with(&second));
         assert_eq!(second.diagnostic_batch_progress(), (0, selected, 0));
         // Different positions within the same preselected chunk (and valid
@@ -1551,195 +1561,219 @@ mod tests {
         assert!(audit.maximum_body_bytes > 8);
         assert!(audit.total_body_bytes >= audit.maximum_body_bytes * selected);
 
-        // The sole positive admission witness exists only in Rust tests.
-        // This is not a stock-client run or a production gate promotion.
-        let admission = R2cSourceAdmission;
-        let original_read_scratch = session.read_scratch.as_ptr();
-        let mut sender =
-            SourceAdmittedPlayPublisher::new(&mut session, &oracle, 0, &admission).unwrap();
-        // The client analogue receives this batch over a *real loopback
-        // socket* from the product's retained R2B Play service loop. It is
-        // deliberately NOT an official client or a production admission.
-        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
-        let mut peer = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
-        peer.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
-        let (mut transport, _) = listener.accept().unwrap();
+        // One immutable source-receipted host survives successive physical TCP
+        // connections; each client has a new retained Play session and ACK cursor.
+        let mut reference_wire_frames = None;
+        for join_index in 0..joins {
+            let mut session = retained_session_with_teleport(0.25, 8.0, 0.25);
+            let mut view = host
+                .attach(&session)
+                .expect("reconnecting session attaches");
+            assert!(view.shares_resident_with(&second));
+            assert_eq!(view.diagnostic_batch_progress(), (0, selected, 0));
+            // The sole positive admission witness exists only in Rust tests.
+            // This is not a stock-client run or a production gate promotion.
+            let admission = R2cSourceAdmission;
+            let original_read_scratch = session.read_scratch.as_ptr();
+            let mut sender =
+                SourceAdmittedPlayPublisher::new(&mut session, &oracle, 0, &admission).unwrap();
+            // The client analogue receives this batch over a *real loopback
+            // socket* from the product's retained R2B Play service loop. It is
+            // deliberately NOT an official client or a production admission.
+            let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+            let mut peer = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+            peer.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+            let (mut transport, _) = listener.accept().unwrap();
 
-        // The same retained TCP ingress/egress is used for both 9 and 25
-        // authentic Anvil source receipts. At 25, the simulated client must
-        // acknowledge multiple *finished* batches before the sender can
-        // finish; no packet replay, second server driver, or test-only codec.
-        let client = std::thread::spawn(move || {
-            let limits = ConnectionLimits::new(65_535, 524_288, 524_288).unwrap();
-            let mut wire = IngressBuffer::new(limits);
-            let mut scratch = [0_u8; 16_384];
-            let mut frames = Vec::with_capacity(selected + 8);
-            let mut chunks_seen = 0_usize;
-            let mut finished_chunks = 0_usize;
-            let mut batch_chunk_count = 0_usize;
-            let mut in_batch = false;
-            let mut held_first_ack = false;
-            loop {
-                if let Some(frame) = wire.peek_frame().unwrap() {
-                    let packet = (frame.packet_id(), frame.payload().to_vec());
-                    let consumed = frame.stream_bytes();
-                    wire.consume(consumed).unwrap();
-                    match packet.0 {
-                        id if id == i32::from(CLIENTBOUND_CHUNK_BATCH_START) => {
-                            assert!(!in_batch, "source batch starts cannot nest");
-                            in_batch = true;
-                            batch_chunk_count = 0;
-                        }
-                        id if id == i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT) => {
-                            assert!(in_batch, "chunk requires a started batch");
-                            batch_chunk_count += 1;
-                            chunks_seen += 1;
-                            assert!(
-                                chunks_seen <= selected,
-                                "unexpected chunk beyond source view"
-                            );
-                        }
-                        id if id == i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED) => {
-                            assert!(in_batch, "batch finish requires start");
-                            assert_eq!(packet.1, [u8::try_from(batch_chunk_count).unwrap()]);
-                            assert!(batch_chunk_count > 0);
-                            finished_chunks += batch_chunk_count;
-                            assert_eq!(finished_chunks, chunks_seen);
-                            in_batch = false;
-                            if selected > 9 && !held_first_ack {
-                                // Before the initial ACK, the single outstanding
-                                // batch window must prevent any subsequent chunk
-                                // from reaching the real socket. There is no second
-                                // sender allowed to bypass the retained driver.
-                                assert_eq!(wire.buffered_len(), 0);
-                                peer.set_read_timeout(Some(Duration::from_millis(120)))
-                                    .unwrap();
-                                match peer.read(&mut scratch) {
-                                    Err(error)
-                                        if matches!(
-                                            error.kind(),
-                                            std::io::ErrorKind::WouldBlock
-                                                | std::io::ErrorKind::TimedOut
-                                        ) => {}
-                                    result => panic!(
-                                        "client withheld initial ACK but sender continued: {result:?}"
-                                    ),
-                                }
-                                peer.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
-                                held_first_ack = true;
-                                // Interleave the already-pending R2B teleport
-                                // confirmation with the first 26.2 batch ACK.
-                                // Both frames must be handled through the one
-                                // ordered retained Play ingress owner.
-                                peer.write_all(&[2, 0, 1, 5, 11, 0x41, 0x10, 0, 0]).unwrap();
-                            } else {
-                                // Exact serverbound 26.2 batch ACK: packet ID
-                                // 11, f32 client rate 9.0.
-                                peer.write_all(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+            // The same retained TCP ingress/egress is used for both 9 and 25
+            // authentic Anvil source receipts. At 25, the simulated client must
+            // acknowledge multiple *finished* batches before the sender can
+            // finish; no packet replay, second server driver, or test-only codec.
+            let client = std::thread::spawn(move || {
+                let limits = ConnectionLimits::new(65_535, 524_288, 524_288).unwrap();
+                let mut wire = IngressBuffer::new(limits);
+                let mut scratch = [0_u8; 16_384];
+                let mut frames = Vec::with_capacity(selected + 8);
+                let mut chunks_seen = 0_usize;
+                let mut finished_chunks = 0_usize;
+                let mut batch_chunk_count = 0_usize;
+                let mut in_batch = false;
+                let mut held_first_ack = false;
+                loop {
+                    if let Some(frame) = wire.peek_frame().unwrap() {
+                        let packet = (frame.packet_id(), frame.payload().to_vec());
+                        let consumed = frame.stream_bytes();
+                        wire.consume(consumed).unwrap();
+                        match packet.0 {
+                            id if id == i32::from(CLIENTBOUND_CHUNK_BATCH_START) => {
+                                assert!(!in_batch, "source batch starts cannot nest");
+                                in_batch = true;
+                                batch_chunk_count = 0;
                             }
+                            id if id == i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT) => {
+                                assert!(in_batch, "chunk requires a started batch");
+                                batch_chunk_count += 1;
+                                chunks_seen += 1;
+                                assert!(
+                                    chunks_seen <= selected,
+                                    "unexpected chunk beyond source view"
+                                );
+                            }
+                            id if id == i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED) => {
+                                assert!(in_batch, "batch finish requires start");
+                                assert_eq!(packet.1, [u8::try_from(batch_chunk_count).unwrap()]);
+                                assert!(batch_chunk_count > 0);
+                                finished_chunks += batch_chunk_count;
+                                assert_eq!(finished_chunks, chunks_seen);
+                                in_batch = false;
+                                if selected > 9 && !held_first_ack {
+                                    // Before the initial ACK, the single outstanding
+                                    // batch window must prevent any subsequent chunk
+                                    // from reaching the real socket. There is no second
+                                    // sender allowed to bypass the retained driver.
+                                    assert_eq!(wire.buffered_len(), 0);
+                                    peer.set_read_timeout(Some(Duration::from_millis(120)))
+                                        .unwrap();
+                                    match peer.read(&mut scratch) {
+                                        Err(error)
+                                            if matches!(
+                                                error.kind(),
+                                                std::io::ErrorKind::WouldBlock
+                                                    | std::io::ErrorKind::TimedOut
+                                            ) => {}
+                                        result => panic!(
+                                            "client withheld initial ACK but sender continued: {result:?}"
+                                        ),
+                                    }
+                                    peer.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+                                    held_first_ack = true;
+                                    // Interleave the already-pending R2B teleport
+                                    // confirmation with the first 26.2 batch ACK.
+                                    // Both frames must be handled through the one
+                                    // ordered retained Play ingress owner.
+                                    peer.write_all(&[2, 0, 1, 5, 11, 0x41, 0x10, 0, 0]).unwrap();
+                                } else {
+                                    // Exact serverbound 26.2 batch ACK: packet ID
+                                    // 11, f32 client rate 9.0.
+                                    peer.write_all(&[5, 11, 0x41, 0x10, 0, 0]).unwrap();
+                                }
+                            }
+                            94 => assert!(frames.is_empty(), "cache center must be first"),
+                            id => panic!("unexpected test world Play frame: {id}"),
                         }
-                        94 => assert!(frames.is_empty(), "cache center must be first"),
-                        id => panic!("unexpected test world Play frame: {id}"),
+                        frames.push(packet);
+                        if finished_chunks == selected {
+                            assert_eq!(wire.buffered_len(), 0, "no unexpected Play tail");
+                            peer.shutdown(Shutdown::Write).unwrap();
+                            return frames;
+                        }
+                        continue;
                     }
-                    frames.push(packet);
-                    if finished_chunks == selected {
-                        assert_eq!(wire.buffered_len(), 0, "no unexpected Play tail");
-                        peer.shutdown(Shutdown::Write).unwrap();
-                        return frames;
-                    }
-                    continue;
+                    let count = peer.read(&mut scratch).expect("bounded TCP chunk receive");
+                    assert_ne!(
+                        count, 0,
+                        "peer closed before the complete source batch view"
+                    );
+                    wire.push(&scratch[..count]).unwrap();
                 }
-                let count = peer.read(&mut scratch).expect("bounded TCP chunk receive");
-                assert_ne!(
-                    count, 0,
-                    "peer closed before the complete source batch view"
+            });
+
+            let exit = serve_world_projection_wait(
+                &mut transport,
+                &mut session,
+                Some(&mut view),
+                Some(&mut sender),
+            )
+            .expect("source-test-admitted complete selected Play socket path");
+            let frames = client.join().expect("loopback receiver");
+            assert!(matches!(
+                exit,
+                R2bPlaytestExit::LivePeerEof {
+                    teleport_acknowledged,
+                    accepted_keep_alives: 0,
+                    discarded_world_frames: 0,
+                    ..
+                } if teleport_acknowledged == (selected > 9)
+            ));
+            assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
+            assert_eq!(session.queued_egress(), 0);
+            assert!(view.shares_resident_with(&second));
+            assert_eq!(second.diagnostic_batch_progress(), (0, selected, 0));
+            assert!(frames.len() >= selected + 3);
+            assert_eq!(frames[0].0, 94);
+            assert_eq!(frames[0].1, [0, 0]);
+
+            // All real Anvil fixtures contain one solid stone section at Y=0.
+            // Construct the three five-bit per-column wire heightmaps without
+            // calling the implementation's heightmap/packet builder.
+            let mut words = [0_u64; 22];
+            for column in 0..256_usize {
+                words[column / 12] |= 16_u64 << ((column % 12) * 5);
+            }
+            let mut maps = Vec::new();
+            append_heightmap_map_candidate(&mut maps, 16, [&words; 3]).unwrap();
+            let mut position_cursor = 0_usize;
+            let mut batch_count = 0_usize;
+            let mut frame_cursor = 1_usize;
+            while frame_cursor < frames.len() {
+                assert_eq!(
+                    frames[frame_cursor].0,
+                    i32::from(CLIENTBOUND_CHUNK_BATCH_START)
                 );
-                wire.push(&scratch[..count]).unwrap();
-            }
-        });
-
-        let exit = serve_world_projection_wait(
-            &mut transport,
-            &mut session,
-            Some(&mut view),
-            Some(&mut sender),
-        )
-        .expect("source-test-admitted complete selected Play socket path");
-        let frames = client.join().expect("loopback receiver");
-        assert!(matches!(
-            exit,
-            R2bPlaytestExit::LivePeerEof {
-                teleport_acknowledged,
-                accepted_keep_alives: 0,
-                discarded_world_frames: 0,
-                ..
-            } if teleport_acknowledged == (selected > 9)
-        ));
-        assert_eq!(session.read_scratch.as_ptr(), original_read_scratch);
-        assert_eq!(session.queued_egress(), 0);
-        assert!(view.shares_resident_with(&second));
-        assert_eq!(second.diagnostic_batch_progress(), (0, selected, 0));
-        assert!(frames.len() >= selected + 3);
-        assert_eq!(frames[0].0, 94);
-        assert_eq!(frames[0].1, [0, 0]);
-
-        // All real Anvil fixtures contain one solid stone section at Y=0.
-        // Construct the three five-bit per-column wire heightmaps without
-        // calling the implementation's heightmap/packet builder.
-        let mut words = [0_u64; 22];
-        for column in 0..256_usize {
-            words[column / 12] |= 16_u64 << ((column % 12) * 5);
-        }
-        let mut maps = Vec::new();
-        append_heightmap_map_candidate(&mut maps, 16, [&words; 3]).unwrap();
-        let mut position_cursor = 0_usize;
-        let mut batch_count = 0_usize;
-        let mut frame_cursor = 1_usize;
-        while frame_cursor < frames.len() {
-            assert_eq!(
-                frames[frame_cursor].0,
-                i32::from(CLIENTBOUND_CHUNK_BATCH_START)
-            );
-            assert!(frames[frame_cursor].1.is_empty());
-            frame_cursor += 1;
-            let mut batch_chunks = 0_usize;
-            while frame_cursor < frames.len()
-                && frames[frame_cursor].0 == i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT)
-            {
-                let payload = &frames[frame_cursor].1;
-                let position = positions[position_cursor];
-                assert_eq!(&payload[..4], &position.x.to_be_bytes());
-                assert_eq!(&payload[4..8], &position.z.to_be_bytes());
-                assert_eq!(&payload[8..8 + maps.len()], maps);
-                assert!(payload.len() > 8 + maps.len());
-                batch_chunks += 1;
-                position_cursor += 1;
+                assert!(frames[frame_cursor].1.is_empty());
                 frame_cursor += 1;
+                let mut batch_chunks = 0_usize;
+                while frame_cursor < frames.len()
+                    && frames[frame_cursor].0 == i32::from(CLIENTBOUND_CHUNK_WITH_LIGHT)
+                {
+                    let payload = &frames[frame_cursor].1;
+                    let position = positions[position_cursor];
+                    assert_eq!(&payload[..4], &position.x.to_be_bytes());
+                    assert_eq!(&payload[4..8], &position.z.to_be_bytes());
+                    assert_eq!(&payload[8..8 + maps.len()], maps);
+                    assert!(payload.len() > 8 + maps.len());
+                    batch_chunks += 1;
+                    position_cursor += 1;
+                    frame_cursor += 1;
+                }
+                assert!(batch_chunks > 0);
+                assert!(frame_cursor < frames.len(), "unfinished source batch");
+                assert_eq!(
+                    frames[frame_cursor].0,
+                    i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
+                );
+                assert_eq!(
+                    frames[frame_cursor].1,
+                    [u8::try_from(batch_chunks).unwrap()]
+                );
+                frame_cursor += 1;
+                batch_count += 1;
             }
-            assert!(batch_chunks > 0);
-            assert!(frame_cursor < frames.len(), "unfinished source batch");
-            assert_eq!(
-                frames[frame_cursor].0,
-                i32::from(CLIENTBOUND_CHUNK_BATCH_FINISHED)
-            );
-            assert_eq!(
-                frames[frame_cursor].1,
-                [u8::try_from(batch_chunks).unwrap()]
-            );
-            frame_cursor += 1;
-            batch_count += 1;
+            assert_eq!(position_cursor, selected);
+            if selected > 9 {
+                assert!(
+                    batch_count >= 2,
+                    "25 chunks must exercise multiple ACK windows"
+                );
+            } else {
+                assert_eq!(batch_count, 1);
+            }
+            assert_eq!(view.diagnostic_batch_progress(), (selected, selected, 0));
+            assert_eq!(sender.service(&mut session, &mut view, 50).unwrap(), 0);
+
+            // A fresh TCP join must receive identical, source-backed packets,
+            // not a reused client cursor or a re-imported world representation.
+            if let Some(first) = &reference_wire_frames {
+                assert_eq!(
+                    &frames, first,
+                    "TCP join {join_index} projected different world bytes"
+                );
+            } else {
+                reference_wire_frames = Some(frames);
+            }
         }
-        assert_eq!(position_cursor, selected);
-        if selected > 9 {
-            assert!(
-                batch_count >= 2,
-                "25 chunks must exercise multiple ACK windows"
-            );
-        } else {
-            assert_eq!(batch_count, 1);
-        }
-        assert_eq!(view.diagnostic_batch_progress(), (selected, selected, 0));
-        assert_eq!(sender.service(&mut session, &mut view, 50).unwrap(), 0);
+        assert_eq!(host.chunks(), selected);
+        assert_eq!(second.diagnostic_batch_progress(), (0, selected, 0));
     }
 
     #[test]

@@ -48,6 +48,13 @@ client method/class fingerprints and stale/missing VAR review records.
 | Clientbound Play | SET_CHUNK_CACHE_CENTER | 94 |
 | Serverbound Play | CHUNK_BATCH_RECEIVED | 11 |
 
+The exact SHA-checked client methods register **141 clientbound**
+Play packet types (429 JVM instructions) and **69 serverbound**
+Play packet types (211 JVM instructions). These are the *complete*
+direction-specific lists; position 94 is not the end of the
+clientbound list. Both cardinalities are now pinned alongside the
+full-code method fingerprints in the live Java 25 qualification.
+
 The clientbound builder's **bundle delimiter is the actual first
 registered codec entry, at position zero**. The serverbound builder
 has its own independent ordinal space and **no bundle entry**. No

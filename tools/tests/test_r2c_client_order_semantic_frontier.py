@@ -168,7 +168,7 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         certificate = probe.bounded_method_shape(source, cls, method)
         paths = certificate["util_sequence_three_normal_branch_witness"]
         self.assertEqual(
-            paths[1]["ordered_distinct_critical_invokes"],
+            paths[1]["ordered_critical_invokes"],
             ["List.isEmpty:", "List.size:", "CompletableFuture.thenApply:"],
         )
         self.assertEqual(
@@ -184,22 +184,13 @@ class OfficialClientOrderSemanticFrontierTests(unittest.TestCase):
         extra_size = source.replace(
             "20: aload_0", "20: invokevirtual #14 // Method exact/List.size:()I",
         )
-        extra = probe.bounded_method_shape(extra_size, cls, method)[
-            "util_sequence_three_normal_branch_witness"
-        ]
-        self.assertEqual(
-            extra[2]["ordered_critical_invokes"].count("List.size:"), 2,
-        )
-        self.assertEqual(
-            extra[2]["ordered_distinct_critical_invokes"],
-            ["List.isEmpty:", "List.size:", "CompletableFuture.allOf:",
-             "CompletableFuture.thenApply:"],
-        )
+        with self.assertRaisesRegex(ValueError, "exact critical calls"):
+            probe.bounded_method_shape(extra_size, cls, method)
         duplicate_allof = source.replace(
             "20: aload_0",
             "20: invokestatic #14 // Method exact/CompletableFuture.allOf:()V",
         )
-        with self.assertRaisesRegex(ValueError, "repeated a critical"):
+        with self.assertRaisesRegex(ValueError, "exact critical calls"):
             probe.bounded_method_shape(duplicate_allof, cls, method)
         # Lexical ordered calls and even an existential *multi* path are
         # insufficient if either the empty or the singleton exit disappears.

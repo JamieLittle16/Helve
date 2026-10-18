@@ -1625,16 +1625,13 @@ mod tests {
                                         "client withheld initial ACK but sender continued: {result:?}"
                                     ),
                                 }
-                                peer.set_read_timeout(Some(Duration::from_secs(5)))
-                                    .unwrap();
+                                peer.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
                                 held_first_ack = true;
                                 // Interleave the already-pending R2B teleport
                                 // confirmation with the first 26.2 batch ACK.
                                 // Both frames must be handled through the one
                                 // ordered retained Play ingress owner.
-                                peer.write_all(&[
-                                    2, 0, 1, 5, 11, 0x41, 0x10, 0, 0,
-                                ]).unwrap();
+                                peer.write_all(&[2, 0, 1, 5, 11, 0x41, 0x10, 0, 0]).unwrap();
                             } else {
                                 // Exact serverbound 26.2 batch ACK: packet ID
                                 // 11, f32 client rate 9.0.

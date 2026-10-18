@@ -96,7 +96,10 @@ def generate(*, source: Path, db: Path, lock: Path,
     """Run the *existing* 3 pinned inspections, then write a nonadmitted index."""
     public = source_free_dir.expanduser().absolute()
     private = private_dir.expanduser().absolute()
-    if (public.is_relative_to(private) or private.is_relative_to(public)):
+    public_resolved = public.resolve(strict=False)
+    private_resolved = private.resolve(strict=False)
+    if (public_resolved.is_relative_to(private_resolved)
+        or private_resolved.is_relative_to(public_resolved)):
         raise BundleError("source-free and private review roots must be disjoint")
     public = _outside_fresh_directory(public)
     private = _outside_fresh_directory(private)

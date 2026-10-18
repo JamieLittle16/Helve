@@ -256,6 +256,52 @@ preparation issues**; a packet mismatch or no visible terrain after
 an accepted batch is a narrower genuine receiving-client integration
 issue. Do not fix either by replaying captured Play world packets.
 
+## First real source-backed nine-chunk client batch: protocol fault follow-up
+
+On **18 October 2026**, the fresh unmodified 26.2 structures-disabled
+save `Helve R2C Clean` achieved the first real in-client
+R2C chunk-batch interaction, far beyond the previous saved-entity
+import guard. The console observed:
+
+- nine actual saved source chunks resident with nine verified receipts;
+- 299,717 bytes of chunk body candidate, max 39,176 bytes;
+- `R2B WorldProjectionReady` on the original bounded transport;
+- nine source-receipted candidate chunks published and an actual client
+  chunk-batch acknowledgement received (`unacknowledged_batches=0`);
+- accepted teleport confirmation on the same Play session;
+- **zero keep-alive replies** before the client closed, nine other
+  serverbound gameplay frames discarded by the intentionally limited
+  diagnostic, and an on-screen **Network protocol error**.
+
+**This is partial wire success, NOT a successful visual demonstration.**
+Chunk-batch acknowledgement proves the client advanced through the
+batch protocol; it is **not** proof of all chunk/light/biome bytes being
+valid, consumed or rendered. The client terminated in ~6 seconds, before
+the experiment could verify a keep-alive response; zero keep-alives
+alone is **not** evidence that the keep-alive implementation is wrong.
+Do not mark complete R2C or source-admit the clientbound codec on this
+evidence.
+
+The *next required artifact is the client exception and packet class*,
+not another identical server launch or a bypass of the keep-alive gate:
+
+```bash
+LOG="$HOME/.local/share/PrismLauncher/instances/26.2/minecraft/logs/latest.log"
+grep -n -i -C 12 -E \
+  'network protocol error|decoderexception|encoderexception|failed to handle packet|exception|packet handling|disconnect|reported exception' \
+  "$LOG" | tail -n 180
+```
+
+In a locally rerun test-only diagnostic, the preexisting original
+serverbound Play loop now additionally reports **up to the first 16
+unclaimed packet IDs** (numeric ID and monotone observation time only,
+no payload capture). Any early peer EOF *after* a complete chunk ACK
+prints `R2C DIAGNOSTIC PARTIAL WIRE RESULT` and **fails** the test
+unless a complete keep-alive roundtrip was observed. This log exposure
+does not add a production world packet, second ingress owner or HOT
+trace. The exact official client stack trace should direct the next
+narrow packet-codec/registry/profile repair.
+
 ## Source diagnosis before another live-client attempt
 
 Both the original oracle and the separate Prism `New World` real 26.2

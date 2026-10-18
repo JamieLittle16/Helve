@@ -119,10 +119,14 @@ These flags are asserted in CI. Nothing in this work changes the
 hot-path registry, world owner, outbound queue, session driver, source
 gate, or live Play packet emission.
 
-The official **client** refers to `net.minecraft.util.Util`;
-the earlier source ZIP/Atlas plan targets `net.minecraft.Util`. Do
-not merge these identities or treat the server-source declaration as
-sufficient proof of actual receiving-client behavior.
+The official **client** refers to `net.minecraft.util.Util`.
+An **obsolete historical** Atlas plan targeted `net.minecraft.Util`;
+the *current* bounded biome-ID plan correctly targets
+`net.minecraft.util.Util#sequence` with an exact overload bound.
+Do not revive the old owner or treat the server-source declaration as
+sufficient proof of actual receiving-client behavior. The corrected
+post-#401 source-free report confirms a nonempty body fingerprint for
+the selected `Util.sequence` overload but **not** its SEM approval.
 
 The 32,366-state heightmap facts generator and exact outer
 chunk/light/Play wire source groups remain separate R2C gates.

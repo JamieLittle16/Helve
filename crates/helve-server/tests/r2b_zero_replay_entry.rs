@@ -503,10 +503,14 @@ fn read_tcp_frame(peer: &mut std::net::TcpStream) -> Vec<u8> {
     let mut length = 0_usize;
     for shift in (0..5).map(|index| index * 7) {
         let mut octet = [0_u8];
-        peer.read_exact(&mut octet).expect("bounded TCP frame length");
+        peer.read_exact(&mut octet)
+            .expect("bounded TCP frame length");
         length |= usize::from(octet[0] & 0x7f) << shift;
         if octet[0] & 0x80 == 0 {
-            assert!((1..=65_535).contains(&length), "TCP frame exceeds admission bound");
+            assert!(
+                (1..=65_535).contains(&length),
+                "TCP frame exceeds admission bound"
+            );
             let mut body = vec![0_u8; length];
             peer.read_exact(&mut body).expect("complete TCP frame body");
             return body;

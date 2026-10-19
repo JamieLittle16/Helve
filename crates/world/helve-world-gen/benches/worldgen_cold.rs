@@ -12,18 +12,11 @@ use helve_types::{ChunkGeneration, ChunkPos, DimensionId, DimensionTypeId};
 use helve_world_contract::{
     BIOME_SECTION_CELLS, BLOCK_SECTION_CELLS, BlockStateFacts, SectionBiomePos, SectionStateFacts,
 };
-use helve_world_gen::{
-    GeneratedSectionBuilder, SectionSamples, SteppedSurface, SurfacePalette,
-};
+use helve_world_gen::{GeneratedSectionBuilder, SectionSamples, SteppedSurface, SurfacePalette};
 use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
 use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance};
 
-type World = SemanticDimensionInstance<
-    u8,
-    DirectBlockSection<u8>,
-    u8,
-    DirectBiomeSection<u8>,
->;
+type World = SemanticDimensionInstance<u8, DirectBlockSection<u8>, u8, DirectBiomeSection<u8>>;
 
 #[derive(Clone, Copy, Debug)]
 struct Facts;

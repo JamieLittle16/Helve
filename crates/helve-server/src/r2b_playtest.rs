@@ -1824,14 +1824,8 @@ mod play_short_write_tests {
             written: Vec::new(),
         };
         write_play_once(&mut sink, &mut session).expect("drain bounded frame");
-        assert_eq!(
-            read_wait_when_egress_drained(&session, 30, 50),
-            Some(20)
-        );
-        assert_eq!(
-            read_wait_when_egress_drained(&session, 60, 50),
-            Some(1)
-        );
+        assert_eq!(read_wait_when_egress_drained(&session, 30, 50), Some(20));
+        assert_eq!(read_wait_when_egress_drained(&session, 60, 50), Some(1));
     }
 
     #[test]

@@ -67,9 +67,9 @@ def validate(manifest: object, lock: dict, kind: str) -> dict[tuple[str, ...], s
     if manifest.get("source_text_included") is not False:
         raise OracleError("source-rich material may not appear in vectors")
     if manifest.get("independent_var_sem_admitted") is not False:
-        raise OracleError("vector evidence must not assert semantic admission")
+        raise OracleError("independent_var_sem_admitted: vector evidence cannot assert admission")
     if manifest.get("production_worldgen_enabled") is not False:
-        raise OracleError("vector evidence must not enable worldgen")
+        raise OracleError("production_worldgen_enabled: vector evidence cannot enable generation")
     vectors = manifest.get("vectors")
     if not isinstance(vectors, list) or not (16 <= len(vectors) <= 100_000):
         raise OracleError("expected between 16 and 100000 independent vector probes")

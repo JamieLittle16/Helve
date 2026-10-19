@@ -62,7 +62,10 @@ impl LegacyBits {
     }
 
     #[inline]
-    #[expect(clippy::cast_precision_loss, reason = "the 53-bit sampled unsigned integer fits exactly in an IEEE-754 f64 mantissa")]
+    #[expect(
+        clippy::cast_precision_loss,
+        reason = "the 53-bit sampled unsigned integer fits exactly in an IEEE-754 f64 mantissa"
+    )]
     fn next_double(&mut self) -> f64 {
         let upper = u64::from(self.next_bits(26)) << 27;
         let lower = u64::from(self.next_bits(27));
@@ -89,7 +92,10 @@ impl LegacyBits {
 }
 
 #[inline]
-#[expect(clippy::cast_possible_truncation, reason = "Java Mth.floor truncates to signed 32-bit integer before correcting the fraction")]
+#[expect(
+    clippy::cast_possible_truncation,
+    reason = "Java Mth.floor truncates to signed 32-bit integer before correcting the fraction"
+)]
 fn java_floor(value: f64) -> i32 {
     let truncated = value as i32;
     if value < f64::from(truncated) {
@@ -112,12 +118,29 @@ fn lerp(fraction: f64, start: f64, end: f64) -> f64 {
 #[inline]
 fn lerp3(
     [axis_x, axis_y, axis_z]: [f64; 3],
-    [corner000, corner100, corner010, corner110, corner001, corner101, corner011, corner111]: [f64; 8],
+    [
+        corner000,
+        corner100,
+        corner010,
+        corner110,
+        corner001,
+        corner101,
+        corner011,
+        corner111,
+    ]: [f64; 8],
 ) -> f64 {
     lerp(
         axis_z,
-        lerp(axis_y, lerp(axis_x, corner000, corner100), lerp(axis_x, corner010, corner110)),
-        lerp(axis_y, lerp(axis_x, corner001, corner101), lerp(axis_x, corner011, corner111)),
+        lerp(
+            axis_y,
+            lerp(axis_x, corner000, corner100),
+            lerp(axis_x, corner010, corner110),
+        ),
+        lerp(
+            axis_y,
+            lerp(axis_x, corner001, corner101),
+            lerp(axis_x, corner011, corner111),
+        ),
     )
 }
 
@@ -143,7 +166,8 @@ impl ImprovedNoise262 {
         }
         for index in 0..256_usize {
             let bound = u32::try_from(256 - index).expect("permutation remainder fits u32");
-            let jump = usize::try_from(random.next_int(bound)).expect("bounded permutation jump fits usize");
+            let jump = usize::try_from(random.next_int(bound))
+                .expect("bounded permutation jump fits usize");
             let next = index + jump;
             permutation.swap(index, next);
         }
@@ -157,7 +181,8 @@ impl ImprovedNoise262 {
 
     #[inline]
     fn p(&self, index: i32) -> u8 {
-        self.permutation[usize::try_from(index & 255).expect("masked permutation index is unsigned")]
+        self.permutation
+            [usize::try_from(index & 255).expect("masked permutation index is unsigned")]
     }
 
     /// Samples a 3D coordinate without allocation or mutable RNG consumption.

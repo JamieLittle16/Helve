@@ -1,6 +1,6 @@
 # Minecraft Java 26.2 — official composed-density capture frontier
 
-**Status:** candidate collector and synthetic transport, **not an observed official composition oracle**. Exact 26.2 source/VAR/SEM, router semantics and production chunk publication all remain **closed**.
+**Status (updated 20 October 2026):** official 1,280-vector output capture completed; bounded Rust primitive-composition candidate implemented, with remaining independent source/delegate review and all production gates **closed**. The following earlier capture instructions describe the evidence-producing step; the result and its limits are recorded below.
 
 ## Why this boundary
 
@@ -51,3 +51,30 @@ If it succeeds, upload **only** the source-free JSON; never the private source a
 5. Benchmark scalar and batch density, full cell build and semantic resident installation; shared CI timings are diagnostic only.
 
 This is forward progress on the **evidence boundary** for real terrain, not yet a generated vanilla world.
+
+## Official JVM result received — 20 October 2026
+
+The **real pinned official 26.2 JVM capture completed** and the source-free JSON passed strict metadata, integer XYZ coordinate ordering, all five seed labels, eight frozen factory profiles and every record bit-string validation. The complete original JSON SHA-256 is:
+
+`a303cc90269cf273cb5d65ed470fe118263468708c59897f89399e7fa1adff20` (259,512 bytes).
+
+All **1,280 exact observed records** are frozen, unchanged, in `crates/world/helve-world-gen/tests/data/density_composed_26_2_rawbits.tsv` (the file includes all five seed labels, not just 256 distinct coordinate/profile combinations). The capture retains the pinned source archive SHA `1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750` and official server SHA `cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5`, plus exact 26.2 Atlas factory body fingerprints:
+
+| Factory | Pinned body SHA-256 |
+| --- | --- |
+| `DensityFunctions.add(DensityFunction,DensityFunction)` | `aff60df9dc11f0e52d061660cf39684dfd671e214ab185174a293ce96ddebe58` |
+| `DensityFunctions.mul(DensityFunction,DensityFunction)` | `c5d5aaa53f8650d9068362c193487625eeeb057633eaafb0142651a4cc29d7f1` |
+
+**Observed signed-zero distinction:** The naive two-primitive Java/Rust IEEE model exactly matches the complete **640 addition** vector set and **635/640 multiplication** vectors. The five multiplication mismatches all occur for `mul_gradients` at `blockY=128` (one occurrence for each seed label). There, the first gradient has `+0.0`, the second has `-0.75`, and the official composed density output is `+0.0` (raw `0x0000000000000000`), **not** the raw IEEE multiplication result `-0.0` (`0x8000000000000000`). By contrast, `mul_zero_left`/`mul_zero_right` with an explicit `-0.0` constant return signed zeros consistent with ordinary multiplication. These are actual discriminating official outputs; simply reusing the generic `Multiply` DAG would fail five tests.
+
+### Source-free Rust implementation
+
+`crates/world/helve-world-gen/src/density_composition_262.rs` implements an immutable **two-primitive** typed evaluator, using the already-validated `DensityPrimitive262` leaves:
+
+- `add(left,right)`: ordered addition.
+- `multiply(left,right)`: statically selects constant-factor multiplication (ordinary multiplication, preserving signed zero) versus two varying primitives. For two varying primitives, when the **first** sample is specifically `+0.0`, return positive zero; otherwise use ordered multiplication.
+- A caller-owned 16×16 horizontal plane requires one Y evaluation; a 16³ Y/Z/X cell requires sixteen Y evaluations. No heap allocations, runtime registration, second chunk buffer/owner or virtual dispatch occur in the sampler. Overflowing Y origins fail before any write.
+
+`tests/density_composition_262.rs` verifies **all 1280/1280 genuine official JVM raw bits**, coordinate/seed ordering, the signed-zero exception, all profile variants, full 4096-cell layout and overflow behavior. Crucially these are *source-free JVM output-qualified candidate semantics*, **not a proof of the true internal short-circuit condition**. In particular the dataset cannot prove whether the official code evaluates the second operand on an early-zero path, nor the behavior of `-0.0` as a **dynamic** first operand, arbitrary NaNs, general nested graphs, non-constant source delegation or alternate factory optimisations. The Rust shortcut is restricted to the observed `+0.0` path and to two nonconstant primitive leaves.
+
+**Still closed:** independent source review of the actual reached 26.2 add/mul compute delegates and factory optimisations; general node semantics; noise-router graph binding and random-state world-seed resolution; caches, interpolation, splines, aquifers, biome/surface rules; source/VAR/SEM admission; and production chunk publication. Source body fingerprints identify the reviewed *factories* but do not independently certify their reached implementations. Do not present this as complete vanilla router parity, worldgen functionality, or a measured performance win.

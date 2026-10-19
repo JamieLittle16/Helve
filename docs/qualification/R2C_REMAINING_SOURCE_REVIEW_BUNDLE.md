@@ -169,6 +169,26 @@ Atlas/source gate and then a *separate* product change to inhabit
 `R2cSourceAdmission`. Do not convert this shortlist or any source-free
 inventory into production admission.
 
+## Scoped outer-wire second-pass checkpoint (19 October 2026)
+
+The 19-method source-rich review bundle has now been read a second time
+for **five** already extracted packet envelope/receiver methods. Their
+complete source-free fingerprints and direct-order observations are in
+`vanilla/reviews/network/r2c-outer-envelope-second-pass-source-findings.json`.
+The only additional Rust behavioral assertion needed was exact signed
+network-endian X/Z and contiguous chunk-data/empty-BE/light spans;
+existing tests already covered source receipts, atomic rollback, batch
+envelopes and client-visible 25-column integration. The new Python
+test rejects source-fingerprint drift, erased delegate obligations,
+accidental official source inclusion or premature source admission.
+
+**Still required:** exact signed primitive writer/reader delegates,
+outer packet read constructor, selected empty-entity semantics and
+actual client packet/ACK lifecycle. This *reduces the field-order
+ambiguity* but does **not** close the entire outer packet,
+client biome-ID/known-pack or dense state-fact obligations. Do not
+reinterpret this checkpoint as independent VAR/SEM gate approval.
+
 ## Required next human and independent gate work
 
 Review the private heightmap predicates and reached delegates using the pinned source, together with the **source-free** inventory of biome/packet declarations. Record exact method/delegate source VARs, human-authored semantic rules and explicit hazard closure, including actual receiving-client ordering and error branches—not only identical runtime ordinals or a stock-client screenshot. Then run Helve's independent pinned Atlas/source admission gate. Only **after** that independent gate passes can a separate reviewed product change construct production source admission, enable the existing publisher and repeat the stock-client product test.

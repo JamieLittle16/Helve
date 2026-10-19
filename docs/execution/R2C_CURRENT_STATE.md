@@ -45,6 +45,47 @@ server still accepts clients serially and publishes **no chunks**. All
 R2C → R2D readiness checklist obligations in the 19 October handoff
 remain required.
 
+## 19 October — official-oracle coverage, complete pre-Play reconnect and scoped outer-wire source review
+
+**Verified pre-review `main` head:** `b7315654e371fb48eeaed5ffabfc2b350f24d6ef` (PR #415).
+This is a point-in-time audit anchor, not a frozen branch pointer; check `main`
+and current CI before claiming a later stage.
+
+- **PR #414** (merged, `556798bb9fcda7686858d87f251e6a4e0e251ce1`):
+  `r2c-official-heightmap-facts.yml` is now triggered by Play transport,
+  sender, COLD-host and target-owned R2C codec changes. Its actual
+  official-runtime job passed the 32,366-state double-oracle, selected
+  nine/25-source TCP/ACK and two-post-R2B-socket reconnect tests. Normal
+  source-free CI alone skips the socket/ACK half when the oracle is absent.
+- **PR #415** (merged, `b7315654e371fb48eeaed5ffabfc2b350f24d6ef`):
+  a new ordinary Rust integration test repeats two **full physical TCP**
+  Handshake/Login/Configuration/R2B Play entries with one retained immutable
+  bootstrap image. It verifies all source-profile Configuration and R2B
+  emitted body bytes and fresh session state across the two accepted sockets.
+  This remains separate from the existing post-R2B two-socket COLD-world test:
+  no single test yet composes both into full-protocol **source-backed** reconnect.
+  All four PR checks passed; these are non-production qualifications.
+- **Scoped second-pass packet-source reading:** the new source-free
+  `vanilla/reviews/network/r2c-outer-envelope-second-pass-source-findings.json`
+  binds five *already extracted* exact method body/excerpt hashes to
+  directly observed packet constructor, write and inner receiving-field
+  order. The exact 26.2 outer write order is X, Z, chunk fields, then
+  light fields. The existing synthetic source-body test additionally
+  checks signed negative-X/positive-Z big-endian bytes and contiguous
+  field ranges; the Python regression guards those review fingerprints
+  and enforces every admission flag **false**.
+  **This is not** independent Atlas VAR/SEM admission or complete
+  byte codec/error/delegate closure. It does **not** make
+  `R2cSourceAdmission` constructible.
+
+**Next independently reviewed slice:** close the reached primitive
+`writeInt/readInt`, exact inner-writer identities and packet read
+constructor/registration for the outer packet; separately prove client
+biome/pack ID selection and state-fact runtime-to-source binding.
+Do not restart the already completed 58-method world-state gate.
+See [outer-wire frontier](../qualification/R2C_CHUNK_WIRE_SOURCE_FRONTIER.md)
+and [remaining source-review bundle](../qualification/R2C_REMAINING_SOURCE_REVIEW_BUNDLE.md).
+
 ## Source admission — already completed
 
 PR #268 independently admitted and promoted the R2C **world-state**

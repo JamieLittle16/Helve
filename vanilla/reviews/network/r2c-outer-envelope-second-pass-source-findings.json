@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "id": "REVIEW-NET-R2C-OUTER-FIELD-ORDER-26_2-SECOND-PASS",
+  "kind": "source-free-scoped-second-pass-direct-method-semantic-findings",
+  "minecraft_version": "26.2",
+  "protocol_version": 776,
+  "data_version": 4903,
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "evidence_parent": "vanilla/reviews/network/r2c-first-pass-source-free-observations.json",
+  "evidence_parent_source_rich_sha256": "dfb70d1dea37f52bfd41037b7a5d078ff71194ae74198ff4db05a82018a26d9c",
+  "commit_policy": "DIRECT_METHOD_SOURCE_READ_NO_INDEPENDENT_ATLAS_VAR_SEM_ADMISSION",
+  "methods": [
+    {
+      "original_review_index": 11,
+      "source_identity": "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket#<clinit>()",
+      "body_sha256": "1b44c24dfefe344f01d9ac6a9b813491e6d8e3ca05d430b5c31c5a6192cd9918",
+      "source_excerpt_sha256": "61bc8fa4a42cb6077955bce0b14b18fbad7921a387552f8bccf684e01f3ce368",
+      "second_pass_direct_method_read": true,
+      "direct_method_finding": "The packet's stream codec directly binds the packet write method and packet read constructor; packet ID mapping requires separate protocol registration evidence.",
+      "all_reached_delegates_reviewed": false,
+      "independent_source_var_sem_admitted": false
+    },
+    {
+      "original_review_index": 12,
+      "source_identity": "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket#ClientboundLevelChunkWithLightPacket(LevelChunk, LevelLightEngine, BitSet?, BitSet?)",
+      "body_sha256": "3e65a6cbd53ec9f015aeb1d27b4d80037ec425847df65b79e112722ee0c4151b",
+      "source_excerpt_sha256": "be63dfac537d58a2a7946e0c6d36e3db7cff947b8d478d1072b29342119d9013",
+      "second_pass_direct_method_read": true,
+      "direct_method_finding": "The sending constructor takes chunk X/Z from LevelChunk.getPos and builds one chunk-data object and one light-data object with the caller's section filters.",
+      "all_reached_delegates_reviewed": false,
+      "independent_source_var_sem_admitted": false
+    },
+    {
+      "original_review_index": 13,
+      "source_identity": "net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket#write(RegistryFriendlyByteBuf)",
+      "body_sha256": "301b54bda0182b88f20afbe248551d5fe261e337f55f8f53ebada2184a53b7d6",
+      "source_excerpt_sha256": "040e5084f3470a92ab4e5b5cabc0b6cf8792df62f1fb6610e465febdbda06cf1",
+      "second_pass_direct_method_read": true,
+      "direct_method_finding": "The direct write sequence is coordinate X, coordinate Z, chunkData.write, then lightData.write. Neither a block entity count nor light data may precede chunk data.",
+      "all_reached_delegates_reviewed": false,
+      "independent_source_var_sem_admitted": false
+    },
+    {
+      "original_review_index": 14,
+      "source_identity": "net.minecraft.network.protocol.game.ClientboundLevelChunkPacketData#ClientboundLevelChunkPacketData(RegistryFriendlyByteBuf, int, int)",
+      "body_sha256": "ba4362c0be9a8ec404fd41c5d057925643311b072d85fcbe5ede5e281a78cca6",
+      "source_excerpt_sha256": "3cbd984ef4c92965f4d0cdcb563812f7558b6dc29d2a24dde5edbb7defd06173",
+      "second_pass_direct_method_read": true,
+      "direct_method_finding": "On receive, heightmaps decode first, then a VarInt section-byte count, then section bytes, then block-entity records. The direct method rejects counts above 2097152 but delegates VarInt underflow/negative handling.",
+      "all_reached_delegates_reviewed": false,
+      "independent_source_var_sem_admitted": false
+    },
+    {
+      "original_review_index": 16,
+      "source_identity": "net.minecraft.network.protocol.game.ClientboundLightUpdatePacketData#ClientboundLightUpdatePacketData(FriendlyByteBuf, int, int)",
+      "body_sha256": "45ca45c1557008f36283f634989d69c6effc350c68b161fb27e64c434409b6fe",
+      "source_excerpt_sha256": "b0915d313764d937e05fab4ddaafc91943b85807553e2a0fe46bffb640cd85e2",
+      "second_pass_direct_method_read": true,
+      "direct_method_finding": "On receive, light consumes the sky-present, block-present, empty-sky and empty-block bitsets in order, then sky and block update lists.",
+      "all_reached_delegates_reviewed": false,
+      "independent_source_var_sem_admitted": false
+    }
+  ],
+  "directly_supported_candidate_laws": [
+    {
+      "id": "CANDIDATE-NET-R2C-OUTER-COORDINATES-AND-ORDER",
+      "method_indices": [
+        11,
+        12,
+        13
+      ],
+      "statement": "For this exact packet constructor/write pair, chunk X and Z are obtained from the same loaded chunk position, and the packet write method emits X, Z, chunk-data and then light-data fields in that order. Underlying writeInt scalar encoding is a separate delegate contract."
+    },
+    {
+      "id": "CANDIDATE-NET-R2C-CHUNK-RECEIVE-BOUNDARY",
+      "method_indices": [
+        14
+      ],
+      "statement": "The chunk payload read constructor decodes the heightmap before the VarInt-framed section payload and block-entity list. Its explicit upper bound is 2,097,152 section bytes; lower-bound, overlong VarInt and nested decoding outcomes remain delegated."
+    },
+    {
+      "id": "CANDIDATE-NET-R2C-LIGHT-RECEIVE-ORDER",
+      "method_indices": [
+        16
+      ],
+      "statement": "The light-data read constructor decodes four ordered bitsets (sky-present, block-present, sky-empty, block-empty), then sky updates, then block updates; exact BitSet and data-layer encoding remain delegated."
+    }
+  ],
+  "proof_reuse": [
+    "Previously independently admitted 58-method/20-rule world-state chunk/heightmap/biome/light source gate #268, limited to its exact source method identities.",
+    "Already-verified receipt-bound R2C candidate body and signed-coordinate field spans in r2c_section_candidate.rs, not client source admission.",
+    "Verified 26.2 Play packet registration-position candidate, not full packet lifecycle admission."
+  ],
+  "open_delegates_and_semantics": [
+    "Bind exact packet ID 45 and codec to the complete target 26.2 registration/dispatch/receiving-client path; no ID claim from packet <clinit> alone.",
+    "Prove FriendlyByteBuf/RegistryFriendlyByteBuf writeInt and readInt signed big-endian behavior through exact reviewed delegate identities.",
+    "Bind the already admitted exact inner chunk/light writer VARs and the specific PacketData.write, LightData.write and packet read-constructor methods; review their exception/length paths.",
+    "Close explicitly-empty saved block entities versus wire zero-count and selected Anvil source provenance; nonempty lists remain prohibited.",
+    "Finish PlayerChunkSender initial batch trigger, collectChunksToSend, ACK receive, client application and first-send ordering.",
+    "Finish client-known-pack registry-to-biome-ID selection and 32,366 concrete heightmap state facts in distinct gates."
+  ],
+  "exact_selected_profile_only": true,
+  "source_text_committed": false,
+  "all_outer_delegates_and_errors_reviewed": false,
+  "independent_human_var_sem_approved": false,
+  "independent_atlas_gate_passed": false,
+  "client_biome_numeric_ids_admitted": false,
+  "heightmap_state_facts_admitted": false,
+  "outer_chunk_packet_lifecycle_admitted": false,
+  "production_chunk_publication_admitted": false
+}

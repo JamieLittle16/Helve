@@ -3,8 +3,18 @@
 **Evidence status:** source text personally inspected from the 17 October 2026 local
 review bundle. This is a **first pass**, not a complete delegation closure,
 independent human review, independent Atlas gate, VAR/SEM source admission or
-authorization for live Play chunk publication. In particular, no stock-client
-world render has yet been demonstrated.
+authorization for live Play chunk publication. The later 18 October stock-client
+test-only 25-source-chunk visual demonstration **did** render the central 3x3;
+the first-pass findings below remain *historical, unadmitted source
+evidence* rather than the current runtime status.
+
+**19 October second pass:** a narrow source-free artifact
+`vanilla/reviews/network/r2c-outer-envelope-second-pass-source-findings.json`
+now confirms the exact direct packet-constructor/write and receiving-field
+order for five of these 19 pinned methods. See
+`R2C_CHUNK_WIRE_SOURCE_FRONTIER.md` for its explicit reached-delegate
+and exception/packet-identity exclusions. Neither first nor second
+pass grants independent source VAR/SEM authority.
 
 ## Exact provenance and safe retention
 
@@ -116,8 +126,10 @@ Play registration order; the *serverbound* batch ACK is **ID 11**, not 12
    independent Atlas gate with all necessary semantic decisions.
 5. Only after the checks permit it, construct the `R2cSourceAdmission`
    production capability and connect the already-built publisher to the
-   continuing R2B Play session. Prove a nine-chunk pregenerated-world
-   demo in an unmodified 26.2 client. R2D worldgen remains separate.
+   continuing R2B Play session. Repeat and independently record a
+   **production**, non-test stock-client 26.2 world publication run.
+   The earlier nine/25-column test-only visual demo has already happened;
+   terrain generation is not required for R2C or R2D entry.
 
 **No official source text has been placed in this document or in the
 source-free review report.** Do not mark the unresolved obligations as

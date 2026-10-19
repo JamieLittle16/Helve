@@ -49,6 +49,70 @@ python3 -m unittest discover -s tools/tests -p 'test_worldgen_noise_oracle.py' -
 
 The tool intentionally outputs `official_source_review_admitted=false` and `production_worldgen_enabled=false`, even on bit-for-bit agreement. A later independently approved source gate, not this tool, decides admission. Add reference probes on negative chunk borders, +/- zero, half-grid positions, extreme seeds, y=world-bottom/top, precision-boundary coordinates, NaN/infinity/error cases **only if** the official path permits them, and across Overworld/Nether/End selected profiles. A full generated chunk also requires exact semantic block/biome/height/light/feature comparisons; matching one noise stage is never full vanilla terrain parity.
 
+## First executable official noise oracle: `ImprovedNoise` (26.2)
+
+The target 26.2 source-owning capture entry point is now
+`tools/worldgen_26_2_improved_noise_capture.py`. It binds the existing
+local Vanilla Atlas to the **exact pinned official source ZIP**, resolves
+a unique `ImprovedNoise#noise(double,double,double)` declaration and
+preserves its Atlas method-body fingerprint. It checks the **official
+server JAR SHA-256** before invoking a small locally compiled **original,
+reflective** Java probe against the unmodified official runtime.
+
+The probe constructs `ImprovedNoise` using `RandomSource.create(long)`
+for each selected seed and invokes its public 3-coordinate method. Five
+seed bit-patterns and 32 coordinate triples (160 distinct requests) include
+negative grid boundaries, integer/fractional grid coordinates, positive
+and negative zero, extremes and small fractional values. It captures
+`Double.doubleToRawLongBits` as sixteen raw hexadecimal digits, without
+converting any response to a Python floating-point number. The only
+output is a source-free candidate manifest. All original source and
+Java probe binaries stay local and outside the repository.
+
+On the source-owning machine:
+
+```bash
+cd ~/Crucible
+git switch main && git pull --ff-only
+python3 tools/vanilla_atlas.py \
+  --db .crucible/vanilla/atlas.sqlite \
+  verify-source "$HOME/Documents/mc-source/mc-src.zip" \
+  --lock vanilla/vanilla.lock.toml
+
+python3 tools/worldgen_26_2_improved_noise_capture.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-improved-noise-official-candidate.json
+```
+
+The script can download the pinned official server runtime using the
+existing `official_state_data.resolve` path when `--server-jar` is absent.
+It requires a working local JDK and fully populated, matching local
+Atlas. Outputs are created exclusively; no existing file is overwritten
+and no official source/JAR is committed. If any declared class,
+constructor, method, source method fingerprint or runtime binding differs,
+the run **fails closed**. Its deterministic JSON records an
+`official_26_2_noise_oracle_candidate` at the `improved_noise` stage
+for comparison against future Helve Rust samples with
+`tools/worldgen_noise_oracle.py`.
+
+**These are candidate samples, not a semantic admission**: a single
+parent method body fingerprint is insufficient to certify constructor,
+`RandomSource` creation, its PRNG sequence, the reached five-argument
+noise overload, interpolation, gradient, permutation or floating-point
+operation order. Those methods and dependencies require independent
+VAR/SEM source review with their own identities and error/branch coverage
+before the output can anchor a *source-admitted* strict parity claim.
+We have **not** run this capture on the source-owning machine in this
+change, and there are **no 26.2 official noise bit vectors in Git**.
+
+The accompanying synthetic JDK test compiles a minimal original
+`RandomSource`/`ImprovedNoise` fixture and validates signed zero,
+source method selection, source/runtime mismatch rejection, output
+exclusivity and lossless transport. It **does not** pass by substituting
+a synthetic answer for the official reference.
+
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 
 The current `SteppedSurface` benchmark is a mechanism baseline, not a real-noise benchmark. It records *three distinct costs* instead of quoting an isolated microbenchmark as chunk loading:

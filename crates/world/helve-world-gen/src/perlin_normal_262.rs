@@ -144,10 +144,8 @@ impl PerlinNoise262 {
                     (Some(a), Some(b)) => a.state_bits_equal(b),
                     _ => false,
                 })
-            && self.lowest_freq_input_factor.to_bits()
-                == other.lowest_freq_input_factor.to_bits()
-            && self.lowest_freq_value_factor.to_bits()
-                == other.lowest_freq_value_factor.to_bits()
+            && self.lowest_freq_input_factor.to_bits() == other.lowest_freq_input_factor.to_bits()
+            && self.lowest_freq_value_factor.to_bits() == other.lowest_freq_value_factor.to_bits()
     }
 
     /// The first source-observed octave position; informational for this

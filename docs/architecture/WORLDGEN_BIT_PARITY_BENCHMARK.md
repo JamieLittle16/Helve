@@ -285,6 +285,78 @@ separately gated on exact node identities and evaluation rules.
 No real source/SEM admission or official family vectors are claimed
 from this method inventory.
 
+## First pinned official PerlinNoise / NormalNoise runtime vector collector
+
+The owner-supplied `/tmp/helve-26_2-noise-family-methods-01.json`
+records **20** `PerlinNoise` declarations, **11** `NormalNoise`
+declarations, **58** `DensityFunctions` declarations and **3**
+`NoiseRouter` declarations. These are source-method identities, not
+admitted Java semantics. Notable concrete evidence includes
+`PerlinNoise#create(RandomSource,int,double,double...)` and
+`NormalNoise#create(RandomSource,int,double...)` entry points; both
+families expose a three-double `getValue` method. Perlin construction
+has RNG-sensitive delegates (`skipOctave`, `forkPositional`), and its
+five-argument value computation reaches coordinate wrapping; Normal
+construction delegates into `PerlinNoise` and its own amplitude/deviation
+logic. Numerous call sites remain syntactically unresolved in Atlas.
+
+Use `tools/worldgen_26_2_perlin_normal_capture.py` to ask the **real,
+pinned official JVM** for 160 raw output bits per family. The tool checks
+the exact local 26.2 archive, matching Atlas and runtime-JAR SHA, and
+also compares the relevant create, constructor, evaluation and reached
+delegate *body fingerprints* against the actual user-provided inventory.
+The fixed explicit capture-only profile is `RandomSource.create(seed)`,
+`firstOctave=-3` and amplitudes `[1.0, 0.0, 0.5, 1.0]`. In particular,
+**these seeds are direct random-factory inputs, not translated world seeds**.
+Both stages preserve the five seed bit patterns, 32 signed and fractional
+coordinate triples per seed and exact
+`Double.doubleToRawLongBits` outputs from the earlier ImprovedNoise
+collector. Each candidate manifest includes the explicit construction
+profile and the full source-method hash bundle so its outputs cannot be
+silently reused under a different octave recipe.
+
+Run on the machine with the existing pinned private archive and Atlas:
+
+```bash
+cd ~/Crucible
+git switch main && git pull --ff-only
+
+python3 tools/worldgen_26_2_perlin_normal_capture.py \
+  --stage perlin_noise \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --output /tmp/helve-26_2-perlin-official-01.json
+
+python3 tools/worldgen_26_2_perlin_normal_capture.py \
+  --stage normal_noise \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --output /tmp/helve-26_2-normal-official-01.json
+```
+
+The tool compiles only a short, original Java *reflection-only* probe
+in a disposable temporary directory; it requires a local JDK.
+The private source ZIP and official runtime JAR remain private, and
+output is a **fresh external JSON path** that cannot overwrite evidence.
+Synthetic CI tests compile independent fake `PerlinNoise` and
+`NormalNoise` classes and verify static factory overloads, exact octave
+profile, seed binding, signed-zero transport, SHA mismatch refusal and
+lossless manifest validation. Fake Java outputs are never described as
+Minecraft samples. Neither official family run has been executed as
+part of this repository change; output bit vectors remain to be
+captured on the user's source-owning machine.
+
+**Source custody/admission remains explicitly OPEN**: exact indexed
+method fingerprints and output parity do not independently review
+RNG consumption, constructor branch conditions, legacy/new mode,
+normalisation, octave/parameter exceptions, `Mth.lfloor`, inner
+`ImprovedNoise#noise/5`, biome or density graph semantics. They do not
+certify a Rust `PerlinNoise`/`NormalNoise` implementation. Once the
+two official manifests are available, a *separate* full Rust port and
+bitwise differential acceptance are needed, followed by targeted
+source VAR/SEM review and whole chunk-latency benchmarking. No R2C
+publication or R2D generation switch is enabled.
+
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 
 The current `SteppedSurface` benchmark is a mechanism baseline, not a real-noise benchmark. It records *three distinct costs* instead of quoting an isolated microbenchmark as chunk loading:

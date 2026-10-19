@@ -78,6 +78,12 @@ class DelegateFrontierError(ValueError):
 JAVA_PROBE = r"""import java.lang.reflect.*;
 import java.util.*;
 public final class HelveDensityDelegateTypes {
+  // Bootstrap may replace System.out with a logger/decorated PrintStream.
+  // Write original, source-free protocol rows directly to the process
+  // stdout descriptor instead of the Java mutable System.out reference.
+  static final java.io.PrintStream RESULT = new java.io.PrintStream(
+      new java.io.FileOutputStream(java.io.FileDescriptor.out), true,
+      java.nio.charset.StandardCharsets.US_ASCII);
   static double number(String bits) {
     return Double.longBitsToDouble(Long.parseUnsignedLong(bits.substring(2), 16));
   }
@@ -93,7 +99,7 @@ public final class HelveDensityDelegateTypes {
     Method compute = concrete.getMethod("compute", context);
     String superName = concrete.getSuperclass() == null
         ? "-" : concrete.getSuperclass().getName();
-    System.out.println("HELVE26_2_DENSITY_DELEGATE|" + label + "|" +
+    RESULT.println("HELVE26_2_DENSITY_DELEGATE|" + label + "|" +
         concrete.getName() + "|" + compute.getDeclaringClass().getName() +
         "|" + superName);
   }

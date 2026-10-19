@@ -15,12 +15,7 @@ fn hex64(value: &str) -> u64 {
     .expect("raw oracle has exactly 64-bit hex")
 }
 
-fn verify_plane(
-    sampler: &ImprovedNoise262,
-    origin_x: f64,
-    y: f64,
-    origin_z: f64,
-) -> u64 {
+fn verify_plane(sampler: &ImprovedNoise262, origin_x: f64, y: f64, origin_z: f64) -> u64 {
     let mut output = [f64::NAN; 256];
     sampler.sample_plane_16x16(origin_x, y, origin_z, &mut output);
     let mut checksum = 0_u64;
@@ -35,8 +30,7 @@ fn verify_plane(
                 .to_bits();
             let actual = output[usize::from(local_z) * 16 + usize::from(local_x)].to_bits();
             assert_eq!(
-                actual,
-                expected,
+                actual, expected,
                 "x={} y={} z={} local_x={} local_z={} actual={actual:#018x} expected={expected:#018x}",
                 origin_x, y, origin_z, local_x, local_z,
             );
@@ -84,7 +78,10 @@ fn every_official_noise_vector_is_the_first_point_of_an_exact_scalar_plane() {
     let mut samplers = BTreeMap::<u64, ImprovedNoise262>::new();
     let mut count = 0_usize;
     let oracle = include_str!("data/improved_noise_26_2_rawbits.tsv");
-    for row in oracle.lines().filter(|line| !line.starts_with('#') && !line.is_empty()) {
+    for row in oracle
+        .lines()
+        .filter(|line| !line.starts_with('#') && !line.is_empty())
+    {
         let cells: Vec<_> = row.split_whitespace().collect();
         assert_eq!(cells.len(), 5, "malformed oracle input");
         let seed = hex64(cells[0]);
@@ -97,7 +94,11 @@ fn every_official_noise_vector_is_the_first_point_of_an_exact_scalar_plane() {
             .or_insert_with(|| ImprovedNoise262::new(seed));
         let mut out = [0.0; 256];
         sampler.sample_plane_16x16(x, y, z, &mut out);
-        assert_eq!(out[0].to_bits(), expected, "official raw bits: {seed:#018x} {cells:?}");
+        assert_eq!(
+            out[0].to_bits(),
+            expected,
+            "official raw bits: {seed:#018x} {cells:?}"
+        );
         for local_z in 0_u8..16 {
             for local_x in 0_u8..16 {
                 let scalar = sampler.sample(x + f64::from(local_x), y, z + f64::from(local_z));
@@ -109,7 +110,10 @@ fn every_official_noise_vector_is_the_first_point_of_an_exact_scalar_plane() {
         }
         count += 1;
     }
-    assert_eq!(count, 160, "complete official noise corpus must be exercised");
+    assert_eq!(
+        count, 160,
+        "complete official noise corpus must be exercised"
+    );
     assert_eq!(samplers.len(), 5, "five official seed identities");
 }
 
@@ -122,10 +126,7 @@ fn plane_reads_are_deterministic_across_workers() {
             let sampler = &instance;
             scope.spawn(move || {
                 for _ in 0..12 {
-                    assert_eq!(
-                        verify_plane(sampler, -16.125, -63.875, 15.125),
-                        expected
-                    );
+                    assert_eq!(verify_plane(sampler, -16.125, -63.875, 15.125), expected);
                 }
             });
         }

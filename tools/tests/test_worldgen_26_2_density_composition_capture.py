@@ -239,7 +239,7 @@ class ComposedDensityCaptureTests(unittest.TestCase):
             with mock.patch.object(composed.official, "extract_classpath", return_value=[classes]):
                 bits = composed.runtime_bits(root / "toy.jar", composed.inputs(), timeout=30)
             self.assertEqual(len(bits), 1280)
-            self.assertEqual(bits[0], "0x3fe0000000000000", "two toy low endpoints: -1 + .5")
+            self.assertEqual(bits[0], "0xbfe0000000000000", "two toy low endpoints: -1 + .5")
             self.assertEqual(bits[160], "0xbfe0000000000000", "toy low endpoints: -1 * .5")
             self.assertEqual(bits[320], "0xbff0000000000000", "toy signed -0 + -1")
             self.assertEqual(bits[480], "0xbff0000000000000", "toy signed -1 + -0")

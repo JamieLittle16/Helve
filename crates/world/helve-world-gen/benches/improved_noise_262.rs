@@ -1,4 +1,4 @@
-//! Candidate ImprovedNoise cost probe: immutable seed initialization,
+//! Candidate `ImprovedNoise` cost probe: immutable seed initialization,
 //! coherent 3D chunk-grid sampling and unrelated/scattered coordinates.
 //!
 //! This measures only the isolated 26.2 3D noise kernel, NOT noise routers,
@@ -96,9 +96,9 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
         }
         Case::Coherent => {
             for i in 0..n {
-                let x = f64::from((i & 15) as u16) + 0.125;
-                let z = f64::from(((i >> 4) & 15) as u16) + 0.25;
-                let y = f64::from(((i >> 8) & 31) as u16) - 64.375;
+                let x = f64::from(u16::try_from(i & 15).expect("4-bit index")) + 0.125;
+                let z = f64::from(u16::try_from((i >> 4) & 15).expect("4-bit index")) + 0.25;
+                let y = f64::from(u16::try_from((i >> 8) & 31).expect("5-bit index")) - 64.375;
                 checksum = checksum.rotate_left(7) ^ baseline.sample(x, y, z).to_bits();
             }
             n

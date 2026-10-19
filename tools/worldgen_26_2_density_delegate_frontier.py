@@ -64,7 +64,7 @@ COMPOSITION_BODY_PINS = {
     "mul_factory": "c5d5aaa53f8650d9068362c193487625eeeb057633eaafb0142651a4cc29d7f1",
 }
 JAVA_CLASS = re.compile(r"net\.minecraft(?:\.[A-Za-z_$][\w$]*)+\Z")
-PARENT_CLASS = re.compile(r"(?:net\\.minecraft|java\\.lang)(?:\\.[A-Za-z_$][\\w$]*)+\\Z")
+PARENT_CLASS = re.compile(r"(?:net\.minecraft|java\.lang)(?:\.[A-Za-z_$][\w$]*)+\Z")
 METHOD_HASH = re.compile(r"[0-9a-f]{64}\Z")
 
 

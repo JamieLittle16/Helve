@@ -184,7 +184,7 @@ class DensityDelegateFrontierTests(unittest.TestCase):
             (root / "SharedConstants.java").write_text(
                 """package net.minecraft;
                 public final class SharedConstants {
-                  static boolean ready;
+                  public static boolean ready;
                   public static void tryDetectVersion() { ready = true; }
                 }""", encoding="utf-8")
             (boot / "Bootstrap.java").write_text(

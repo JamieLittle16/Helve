@@ -425,6 +425,51 @@ implement and compare the actual 26.2 octave aggregation in Rust.
 The independent source/VAR/SEM proof and all density-router semantics
 remain OPEN.
 
+## Observed-constructor-state Rust `PerlinNoise262` / `NormalNoise262` candidate
+
+The two source-owning official-JVM constructor snapshots now exist and
+are preserved as a **source-free**, explicitly profile-pinned test fixture:
+`crates/world/helve-world-gen/tests/data/perlin_normal_26_2_observed_state.tsv`.
+It contains five direct random-factory seeds, every 256-byte octave
+permutation, all three `f64` offsets per active octave, four amplitude
+positions (including the null slot 1), and exact root frequency/value
+factors. For `NormalNoise`, both separate Perlin branches and the
+observed normal factor are present. Neither source, class bytes nor
+private archive contents are shipped.
+
+`ImprovedNoise262::from_observed_parts` accepts verified
+permutations/offsets **without claiming to reconstruct Mojang's
+constructor RNG consumption**. The new production-disconnected
+`perlin_normal_262.rs` provides two genuine immutable evaluator
+types: `PerlinNoise262` (ordered four-octave weighted gradient sum,
+including source-candidate 2^25 coordinate wrapping) and
+`NormalNoise262` (two distinct Perlin branches and the evaluated
+second-coordinate multiplier). Both provide scalar `sample()` and
+allocation-free 16×16 coherent plane sampling through shared
+axis-grid/permutation reuse.
+
+`perlin_normal_262_official.rs` reconstructs all five sampler
+states and demands exact `f64::to_bits()` agreement against **160
+independent real 26.2 Perlin + 160 Normal output references** from
+`tests/data/perlin_normal_26_2_rawbits.tsv`. It additionally
+checks every cell of negative/fractional/wrapped-boundary coherent
+16×16 planes against the scalar method, the independent Perlin
+constructor versus Normal's identical first branch, invalid
+permutation refusal and concurrent immutable reads. Existing Python
+CI separately binds the output references to the upstream frozen
+candidate JSON and method/body fingerprints.
+
+**Important qualification boundary:** matches for these finite
+sample profiles validate a **state-backed evaluator**, not the
+full seed-to-constructor implementation. `PerlinNoise262` and
+`NormalNoise262` cannot yet be initialised from arbitrary world
+seed/parameters. The inferred three-double evaluator rules still
+require a source-owning independent VAR/SEM review of exact
+float expression order, five-argument delegates and the constructor
+random stream, as well as broader adversarial inputs before claiming
+all-input parity. These methods are not wired into the chunk/density
+router or the R2C production publication path.
+
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 
 The current `SteppedSurface` benchmark is a mechanism baseline, not a real-noise benchmark. It records *three distinct costs* instead of quoting an isolated microbenchmark as chunk loading:

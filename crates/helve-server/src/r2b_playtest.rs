@@ -1798,7 +1798,10 @@ mod play_short_write_tests {
             attempts += 1;
             assert!(attempts <= expected.len(), "write made no bounded progress");
         }
-        assert_eq!(sink.written, expected, "no byte loss, duplication or reordering");
+        assert_eq!(
+            sink.written, expected,
+            "no byte loss, duplication or reordering"
+        );
         assert_eq!(session.queued_egress(), 0);
         write_play_once(&mut sink, &mut session).expect("empty queue no-op");
         assert_eq!(sink.written, expected, "empty queue must not replay bytes");

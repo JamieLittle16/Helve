@@ -516,3 +516,7 @@ There is no evidence yet for a specific speedup or absolute millisecond budget; 
 ## Direct-seed positional Perlin/Normal constructor parity (candidate)
 
 The direct-`RandomSource.create(long)` profile with first octave `-3` and amplitudes `[1,0,0.5,1]` now has an **additional** Rust construction path deriving all octave permutations/offsets from the seed itself. See [`WORLDGEN_SEEDED_CONSTRUCTORS_262.md`](WORLDGEN_SEEDED_CONSTRUCTORS_262.md) for exact signed RNG fork, Java octave-name hash, complete five-seed state comparisons and 320 output-bit regression requirements. The independently observed-state path remains unchanged. This finite-profile candidate does **not** close independent source/VAR/SEM review, arbitrary parameter-profile construction, density/terrain generation or the production chunk-publication gate.
+
+## Typed density-cell COLD mechanism (not yet vanilla `DensityFunctions`)
+
+The explicit, immutable `DensityKernel262<N>` in `crates/world/helve-world-gen/src/density_kernel_262.rs` evaluates caller-chosen ordered constant/coordinate/Perlin/Normal/add/multiply graphs and writes 16×16×16 density cells with caller-owned scratch. It reuses the 26.2 noise samplers and their existing coherent plane path, with a new official-noise **leaf** gate of 320 raw outputs. These are not official `DensityFunctions` or `NoiseRouter` outputs. Details, test boundaries and subsequent independent source/oracle requirements: [Worldgen Density Cell Foundation](WORLDGEN_DENSITY_CELL_FOUNDATION_262.md). Source/VAR/SEM and production gates stay closed.

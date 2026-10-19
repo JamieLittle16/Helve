@@ -55,8 +55,8 @@ jobs:
       - name: Worldgen semantic tests and 160 direct official bit vectors (debug)
         run: cargo test --package helve-world-gen --locked
 
-      - name: Raw 26.2 noise bit parity in optimised release build
-        run: cargo test --release --locked -p helve-world-gen --test improved_noise_262_reference
+      - name: Raw 26.2 oracle and coherent-plane/scalar bit parity in optimised release
+        run: cargo test --release --locked -p helve-world-gen --tests
 
       - name: Source-free raw IEEE oracle contract mutation tests
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_noise_oracle.py' -v
@@ -97,15 +97,20 @@ jobs:
           assert a["points_per_round"] == 256
           assert a["measured_rounds"] == 3
           assert a["timing_units"] == "ns_per_batch"
-          assert len(a["cases"]) == 3
+          assert len(a["cases"]) == 4
           assert {c["name"] for c in a["cases"]} == {
-              "immutable_seed_setup", "coherent_grid_scalar", "scattered_scalar"
+              "immutable_seed_setup", "coherent_grid_scalar",
+              "coherent_grid_reused", "scattered_scalar"
           }
           for case in a["cases"]:
               assert case["batches"] == 3
               assert case["evaluations_per_batch"] > 0
               assert 0 < case["p50_ns"] <= case["p95_ns"] <= case["p99_ns"] <= case["max_ns"]
-          print("official-vector-qualified candidate benchmark smoke structure PASS; no speed claims")
+          cases = {c["name"]: c for c in a["cases"]}
+          assert cases["coherent_grid_scalar"]["evaluations_per_batch"] == 256
+          assert cases["coherent_grid_reused"]["evaluations_per_batch"] == 256
+          assert cases["coherent_grid_scalar"]["checksum"] == cases["coherent_grid_reused"]["checksum"]
+          print("coherent scalar/reused whole-grid bit checksum PASS; timings diagnostic only")
           PY
 
       - name: Validate structural benchmark artifact, not elapsed-time thresholds

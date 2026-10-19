@@ -248,7 +248,8 @@ fn main() -> Result<(), String> {
         if i > 0 {
             json.push(',');
         }
-        write!(&mut json,
+        write!(
+            &mut json,
             "{{\"name\":\"{}\",\"samples\":{},\"p50_ns\":{},\
             \"p95_ns\":{},\"p99_ns\":{},\"max_ns\":{},\
             \"total_sample_ns\":{}}}",
@@ -259,7 +260,8 @@ fn main() -> Result<(), String> {
             summary.p99_ns,
             summary.max_ns,
             summary.total_ns
-        ).expect("writing to String cannot fail");
+        )
+        .expect("writing to String cannot fail");
     }
     json.push_str("]}");
     if let Some(path) = &cfg.output {

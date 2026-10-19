@@ -164,6 +164,42 @@ cargo bench --locked -p helve-world-gen --bench improved_noise_262 -- \
   --points 4096 --warmup 5 --rounds 40 --output /tmp/improved-noise-bench.json
 ```
 
+## Coherent 16×16 X/Z plane reuse — candidate optimisation
+
+The immutable `ImprovedNoise262::sample_plane_16x16(origin_x, y,
+origin_z, &mut [f64;256])` performs the **same 256 scalar samples** at
+`(origin_x + local_x, y, origin_z + local_z)`, with Z-major output.
+It hoists Y floor/fraction/fade **once per plane**, X floor/fraction,
+permutation and Y-combined indices **once per column**, and Z
+floor/fraction/fade **once per row**. All corner gradient dots and
+interpolation operations retain the scalar evaluation order. No hidden
+heap allocation, FMA, reassociation or global cache enters the path.
+A fixed 16-element stack cache is scoped to one call, and the original
+scalar kernel remains unchanged for irregular coordinate queries.
+
+The new independent `tests/coherent_noise_262.rs` verifies **every
+one of 256 outputs** across five seeds, 18 signed/negative/boundary/
+fractional/large coordinate origins, and 160 entire planes anchored
+by the captured official JVM vector values. Exact `f64::to_bits()` is
+required in debug and release, including concurrent read-only workers.
+A first-cell fixture match remains a candidate oracle match, *not*
+independent source/SEM admission of a worldgen density router.
+
+The existing `improved_noise_262` benchmark now compares
+`coherent_grid_scalar` and `coherent_grid_reused` on the **same**
+256-point tile coordinates, output layout, checksums and number of
+samples, with case-order rotation. A checksum mismatch **aborts**
+the benchmark even if a faster timing is observed. Initialization and
+scattered scalar queries are retained as controls. Record p50/p95/p99
+*per batch*, use multiple repeated controlled-hardware runs, and only
+accept a real speedup if it survives that A/B comparison. The
+GitHub runner smoke check is structural/bit-correctness only.
+
+**No R2C/R2D production generator or chunk-publication authority is
+enabled.** This is a targeted noise-kernel technique; whether it
+improves density-graph or complete chunk-availability latency remains
+to be measured when a real target 26.2 density router is qualified.
+
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 
 The current `SteppedSurface` benchmark is a mechanism baseline, not a real-noise benchmark. It records *three distinct costs* instead of quoting an isolated microbenchmark as chunk loading:

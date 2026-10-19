@@ -98,6 +98,18 @@ def inputs() -> list[dict[str, object]]:
     ]
 
 
+def matches_signature(signature: object, symbol: str, types: tuple[str, ...]) -> bool:
+    """Require selected method name and all positional argument type tokens."""
+    if not isinstance(signature, str) or not signature.startswith(symbol + "(") or not signature.endswith(")"):
+        return False
+    arguments = signature[len(symbol) + 1:-1]
+    parts = [] if not arguments.strip() else arguments.split(",")
+    return len(parts) == len(types) and all(
+        re.search(r"\b" + re.escape(kind) + r"\b", part) is not None
+        for kind, part in zip(types, parts)
+    )
+
+
 def bound_methods(conn: sqlite3.Connection) -> dict[str, dict[str, str]]:
     result = {}
     owners = {owner for owner, _, _ in METHODS.values()}
@@ -109,13 +121,7 @@ def bound_methods(conn: sqlite3.Connection) -> dict[str, dict[str, str]]:
         matches = []
         for row in methods_by_owner[owner]:
             signature = str(row["signature"])
-            if not signature.startswith(name + "(") or not signature.endswith(")"):
-                continue
-            arguments = signature[len(name) + 1:-1]
-            parts = [] if not arguments.strip() else arguments.split(",")
-            if len(parts) != len(arg_types):
-                continue
-            if all(re.search(r"\b" + re.escape(t) + r"\b", part) for t, part in zip(arg_types, parts)):
+            if matches_signature(signature, name, arg_types):
                 matches.append(row)
         if len(matches) != 1:
             raise DensityCaptureError(f"expected exactly one pinned {owner}#{name} declaration; found {len(matches)}")
@@ -251,11 +257,13 @@ def validate(manifest: dict, lock: dict) -> None:
         row = manifest["methods"][name]
         if not isinstance(row, dict) or set(row) != {"owner", "signature", "body_sha256", "normalized_sha256"}:
             raise DensityCaptureError("invalid source method identity")
-        if row["owner"] != owner or not row["signature"].startswith(symbol + "("):
-            raise DensityCaptureError("changed source method name")
+        if row["owner"] != owner or not matches_signature(row["signature"], symbol, types):
+            raise DensityCaptureError("changed source method name/parameter types")
         if any(not isinstance(row[key], str) or SHA.fullmatch(row[key]) is None
                for key in ("body_sha256", "normalized_sha256")):
             raise DensityCaptureError("unbound source method digest")
+    if len({(row["owner"], row["signature"]) for row in manifest["methods"].values()}) != len(METHODS):
+        raise DensityCaptureError("duplicated density source method bindings")
     rows = manifest["vectors"]
     wanted = inputs()
     if not isinstance(rows, list) or len(rows) != len(wanted):

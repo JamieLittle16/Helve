@@ -115,6 +115,14 @@ raw-bit differential contract. It does not authorize real 26.2 generation
 or modify R2C/R2D publication. Performance claims require official noise
 stage reference vectors and representative controlled-hardware runs.
 
+**First source-owned noise capture:** `tools/worldgen_26_2_improved_noise_capture.py`
+samples 160 raw-bit outputs from the pinned official 26.2 `ImprovedNoise`
+runtime when invoked on the local source-owning machine, after Atlas
+and server-JAR hash preflight. This is a candidate vector-transport path,
+not a reviewed density router, proved RNG constructor, vanilla parity
+admission or R2D requirement. See
+[Worldgen Bit Parity and Benchmark](../architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md).
+
 ### R2D — top-level R2 qualification
 
 Goal: red-team the complete persistent visible world after R2C has made terrain native.

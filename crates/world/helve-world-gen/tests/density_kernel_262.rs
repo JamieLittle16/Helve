@@ -48,12 +48,16 @@ fn unmodified_noise_leaf_preserves_all_320_official_perlin_normal_bits() {
                 f64::from_bits(bits(fields[3])),
             );
             assert_eq!(
-                perlin_leaf.sample_with_scratch(x, y, z, &mut perlin_scratch).to_bits(),
+                perlin_leaf
+                    .sample_with_scratch(x, y, z, &mut perlin_scratch)
+                    .to_bits(),
                 bits(fields[4]),
                 "Perlin density leaf, seed {seed}, row {sample}"
             );
             assert_eq!(
-                normal_leaf.sample_with_scratch(x, y, z, &mut normal_scratch).to_bits(),
+                normal_leaf
+                    .sample_with_scratch(x, y, z, &mut normal_scratch)
+                    .to_bits(),
                 bits(fields[5]),
                 "Normal density leaf, seed {seed}, row {sample}"
             );
@@ -107,10 +111,7 @@ fn bounded_dag_rejects_invalid_edges_empty_graph_and_dead_work() {
         Err(DensityKernelError262::InvalidDependency { node: 1, child: 2 })
     ));
     assert!(matches!(
-        DensityKernel262::new([
-            DensityNode262::Constant(1.0),
-            DensityNode262::Constant(2.0),
-        ]),
+        DensityKernel262::new([DensityNode262::Constant(1.0), DensityNode262::Constant(2.0),]),
         Err(DensityKernelError262::UnusedNode { node: 0 })
     ));
     let shared = DensityKernel262::new([
@@ -153,7 +154,9 @@ fn coherent_plane_and_y_z_x_cell_match_scalar_at_signed_boundaries() {
                     let index = usize::from(lz) * 16 + usize::from(lx);
                     assert_eq!(
                         plane[index].to_bits(),
-                        graph.sample(x0 + f64::from(lx), y, z0 + f64::from(lz)).to_bits()
+                        graph
+                            .sample(x0 + f64::from(lx), y, z0 + f64::from(lz))
+                            .to_bits()
                     );
                 }
             }
@@ -165,8 +168,7 @@ fn coherent_plane_and_y_z_x_cell_match_scalar_at_signed_boundaries() {
     for iy in 0_u8..16 {
         for iz in 0_u8..16 {
             for ix in 0_u8..16 {
-                let index =
-                    usize::from(iy) * 256 + usize::from(iz) * 16 + usize::from(ix);
+                let index = usize::from(iy) * 256 + usize::from(iz) * 16 + usize::from(ix);
                 let x = -16.125 + f64::from(ix);
                 let y = -64.25 + f64::from(iy);
                 let z = 31.5 + f64::from(iz);
@@ -197,7 +199,9 @@ fn independent_worker_scratch_never_changes_immutable_program_results() {
                 let mut scratch = [0.0; 3];
                 for _ in 0..100 {
                     assert_eq!(
-                        shared.sample_with_scratch(-8.125, 0.5, 31.125, &mut scratch).to_bits(),
+                        shared
+                            .sample_with_scratch(-8.125, 0.5, 31.125, &mut scratch)
+                            .to_bits(),
                         expected
                     );
                 }

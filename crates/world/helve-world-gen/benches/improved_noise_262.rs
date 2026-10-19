@@ -143,19 +143,14 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
             for tile in 0..n / 256 {
                 let origin_x = 0.125;
                 let origin_z = 0.25;
-                let y = f64::from(u8::try_from(tile & 31).expect("5-bit tile height"))
-                    - 64.375;
+                let y = f64::from(u8::try_from(tile & 31).expect("5-bit tile height")) - 64.375;
                 if matches!(case, Case::StackBatched) {
                     stack.sample_plane_16x16(origin_x, y, origin_z, &mut samples);
                 } else {
                     for iz in 0_u8..16 {
                         for ix in 0_u8..16 {
                             samples[usize::from(iz) * 16 + usize::from(ix)] =
-                                stack.sample(
-                                    origin_x + f64::from(ix),
-                                    y,
-                                    origin_z + f64::from(iz),
-                                );
+                                stack.sample(origin_x + f64::from(ix), y, origin_z + f64::from(iz));
                         }
                     }
                 }

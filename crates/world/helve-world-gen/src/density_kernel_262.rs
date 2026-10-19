@@ -186,6 +186,11 @@ impl<'a, const N: usize> DensityKernel262<'a, N> {
     /// 4096 density values in **Y/Z/X** cell order. Caller owns both
     /// output and temporary scratch; there is no extra volume copy.
     /// The single-noise plane fast path is reused for every Y slice.
+    ///
+    /// # Panics
+    /// Only if the statically sized 4096-element array does not divide
+    /// into sixteen 256-element planes or the 0..16 Y index does not fit
+    /// in `u8`, both impossible under the fixed cell dimensions.
     pub fn sample_cell_16x16x16(
         &self,
         origin_x: f64,

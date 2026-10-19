@@ -31,8 +31,7 @@ fn verify_plane(sampler: &ImprovedNoise262, origin_x: f64, y: f64, origin_z: f64
             let actual = output[usize::from(local_z) * 16 + usize::from(local_x)].to_bits();
             assert_eq!(
                 actual, expected,
-                "x={} y={} z={} local_x={} local_z={} actual={actual:#018x} expected={expected:#018x}",
-                origin_x, y, origin_z, local_x, local_z,
+                "x={origin_x} y={y} z={origin_z} local_x={local_x} local_z={local_z} actual={actual:#018x} expected={expected:#018x}",
             );
             checksum = checksum.rotate_left(5) ^ actual;
         }

@@ -385,6 +385,20 @@ A future generator should be able to:
 - install through normal generation/revision authority;
 - qualify SIMD/unsafe/specialized noise paths only while preserving exact vanilla output for the strict profile.
 
+### Deterministic generation foundation (isolated, not a product route)
+
+The target-neutral `helve-world-gen` crate introduces a deterministic
+**non-vanilla** COLD sample generator and a statically-dispatched section
+builder interface. It creates ordinary `LiveChunkSemanticState` chunks;
+only `SemanticDimensionInstance::admit_chunk` may install them. There is
+no second resident world owner, chunk-revision clock or publication queue.
+
+See [World Generation Foundation](WORLD_GENERATION_FOUNDATION.md) for
+the exact architecture and separate source-pinned 26.2 terrain-parity
+roadmap. This implementation is not R2C or R2D publication admission;
+vanilla fidelity, heightmaps, lighting, structures, dynamics and persistent
+on-demand chunk requests remain explicitly unimplemented.
+
 ## Active-set scheduling
 
 Inactive state should not be scanned to prove it is inactive.

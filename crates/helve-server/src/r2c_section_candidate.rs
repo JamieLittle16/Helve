@@ -1281,7 +1281,6 @@ mod tests {
         )
         .expect("real receipt bounds candidate to current owner");
         assert_eq!(spans.position.start, 1);
-        assert_eq!(&actual[spans.block_entities], &[0]);
         assert_eq!(actual.as_ptr(), allocation);
 
         dim.resolve_chunk_mut(receipt.installed().handle)
@@ -1625,9 +1624,19 @@ mod tests {
         .unwrap();
         assert_eq!(actual, expected);
         assert_eq!(spans.position, 2..a);
+        // Independent outer-source field-order check: two signed,
+        // network-big-endian i32 coordinates, NOT ZigZag/VarInt positions.
+        // The genuine signed fixture (-3, +4) exercises both signs.
+        assert_eq!(a - 2, 8);
+        assert_eq!(&actual[2..6], &position.x.to_be_bytes());
+        assert_eq!(&actual[6..10], &position.z.to_be_bytes());
         assert_eq!(spans.chunk_data, a..b);
         assert_eq!(spans.block_entities, b..c);
         assert_eq!(spans.light, c..actual.len());
+        assert_eq!(spans.position.end, spans.chunk_data.start);
+        assert_eq!(spans.chunk_data.end, spans.block_entities.start);
+        assert_eq!(spans.block_entities.end, spans.light.start);
+        assert_eq!(&actual[spans.block_entities.clone()], &[0]);
         assert_eq!(&actual[spans.block_entities], &[0]);
         assert_eq!(actual.as_ptr(), allocation);
         assert_eq!(image.stamp(), semantic.stamp());

@@ -261,6 +261,140 @@ impl ImprovedNoise262 {
     }
 }
 
+/**
+One x-column of a 16×16 coherent sampling plane. Every field is independent
+of the z coordinate, so prepare it once and reuse across all 16 rows.
+*/
+#[derive(Clone, Copy, Default)]
+struct PlaneX {
+    dx: f64,
+    dx_minus_one: f64,
+    fade_x: f64,
+    aa: i32,
+    ab: i32,
+    ba: i32,
+    bb: i32,
+}
+
+impl ImprovedNoise262 {
+    /// Samples a contiguous 16×16 X/Z plane at one Y into caller-owned
+    /// Z-major output. The scalar contract is exactly
+    /// `sample(origin_x + f64::from(local_x), y, origin_z + f64::from(local_z))`.
+    ///
+    /// X and Y lattice/permutation/gradient-index inputs are reused across
+    /// all rows. Z derivation, gradient dot products and interpolations keep
+    /// the identical scalar arithmetic and evaluation order, **without**
+    /// fast-math, FMA, platform-specific SIMD or any heap allocation.
+    ///
+    /// This fast path is only appropriate for exactly this coherent grid.
+    /// It does not change or accelerate arbitrary `sample()` calls.
+    ///
+    /// # Panics
+    /// Every x/z index is statically in 0..16; a checked index conversion
+    /// panic would indicate a broken fixed grid bound.
+    pub fn sample_plane_16x16(
+        &self,
+        origin_x: f64,
+        y: f64,
+        origin_z: f64,
+        output: &mut [f64; 256],
+    ) {
+        // Compute the *same* sums and casts as the scalar method. In
+        // particular, do not derive subsequent positions by incrementing an
+        // already-offset coordinate (that changes floating rounding).
+        let shifted_y = y + self.offset_y;
+        let integer_y = java_floor(shifted_y);
+        let delta_y = shifted_y - f64::from(integer_y);
+        let delta_y_minus_one = delta_y - 1.0;
+        let fade_y = smoothstep(delta_y);
+        let mut columns = [PlaneX::default(); 16];
+
+        for local_x in 0_u8..16 {
+            let shifted_x = (origin_x + f64::from(local_x)) + self.offset_x;
+            let integer_x = java_floor(shifted_x);
+            let delta_x = shifted_x - f64::from(integer_x);
+            let perm_x0 = i32::from(self.p(integer_x));
+            let perm_x1 = i32::from(self.p(integer_x.wrapping_add(1)));
+            columns[usize::from(local_x)] = PlaneX {
+                dx: delta_x,
+                dx_minus_one: delta_x - 1.0,
+                fade_x: smoothstep(delta_x),
+                aa: i32::from(self.p(perm_x0.wrapping_add(integer_y))),
+                ab: i32::from(self.p(perm_x0.wrapping_add(integer_y).wrapping_add(1))),
+                ba: i32::from(self.p(perm_x1.wrapping_add(integer_y))),
+                bb: i32::from(self.p(perm_x1.wrapping_add(integer_y).wrapping_add(1))),
+            };
+        }
+
+        for local_z in 0_u8..16 {
+            let shifted_z = (origin_z + f64::from(local_z)) + self.offset_z;
+            let integer_z = java_floor(shifted_z);
+            let delta_z = shifted_z - f64::from(integer_z);
+            let z_corner_offset = delta_z - 1.0;
+            let fade_z = smoothstep(delta_z);
+            let row_start = usize::from(local_z) * 16;
+
+            for (local_x, column) in columns.iter().enumerate() {
+                let corner000 = grad_dot(
+                    self.p(column.aa.wrapping_add(integer_z)),
+                    column.dx,
+                    delta_y,
+                    delta_z,
+                );
+                let corner100 = grad_dot(
+                    self.p(column.ba.wrapping_add(integer_z)),
+                    column.dx_minus_one,
+                    delta_y,
+                    delta_z,
+                );
+                let corner010 = grad_dot(
+                    self.p(column.ab.wrapping_add(integer_z)),
+                    column.dx,
+                    delta_y_minus_one,
+                    delta_z,
+                );
+                let corner110 = grad_dot(
+                    self.p(column.bb.wrapping_add(integer_z)),
+                    column.dx_minus_one,
+                    delta_y_minus_one,
+                    delta_z,
+                );
+                let corner001 = grad_dot(
+                    self.p(column.aa.wrapping_add(integer_z).wrapping_add(1)),
+                    column.dx,
+                    delta_y,
+                    z_corner_offset,
+                );
+                let corner101 = grad_dot(
+                    self.p(column.ba.wrapping_add(integer_z).wrapping_add(1)),
+                    column.dx_minus_one,
+                    delta_y,
+                    z_corner_offset,
+                );
+                let corner011 = grad_dot(
+                    self.p(column.ab.wrapping_add(integer_z).wrapping_add(1)),
+                    column.dx,
+                    delta_y_minus_one,
+                    z_corner_offset,
+                );
+                let corner111 = grad_dot(
+                    self.p(column.bb.wrapping_add(integer_z).wrapping_add(1)),
+                    column.dx_minus_one,
+                    delta_y_minus_one,
+                    z_corner_offset,
+                );
+                output[row_start + local_x] = lerp3(
+                    [column.fade_x, fade_y, fade_z],
+                    [
+                        corner000, corner100, corner010, corner110, corner001, corner101,
+                        corner011, corner111,
+                    ],
+                );
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::{ImprovedNoise262, LegacyBits};

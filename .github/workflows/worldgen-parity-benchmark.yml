@@ -1,0 +1,101 @@
+name: Worldgen Parity and Benchmark Qualification
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/world/helve-world-gen/**"
+      - "tools/worldgen_noise_oracle.py"
+      - "tools/tests/test_worldgen_noise_oracle.py"
+      - "docs/architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md"
+      - ".github/workflows/worldgen-parity-benchmark.yml"
+  push:
+    branches: [main]
+    paths:
+      - "crates/world/helve-world-gen/**"
+      - "tools/worldgen_noise_oracle.py"
+      - "tools/tests/test_worldgen_noise_oracle.py"
+      - ".github/workflows/worldgen-parity-benchmark.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: worldgen-parity-bench-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  foundation:
+    name: Worldgen strict-oracle format and whole-cost smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CARGO_INCREMENTAL: "0"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.97.1 --profile minimal --component rustfmt --component clippy
+
+      - name: Format targeted worldgen crate
+        run: cargo fmt --package helve-world-gen -- --check
+
+      - name: Strict Clippy including bench target
+        run: cargo clippy --package helve-world-gen --all-targets --all-features --locked -- -D warnings
+
+      - name: Worldgen semantic tests
+        run: cargo test --package helve-world-gen --locked
+
+      - name: Source-free raw IEEE oracle contract mutation tests
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_noise_oracle.py' -v
+
+      # Hosted CPU timing only confirms the harness runs. No performance claim
+      # or speed threshold may be derived from GitHub's shared runner.
+      - name: Record tiny whole-cost diagnostic
+        run: |
+          mkdir -p target/helve-qualification/worldgen
+          cargo bench --locked -p helve-world-gen --bench worldgen_cold -- \
+            --chunks 2 --warmup 1 --rounds 2 \
+            --output target/helve-qualification/worldgen/smoke.json
+
+      - name: Validate structural benchmark artifact, not elapsed-time thresholds
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          a=json.loads(Path("target/helve-qualification/worldgen/smoke.json").read_text())
+          assert a["schema"] == 1
+          assert a["type"] == "NON_VANILLA_STEPPED_SURFACE_BASELINE"
+          assert a["strict_minecraft_26_2_parity"] is False
+          assert a["worldgen_noise_26_2_measured"] is False
+          assert a["sections"] == 24
+          assert a["chunks_per_round"] == 2
+          assert a["measured_rounds"] == 2
+          assert a["units"] == "ns"
+          assert a["provenance"]["commit_sha"]
+          assert len(a["cases"]) == 3
+          expected = {
+              "256_column_samples",
+              "sample_and_construct_sections",
+              "sample_construct_and_resident_install",
+          }
+          assert {c["name"] for c in a["cases"]} == expected
+          for case in a["cases"]:
+              assert case["samples"] == 4
+              assert 0 < case["p50_ns"] <= case["p95_ns"] <= case["p99_ns"] <= case["max_ns"]
+              assert case["total_sample_ns"] > 0
+          print("Worldgen diagnostic structure green; no source parity or speed assertion")
+          PY
+
+      - name: Upload source-free diagnostic
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: helve-worldgen-cold-diagnostic
+          path: target/helve-qualification/worldgen/smoke.json
+          if-no-files-found: error
+          retention-days: 7

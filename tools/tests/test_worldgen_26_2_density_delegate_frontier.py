@@ -210,6 +210,10 @@ class DensityDelegateFrontierTests(unittest.TestCase):
                     if (!net.minecraft.SharedConstants.ready)
                        throw new IllegalStateException("bad startup");
                     ready = true;
+                    // Simulate Minecraft bootstrap redirecting System.out:
+                    // ordinary System.out probe records would disappear.
+                    System.setOut(new java.io.PrintStream(
+                      new java.io.ByteArrayOutputStream()));
                   }
                   public static boolean ready() { return ready; }
                 }""", encoding="utf-8")

@@ -47,7 +47,7 @@ const GRADIENT: [[i32; 3]; 16] = [
 /// Seeding and bounded-int rejection consume exactly the prescribed calls;
 /// no std RNG implementation or floating-point approximation is substituted.
 #[derive(Debug)]
-struct LegacyBits {
+pub(crate) struct LegacyBits {
     state: u64,
 }
 
@@ -55,7 +55,7 @@ impl LegacyBits {
     const MASK: u64 = (1_u64 << 48) - 1;
     const MULTIPLIER: u64 = 0x5dee_ce66d;
 
-    fn new(seed: u64) -> Self {
+    pub(crate) fn new(seed: u64) -> Self {
         Self {
             state: (seed ^ Self::MULTIPLIER) & Self::MASK,
         }
@@ -65,7 +65,15 @@ impl LegacyBits {
     fn next_bits(&mut self, count: u32) -> u32 {
         self.state = self.state.wrapping_mul(Self::MULTIPLIER).wrapping_add(11) & Self::MASK;
         u32::try_from(self.state >> (48 - count))
-            .expect("only 26, 27 or 31 random bits are requested")
+            .expect("only 26, 27, 31 or 32 random bits are requested")
+    }
+
+    /// Match Java `RandomSource.nextLong()`: signed 32-bit halves are added,
+    /// not simply OR-combined. Each fork consumes exactly two 32-bit draws.
+    pub(crate) fn next_long(&mut self) -> u64 {
+        let upper = i64::from(i32::from_ne_bytes(self.next_bits(32).to_ne_bytes())) << 32;
+        let lower = i64::from(i32::from_ne_bytes(self.next_bits(32).to_ne_bytes()));
+        u64::from_ne_bytes(upper.wrapping_add(lower).to_ne_bytes())
     }
 
     #[inline]
@@ -157,6 +165,33 @@ fn grad_dot(hash: u8, x: f64, y: f64, z: f64) -> f64 {
     (f64::from(gradient[0]) * x + f64::from(gradient[1]) * y) + f64::from(gradient[2]) * z
 }
 
+/// Exact Java `("octave_" + index).hashCode()` in wrapping i32 arithmetic.
+/// Covers signed i32 minima as well as the four observed octave indices.
+fn java_octave_hash(octave: i32) -> i32 {
+    let mut hash = 0_i32;
+    for &byte in b"octave_" {
+        hash = hash.wrapping_mul(31).wrapping_add(i32::from(byte));
+    }
+    if octave < 0 {
+        hash = hash.wrapping_mul(31).wrapping_add(i32::from(b'-'));
+    }
+    let mut magnitude = octave.unsigned_abs();
+    let mut reversed_digits = [0_u8; 10];
+    let mut length = 0;
+    loop {
+        reversed_digits[length] = u8::try_from(magnitude % 10).expect("decimal digit fits u8");
+        length += 1;
+        magnitude /= 10;
+        if magnitude == 0 {
+            break;
+        }
+    }
+    for &digit in reversed_digits[..length].iter().rev() {
+        hash = hash.wrapping_mul(31).wrapping_add(i32::from(b'0' + digit));
+    }
+    hash
+}
+
 impl ImprovedNoise262 {
     /// Prepares one complete independent sampler using the direct bit-pattern
     /// seed given to the official `RandomSource.create(long)` probe.
@@ -190,6 +225,17 @@ impl ImprovedNoise262 {
         }
     }
 
+    /// Construct one octave from a legacy positional factory's signed Java
+    /// `String.hashCode()` seed for `octave_<index>`. No string allocation is
+    /// needed: all decimal digits are converted on the construction path.
+    /// This is a candidate for the pinned 26.2 four-octave profile, not
+    /// independently source-admitted for other random factories.
+    #[must_use]
+    pub(crate) fn from_legacy_positional_octave(factory_seed: u64, octave: i32) -> Self {
+        let hash = i64::from(java_octave_hash(octave));
+        Self::new(factory_seed ^ u64::from_ne_bytes(hash.to_ne_bytes()))
+    }
+
     /// Restores a complete, immutable sampler from externally observed
     /// numeric constructor state. This bypasses RNG reconstruction; only
     /// `new(seed)` constructs the separate directly seeded `ImprovedNoise`.
@@ -218,6 +264,17 @@ impl ImprovedNoise262 {
             offset_y,
             offset_z,
         })
+    }
+
+    /// Compare complete numeric state, including permutation bytes and raw
+    /// IEEE-754 offset bits, without rounding or allocating diagnostic strings.
+    /// Useful for an independently observed constructor-state acceptance gate.
+    #[must_use]
+    pub fn state_bits_equal(&self, other: &Self) -> bool {
+        self.permutation == other.permutation
+            && self.offset_x.to_bits() == other.offset_x.to_bits()
+            && self.offset_y.to_bits() == other.offset_y.to_bits()
+            && self.offset_z.to_bits() == other.offset_z.to_bits()
     }
 
     #[inline]
@@ -457,7 +514,40 @@ impl ImprovedNoise262 {
 
 #[cfg(test)]
 mod tests {
-    use super::{ImprovedNoise262, LegacyBits};
+    use super::{ImprovedNoise262, LegacyBits, java_octave_hash};
+
+    #[test]
+    fn java_octave_name_hash_matches_signed_decimal_boundaries() {
+        for (octave, expected) in [
+            (i32::MIN, -691_515_381),
+            (-3, 440_898_197),
+            (-2, 440_898_196),
+            (-1, 440_898_195),
+            (0, 1_261_148_513),
+            (1, 1_261_148_514),
+            (i32::MAX, -1_502_772_709),
+        ] {
+            assert_eq!(java_octave_hash(octave), expected);
+        }
+    }
+
+    #[test]
+    fn signed_java_next_long_has_independent_fixed_bit_vectors() {
+        for (seed, first, second) in [
+            (0_u64, 0xbb20_b45f_d4d9_5138, 0x3d93_cb79_9b39_70be),
+            (1_u64, 0xbb1a_d573_19b8_9cd8, 0x68fb_0e6f_684d_f992),
+            (u64::MAX, 0x44d9_6cb3_7087_22c3, 0x0324_2016_8c4b_ff9e),
+            (
+                0x9e37_79b9_7f4a_7c15,
+                0xd26e_f957_0705_b08b,
+                0xf096_ce0c_b954_57c7,
+            ),
+        ] {
+            let mut random = LegacyBits::new(seed);
+            assert_eq!(random.next_long(), first, "first fork seed {seed:#x}");
+            assert_eq!(random.next_long(), second, "second fork seed {seed:#x}");
+        }
+    }
 
     #[test]
     fn immutable_sampler_has_one_of_each_permutation_entry() {

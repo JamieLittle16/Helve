@@ -147,6 +147,67 @@ fn exactly_320_official_26_2_perlin_and_normal_results_match_raw_bits() {
 }
 
 #[test]
+fn direct_seed_constructors_match_all_five_complete_official_states_and_320_outputs() {
+    // Two independent paths: (1) derive each octave from the direct seed,
+    // (2) decode complete read-only JVM-observed permutations/offset bits.
+    // Both must produce the same four-slot masks, amplitude/frequency factors
+    // and both distinct NormalNoise branches, not merely matching samples.
+    let lines: Vec<_> = VECTORS
+        .lines()
+        .filter(|line| !line.starts_with('#') && !line.is_empty())
+        .collect();
+    assert_eq!(lines.len(), SEEDS.len() * 32);
+
+    for (seed_index, &seed) in SEEDS.iter().enumerate() {
+        let seed_bits = u64::from_str_radix(seed.trim_start_matches("0x"), 16)
+            .expect("pinned direct-seed bits");
+        let perlin = PerlinNoise262::from_direct_seed_observed_profile(seed_bits);
+        let normal = NormalNoise262::from_direct_seed_observed_profile(seed_bits);
+        assert!(
+            perlin.state_bits_equal(&observed_perlin(seed, "P")),
+            "direct seed {seed} mismatches complete Perlin JVM constructor state"
+        );
+        assert!(
+            normal.state_bits_equal(&observed_normal(seed)),
+            "direct seed {seed} mismatches complete Normal JVM constructor state"
+        );
+        for (position, line) in lines[seed_index * 32..(seed_index + 1) * 32]
+            .iter()
+            .enumerate()
+        {
+            let fields: Vec<_> = line.split_whitespace().collect();
+            assert_eq!(fields.len(), 6);
+            assert_eq!(fields[0], seed);
+            let (x, y, z) = (
+                parse_hex_bits(fields[1]),
+                parse_hex_bits(fields[2]),
+                parse_hex_bits(fields[3]),
+            );
+            assert_eq!(
+                perlin.sample(x, y, z).to_bits(),
+                parse_hex_bits(fields[4]).to_bits(),
+                "seed-derived Perlin {seed}, sample {position}"
+            );
+            assert_eq!(
+                normal.sample(x, y, z).to_bits(),
+                parse_hex_bits(fields[5]).to_bits(),
+                "seed-derived Normal {seed}, sample {position}"
+            );
+        }
+    }
+}
+
+#[test]
+fn profile_seed_constructors_preserve_legacy_48_bit_seed_truncation() {
+    // Java RandomSource.create(long) in the pinned profile is a 48-bit
+    // legacy seed, unlike an arbitrary worldgen seed or Xoroshiro stream.
+    let base = NormalNoise262::from_direct_seed_observed_profile(0);
+    let upper_bit = NormalNoise262::from_direct_seed_observed_profile(1_u64 << 63);
+    assert!(base.state_bits_equal(&upper_bit));
+    assert!(!base.state_bits_equal(&NormalNoise262::from_direct_seed_observed_profile(1)));
+}
+
+#[test]
 fn source_observed_normal_first_branch_equals_independent_perlin_state() {
     // The recorded constructor state confirms that Normal's first branch
     // uses exactly the independently captured Perlin factory output for all

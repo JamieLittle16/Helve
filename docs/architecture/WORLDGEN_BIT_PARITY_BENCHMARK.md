@@ -512,3 +512,7 @@ On target hardware, compare the **same locked official 26.2 seed set and generat
 - Reject a candidate if **any** bit differs in strict mode, memory or queue growth is unbounded, or an observed improvement only shifts blocking work from one stage to another.
 
 There is no evidence yet for a specific speedup or absolute millisecond budget; choose a production p99 budget only after we have authentic target noise baselines and whole-system traces. Worldgen is **not an R2D prerequisite** and the production R2C publication gate remains closed.
+
+## Direct-seed positional Perlin/Normal constructor parity (candidate)
+
+The direct-`RandomSource.create(long)` profile with first octave `-3` and amplitudes `[1,0,0.5,1]` now has an **additional** Rust construction path deriving all octave permutations/offsets from the seed itself. See [`WORLDGEN_SEEDED_CONSTRUCTORS_262.md`](WORLDGEN_SEEDED_CONSTRUCTORS_262.md) for exact signed RNG fork, Java octave-name hash, complete five-seed state comparisons and 320 output-bit regression requirements. The independently observed-state path remains unchanged. This finite-profile candidate does **not** close independent source/VAR/SEM review, arbitrary parameter-profile construction, density/terrain generation or the production chunk-publication gate.

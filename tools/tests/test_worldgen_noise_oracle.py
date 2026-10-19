@@ -110,6 +110,11 @@ class NoiseOracleTests(unittest.TestCase):
         with self.assertRaises(oracle.OracleError):
             oracle.compare(self.ref, self.candidate, LOCK)
 
+    def test_manifest_must_not_hide_source_text_in_unrecognised_fields(self):
+        self.ref["java_source_excerpt"] = "not permitted"
+        with self.assertRaisesRegex(oracle.OracleError, "source-rich"):
+            oracle.compare(self.ref, self.candidate, LOCK)
+
     def test_duplicate_vectors_and_unreviewed_stage_rejected(self):
         self.ref["vectors"][1] = self.ref["vectors"][0].copy()
         with self.assertRaisesRegex(oracle.OracleError, "duplicate"):

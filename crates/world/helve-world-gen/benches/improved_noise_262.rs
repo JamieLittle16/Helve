@@ -11,6 +11,7 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use helve_benchmark_support::collect_hardware_metadata;
+use helve_world_gen::explicit_noise_stack_262::{ExplicitNoiseLayer262, ExplicitNoiseStack262};
 use helve_world_gen::improved_noise_262::ImprovedNoise262;
 
 #[derive(Clone, Copy)]
@@ -19,6 +20,8 @@ enum Case {
     Coherent,
     CoherentReused,
     Scattered,
+    StackScalar,
+    StackBatched,
 }
 
 impl Case {
@@ -28,6 +31,8 @@ impl Case {
             Self::Coherent => 1,
             Self::CoherentReused => 2,
             Self::Scattered => 3,
+            Self::StackScalar => 4,
+            Self::StackBatched => 5,
         }
     }
 
@@ -37,6 +42,8 @@ impl Case {
             Self::Coherent => "coherent_grid_scalar",
             Self::CoherentReused => "coherent_grid_reused",
             Self::Scattered => "scattered_scalar",
+            Self::StackScalar => "explicit_4layer_scalar",
+            Self::StackBatched => "explicit_4layer_batched",
         }
     }
 }
@@ -87,6 +94,12 @@ fn args() -> Result<Config, String> {
 fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
     let seed = 0x9e37_79b9_7f4a_7c15_u64;
     let baseline = ImprovedNoise262::new(seed);
+    let stack = ExplicitNoiseStack262::new([
+        ExplicitNoiseLayer262::new(ImprovedNoise262::new(seed), 1.0, 0.5),
+        ExplicitNoiseLayer262::new(ImprovedNoise262::new(seed.wrapping_add(1)), 0.5, -0.25),
+        ExplicitNoiseLayer262::new(ImprovedNoise262::new(seed.wrapping_add(2)), 2.0, 0.125),
+        ExplicitNoiseLayer262::new(ImprovedNoise262::new(seed.wrapping_add(3)), 0.75, 0.375),
+    ]);
     let start = Instant::now();
     let mut checksum = 0_u64;
     let evaluations = match case {
@@ -116,6 +129,28 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
                                 y,
                                 origin_z + f64::from(z),
                             );
+                        }
+                    }
+                }
+                for &sample in &samples {
+                    checksum = checksum.rotate_left(7) ^ sample.to_bits();
+                }
+            }
+            n
+        }
+        Case::StackScalar | Case::StackBatched => {
+            let mut samples = [0.0_f64; 256];
+            for tile in 0..n / 256 {
+                let origin_x = 0.125;
+                let origin_z = 0.25;
+                let y = f64::from(u8::try_from(tile & 31).expect("5-bit tile height")) - 64.375;
+                if matches!(case, Case::StackBatched) {
+                    stack.sample_plane_16x16(origin_x, y, origin_z, &mut samples);
+                } else {
+                    for iz in 0_u8..16 {
+                        for ix in 0_u8..16 {
+                            samples[usize::from(iz) * 16 + usize::from(ix)] =
+                                stack.sample(origin_x + f64::from(ix), y, origin_z + f64::from(iz));
                         }
                     }
                 }
@@ -171,14 +206,16 @@ fn summarize(mut observations: Vec<u128>, per_round: usize, checksum: u64) -> Su
 
 fn main() -> Result<(), String> {
     let cfg = args()?;
-    let mut timings = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
-    let mut sums = [0_u64; 4];
-    let mut evaluation_counts = [0_usize; 4];
+    let mut timings: [Vec<u128>; 6] = std::array::from_fn(|_| Vec::new());
+    let mut sums = [0_u64; 6];
+    let mut evaluation_counts = [0_usize; 6];
     let cases = [
         Case::Init,
         Case::Coherent,
         Case::CoherentReused,
         Case::Scattered,
+        Case::StackScalar,
+        Case::StackBatched,
     ];
     for round in 0..cfg.warmup + cfg.rounds {
         // Rotate which case goes first to reduce systematic thermal bias.
@@ -197,6 +234,9 @@ fn main() -> Result<(), String> {
     // checksum. Any mismatch invalidates the benchmark, regardless of time.
     if sums[Case::Coherent.index()] != sums[Case::CoherentReused.index()] {
         return Err("cached coherent plane differs from scalar output bits".into());
+    }
+    if sums[Case::StackScalar.index()] != sums[Case::StackBatched.index()] {
+        return Err("batched explicit octave stack differs from scalar output bits".into());
     }
     let metadata = collect_hardware_metadata()?;
     let mut json = format!(

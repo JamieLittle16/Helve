@@ -299,9 +299,32 @@ impl ImprovedNoise262 {
         origin_z: f64,
         output: &mut [f64; 256],
     ) {
-        // Compute the *same* sums and casts as the scalar method. In
-        // particular, do not derive subsequent positions by incrementing an
-        // already-offset coordinate (that changes floating rounding).
+        let mut x_axis = [0.0_f64; 16];
+        let mut z_axis = [0.0_f64; 16];
+        for index in 0_u8..16 {
+            x_axis[usize::from(index)] = origin_x + f64::from(index);
+            z_axis[usize::from(index)] = origin_z + f64::from(index);
+        }
+        self.sample_axis_grid_16x16(&x_axis, y, &z_axis, output);
+    }
+
+    /// Samples an X/Z product grid with precomputed, caller-owned coordinate
+    /// axes. Each result is bitwise equal to `sample(x_axis[x], y, z_axis[z])`.
+    /// This supports frequency-scaled octave coordinates without assuming that
+    /// multiplication distributes over addition in floating-point arithmetic.
+    ///
+    /// Work and output use fixed-size stack-owned arrays and Z-major order;
+    /// no caching survives the call. Arbitrary coordinates may be supplied,
+    /// including repeated positions and descending axes.
+    pub fn sample_axis_grid_16x16(
+        &self,
+        x_axis: &[f64; 16],
+        y: f64,
+        z_axis: &[f64; 16],
+        output: &mut [f64; 256],
+    ) {
+        // Do not accumulate already-shifted positions: their rounding would
+        // differ from the independent point inputs used by scalar sampling.
         let shifted_y = y + self.offset_y;
         let integer_y = java_floor(shifted_y);
         let delta_y = shifted_y - f64::from(integer_y);
@@ -310,7 +333,7 @@ impl ImprovedNoise262 {
         let mut columns = [PlaneX::default(); 16];
 
         for local_x in 0_u8..16 {
-            let shifted_x = (origin_x + f64::from(local_x)) + self.offset_x;
+            let shifted_x = x_axis[usize::from(local_x)] + self.offset_x;
             let integer_x = java_floor(shifted_x);
             let delta_x = shifted_x - f64::from(integer_x);
             let perm_x0 = i32::from(self.p(integer_x));
@@ -327,7 +350,7 @@ impl ImprovedNoise262 {
         }
 
         for local_z in 0_u8..16 {
-            let shifted_z = (origin_z + f64::from(local_z)) + self.offset_z;
+            let shifted_z = z_axis[usize::from(local_z)] + self.offset_z;
             let integer_z = java_floor(shifted_z);
             let delta_z = shifted_z - f64::from(integer_z);
             let z_corner_offset = delta_z - 1.0;

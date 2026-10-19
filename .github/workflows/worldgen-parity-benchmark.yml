@@ -97,10 +97,11 @@ jobs:
           assert a["points_per_round"] == 256
           assert a["measured_rounds"] == 3
           assert a["timing_units"] == "ns_per_batch"
-          assert len(a["cases"]) == 4
+          assert len(a["cases"]) == 6
           assert {c["name"] for c in a["cases"]} == {
               "immutable_seed_setup", "coherent_grid_scalar",
-              "coherent_grid_reused", "scattered_scalar"
+              "coherent_grid_reused", "scattered_scalar",
+              "explicit_4layer_scalar", "explicit_4layer_batched"
           }
           for case in a["cases"]:
               assert case["batches"] == 3
@@ -110,6 +111,9 @@ jobs:
           assert cases["coherent_grid_scalar"]["evaluations_per_batch"] == 256
           assert cases["coherent_grid_reused"]["evaluations_per_batch"] == 256
           assert cases["coherent_grid_scalar"]["checksum"] == cases["coherent_grid_reused"]["checksum"]
+          assert cases["explicit_4layer_scalar"]["evaluations_per_batch"] == 256
+          assert cases["explicit_4layer_batched"]["evaluations_per_batch"] == 256
+          assert cases["explicit_4layer_scalar"]["checksum"] == cases["explicit_4layer_batched"]["checksum"]
           print("coherent scalar/reused whole-grid bit checksum PASS; timings diagnostic only")
           PY
 

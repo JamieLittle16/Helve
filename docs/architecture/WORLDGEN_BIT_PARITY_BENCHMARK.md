@@ -200,6 +200,48 @@ enabled.** This is a targeted noise-kernel technique; whether it
 improves density-graph or complete chunk-availability latency remains
 to be measured when a real target 26.2 density router is qualified.
 
+## Explicit octave-stack and prepared-axis frontier (source-neutral)
+
+`ImprovedNoise262::sample_axis_grid_16x16` accepts two caller-owned
+16-element coordinate axes plus a Y coordinate and returns all 256
+combinations. It is tested bit-by-bit against 256 independent scalar
+calls, including repeated, unordered, negative-zero and large-position
+coordinates. This exposes safe lattice reuse even when the sample
+coordinates are **frequency-scaled**. It does not silently assume that
+`(origin+x)*frequency` equals `origin*frequency+x*frequency`: those
+expressions can differ at the IEEE-754 bit level.
+
+`ExplicitNoiseStack262<N>` combines exactly N caller-configured
+`ImprovedNoise262` samplers, explicit coordinate frequencies and
+explicit result weights, in supplied order. Each layer independently
+multiplies X/Y/Z by its frequency, computes scalar noise, multiplies
+by its weight and accumulates. The matching batched path creates the
+same frequency-scaled coordinate axes, uses the prepared-grid kernel,
+and accumulates individual output bits in the **same order**; there
+are no conditional shortcuts for zero weights, reassociation,
+FMA, registry lookup or dynamic allocation. `N=0` yields positive
+zero. Tests compare all 256 results for five seed patterns, many
+octave weights/frequencies and negative/large world coordinates
+in both debug and release configurations.
+
+The `improved_noise_262` benchmark has added a like-for-like
+four-layer `explicit_4layer_scalar` versus
+`explicit_4layer_batched` paired case, requiring matching sample
+counts and raw output checksums before timings are accepted.
+It records hardware provenance and separate p50/p95/p99 batch
+latencies. Hosted CI results remain diagnostic only.
+
+**Source boundary:** this is a *generic exact-composition mechanism*,
+not a source-admitted Minecraft 26.2 `PerlinNoise` or `NormalNoise`
+implementation. We still need independent 26.2 constructors,
+`RandomSource` consumption, octave resolution, parameter/amplitude
+normalization, coordinate wrapping, double ordering, and official
+output vectors for those classes. Likewise `DensityFunctions`
+requires specific reviewed node semantics and their source-dependent
+evaluation order. This mechanism does not evaluate a vanilla density
+router or generate chunks. The production publication gate remains
+unchanged.
+
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 
 The current `SteppedSurface` benchmark is a mechanism baseline, not a real-noise benchmark. It records *three distinct costs* instead of quoting an isolated microbenchmark as chunk loading:

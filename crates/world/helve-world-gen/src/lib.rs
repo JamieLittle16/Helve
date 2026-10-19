@@ -13,6 +13,7 @@
 
 /// Source-free-vector-qualified, immutable 26.2 improved-gradient noise candidate.
 /// Not yet a source/SEM-admitted production terrain generator.
+pub mod explicit_noise_stack_262;
 pub mod improved_noise_262;
 
 use helve_types::{ChunkGeneration, ChunkPos};

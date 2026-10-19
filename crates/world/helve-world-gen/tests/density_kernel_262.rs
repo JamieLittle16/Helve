@@ -132,6 +132,8 @@ fn bounded_dag_rejects_invalid_edges_empty_graph_and_dead_work() {
 fn coherent_plane_and_y_z_x_cell_match_scalar_at_signed_boundaries() {
     let normal = NormalNoise262::from_direct_seed_observed_profile(u64::MAX);
     let single = DensityKernel262::new([DensityNode262::Normal(&normal)]).unwrap();
+    let perlin = PerlinNoise262::from_direct_seed_observed_profile(42);
+    let perlin_leaf = DensityKernel262::new([DensityNode262::Perlin(&perlin)]).unwrap();
     let compound = DensityKernel262::new([
         DensityNode262::Normal(&normal),
         DensityNode262::Y,
@@ -143,7 +145,7 @@ fn coherent_plane_and_y_z_x_cell_match_scalar_at_signed_boundaries() {
         (-16.125, -63.875, -16.25),
         (33_554_432.25, 31.125, -33_554_432.25),
     ] {
-        for graph in [&single, &single] {
+        for graph in [&single, &perlin_leaf] {
             let mut plane = [0.0; 256];
             graph.sample_plane_16x16(x0, y, z0, &mut plane);
             for lz in 0_u8..16 {

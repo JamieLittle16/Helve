@@ -1,12 +1,12 @@
 # R2C Current State — Demo-First Ledger
 
-**As of:** 18 October 2026  
+**As of:** 19 October 2026  
 **Post-visual audited `main` baseline:** `093ae2cee68c86706beebaeb6986d5c088d62e57` (PR #387)  
 **Server-lifetime COLD owner merged:** `c9a03549c4de915129591c693a36b8960e7445bb` (PR #389; normal server path, nonpublishing)  
 **Follow-on ownership improvements merged:** PR #392 (allocation-free checked session attach) and PR #393 (25-source server-host selection), on `main` at `437ca9a532906412c3620d605b99f9d799b22ef8` before this qualification.  
 **Target:** Minecraft Java 26.2, protocol 776, DataVersion 4903  
 **Milestone state:** **VISUAL TEST-ONLY CHECKPOINT ACHIEVED: 25 real Anvil chunks sent, central 3×3 visibly rendered in the unmodified stock client; production source admission and optimized product integration NOT YET CLOSED**  
-**Next action:** [Post-visual architecture audit and pre-R2D closure plan](R2C_POST_VISUAL_PRE_R2D_AUDIT_2026-10-18.md) and [stock-client runbook](R2C_STOCK_CLIENT_DEMO_RUNBOOK.md)
+**Next action:** [19 October R2C → R2D readiness handoff](R2C_TO_R2D_READINESS_HANDOFF_2026-10-19.md), [post-visual architecture audit](R2C_POST_VISUAL_PRE_R2D_AUDIT_2026-10-18.md), and [stock-client runbook](R2C_STOCK_CLIENT_DEMO_RUNBOOK.md)
 
 This is the canonical *current* implementation/qualification ledger. The detailed
 post-visual closure plan is linked above. Older
@@ -258,6 +258,52 @@ first-view and actual stock-client functionality are unaffected.
 VAR/SEM review or promotion**, and it does not make the ordinary
 server's `R2cSourceAdmission` constructible. Only a separate
 independent source gate can authorize that later product change.
+
+## Official receiving-client branch and callback review (#401–#409, 19 October)
+
+**Verified latest merged source-review head at this writing:**
+`9edd1cbb03707a8496081a68f5aaa11f62a92c31` (PR #409,
+official Java 25 ordering, LambdaMetafactory, JDK failure-model,
+repository CI and CLA gates green). The exact **next-context readiness
+handoff** is [R2C → R2D readiness](R2C_TO_R2D_READINESS_HANDOFF_2026-10-19.md).
+Do not mistake this for a new world/packet implementation or an
+independent source/VAR/SEM admission.
+
+- #401–#402 corrected **23 empty-body** method declarations to
+  declaration-only and bound the verified **127-method biome /
+  44-method outer packet** source-free inventories to a finite review
+  shortlist. The local post-#401 source inventory and its digest already
+  exist; further broad Atlas discovery is unnecessary absent drift.
+- #403–#405 pinned seven official-client method fingerprints and the
+  exact normal `Util.sequence` paths for empty, singleton and
+  multi-future cases; the two branch comparison operands/conditions are
+  checked against actual official bytecode.
+- #406 pins `MappedRegistry.register` three explicit prewrite throw
+  exits and one complete dense-ID write path. **Implicit exceptions or
+  transactional rollback remain unproven.**
+- #407–#408 pin `RegistryLoadTask.registerElements`' JVM
+  catch-all ranges and monitor-protected `Stream.forEach`, with
+  `monitorenter` and both normal/error `monitorexit` instructions.
+  Synchronized does **not** mean rollback.
+- #409 pins official-client local `Either.ifLeft/ifRight` callback
+  construction, the `WritableRegistry.register` versus
+  `loadingErrors Map.put` destination fields and three full callback
+  method-shape hashes. A Java 25 JDK **conditional model** distinguishes
+  a thrown registration (earlier entries may be retained) from a
+  reported per-entry error (skipped entries would shift later
+  dense IDs *if registration continued*). Neither model proves actual
+  client registry publication policy.
+
+**Still blocked:** client-side selected-pack and ordinal/registry
+finalization source SEM, the separately qualified **32,366-state**
+heightmap predicate delegates/table, and outer chunk/light Play
+publication/lifecycle source admission. The original **58-method,
+20-rule world-state** gate remains completed and must not be repeated.
+`R2cSourceAdmission` stays uninhabited outside tests; the existing
+server-lifetime COLD world owner and reference projection remain
+unchanged. The next R2C action is human/independent source admission,
+followed by a separate minimal production publisher connection and
+actual client proof; performance/persistence hardening then prepares R2D.
 
 ## Performance policy: between the R2C demo and R2D
 

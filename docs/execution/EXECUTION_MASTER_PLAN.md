@@ -99,6 +99,8 @@ Required:
 
 R2C establishes the permanent two-tier world access shape: sparse lifecycle directory at the boundary, dense region/local handles/windows in hot work. It also consumes the existing M0.3D section-production decision rather than creating a networking-specific second section representation.
 
+**For the concrete 19 October 2026 readiness sequence**, use [R2C → R2D readiness handoff](R2C_TO_R2D_READINESS_HANDOFF_2026-10-19.md). The R2C test-only 25-column stock-client visual checkpoint is complete; a normal-build admitted publisher, selected Configuration source truth, source/VAR/SEM closure, performance policy and sustained/reconnect qualification remain distinct. **R2D does not require world generation**, arbitrary block entities or R3 region scheduling.
+
 ### R2D — top-level R2 qualification
 
 Goal: red-team the complete persistent visible world after R2C has made terrain native.

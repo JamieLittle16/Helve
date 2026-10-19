@@ -51,11 +51,14 @@ new finding about density algebra. The exact unframed JVM stdout was not
 recorded, so the specific interfering line has not been established.
 
 The collector now emits an explicit `HELVE26_2_DENSITY_DELEGATE|` prefix and
-pipe-delimited records for each of its eight profiles. Only fully tagged rows
+pipe-delimited records for each of its eight profiles **directly through the
+process standard-output file descriptor** rather than Java's mutable
+`System.out` (which Minecraft bootstrap may wrap or redirect). Only fully tagged rows
 participate in structural validation; unrelated JVM bootstrap logging is
 ignored, while missing, extra, repeated, reordered or malformed tagged rows
 fail closed. Output size and line count are bounded. The independent toy-JVM
-tests exercise both clean output and interleaved startup log messages.
+tests exercise clean output, interleaved startup log messages and a synthetic
+bootstrap that actively replaces `System.out` with a sink.
 
 Re-run the same source-owning command after this change reaches `main`.
 Neither admission nor official delegate inventory is claimed until that actual

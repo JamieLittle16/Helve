@@ -16,6 +16,8 @@ on:
       - "tools/tests/test_worldgen_26_2_perlin_normal_capture.py"
       - "tools/worldgen_26_2_noise_constructor_state_capture.py"
       - "tools/tests/test_worldgen_26_2_noise_constructor_state_capture.py"
+      - "tools/tests/test_worldgen_26_2_family_frozen_vectors.py"
+      - "vanilla/reports/worldgen-26_2-family-raw-bit-oracle-01.json"
       - "docs/architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md"
       - ".github/workflows/worldgen-parity-benchmark.yml"
   push:
@@ -32,6 +34,8 @@ on:
       - "tools/tests/test_worldgen_26_2_perlin_normal_capture.py"
       - "tools/worldgen_26_2_noise_constructor_state_capture.py"
       - "tools/tests/test_worldgen_26_2_noise_constructor_state_capture.py"
+      - "tools/tests/test_worldgen_26_2_family_frozen_vectors.py"
+      - "vanilla/reports/worldgen-26_2-family-raw-bit-oracle-01.json"
       - ".github/workflows/worldgen-parity-benchmark.yml"
   workflow_dispatch:
 
@@ -86,6 +90,9 @@ jobs:
 
       - name: Exact 26.2 private numeric state capture against independent toy JVM
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_noise_constructor_state_capture.py' -v
+
+      - name: Validate all 320 source-free official Perlin/Normal raw-bit reference values
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_family_frozen_vectors.py' -v
 
       # Hosted CPU timing only confirms the harness runs. No performance claim
       # or speed threshold may be derived from GitHub's shared runner.

@@ -163,8 +163,14 @@ fn coherent_plane_and_y_z_x_cell_match_scalar_at_signed_boundaries() {
         }
     }
 
-    let mut cell = [0.0; 4096];
-    compound.sample_cell_16x16x16(-16.125, -64.25, 31.5, &mut cell);
+    // Keep the 32-KiB test fixture outside the test thread's stack. The
+    // COLD sampler itself still performs no per-coordinate allocation.
+    let mut cell = vec![0.0; 4096];
+    let output: &mut [f64; 4096] = cell
+        .as_mut_slice()
+        .try_into()
+        .expect("exact 4096-entry test-owned density cell");
+    compound.sample_cell_16x16x16(-16.125, -64.25, 31.5, output);
     for iy in 0_u8..16 {
         for iz in 0_u8..16 {
             for ix in 0_u8..16 {

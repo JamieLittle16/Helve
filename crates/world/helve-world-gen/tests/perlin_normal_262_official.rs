@@ -68,7 +68,9 @@ fn observed_perlin(seed: &str, branch: &str) -> PerlinNoise262 {
                     "duplicated/invalid octave slot"
                 );
                 occupied[slot] = true;
-                if cells[4] != "NULL" {
+                if cells[4] == "NULL" {
+                    assert_eq!(cells[5..], ["-", "-", "-"]);
+                } else {
                     let sampler = ImprovedNoise262::from_observed_parts(
                         decode_permutation(cells[4]),
                         parse_hex_bits(cells[5]),
@@ -77,8 +79,6 @@ fn observed_perlin(seed: &str, branch: &str) -> PerlinNoise262 {
                     )
                     .expect("official octave must be an unsigned permutation bijection");
                     octaves[slot] = Some(sampler);
-                } else {
-                    assert_eq!(cells[5..], ["-", "-", "-"]);
                 }
             }
             _ => panic!("unexpected constructor-state record"),

@@ -57,7 +57,9 @@ fn args() -> Result<Config, String> {
         if arg == "--bench" {
             continue;
         }
-        let value = args.next().ok_or_else(|| format!("missing value for {arg}"))?;
+        let value = args
+            .next()
+            .ok_or_else(|| format!("missing value for {arg}"))?;
         match arg.as_str() {
             "--points" => cfg.points = value.parse().map_err(|_| "invalid --points")?,
             "--warmup" => cfg.warmup = value.parse().map_err(|_| "invalid --warmup")?,
@@ -85,9 +87,8 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
         Case::Init => {
             let instances = n.div_ceil(256);
             for i in 0..instances {
-                let sampler = ImprovedNoise262::new(
-                    seed.wrapping_add((generation * instances + i) as u64),
-                );
+                let sampler =
+                    ImprovedNoise262::new(seed.wrapping_add((generation * instances + i) as u64));
                 checksum = checksum.rotate_left(7) ^ sampler.permutation_checksum();
                 black_box(sampler);
             }
@@ -98,8 +99,7 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
                 let x = f64::from((i & 15) as u16) + 0.125;
                 let z = f64::from(((i >> 4) & 15) as u16) + 0.25;
                 let y = f64::from(((i >> 8) & 31) as u16) - 64.375;
-                checksum = checksum.rotate_left(7)
-                    ^ baseline.sample(x, y, z).to_bits();
+                checksum = checksum.rotate_left(7) ^ baseline.sample(x, y, z).to_bits();
             }
             n
         }
@@ -111,8 +111,7 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
                 let x = f64::from((hashed & 4095) as u16) - 2048.125;
                 let y = f64::from(((hashed >> 12) & 255) as u16) - 64.375;
                 let z = f64::from(((hashed >> 20) & 4095) as u16) - 2048.875;
-                checksum = checksum.rotate_left(7)
-                    ^ baseline.sample(x, y, z).to_bits();
+                checksum = checksum.rotate_left(7) ^ baseline.sample(x, y, z).to_bits();
             }
             n
         }
@@ -170,7 +169,10 @@ fn main() -> Result<(), String> {
     let metadata = collect_hardware_metadata()?;
     let mut json = format!(
         "{{\"schema\":1,\"benchmark\":\"improved-noise-26_2-candidate\",        \"target_stage\":\"improved_noise\",        \"official_26_2_sample_vectors_tested_in_separate_ci\":160,        \"full_worldgen_source_admitted\":false,        \"full_chunk_latency_measured\":false,        \"strict_floating_point\":true,        \"points_per_round\":{},\"warmup_rounds\":{},        \"measured_rounds\":{},\"timing_units\":\"ns_per_batch\",        \"provenance\":{},\"cases\":[",
-        cfg.points, cfg.warmup, cfg.rounds, metadata.to_json()
+        cfg.points,
+        cfg.warmup,
+        cfg.rounds,
+        metadata.to_json()
     );
     for (i, case) in cases.iter().enumerate() {
         if i > 0 {

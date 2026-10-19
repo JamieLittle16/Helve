@@ -13,7 +13,7 @@ The generator is a **producer**, never a new owner. It creates ordinary `LiveChu
 seed + world coordinates + pre-resolved dimension profile
     -> statically dispatched sampling kernel (COLD)
     -> 256-column height scratch reused across the whole chunk
-    -> per-section reusable 4096-block / 64-biome scratch
+    -> uniform-section fast path or reusable 4096-block scratch
     -> GeneratedSectionBuilder (selected storage mechanism)
     -> LiveChunkCore + ChunkBiomeColumn
     -> LiveChunkSemanticState (revision 0, no synthetic saved light)
@@ -25,7 +25,7 @@ There is **no second resident map**, owned per-chunk target packet, NBT intermed
 
 ## First isolated example: `SteppedSurface`
 
-`SteppedSurface::new(seed, base_y, amplitude)` samples a fixed-width, coordinate-derived, 8×8 stepped surface without global mutable RNG state or floating-point arithmetic. The rule samples exactly 256 horizontal columns **once per chunk**, tracks the minimum and maximum sampled height, and fills entirely air/solid sections with a single array fill. Only intersecting sections need 4096 Y/Z/X comparisons. It reuses one 4096-element block scratch, one 64-element biome scratch and a 256-element height scratch before calling a statically selected builder to construct the *final* section storage. The baseline biome is one explicit caller-supplied semantic ID; the palette also supplies air and solid IDs. The algorithm never guesses real 26.2 block/biome ordinals.
+`SteppedSurface::new(seed, base_y, amplitude)` samples a fixed-width, coordinate-derived, 8×8 stepped surface without global mutable RNG state or floating-point arithmetic. The rule samples exactly 256 horizontal columns **once per chunk**, tracks the minimum and maximum sampled height, and fills entirely air/solid sections with a single array fill. Only intersecting sections need 4096 Y/Z/X comparisons. It reuses one 4096-element block scratch and a 256-element height scratch, passing uniform block and biome sections directly to a statically selected builder to construct the *final* section storage. The baseline biome is one explicit caller-supplied semantic ID; the palette also supplies air and solid IDs. The algorithm never guesses real 26.2 block/biome ordinals.
 
 An exact same-seed/sample-coordinate pair produces the same result regardless of:
 - call sequence, chunk creation order, client count or thread placement;
@@ -39,7 +39,7 @@ An exact same-seed/sample-coordinate pair produces the same result regardless of
 - The root resident directory gives the generation; neither the sampler nor the section builder invents a chunk incarnation.
 - All sections are built locally. A rejected block or biome section returns an error **without any residency or generation consumption**. The final runtime admission also rejects duplicate, misplaced, stale or wrong-lattice chunks.
 - A successful generated chunk is pristine (`ChunkRevision(0)`). It has **no initial-light data**. In particular, "generate solid blocks" never means "invent source-admitted light arrays."
-- The section adapter is generic and statically dispatched. The current tests use `DirectBlockSection` and `DirectBiomeSection` **solely as transparent correctness oracles**. No production section representation is selected by this PR.
+- The section adapter receives a typed uniform-or-dense sample; uniform sections never need a 4096-cell scratch fill or scan. The current tests use `DirectBlockSection` and `DirectBiomeSection` **solely as transparent correctness oracles**. No production section representation is selected by this PR.
 - HOT chunk read/mutation remains completely unchanged. Generation has no HOT per-block, actor, scheduler or network cost.
 
 ## Reproducible checks

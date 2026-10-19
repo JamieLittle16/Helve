@@ -1041,6 +1041,14 @@ pub(crate) fn serve_world_projection_wait(
             }
             _ => liveness_deadline_ms,
         };
+        // A successful TCP write need not drain the bounded driver queue.
+        // Do not block on inbound reads while previously admitted Play bytes
+        // still need to leave the *same* connection-owned egress buffer.
+        // The next loop iteration retries one write, after control/liveness
+        // service; write timeout/zero progress still reject the slow peer.
+        if session.queued_egress() != 0 {
+            continue;
+        }
         let wait_ms = deadline_ms.saturating_sub(now_ms).max(1);
         transport
             .set_read_timeout(Some(Duration::from_millis(wait_ms)))
@@ -1126,8 +1134,8 @@ fn discard_one_complete_play_frame(session: &mut R2bPlaySession) -> Result<(), R
     }
 }
 
-fn write_play_once(
-    transport: &mut TcpStream,
+fn write_play_once<W: Write>(
+    transport: &mut W,
     session: &mut R2bPlaySession,
 ) -> Result<(), R2bPlaytestError> {
     let pending = session.driver.pending_egress().len();
@@ -1723,5 +1731,95 @@ mod r2c_stock_client_diagnostic {
         panic!(
             "R2C diagnostic exhausted {MAX_PREPLAY_CONNECTIONS} pre-Play connections without reaching Play; examine client latest.log and selected offline name Stato16"
         );
+    }
+}
+
+#[cfg(test)]
+mod play_short_write_tests {
+    use std::convert::Infallible;
+    use std::io::{self, Write};
+
+    use helve_connection_core::ConnectionLimits;
+    use helve_connection_driver::ConnectionDriver;
+    use helve_session_core::LivenessState;
+    use helve_target_26_2::r2b::TeleportTransaction;
+
+    use super::{R2bPlaySession, R2bPlaytestError, write_play_once};
+
+    struct BoundedWriter {
+        maximum_per_write: usize,
+        written: Vec<u8>,
+    }
+
+    impl Write for BoundedWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            let n = self.maximum_per_write.min(bytes.len());
+            self.written.extend_from_slice(&bytes[..n]);
+            Ok(n)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn queued_session() -> R2bPlaySession {
+        let mut session = R2bPlaySession {
+            driver: ConnectionDriver::new(
+                ConnectionLimits::new(64, 256, 1024).expect("finite driver bounds"),
+            ),
+            read_scratch: vec![0; 32].into_boxed_slice(),
+            teleport: TeleportTransaction::new(),
+            liveness: LivenessState::new(0, 0).expect("valid origin"),
+        };
+        session
+            .driver
+            .queue_frame::<Infallible>(&[0x22, 0x11, 0x33, 0x44, 0x55, 0x66, 0x77])
+            .expect("bounded synthetic Play frame");
+        session
+    }
+
+    #[test]
+    fn successful_short_writes_retain_exact_suffix_until_fully_sent() {
+        let mut session = queued_session();
+        let expected = session.pending_play_egress().to_vec();
+        assert!(expected.len() > 2);
+        let mut sink = BoundedWriter {
+            maximum_per_write: 2,
+            written: Vec::new(),
+        };
+        write_play_once(&mut sink, &mut session).expect("initial short write");
+        assert_eq!(sink.written, expected[..2]);
+        assert_eq!(session.queued_egress(), expected.len() - 2);
+
+        let mut attempts = 1;
+        while session.queued_egress() != 0 {
+            write_play_once(&mut sink, &mut session).expect("retry short write");
+            attempts += 1;
+            assert!(attempts <= expected.len(), "write made no bounded progress");
+        }
+        assert_eq!(sink.written, expected, "no byte loss, duplication or reordering");
+        assert_eq!(session.queued_egress(), 0);
+        write_play_once(&mut sink, &mut session).expect("empty queue no-op");
+        assert_eq!(sink.written, expected, "empty queue must not replay bytes");
+    }
+
+    #[test]
+    fn zero_progress_write_rejects_without_consuming_queued_bytes() {
+        let mut session = queued_session();
+        let expected = session.pending_play_egress().to_vec();
+        let mut sink = BoundedWriter {
+            maximum_per_write: 0,
+            written: Vec::new(),
+        };
+        assert!(matches!(
+            write_play_once(&mut sink, &mut session),
+            Err(R2bPlaytestError::Io {
+                kind: io::ErrorKind::WriteZero,
+                ..
+            })
+        ));
+        assert!(sink.written.is_empty());
+        assert_eq!(session.pending_play_egress(), expected);
     }
 }

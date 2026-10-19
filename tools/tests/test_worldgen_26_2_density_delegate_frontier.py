@@ -65,8 +65,8 @@ class DensityDelegateFrontierTests(unittest.TestCase):
             frontier.parse_runtime_output(lines.replace("add_gradients", "mul_gradients", 1))
         with self.assertRaises(frontier.DelegateFrontierError):
             frontier.parse_runtime_output(lines.replace("java.lang.Record", "injected.Bad", 1))
-        with self.assertRaises(frontier.DelegateFrontierError):
-            frontier.parse_runtime_output(lines + "\nextra")
+        # Untagged lines are JVM diagnostics, not an extra protocol row.
+        self.assertEqual(frontier.parse_runtime_output(lines + "\nextra"), records)
 
     def manifest(self):
         classes = self.classes()

@@ -352,8 +352,15 @@ The two private outside-repository 160-vector JSON manifests have SHA-256
 64-bit seeds and exact 32 input-coordinate tuples per seed match the
 previously uploaded Atlas inventory and the agreed capture contract.
 These are **candidate real official-JVM output oracles**, not yet source-
-admitted constructor/density semantics. The manifest data remain outside
-the repository; hosted CI currently tests only the source-free transport.
+admitted constructor/density semantics. The full original manifests remain
+outside the repository. A lossless **source-free compact 320-value** fixture
+at `vanilla/reports/worldgen-26_2-family-raw-bit-oracle-01.json` now
+preserves all 32 XYZ bit triples and 160 output bits per family, five seed
+patterns, exact constructor profile, target fingerprints and hashes of
+both original manifests. CI reconstructs every complete manifest and
+rejects missing/changed source bindings, profiles, raw-bit shapes,
+coordinates and seed coverage. The fixture does **not** claim a Rust
+implementation matches its values.
 
 **Source custody/admission remains explicitly OPEN**: exact indexed
 method fingerprints and output parity do not independently review

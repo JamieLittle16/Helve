@@ -62,7 +62,7 @@ class NoiseConstructorStateTests(unittest.TestCase):
         with self.assertRaisesRegex(state.StateCaptureError, "incomplete"):
             state.parse_records("\n".join(source.splitlines()[:4]), state.SEEDS)
         with self.assertRaisesRegex(state.StateCaptureError, "excessive"):
-            state.parse_records(source * 90, state.SEEDS)
+            state.parse_records((source + "\n") * 90, state.SEEDS)
 
     def make_family_oracle(self, stage: str) -> dict:
         methods = {

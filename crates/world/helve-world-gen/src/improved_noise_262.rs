@@ -516,7 +516,40 @@ impl ImprovedNoise262 {
 
 #[cfg(test)]
 mod tests {
-    use super::{ImprovedNoise262, LegacyBits};
+    use super::{ImprovedNoise262, LegacyBits, java_octave_hash};
+
+    #[test]
+    fn java_octave_name_hash_matches_signed_decimal_boundaries() {
+        for (octave, expected) in [
+            (i32::MIN, -691_515_381),
+            (-3, 440_898_197),
+            (-2, 440_898_196),
+            (-1, 440_898_195),
+            (0, 1_261_148_513),
+            (1, 1_261_148_514),
+            (i32::MAX, -1_502_772_709),
+        ] {
+            assert_eq!(java_octave_hash(octave), expected);
+        }
+    }
+
+    #[test]
+    fn signed_java_next_long_has_independent_fixed_bit_vectors() {
+        for (seed, first, second) in [
+            (0_u64, 0xbb20_b45f_d4d9_5138, 0x3d93_cb79_9b39_70be),
+            (1_u64, 0xbb1a_d573_19b8_9cd8, 0x68fb_0e6f_684d_f992),
+            (u64::MAX, 0x44d9_6cb3_7087_22c3, 0x0324_2016_8c4b_ff9e),
+            (
+                0x9e37_79b9_7f4a_7c15,
+                0xd26e_f957_0705_b08b,
+                0xf096_ce0c_b954_57c7,
+            ),
+        ] {
+            let mut random = LegacyBits::new(seed);
+            assert_eq!(random.next_long(), first, "first fork seed {seed:#x}");
+            assert_eq!(random.next_long(), second, "second fork seed {seed:#x}");
+        }
+    }
 
     #[test]
     fn immutable_sampler_has_one_of_each_permutation_entry() {

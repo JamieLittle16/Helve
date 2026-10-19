@@ -17,6 +17,7 @@ use helve_world_gen::improved_noise_262::ImprovedNoise262;
 enum Case {
     Init,
     Coherent,
+    CoherentReused,
     Scattered,
 }
 
@@ -25,7 +26,8 @@ impl Case {
         match self {
             Self::Init => 0,
             Self::Coherent => 1,
-            Self::Scattered => 2,
+            Self::CoherentReused => 2,
+            Self::Scattered => 3,
         }
     }
 
@@ -33,6 +35,7 @@ impl Case {
         match self {
             Self::Init => "immutable_seed_setup",
             Self::Coherent => "coherent_grid_scalar",
+            Self::CoherentReused => "coherent_grid_reused",
             Self::Scattered => "scattered_scalar",
         }
     }
@@ -69,11 +72,12 @@ fn args() -> Result<Config, String> {
         }
     }
     if !(256..=262_144).contains(&cfg.points)
+        || cfg.points % 256 != 0
         || cfg.rounds == 0
         || cfg.rounds > 1000
         || cfg.warmup > 100
     {
-        return Err("requires 256..262144 points, 1..1000 rounds and <=100 warmups".into());
+        return Err("requires 256..262144 points divisible by 256, 1..1000 rounds and <=100 warmups".into());
     }
     Ok(cfg)
 }
@@ -94,12 +98,32 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
             }
             instances
         }
-        Case::Coherent => {
-            for i in 0..n {
-                let x = f64::from(u16::try_from(i & 15).expect("4-bit index")) + 0.125;
-                let z = f64::from(u16::try_from((i >> 4) & 15).expect("4-bit index")) + 0.25;
-                let y = f64::from(u16::try_from((i >> 8) & 31).expect("5-bit index")) - 64.375;
-                checksum = checksum.rotate_left(7) ^ baseline.sample(x, y, z).to_bits();
+        Case::Coherent | Case::CoherentReused => {
+            let mut samples = [0_f64; 256];
+            for tile in 0..n / 256 {
+                let origin_x = 0.125;
+                let origin_z = 0.25;
+                let y = f64::from(u8::try_from(tile & 31).expect("5-bit tile height"))
+                    - 64.375;
+                if matches!(case, Case::CoherentReused) {
+                    baseline.sample_plane_16x16(
+                        origin_x, y, origin_z, &mut samples,
+                    );
+                } else {
+                    for z in 0_u8..16 {
+                        for x in 0_u8..16 {
+                            samples[usize::from(z) * 16 + usize::from(x)] =
+                                baseline.sample(
+                                    origin_x + f64::from(x),
+                                    y,
+                                    origin_z + f64::from(z),
+                                );
+                        }
+                    }
+                }
+                for &sample in &samples {
+                    checksum = checksum.rotate_left(7) ^ sample.to_bits();
+                }
             }
             n
         }
@@ -149,14 +173,14 @@ fn summarize(mut observations: Vec<u128>, per_round: usize, checksum: u64) -> Su
 
 fn main() -> Result<(), String> {
     let cfg = args()?;
-    let mut timings = [Vec::new(), Vec::new(), Vec::new()];
-    let mut sums = [0_u64; 3];
-    let mut evaluation_counts = [0_usize; 3];
-    let cases = [Case::Init, Case::Coherent, Case::Scattered];
+    let mut timings = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
+    let mut sums = [0_u64; 4];
+    let mut evaluation_counts = [0_usize; 4];
+    let cases = [Case::Init, Case::Coherent, Case::CoherentReused, Case::Scattered];
     for round in 0..cfg.warmup + cfg.rounds {
         // Rotate which case goes first to reduce systematic thermal bias.
-        for j in 0..3 {
-            let case = cases[(round + j) % 3];
+        for j in 0..cases.len() {
+            let case = cases[(round + j) % cases.len()];
             let (ns, digest, evaluations) = run(case, cfg.points, round);
             if round >= cfg.warmup {
                 let i = case.index();
@@ -165,6 +189,11 @@ fn main() -> Result<(), String> {
                 evaluation_counts[i] = evaluations;
             }
         }
+    }
+    // Same points, same tile order, same arithmetic, same per-element bit
+    // checksum. Any mismatch invalidates the benchmark, regardless of time.
+    if sums[Case::Coherent.index()] != sums[Case::CoherentReused.index()] {
+        return Err("cached coherent plane differs from scalar output bits".into());
     }
     let metadata = collect_hardware_metadata()?;
     let mut json = format!(

@@ -1766,7 +1766,10 @@ mod play_short_write_tests {
     use helve_session_core::LivenessState;
     use helve_target_26_2::r2b::TeleportTransaction;
 
-    use super::{R2bPlaySession, R2bPlaytestError, read_wait_when_egress_drained, write_play_once};
+    use super::{
+        R2bPlaySession, R2bPlaytestError, read_one_play_fragment, read_wait_when_egress_drained,
+        write_play_once,
+    };
 
     struct BoundedWriter {
         maximum_per_write: usize,
@@ -1840,6 +1843,33 @@ mod play_short_write_tests {
         write_play_once(&mut sink, &mut session).expect("drain bounded frame");
         assert_eq!(read_wait_when_egress_drained(&session, 30, 50), Some(20));
         assert_eq!(read_wait_when_egress_drained(&session, 60, 50), Some(1));
+    }
+
+    #[test]
+    fn retained_play_read_scratch_keeps_complete_and_truncated_eof_distinct() {
+        let mut session = queued_session();
+        let scratch_address = session.read_scratch.as_ptr();
+        let mut incoming = io::Cursor::new([0x02_u8, 0x04, 0x05]);
+        assert!(read_one_play_fragment(&mut incoming, &mut session).expect("ingress accepted"));
+        assert_eq!(session.buffered_ingress(), 3);
+        assert_eq!(session.read_scratch.as_ptr(), scratch_address);
+        assert_eq!(session.read_scratch_bytes(), 32);
+
+        let mut clean_session = queued_session();
+        let mut clean_eof = io::Cursor::new(Vec::<u8>::new());
+        assert!(!read_one_play_fragment(&mut clean_eof, &mut clean_session).expect("clean EOF"));
+
+        let mut truncated_session = queued_session();
+        truncated_session
+            .driver
+            .ingest::<Infallible>(&[0x80])
+            .expect("bounded incomplete frame prefix");
+        assert!(matches!(
+            read_one_play_fragment(&mut clean_eof, &mut truncated_session),
+            Err(R2bPlaytestError::TruncatedEof {
+                buffered_ingress: 1
+            })
+        ));
     }
 
     #[test]

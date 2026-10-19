@@ -55,6 +55,7 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             "source_text_included": False,
             "independent_var_sem_admitted": False,
             "production_worldgen_enabled": False,
+            "runtime_startup_sequence": capture.STARTUP_SEQUENCE,
             "methods": self.methods(), "profiles": capture.PROFILES,
             "vectors": [dict(row, value_bits="0x8000000000000000")
                         for row in capture.inputs()],
@@ -85,6 +86,7 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             ("source-rich", lambda m: m.__setitem__("source_java", "not allowed")),
             ("admission", lambda m: m.__setitem__("independent_var_sem_admitted", True)),
             ("publication", lambda m: m.__setitem__("production_worldgen_enabled", True)),
+            ("startup", lambda m: m["runtime_startup_sequence"].reverse()),
             ("method", lambda m: m["methods"]["constant_compute"].__setitem__("body_sha256", "wrong")),
             ("source", lambda m: m.__setitem__("source_archive_sha256", "0" * 64)),
             ("seed", lambda m: m["vectors"][0].__setitem__("seed_bits", "0" * 16)),
@@ -166,6 +168,33 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             root = Path(folder)
             src = root / "src/net/minecraft/world/level/levelgen"
             src.mkdir(parents=True)
+            shared = root / "src/net/minecraft"
+            shared.mkdir(parents=True, exist_ok=True)
+            (shared / "SharedConstants.java").write_text(
+                """package net.minecraft;
+                public final class SharedConstants {
+                  private static boolean detected;
+                  public static void tryDetectVersion() { detected = true; }
+                  public static boolean detected() { return detected; }
+                }
+                """, encoding="utf-8"
+            )
+            bootstrap = root / "src/net/minecraft/server"
+            bootstrap.mkdir(parents=True)
+            (bootstrap / "Bootstrap.java").write_text(
+                """package net.minecraft.server;
+                import net.minecraft.SharedConstants;
+                public final class Bootstrap {
+                  private static boolean bootstrapped;
+                  public static void bootStrap() {
+                    if (!SharedConstants.detected())
+                      throw new IllegalStateException("version not detected before bootstrap");
+                    bootstrapped = true;
+                  }
+                  public static boolean bootstrapped() { return bootstrapped; }
+                }
+                """, encoding="utf-8"
+            )
             (src / "DensityFunction.java").write_text(
                 """package net.minecraft.world.level.levelgen;
                 public interface DensityFunction {
@@ -181,6 +210,11 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             (src / "DensityFunctions.java").write_text(
                 """package net.minecraft.world.level.levelgen;
                 public final class DensityFunctions {
+                  static {
+                    // Mimic official 26.2 built-in registry dependency.
+                    if (!net.minecraft.server.Bootstrap.bootstrapped())
+                      throw new ExceptionInInitializerError("Not bootstrapped");
+                  }
                   public static DensityFunction constant(double d) { return new Constant(d); }
                   public static DensityFunction yClampedGradient(int a,int b,double from,double to) {
                     return new YClampedGradient(a,b,from,to);
@@ -202,8 +236,9 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             )
             classes = root / "classes"
             compiled = subprocess.run(
-                ["javac", "-d", str(classes), str(src / "DensityFunction.java"),
-                 str(src / "DensityFunctions.java")], text=True,
+                ["javac", "-d", str(classes),
+                 str(shared / "SharedConstants.java"), str(bootstrap / "Bootstrap.java"),
+                 str(src / "DensityFunction.java"), str(src / "DensityFunctions.java")], text=True,
                 capture_output=True, check=False, timeout=30,
             )
             self.assertEqual(compiled.returncode, 0, compiled.stderr)

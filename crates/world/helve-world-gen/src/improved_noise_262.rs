@@ -261,7 +261,6 @@ impl ImprovedNoise262 {
     }
 }
 
-
 /**
 One x-column of a 16×16 coherent sampling plane. Every field is independent
 of the z coordinate, so prepare it once and reuse across all 16 rows.
@@ -338,40 +337,58 @@ impl ImprovedNoise262 {
             for (local_x, column) in columns.iter().enumerate() {
                 let corner000 = grad_dot(
                     self.p(column.aa.wrapping_add(integer_z)),
-                    column.dx, delta_y, delta_z,
+                    column.dx,
+                    delta_y,
+                    delta_z,
                 );
                 let corner100 = grad_dot(
                     self.p(column.ba.wrapping_add(integer_z)),
-                    column.dx_minus_one, delta_y, delta_z,
+                    column.dx_minus_one,
+                    delta_y,
+                    delta_z,
                 );
                 let corner010 = grad_dot(
                     self.p(column.ab.wrapping_add(integer_z)),
-                    column.dx, delta_y_minus_one, delta_z,
+                    column.dx,
+                    delta_y_minus_one,
+                    delta_z,
                 );
                 let corner110 = grad_dot(
                     self.p(column.bb.wrapping_add(integer_z)),
-                    column.dx_minus_one, delta_y_minus_one, delta_z,
+                    column.dx_minus_one,
+                    delta_y_minus_one,
+                    delta_z,
                 );
                 let corner001 = grad_dot(
                     self.p(column.aa.wrapping_add(integer_z).wrapping_add(1)),
-                    column.dx, delta_y, delta_z_minus_one,
+                    column.dx,
+                    delta_y,
+                    delta_z_minus_one,
                 );
                 let corner101 = grad_dot(
                     self.p(column.ba.wrapping_add(integer_z).wrapping_add(1)),
-                    column.dx_minus_one, delta_y, delta_z_minus_one,
+                    column.dx_minus_one,
+                    delta_y,
+                    delta_z_minus_one,
                 );
                 let corner011 = grad_dot(
                     self.p(column.ab.wrapping_add(integer_z).wrapping_add(1)),
-                    column.dx, delta_y_minus_one, delta_z_minus_one,
+                    column.dx,
+                    delta_y_minus_one,
+                    delta_z_minus_one,
                 );
                 let corner111 = grad_dot(
                     self.p(column.bb.wrapping_add(integer_z).wrapping_add(1)),
-                    column.dx_minus_one, delta_y_minus_one, delta_z_minus_one,
+                    column.dx_minus_one,
+                    delta_y_minus_one,
+                    delta_z_minus_one,
                 );
                 output[row_start + local_x] = lerp3(
                     [column.fade_x, fade_y, fade_z],
-                    [corner000, corner100, corner010, corner110,
-                     corner001, corner101, corner011, corner111],
+                    [
+                        corner000, corner100, corner010, corner110, corner001, corner101,
+                        corner011, corner111,
+                    ],
                 );
             }
         }

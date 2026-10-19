@@ -1,5 +1,5 @@
 //! 1,280 independently observed official 26.2 composed density raw-bit vectors.
-//! This is bounded JVM-output parity, NOT a complete DensityFunctions source
+//! This is bounded JVM-output parity, NOT a complete `DensityFunctions` source
 //! review or production authorization.
 
 use helve_world_gen::density_composition_262::DensityComposition262;

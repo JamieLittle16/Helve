@@ -36,7 +36,10 @@ fn observed_perlin(seed: &str, branch: &str) -> PerlinNoise262 {
     let mut config = None;
     let mut octaves: [Option<ImprovedNoise262>; 4] = std::array::from_fn(|_| None);
     let mut occupied = [false; 4];
-    for row in STATES.lines().filter(|line| !line.starts_with('#') && !line.is_empty()) {
+    for row in STATES
+        .lines()
+        .filter(|line| !line.starts_with('#') && !line.is_empty())
+    {
         let cells: Vec<_> = row.split_whitespace().collect();
         if cells.len() < 4 || cells[1] != seed || cells[2] != branch {
             continue;
@@ -60,7 +63,10 @@ fn observed_perlin(seed: &str, branch: &str) -> PerlinNoise262 {
             "O" => {
                 assert_eq!(cells.len(), 8);
                 let slot = cells[3].parse::<usize>().expect("octave slot index");
-                assert!(slot < 4 && !occupied[slot], "duplicated/invalid octave slot");
+                assert!(
+                    slot < 4 && !occupied[slot],
+                    "duplicated/invalid octave slot"
+                );
                 occupied[slot] = true;
                 if cells[4] != "NULL" {
                     let sampler = ImprovedNoise262::from_observed_parts(
@@ -83,13 +89,7 @@ fn observed_perlin(seed: &str, branch: &str) -> PerlinNoise262 {
         config.expect("official source-free configuration row");
     assert_eq!(first, -3);
     assert!(octaves[1].is_none());
-    PerlinNoise262::from_observed_parts(
-        first,
-        amplitudes,
-        octaves,
-        input_factor,
-        value_factor,
-    )
+    PerlinNoise262::from_observed_parts(first, amplitudes, octaves, input_factor, value_factor)
 }
 
 fn observed_normal(seed: &str) -> NormalNoise262 {
@@ -120,7 +120,10 @@ fn exactly_320_official_26_2_perlin_and_normal_results_match_raw_bits() {
         let perlin = observed_perlin(seed, "P");
         let normal = observed_normal(seed);
         assert_eq!(perlin.first_octave(), -3);
-        for (position, line) in lines[seed_index * 32..(seed_index + 1) * 32].iter().enumerate() {
+        for (position, line) in lines[seed_index * 32..(seed_index + 1) * 32]
+            .iter()
+            .enumerate()
+        {
             let fields: Vec<_> = line.split_whitespace().collect();
             assert_eq!(fields.len(), 6);
             assert_eq!(fields[0], *seed, "official source vector seed ordering");
@@ -220,10 +223,7 @@ fn observed_sampler_reads_are_deterministic_across_cold_workers() {
             let shared = &normal;
             scope.spawn(move || {
                 for _ in 0..100 {
-                    assert_eq!(
-                        shared.sample(-16.125, -63.875, 15.125).to_bits(),
-                        expected
-                    );
+                    assert_eq!(shared.sample(-16.125, -63.875, 15.125).to_bits(), expected);
                 }
             });
         }

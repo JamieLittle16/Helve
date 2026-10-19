@@ -124,6 +124,23 @@ contiguous. `tools/tests/test_r2c_outer_envelope_second_pass.py` checks
 full pinned method fingerprints and makes any silent claim of
 independent VAR/SEM, full delegate closure or production admission fail.
 
+The new hermetic checkpoint can be rerun without a JVM, local Mojang
+source archive or any permission to publish:
+
+```bash
+python3 -m unittest discover -s tools/tests \
+  -p 'test_r2c_outer_envelope_second_pass.py' -v
+cargo test --locked -p helve-server --lib \
+  r2c_section_candidate::tests::explicitly_empty_body_matches_independently_built_fields \
+  -- --exact
+```
+
+The official heightmap state candidate and source-backed socket/ACK
+rehearsal remain distinct: use the existing
+`r2c-official-heightmap-facts.yml` Java 25 workflow for them.
+Neither local test nor that CI workflow converts a review into Atlas
+VAR/SEM admission.
+
 **Specific remaining source steps:** independently review the concrete
 `RegistryFriendlyByteBuf/FriendlyByteBuf` signed `writeInt/readInt`
 delegates and receiving packet constructor; bind exact fingerprints

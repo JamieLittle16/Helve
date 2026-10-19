@@ -57,10 +57,12 @@ impl LegacyBits {
     #[inline]
     fn next_bits(&mut self, count: u32) -> u32 {
         self.state = self.state.wrapping_mul(Self::MULTIPLIER).wrapping_add(11) & Self::MASK;
-        (self.state >> (48 - count)) as u32
+        u32::try_from(self.state >> (48 - count))
+            .expect("only 26, 27 or 31 random bits are requested")
     }
 
     #[inline]
+    #[expect(clippy::cast_precision_loss, reason = "the 53-bit sampled unsigned integer fits exactly in an IEEE-754 f64 mantissa")]
     fn next_double(&mut self) -> f64 {
         let upper = u64::from(self.next_bits(26)) << 27;
         let lower = u64::from(self.next_bits(27));
@@ -71,7 +73,8 @@ impl LegacyBits {
     fn next_int(&mut self, bound: u32) -> u32 {
         debug_assert!(bound > 0);
         if bound.is_power_of_two() {
-            return ((u64::from(bound) * u64::from(self.next_bits(31))) >> 31) as u32;
+            return u32::try_from((u64::from(bound) * u64::from(self.next_bits(31))) >> 31)
+                .expect("bounded power-of-two draw fits in u32");
         }
         loop {
             let bits = self.next_bits(31);
@@ -86,6 +89,7 @@ impl LegacyBits {
 }
 
 #[inline]
+#[expect(clippy::cast_possible_truncation, reason = "Java Mth.floor truncates to signed 32-bit integer before correcting the fraction")]
 fn java_floor(value: f64) -> i32 {
     let truncated = value as i32;
     if value < f64::from(truncated) {
@@ -107,22 +111,13 @@ fn lerp(fraction: f64, start: f64, end: f64) -> f64 {
 
 #[inline]
 fn lerp3(
-    x: f64,
-    y: f64,
-    z: f64,
-    a: f64,
-    b: f64,
-    c: f64,
-    d: f64,
-    e: f64,
-    f: f64,
-    g: f64,
-    h: f64,
+    [axis_x, axis_y, axis_z]: [f64; 3],
+    [corner000, corner100, corner010, corner110, corner001, corner101, corner011, corner111]: [f64; 8],
 ) -> f64 {
     lerp(
-        z,
-        lerp(y, lerp(x, a, b), lerp(x, c, d)),
-        lerp(y, lerp(x, e, f), lerp(x, g, h)),
+        axis_z,
+        lerp(axis_y, lerp(axis_x, corner000, corner100), lerp(axis_x, corner010, corner110)),
+        lerp(axis_y, lerp(axis_x, corner001, corner101), lerp(axis_x, corner011, corner111)),
     )
 }
 
@@ -144,10 +139,12 @@ impl ImprovedNoise262 {
         let offset_z = random.next_double() * 256.0;
         let mut permutation = [0_u8; 256];
         for (index, item) in permutation.iter_mut().enumerate() {
-            *item = index as u8;
+            *item = u8::try_from(index).expect("permutation indices are bounded to 0..255");
         }
         for index in 0..256_usize {
-            let next = index + random.next_int((256 - index) as u32) as usize;
+            let bound = u32::try_from(256 - index).expect("permutation remainder fits u32");
+            let jump = usize::try_from(random.next_int(bound)).expect("bounded permutation jump fits usize");
+            let next = index + jump;
             permutation.swap(index, next);
         }
         Self {
@@ -160,7 +157,7 @@ impl ImprovedNoise262 {
 
     #[inline]
     fn p(&self, index: i32) -> u8 {
-        self.permutation[(index & 255) as usize]
+        self.permutation[usize::try_from(index & 255).expect("masked permutation index is unsigned")]
     }
 
     /// Samples a 3D coordinate without allocation or mutable RNG consumption.
@@ -182,12 +179,12 @@ impl ImprovedNoise262 {
         let dy = y - f64::from(iy);
         let dz = z - f64::from(iz);
 
-        let a = i32::from(self.p(ix));
-        let b = i32::from(self.p(ix.wrapping_add(1)));
-        let aa = i32::from(self.p(a.wrapping_add(iy)));
-        let ab = i32::from(self.p(a.wrapping_add(iy).wrapping_add(1)));
-        let ba = i32::from(self.p(b.wrapping_add(iy)));
-        let bb = i32::from(self.p(b.wrapping_add(iy).wrapping_add(1)));
+        let perm_x0 = i32::from(self.p(ix));
+        let perm_x1 = i32::from(self.p(ix.wrapping_add(1)));
+        let aa = i32::from(self.p(perm_x0.wrapping_add(iy)));
+        let ab = i32::from(self.p(perm_x0.wrapping_add(iy).wrapping_add(1)));
+        let ba = i32::from(self.p(perm_x1.wrapping_add(iy)));
+        let bb = i32::from(self.p(perm_x1.wrapping_add(iy).wrapping_add(1)));
 
         let c000 = grad_dot(self.p(aa.wrapping_add(iz)), dx, dy, dz);
         let c100 = grad_dot(self.p(ba.wrapping_add(iz)), dx - 1.0, dy, dz);
@@ -218,17 +215,8 @@ impl ImprovedNoise262 {
             dz - 1.0,
         );
         lerp3(
-            smoothstep(dx),
-            smoothstep(dy),
-            smoothstep(dz),
-            c000,
-            c100,
-            c010,
-            c110,
-            c001,
-            c101,
-            c011,
-            c111,
+            [smoothstep(dx), smoothstep(dy), smoothstep(dz)],
+            [c000, c100, c010, c110, c001, c101, c011, c111],
         )
     }
 

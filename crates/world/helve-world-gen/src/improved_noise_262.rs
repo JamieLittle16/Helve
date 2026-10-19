@@ -6,6 +6,13 @@
 //! argument to `RandomSource.create(long)`, NOT a world-generation seed mix.
 //! The exact 26.2 versioned fixture tests all 160 captured output bit patterns.
 
+/// Malformed user-observed sampler state, never silently repaired.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ObservedNoiseStateError {
+    /// A 256-entry permutation repeated an unsigned byte.
+    InvalidPermutation,
+}
+
 /// Frozen seed-specific offsets and permutation in inline storage.
 /// No allocations, atomics, registry access, virtual calls or mutable sampling
 /// state; safe to share across COLD workers after one-time construction.
@@ -181,6 +188,36 @@ impl ImprovedNoise262 {
             offset_y,
             offset_z,
         }
+    }
+
+    /// Restores a complete, immutable sampler from externally observed
+    /// numeric constructor state. This bypasses RNG reconstruction; only
+    /// `new(seed)` constructs the separate directly seeded ImprovedNoise.
+    ///
+    /// The permutation is validated before use. Caller-supplied offset
+    /// bit patterns are preserved without normalisation or recomputation.
+    ///
+    /// # Errors
+    /// Rejects an array that does not contain each byte exactly once.
+    pub fn from_observed_parts(
+        permutation: [u8; 256],
+        offset_x: f64,
+        offset_y: f64,
+        offset_z: f64,
+    ) -> Result<Self, ObservedNoiseStateError> {
+        let mut seen = [false; 256];
+        for &entry in &permutation {
+            if seen[usize::from(entry)] {
+                return Err(ObservedNoiseStateError::InvalidPermutation);
+            }
+            seen[usize::from(entry)] = true;
+        }
+        Ok(Self {
+            permutation,
+            offset_x,
+            offset_y,
+            offset_z,
+        })
     }
 
     #[inline]

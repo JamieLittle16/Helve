@@ -72,7 +72,7 @@ fn args() -> Result<Config, String> {
         }
     }
     if !(256..=262_144).contains(&cfg.points)
-        || cfg.points % 256 != 0
+        || !cfg.points.is_multiple_of(256)
         || cfg.rounds == 0
         || cfg.rounds > 1000
         || cfg.warmup > 100

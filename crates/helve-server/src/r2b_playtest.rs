@@ -1750,9 +1750,7 @@ mod play_short_write_tests {
     use helve_session_core::LivenessState;
     use helve_target_26_2::r2b::TeleportTransaction;
 
-    use super::{
-        R2bPlaySession, R2bPlaytestError, read_wait_when_egress_drained, write_play_once,
-    };
+    use super::{R2bPlaySession, R2bPlaytestError, read_wait_when_egress_drained, write_play_once};
 
     struct BoundedWriter {
         maximum_per_write: usize,

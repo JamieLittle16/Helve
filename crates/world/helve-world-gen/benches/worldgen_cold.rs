@@ -114,6 +114,11 @@ fn config() -> Result<Config, String> {
     };
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
+        // Cargo appends --bench for harness=false; accept that marker while
+        // keeping all other unknown arguments fail-closed.
+        if arg == "--bench" {
+            continue;
+        }
         let value = args.next().ok_or(format!("missing value for {arg}"))?;
         match arg.as_str() {
             "--chunks" => cfg.chunks = value.parse().map_err(|_| "invalid --chunks")?,

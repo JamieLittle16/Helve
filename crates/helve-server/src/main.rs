@@ -72,7 +72,13 @@ fn run() -> Result<(), String> {
         let (mut stream, peer) = listener
             .accept()
             .map_err(|error| format!("accept failed: {error}"))?;
-        configure_stream(&stream, peer)?;
+        // Socket-option failures belong to this accepted connection, not
+        // to the long-lived listener or its single resident COLD world.
+        // Reuse the existing --once versus multi-connection error policy.
+        if let Err(error) = configure_stream(&stream, peer) {
+            report_connection("TCP setup", peer, options.once, Err::<(), _>(error))?;
+            continue;
+        }
         serve_connection(
             &mut stream,
             peer,
@@ -381,6 +387,7 @@ mod tests {
         DEFAULT_R0_BIND_ADDRESS, LOGIN_SESSION_EPOCH_PREFIX, PRODUCT_NAME,
         R1X_CAPTURE_SESSION_EPOCH_HEX, R1X_REPLAY_IMAGE_PREFIX, R2B_PLAYTEST_IMAGE_PREFIX,
         R2C_HEIGHTMAP_CANDIDATE_PREFIX, R2C_WORLD_PLAN_PREFIX, options, options_from,
+        report_connection,
     };
 
     #[test]
@@ -460,6 +467,25 @@ mod tests {
                 .expect("existing R2B mode remains supported")
                 .r2c_world_plan
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn accepted_socket_setup_error_is_local_unless_once() {
+        let peer = "127.0.0.1:25566"
+            .parse()
+            .expect("fixed loopback peer is valid");
+        assert!(
+            report_connection("TCP setup", peer, false, Err::<(), _>("setup failed")).is_ok(),
+            "a rejected socket must not terminate a multi-connection server",
+        );
+        assert!(
+            report_connection("TCP setup", peer, true, Err::<(), _>("setup failed")).is_err(),
+            "--once must still report an unsuccessful accepted connection",
+        );
+        assert!(
+            report_connection("TCP setup", peer, false, Ok::<(), &str>(())).is_ok(),
+            "successful setup is unchanged",
         );
     }
 

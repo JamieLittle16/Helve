@@ -100,6 +100,43 @@ or close any remaining client/biome, heightmap, outer-wire/Play, section
 policy or projection-performance gate. They also do **not** prove a
 full Handshake/Login/Configuration reconnect or simultaneous clients.
 
+## 19 October 2026 — qualification and scoped source-review update (post-#413)
+
+This supplements, but does **not** promote, the P0 source obligations
+and the R2C exit checklist above.
+
+- **#414 merged** at `556798bb9fcda7686858d87f251e6a4e0e251ce1`.
+  The existing official Java 25 / 32,366-state R2C oracle qualification
+  now triggers for R2B continuing-Play transport and target R2C codec
+  changes. The PR's official runtime, CI, repository and CLA gates
+  succeeded. With source-backed state facts present, the same test
+  performs real nine/25-chunk TCP/ACK and two-session host-reuse verification.
+- **#415 merged** at `b7315654e371fb48eeaed5ffabfc2b350f24d6ef`.
+  Two sequential localhost sockets now repeat the *full*
+  Handshake/Login/Configuration/R2B Play entry with one process-owned
+  bootstrap image and byte-equal outbound bodies, reaching fresh
+  `WorldProjectionReady` sessions. It does not yet compose an authentic
+  source-backed chunk body with both complete preplay joins.
+- **Scoped outer-envelope source SEM *candidate*** now has a second-pass
+  source-free method-fingerprint / delegate-disposition artifact at
+  `vanilla/reviews/network/r2c-outer-envelope-second-pass-source-findings.json`.
+  Method roots: chunk-with-light codec initializer, constructor, write,
+  chunk-data receiving constructor, and light-data receiving constructor.
+  Only their direct X/Z → chunk-data → light-data and receiving-field
+  ordering is supported. The signed-coordinate and complete field-span
+  regression binds Rust output to that finite observation. Separate
+  primitive read/write delegates, exact registered packet identity,
+  empty-BE/wire law, client application and lifecycle, client numeric
+  biome IDs, and 32,366 per-state facts **remain unadmitted**.
+
+**Exact pre-review head:** `b7315654e371fb48eeaed5ffabfc2b350f24d6ef`.
+Do not mistake source-free direct-method review for the independent
+VAR/SEM gate. Normal `R2cSourceAdmission` remains uninhabited, and the
+production binary still deliberately publishes no world chunks. The
+next pass should close the *specified missing delegates and guards*,
+not re-inventory already-reviewed source families. Update this handoff
+and `R2C_CURRENT_STATE.md` as one change whenever a proof status moves.
+
 ## First action for the next context
 
 1. `cd /home/Jamie/Crucible && git pull --ff-only && git status --short && git rev-parse HEAD`; read this handoff and `R2C_CURRENT_STATE.md`; verify any newer merged work and CI.

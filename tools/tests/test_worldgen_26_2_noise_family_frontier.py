@@ -108,7 +108,7 @@ class NoiseFamilyFrontierTests(unittest.TestCase):
             self.assertFalse(report["source_text_included"])
             self.assertFalse(report["independent_var_sem_admitted"])
             self.assertFalse(report["production_worldgen_enabled"])
-            with self.assertRaisesRegex(frontier.ValueError, "already exists"):
+            with self.assertRaisesRegex(ValueError, "already exists"):
                 frontier.capture(source=root / "zip", db=root / "db", lock=lock, output=out)
 
     def test_wrong_version_rejected_before_any_atlas_access(self):

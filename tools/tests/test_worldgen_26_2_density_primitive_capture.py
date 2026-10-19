@@ -105,7 +105,7 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             )
 
         def template(conn, row, label):
-            return {"source": row}
+            return {"source": dict(row, type=row["owner"])}
 
         with mock.patch.object(capture.projection, "_exact_type_methods",
                                side_effect=lambda conn, owner, limit: owner_rows.get(owner, [])), \
@@ -215,7 +215,7 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             self.assertEqual(raw[320], "0xbff0000000000000")
             self.assertEqual(raw[321], "0xbff0000000000000")
             self.assertEqual(raw[322], "0xc050000000000000")  # exact -64.0 toy result
-            self.assertEqual(raw[5 * 32], raw[0], "seed-independent constant")
+            self.assertEqual(raw[32], raw[0], "seed-independent constant")
             with mock.patch.object(capture.official, "extract_classpath", return_value=[classes]):
                 with self.assertRaisesRegex(capture.DensityCaptureError, "exact 640"):
                     capture.runtime_bits(root / "synthetic.jar", capture.inputs()[:-1])

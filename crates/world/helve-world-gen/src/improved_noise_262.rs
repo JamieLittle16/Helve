@@ -187,9 +187,7 @@ fn java_octave_hash(octave: i32) -> i32 {
         }
     }
     for &digit in reversed_digits[..length].iter().rev() {
-        hash = hash
-            .wrapping_mul(31)
-            .wrapping_add(i32::from(b'0' + digit));
+        hash = hash.wrapping_mul(31).wrapping_add(i32::from(b'0' + digit));
     }
     hash
 }

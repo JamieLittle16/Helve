@@ -39,6 +39,7 @@ SINGLE = "net.minecraft.world.level.levelgen.DensityFunction$FunctionContext"
 CONSTANT = DENSITY + "$Constant"
 GRADIENT = DENSITY + "$YClampedGradient"
 KIND = "official_26_2_density_primitive_candidate"
+STARTUP_SEQUENCE = ["SharedConstants.tryDetectVersion", "Bootstrap.bootStrap"]
 HEX = re.compile(r"0x[0-9a-f]{16}\Z")
 SHA = re.compile(r"[0-9a-f]{64}\Z")
 SEEDS = (
@@ -157,6 +158,22 @@ public final class HelveDensityPrimitiveBits {
     return Double.longBitsToDouble(Long.parseUnsignedLong(bits.substring(2), 16));
   }
   public static void main(String[] ignored) throws Exception {
+    // Follow Helve's existing, pinned 26.2 block-state probe startup law.
+    // DensityFunctions initialises built-in registries on class loading.
+    // Detect the version and bootstrap before loading ANY density class.
+    Class<?> shared = Class.forName("net.minecraft.SharedConstants");
+    Method detectVersion = shared.getMethod("tryDetectVersion");
+    if (!Modifier.isStatic(detectVersion.getModifiers())
+        || detectVersion.getParameterCount()!=0) {
+      throw new IllegalStateException("26.2 version detection contract disagrees");
+    }
+    detectVersion.invoke(null);
+    Class<?> bootstrap = Class.forName("net.minecraft.server.Bootstrap");
+    Method boot = bootstrap.getMethod("bootStrap");
+    if (!Modifier.isStatic(boot.getModifiers()) || boot.getParameterCount()!=0) {
+      throw new IllegalStateException("26.2 bootstrap contract disagrees");
+    }
+    boot.invoke(null);
     Class<?> functions = Class.forName("net.minecraft.world.level.levelgen.DensityFunctions");
     Class<?> density = Class.forName("net.minecraft.world.level.levelgen.DensityFunction");
     Class<?> context = Class.forName("net.minecraft.world.level.levelgen.DensityFunction$FunctionContext");
@@ -236,7 +253,7 @@ def validate(manifest: dict, lock: dict) -> None:
         "schema", "kind", "minecraft", "protocol", "data_version",
         "source_archive_sha256", "official_server_sha256", "stage",
         "source_text_included", "independent_var_sem_admitted", "production_worldgen_enabled",
-        "methods", "profiles", "vectors",
+        "runtime_startup_sequence", "methods", "profiles", "vectors",
     }
     if not isinstance(manifest, dict) or set(manifest) != required or manifest.get("schema") != 1 or manifest.get("kind") != KIND:
         raise DensityCaptureError("missing or unexpected density manifest fields")
@@ -251,6 +268,8 @@ def validate(manifest: dict, lock: dict) -> None:
     ]:
         if type(manifest.get(key)) is not type(value) or manifest[key] != value:
             raise DensityCaptureError(f"wrong pinned density metadata: {key}")
+    if manifest["runtime_startup_sequence"] != STARTUP_SEQUENCE:
+        raise DensityCaptureError("official density runtime startup sequence differs from pinned block-state probe")
     if manifest["profiles"] != PROFILES or set(manifest["methods"]) != set(METHODS):
         raise DensityCaptureError("missing or substituted explicit density profiles/source methods")
     for name, (owner, symbol, types) in METHODS.items():
@@ -302,6 +321,7 @@ def capture(*, source: Path, db: Path, lock: Path, server: Path, output: Path) -
         "official_server_sha256": runtime_digest,
         "source_text_included": False, "independent_var_sem_admitted": False,
         "production_worldgen_enabled": False,
+        "runtime_startup_sequence": STARTUP_SEQUENCE,
         "methods": methods, "profiles": PROFILES,
         "vectors": [dict(p, value_bits=value) for p, value in zip(probe, output_bits, strict=True)],
     }

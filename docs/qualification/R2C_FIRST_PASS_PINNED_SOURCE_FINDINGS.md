@@ -126,8 +126,10 @@ Play registration order; the *serverbound* batch ACK is **ID 11**, not 12
    independent Atlas gate with all necessary semantic decisions.
 5. Only after the checks permit it, construct the `R2cSourceAdmission`
    production capability and connect the already-built publisher to the
-   continuing R2B Play session. Prove a nine-chunk pregenerated-world
-   demo in an unmodified 26.2 client. R2D worldgen remains separate.
+   continuing R2B Play session. Repeat and independently record a
+   **production**, non-test stock-client 26.2 world publication run.
+   The earlier nine/25-column test-only visual demo has already happened;
+   terrain generation is not required for R2C or R2D entry.
 
 **No official source text has been placed in this document or in the
 source-free review report.** Do not mark the unresolved obligations as

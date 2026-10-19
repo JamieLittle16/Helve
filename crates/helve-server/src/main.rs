@@ -476,13 +476,11 @@ mod tests {
             .parse()
             .expect("fixed loopback peer is valid");
         assert!(
-            report_connection("TCP setup", peer, false, Err::<(), _>("setup failed"))
-                .is_ok(),
+            report_connection("TCP setup", peer, false, Err::<(), _>("setup failed")).is_ok(),
             "a rejected socket must not terminate a multi-connection server",
         );
         assert!(
-            report_connection("TCP setup", peer, true, Err::<(), _>("setup failed"))
-                .is_err(),
+            report_connection("TCP setup", peer, true, Err::<(), _>("setup failed")).is_err(),
             "--once must still report an unsuccessful accepted connection",
         );
         assert!(

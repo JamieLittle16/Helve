@@ -68,6 +68,15 @@ rather than accepting epsilon errors. Without an independently verified
 official noise sampler and its target 26.2 source fingerprint, **no strict
 vanilla noise-parity claim is made** and no speedup is certified.
 
+**First official sampling entry point:** `tools/worldgen_26_2_improved_noise_capture.py`
+is a source-pinned, **not yet executed against the official runtime here**,
+160-vector raw-IEEE JVM probe for the exact `ImprovedNoise` three-coordinate
+overload. The local Atlas/source/runtime lock must pass before it emits
+source-free candidate evidence; no official source method, constructor or
+RNG delegate is SEM-admitted merely by its output. See
+[Worldgen Bit Parity and Benchmark](WORLDGEN_BIT_PARITY_BENCHMARK.md)
+for the executable command and exact independent review obligations.
+
 ## Exact vanilla 26.2 generator roadmap — future distinct gates
 
 1. **Pinned generation source map and proof contracts.** Identify official 26.2 seed mixing, noise parameter registries, climate/RNG seeding, noise router/density functions, structure and decoration ordering using the existing Atlas/source-lock discipline. Record exact target selections and source-free VAR/SEM with complete error/delegate coverage. Do not infer from an older Java Edition version.

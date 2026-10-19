@@ -8,6 +8,8 @@ on:
       - "crates/world/helve-world-gen/**"
       - "tools/worldgen_noise_oracle.py"
       - "tools/tests/test_worldgen_noise_oracle.py"
+      - "tools/worldgen_26_2_improved_noise_capture.py"
+      - "tools/tests/test_worldgen_26_2_improved_noise_capture.py"
       - "docs/architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md"
       - ".github/workflows/worldgen-parity-benchmark.yml"
   push:
@@ -16,6 +18,8 @@ on:
       - "crates/world/helve-world-gen/**"
       - "tools/worldgen_noise_oracle.py"
       - "tools/tests/test_worldgen_noise_oracle.py"
+      - "tools/worldgen_26_2_improved_noise_capture.py"
+      - "tools/tests/test_worldgen_26_2_improved_noise_capture.py"
       - ".github/workflows/worldgen-parity-benchmark.yml"
   workflow_dispatch:
 
@@ -53,6 +57,11 @@ jobs:
 
       - name: Source-free raw IEEE oracle contract mutation tests
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_noise_oracle.py' -v
+
+      # Compile a synthetic original Java stub: no Mojang source, jar or
+      # extracted production code enters a hosted CI job.
+      - name: Verify official-runtime capture transport against independent synthetic Java
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_improved_noise_capture.py' -v
 
       # Hosted CPU timing only confirms the harness runs. No performance claim
       # or speed threshold may be derived from GitHub's shared runner.

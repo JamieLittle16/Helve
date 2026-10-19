@@ -1,4 +1,8 @@
-# R2C Execution Plan — Native World Projection
+# R2C Execution Plan
+
+**Current readiness handoff (19 October 2026):** [R2C → R2D readiness](R2C_TO_R2D_READINESS_HANDOFF_2026-10-19.md) is the operative exit/entry checklist after the 25-column visible diagnostic, server-owned COLD host and merged client-review PRs through #409. Historic slice sequence below remains useful but does not imply the remaining selected 26.2 outer packet/client/heightmap source gate or production publisher has passed. Do **not** reopen the already admitted 58-method generic world-state bundle.
+
+ — Native World Projection
 
 **Status:** executable milestone plan  
 **Target:** Minecraft: Java Edition 26.2 / protocol 776  

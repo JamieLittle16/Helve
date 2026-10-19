@@ -298,7 +298,7 @@ mod tests {
         assert_eq!(chunk.position(), position);
         assert_eq!(chunk.generation(), ChunkGeneration(17));
         assert_eq!(chunk.revision(), ChunkRevision(0));
-        assert_eq!(chunk.current_initial_light(), None);
+        assert!(chunk.current_initial_light().is_none());
         for local_x in 0..16 {
             for local_z in 0..16 {
                 let x = -16 + local_x;

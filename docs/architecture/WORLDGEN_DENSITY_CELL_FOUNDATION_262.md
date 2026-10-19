@@ -39,3 +39,7 @@ The tests consume the already-pinned official reference fixture `tests/data/perl
 5. Benchmark a target-faithful scalar reference against batched COLD graph, section build and full resident installation on controlled hardware. Record work counts, whole-cost p50/p95/p99, allocations, bytes and visible-latency changes. The previous benchmarks measure isolated or non-vanilla candidates and are **not** proof the current kernel is optimal.
 
 **Guardrail:** this is implementation progress toward a real density engine, not a declaration of source/VAR/SEM admission, vanilla terrain parity, or production readiness.
+
+## First official density-output collector (non-admitting)
+
+The source-locked `tools/worldgen_26_2_density_primitive_capture.py` now probes actual 26.2 `DensityFunction.compute` results for candidate constant/Y-clamped-gradient profiles on the user's source-owning JVM, recording exact 64-bit outputs and Atlas method fingerprints. Its synthetic-CI transport is **not** an official output capture. See [Density Primitive Reference](WORLDGEN_DENSITY_PRIMITIVE_REFERENCE_262.md) for the executable command and fail-closed source review requirements. No Rust vanilla density-node parity or source/VAR/SEM admission is claimed until the *real official output JSON* is captured and independently checked.

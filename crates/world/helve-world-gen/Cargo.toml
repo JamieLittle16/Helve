@@ -15,6 +15,11 @@ helve-world-runtime = { path = "../helve-world-runtime" }
 
 [dev-dependencies]
 helve-world-reference = { path = "../helve-world-reference" }
+helve-benchmark-support = { path = "../../qualification/helve-benchmark-support" }
+
+[[bench]]
+name = "worldgen_cold"
+harness = false
 
 [lints]
 workspace = true

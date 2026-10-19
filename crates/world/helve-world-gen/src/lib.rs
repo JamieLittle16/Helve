@@ -15,6 +15,9 @@
 /// Not yet a source/SEM-admitted production terrain generator.
 /// Non-admitted immutable density-expression DAG and COLD 3D cell sampling.
 pub mod density_kernel_262;
+/// Source-free-JVM-bit-validated 26.2 integer-block density primitive candidates.
+/// Separate from the generic floating-coordinate DAG; not VAR/SEM-admitted.
+pub mod density_primitives_262;
 pub mod explicit_noise_stack_262;
 pub mod improved_noise_262;
 /// Source-free JVM-state-backed Perlin and Normal noise candidates; not seed-authorised or production-admitted.

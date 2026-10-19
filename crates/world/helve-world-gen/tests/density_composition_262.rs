@@ -3,22 +3,29 @@
 //! review or production authorization.
 
 use helve_world_gen::density_composition_262::DensityComposition262;
-use helve_world_gen::density_primitives_262::{
-    DensityPrimitive262, DensityPrimitiveError262,
-};
+use helve_world_gen::density_primitives_262::{DensityPrimitive262, DensityPrimitiveError262};
 
 const OFFICIAL: &str = include_str!("data/density_composed_26_2_rawbits.tsv");
 const SEEDS: [&str; 5] = [
-    "0x0000000000000000", "0x0000000000000001", "0xffffffffffffffff",
-    "0x8000000000000000", "0x9e3779b97f4a7c15",
+    "0x0000000000000000",
+    "0x0000000000000001",
+    "0xffffffffffffffff",
+    "0x8000000000000000",
+    "0x9e3779b97f4a7c15",
 ];
 const PROFILES: [&str; 8] = [
-    "add_gradients", "mul_gradients", "add_zero_left", "add_zero_right",
-    "mul_zero_left", "mul_zero_right", "add_self", "mul_half",
+    "add_gradients",
+    "mul_gradients",
+    "add_zero_left",
+    "add_zero_right",
+    "mul_zero_left",
+    "mul_zero_right",
+    "add_self",
+    "mul_half",
 ];
 const Y_LEVELS: [i32; 32] = [
-    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64,
-    127, 128, 255, 256, 318, 319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
+    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64, 127, 128, 255, 256, 318,
+    319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
 ];
 
 fn bits(raw: &str) -> u64 {
@@ -32,9 +39,7 @@ fn primitive(profile: &str) -> DensityPrimitive262 {
         "gradient_world_height" => {
             DensityPrimitive262::y_clamped_gradient(-64, 320, -1.0, 1.0).unwrap()
         }
-        "gradient_reverse" => {
-            DensityPrimitive262::y_clamped_gradient(-30, 17, 0.5, -0.75).unwrap()
-        }
+        "gradient_reverse" => DensityPrimitive262::y_clamped_gradient(-30, 17, 0.5, -0.75).unwrap(),
         "constant_negative_zero" => DensityPrimitive262::constant(-0.0),
         "constant_fraction" => DensityPrimitive262::constant(0.5),
         _ => panic!("unrecognised official leaf {profile}"),
@@ -61,9 +66,15 @@ fn program(profile: &str) -> DensityComposition262 {
 
 #[test]
 fn all_1280_exact_official_density_composition_bits_match() {
-    assert!(OFFICIAL.contains("Original JSON SHA256: a303cc90269cf273cb5d65ed470fe118263468708c59897f89399e7fa1adff20"));
-    assert!(OFFICIAL.contains("Factory add body SHA256: aff60df9dc11f0e52d061660cf39684dfd671e214ab185174a293ce96ddebe58"));
-    assert!(OFFICIAL.contains("Factory mul body SHA256: c5d5aaa53f8650d9068362c193487625eeeb057633eaafb0142651a4cc29d7f1"));
+    assert!(OFFICIAL.contains(
+        "Original JSON SHA256: a303cc90269cf273cb5d65ed470fe118263468708c59897f89399e7fa1adff20"
+    ));
+    assert!(OFFICIAL.contains(
+        "Factory add body SHA256: aff60df9dc11f0e52d061660cf39684dfd671e214ab185174a293ce96ddebe58"
+    ));
+    assert!(OFFICIAL.contains(
+        "Factory mul body SHA256: c5d5aaa53f8650d9068362c193487625eeeb057633eaafb0142651a4cc29d7f1"
+    ));
     let mut row_count = 0;
     for line in OFFICIAL
         .lines()
@@ -80,13 +91,27 @@ fn all_1280_exact_official_density_composition_bits_match() {
         let y = fields[3].parse::<i32>().unwrap();
         let z = fields[4].parse::<i32>().unwrap();
         let index = i32::try_from(coordinate_idx).unwrap();
-        let expected_x = (if index % 2 == 0 { 33_554_432 } else { -33_554_432 }) + index * 13;
-        let expected_z = (if index % 3 == 0 { index * 17 } else { -index * 17 }) - 16;
-        assert_eq!((x, y, z), (expected_x, Y_LEVELS[coordinate_idx], expected_z));
+        let expected_x = (if index % 2 == 0 {
+            33_554_432
+        } else {
+            -33_554_432
+        }) + index * 13;
+        let expected_z = (if index % 3 == 0 {
+            index * 17
+        } else {
+            -index * 17
+        }) - 16;
+        assert_eq!(
+            (x, y, z),
+            (expected_x, Y_LEVELS[coordinate_idx], expected_z)
+        );
         let actual = program(fields[0]).sample_block_y(y).to_bits();
         let expected = bits(fields[5]);
-        assert_eq!(actual, expected, "official row {row_count} profile {} at ({x},{y},{z}) seed {}",
-                   fields[0], fields[1]);
+        assert_eq!(
+            actual, expected,
+            "official row {row_count} profile {} at ({x},{y},{z}) seed {}",
+            fields[0], fields[1]
+        );
         row_count += 1;
     }
     assert_eq!(row_count, 1280);
@@ -106,12 +131,27 @@ fn multiplication_distinguishes_two_dynamic_leaves_from_signed_zero_constant() {
     // Standard IEEE +0 × negative produces -0; the official 26.2
     // factory's two-function case instead produces +0.
     assert_eq!((0.0_f64 * -0.75_f64).to_bits(), (-0.0_f64).to_bits());
-    assert_eq!(two_functions.sample_block_y(128).to_bits(), 0.0_f64.to_bits());
-    assert_eq!(constant_first.sample_block_y(128).to_bits(), (-0.0_f64).to_bits());
-    assert_eq!(constant_second.sample_block_y(128).to_bits(), (-0.0_f64).to_bits());
+    assert_eq!(
+        two_functions.sample_block_y(128).to_bits(),
+        0.0_f64.to_bits()
+    );
+    assert_eq!(
+        constant_first.sample_block_y(128).to_bits(),
+        (-0.0_f64).to_bits()
+    );
+    assert_eq!(
+        constant_second.sample_block_y(128).to_bits(),
+        (-0.0_f64).to_bits()
+    );
     assert_eq!(half.sample_block_y(128).to_bits(), 0.0_f64.to_bits());
-    assert_eq!(constant_first.sample_block_y(-64).to_bits(), 0.0_f64.to_bits());
-    assert_eq!(constant_second.sample_block_y(320).to_bits(), (-0.0_f64).to_bits());
+    assert_eq!(
+        constant_first.sample_block_y(-64).to_bits(),
+        0.0_f64.to_bits()
+    );
+    assert_eq!(
+        constant_second.sample_block_y(320).to_bits(),
+        (-0.0_f64).to_bits()
+    );
 }
 
 #[test]
@@ -120,7 +160,11 @@ fn horizontal_planes_and_cells_reuse_single_y_value_without_allocations() {
         let evaluator = program(profile);
         let mut plane = [f64::NAN; 256];
         evaluator.sample_plane_16x16(128, &mut plane);
-        assert!(plane.iter().all(|v| v.to_bits() == evaluator.sample_block_y(128).to_bits()));
+        assert!(
+            plane
+                .iter()
+                .all(|v| v.to_bits() == evaluator.sample_block_y(128).to_bits())
+        );
 
         let mut values = vec![f64::NAN; 4096];
         let cell: &mut [f64; 4096] = values.as_mut_slice().try_into().unwrap();
@@ -143,8 +187,5 @@ fn overflow_rejected_before_mutating_cell() {
         Err(DensityPrimitiveError262::CellYOverflow)
     );
     assert!(cell.iter().all(|v| v.is_nan()));
-    assert_eq!(
-        program.sample_cell_16x16x16(i32::MAX - 15, cell),
-        Ok(())
-    );
+    assert_eq!(program.sample_cell_16x16x16(i32::MAX - 15, cell), Ok(()));
 }

@@ -75,9 +75,6 @@ pub enum SurfaceGenerationError<E> {
     Compose(ChunkSemanticStateError),
 }
 
-/// The generated result is a normal Helve semantic chunk, not a second world owner.
-pub type GeneratedChunk<S, Blocks, B, Biomes> = LiveChunkSemanticState<S, Blocks, B, Biomes>;
-
 /// A small **non-vanilla** deterministic reference terrain rule.
 ///
 /// One seeded height sample is used for each 8×8 world-space plateau.
@@ -146,6 +143,10 @@ impl SteppedSurface {
     /// # Panics
     /// The frozen dimension profile admits at most 64 sections; a
     /// section-index conversion panic would violate that source contract.
+    #[expect(
+        clippy::type_complexity,
+        reason = "The statically dispatched output encodes the exact Helve block/biome section types and typed builder error without a second owned representation"
+    )]
     pub fn generate_chunk<S, B, Builder>(
         &self,
         position: ChunkPos,
@@ -154,7 +155,7 @@ impl SteppedSurface {
         palette: SurfacePalette<S, B>,
         builder: &mut Builder,
     ) -> Result<
-        GeneratedChunk<S, Builder::Blocks, B, Builder::Biomes>,
+        LiveChunkSemanticState<S, Builder::Blocks, B, Builder::Biomes>,
         SurfaceGenerationError<Builder::Error>,
     >
     where

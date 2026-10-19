@@ -14,6 +14,18 @@ on:
       - crates/helve-server/src/r2c_section_candidate.rs
       - crates/helve-server/src/r2c_initial_view.rs
       - crates/helve-server/src/r2c_disk_first_view.rs
+      # The existing 25-column TCP/ACK and two-session reconnect tests
+      # exercise the *continuing* R2B Play loop only with official runtime
+      # state facts. Generic CI leaves this part deliberately skipped.
+      # Changes here must run the full official-oracle qualification.
+      - crates/helve-server/src/r2b_playtest.rs
+      - crates/helve-server/src/r2b_server.rs
+      - crates/helve-server/src/r2c_chunk_batch.rs
+      - crates/helve-server/src/r2c_cold_demo_import.rs
+      - crates/helve-server/src/r2c_play_inbound.rs
+      # Target-owned chunk/light packet bodies and ACK codec also affect
+      # the source-receipted real-socket tests, even if COLD tests stay green.
+      - "crates/network/helve-target-26-2/src/r2c_*.rs"
       - crates/helve-server/src/lib.rs
       - vanilla/vanilla.lock.toml
       - .github/workflows/r2c-official-heightmap-facts.yml

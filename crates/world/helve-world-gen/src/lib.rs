@@ -16,9 +16,7 @@ use helve_world_chunk::{
     ChunkBiomeColumn, ChunkBiomeColumnError, ChunkCoreError, ChunkSemanticStateError,
     LiveChunkCore, LiveChunkSemanticState,
 };
-use helve_world_contract::{
-    BIOME_SECTION_CELLS, BLOCK_SECTION_CELLS, BiomeSection, BlockSection,
-};
+use helve_world_contract::{BIOME_SECTION_CELLS, BLOCK_SECTION_CELLS, BiomeSection, BlockSection};
 use helve_world_runtime::DimensionRuntimeProfile;
 
 /// One typed section sample. Uniform sections avoid creating, scanning or
@@ -197,8 +195,7 @@ impl SteppedSurface {
                 for y in 0_u8..16 {
                     for z in 0_u8..16 {
                         for x in 0_u8..16 {
-                            let index =
-                                usize::from(y) * 256 + usize::from(z) * 16 + usize::from(x);
+                            let index = usize::from(y) * 256 + usize::from(z) * 16 + usize::from(x);
                             let column = usize::from(z) * 16 + usize::from(x);
                             cells[index] = if min_y + i64::from(y) <= heights[column] {
                                 palette.solid
@@ -224,28 +221,30 @@ impl SteppedSurface {
 
         let blocks = LiveChunkCore::new(position, generation, profile.min_section_y(), blocks)
             .map_err(SurfaceGenerationError::Blocks)?;
-        let biomes = ChunkBiomeColumn::new(
-            position,
-            generation,
-            profile.min_section_y(),
-            biomes,
-        )
-        .map_err(SurfaceGenerationError::Biomes)?;
-        LiveChunkSemanticState::from_parts(blocks, biomes)
-            .map_err(SurfaceGenerationError::Compose)
+        let biomes = ChunkBiomeColumn::new(position, generation, profile.min_section_y(), biomes)
+            .map_err(SurfaceGenerationError::Biomes)?;
+        LiveChunkSemanticState::from_parts(blocks, biomes).map_err(SurfaceGenerationError::Compose)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use helve_types::{BlockPos, ChunkGeneration, ChunkPos, ChunkRevision, DimensionId, DimensionTypeId};
+    use helve_types::{
+        BlockPos, ChunkGeneration, ChunkPos, ChunkRevision, DimensionId, DimensionTypeId,
+    };
     use helve_world_contract::{
-        BIOME_SECTION_CELLS, BLOCK_SECTION_CELLS, BlockStateFacts, SectionBiomePos, SectionStateFacts,
+        BIOME_SECTION_CELLS, BLOCK_SECTION_CELLS, BlockStateFacts, SectionBiomePos,
+        SectionStateFacts,
     };
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
-    use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance, SemanticResidentLoadError};
+    use helve_world_runtime::{
+        DimensionRuntimeProfile, SemanticDimensionInstance, SemanticResidentLoadError,
+    };
 
-    use super::{GeneratedSectionBuilder, SectionSamples, SteppedSurface, SurfaceGenerationError, SurfacePalette};
+    use super::{
+        GeneratedSectionBuilder, SectionSamples, SteppedSurface, SurfaceGenerationError,
+        SurfacePalette,
+    };
 
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     enum State {
@@ -346,9 +345,10 @@ mod tests {
         assert_eq!(rule.surface_y(15, 0), rule.surface_y(8, 7));
         assert_eq!(rule.surface_y(16, 0), rule.surface_y(23, 7));
         // i32::MIN chunk coordinates are widened before multiplying by 16.
-        assert!((-12..=-2).contains(
-            &rule.surface_y(i64::from(i32::MIN) * 16, i64::from(i32::MAX) * 16),
-        ));
+        assert!(
+            (-12..=-2)
+                .contains(&rule.surface_y(i64::from(i32::MIN) * 16, i64::from(i32::MAX) * 16),)
+        );
     }
 
     #[test]
@@ -364,8 +364,11 @@ mod tests {
             (901, -4, 4, -1, 0, -7),
             (44, -9, 7, 0, -3, -9),
             (
-                u64::MAX, i32::MAX, u8::MAX,
-                i64::from(i32::MIN) * 16, i64::from(i32::MAX) * 16,
+                u64::MAX,
+                i32::MAX,
+                u8::MAX,
+                i64::from(i32::MIN) * 16,
+                i64::from(i32::MAX) * 16,
                 2_147_483_886,
             ),
         ];
@@ -383,9 +386,15 @@ mod tests {
         let rule = SteppedSurface::new(901, -4, 4);
         let position = ChunkPos { x: -1, z: 0 };
         let mut builder = ReferenceBuilder::default();
-        let chunk = rule.generate_chunk(
-            position, ChunkGeneration(17), profile(), PALETTE, &mut builder
-        ).unwrap();
+        let chunk = rule
+            .generate_chunk(
+                position,
+                ChunkGeneration(17),
+                profile(),
+                PALETTE,
+                &mut builder,
+            )
+            .unwrap();
         assert_eq!(builder.sections_built, 6);
         assert!(builder.uniform_blocks > 0);
         assert!(builder.dense_blocks > 0);
@@ -401,7 +410,11 @@ mod tests {
                 for y in -32..64 {
                     assert_eq!(
                         chunk.get_block(BlockPos { x, y, z }).unwrap(),
-                        if i64::from(y) <= height { State::Solid } else { State::Air },
+                        if i64::from(y) <= height {
+                            State::Solid
+                        } else {
+                            State::Air
+                        },
                         "x={x}, y={y}, z={z}",
                     );
                 }
@@ -413,10 +426,9 @@ mod tests {
                 for y in 0..4 {
                     for z in 0..4 {
                         assert_eq!(
-                            chunk.get_biome(
-                                section_y,
-                                SectionBiomePos::new(x, y, z).unwrap(),
-                            ).unwrap(),
+                            chunk
+                                .get_biome(section_y, SectionBiomePos::new(x, y, z).unwrap(),)
+                                .unwrap(),
                             Biome::Test,
                         );
                     }
@@ -433,18 +445,26 @@ mod tests {
         let mut first = Dimension::new(DimensionId(2), profile());
         let mut second = Dimension::new(DimensionId(3), profile());
         let mut builder = ReferenceBuilder::default();
-        let l1 = first.admit_chunk(left, |generation, p| rule.generate_chunk(
-            left, generation, p, PALETTE, &mut builder
-        )).unwrap();
-        let r1 = first.admit_chunk(right, |generation, p| rule.generate_chunk(
-            right, generation, p, PALETTE, &mut builder
-        )).unwrap();
-        let r2 = second.admit_chunk(right, |generation, p| rule.generate_chunk(
-            right, generation, p, PALETTE, &mut builder
-        )).unwrap();
-        let l2 = second.admit_chunk(left, |generation, p| rule.generate_chunk(
-            left, generation, p, PALETTE, &mut builder
-        )).unwrap();
+        let l1 = first
+            .admit_chunk(left, |generation, p| {
+                rule.generate_chunk(left, generation, p, PALETTE, &mut builder)
+            })
+            .unwrap();
+        let r1 = first
+            .admit_chunk(right, |generation, p| {
+                rule.generate_chunk(right, generation, p, PALETTE, &mut builder)
+            })
+            .unwrap();
+        let r2 = second
+            .admit_chunk(right, |generation, p| {
+                rule.generate_chunk(right, generation, p, PALETTE, &mut builder)
+            })
+            .unwrap();
+        let l2 = second
+            .admit_chunk(left, |generation, p| {
+                rule.generate_chunk(left, generation, p, PALETTE, &mut builder)
+            })
+            .unwrap();
 
         for (a, b, x0) in [(l1, l2, -16), (r1, r2, 0)] {
             let aa = first.resolve_chunk(a).unwrap();
@@ -468,17 +488,25 @@ mod tests {
         let position = ChunkPos { x: 1, z: -1 };
         let mut dim = Dimension::new(DimensionId(2), profile());
         let mut builder = ReferenceBuilder::default();
-        let original = dim.admit_chunk(position, |generation, p| rule.generate_chunk(
-            position, generation, p, PALETTE, &mut builder,
-        )).unwrap();
+        let original = dim
+            .admit_chunk(position, |generation, p| {
+                rule.generate_chunk(position, generation, p, PALETTE, &mut builder)
+            })
+            .unwrap();
         let calls = builder.sections_built;
-        let rejected = dim.admit_chunk(position, |generation, p| rule.generate_chunk(
-            position, generation, p, PALETTE, &mut builder,
+        let rejected = dim.admit_chunk(position, |generation, p| {
+            rule.generate_chunk(position, generation, p, PALETTE, &mut builder)
+        });
+        assert!(matches!(
+            rejected,
+            Err(SemanticResidentLoadError::AlreadyResident { .. })
         ));
-        assert!(matches!(rejected, Err(SemanticResidentLoadError::AlreadyResident { .. })));
         assert_eq!(builder.sections_built, calls);
         assert_eq!(dim.resident_chunk_count(), 1);
-        assert_eq!(dim.resolve_chunk(original).unwrap().revision(), ChunkRevision(0));
+        assert_eq!(
+            dim.resolve_chunk(original).unwrap().revision(),
+            ChunkRevision(0)
+        );
     }
 
     #[test]
@@ -486,24 +514,34 @@ mod tests {
         let rule = SteppedSurface::new(123, -11, 4);
         let position = ChunkPos { x: 8, z: 9 };
         let mut dim = Dimension::new(DimensionId(3), profile());
-        let mut broken = ReferenceBuilder { reject_at: Some(2), ..ReferenceBuilder::default() };
-        let rejected = dim.admit_chunk(position, |generation, p| rule.generate_chunk(
-            position, generation, p, PALETTE, &mut broken,
-        ));
+        let mut broken = ReferenceBuilder {
+            reject_at: Some(2),
+            ..ReferenceBuilder::default()
+        };
+        let rejected = dim.admit_chunk(position, |generation, p| {
+            rule.generate_chunk(position, generation, p, PALETTE, &mut broken)
+        });
         assert!(matches!(
             rejected,
-            Err(SemanticResidentLoadError::Build(SurfaceGenerationError::BlockSection {
-                section_y: -1,
-                cause: "deliberate builder rejection",
-            }))
+            Err(SemanticResidentLoadError::Build(
+                SurfaceGenerationError::BlockSection {
+                    section_y: -1,
+                    cause: "deliberate builder rejection",
+                }
+            ))
         ));
         assert_eq!(dim.resident_chunk_count(), 0);
         assert!(dim.discover_chunk(position).is_none());
         let mut good = ReferenceBuilder::default();
-        let handle = dim.admit_chunk(position, |generation, p| rule.generate_chunk(
-            position, generation, p, PALETTE, &mut good,
-        )).unwrap();
+        let handle = dim
+            .admit_chunk(position, |generation, p| {
+                rule.generate_chunk(position, generation, p, PALETTE, &mut good)
+            })
+            .unwrap();
         assert_eq!(handle.generation, ChunkGeneration(1));
-        assert_eq!(dim.resolve_chunk(handle).unwrap().revision(), ChunkRevision(0));
+        assert_eq!(
+            dim.resolve_chunk(handle).unwrap().revision(),
+            ChunkRevision(0)
+        );
     }
 }

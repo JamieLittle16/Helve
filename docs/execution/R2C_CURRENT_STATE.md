@@ -45,6 +45,18 @@ server still accepts clients serially and publishes **no chunks**. All
 R2C → R2D readiness checklist obligations in the 19 October handoff
 remain required.
 
+## Isolated worldgen foundation (not R2C publication)
+
+`helve-world-gen` is a separately compiled target-neutral generation
+foundation: a deterministic non-vanilla surface sampler and static
+final-section builder feeding the **existing** semantic-chunk type and
+`SemanticDimensionInstance::admit_chunk` generation/revision authority.
+It does not change the ordinary server, resident COLD host, published
+packet profile, R2C source-law gates or R2D readiness verdict. No initial
+lighting is synthesized, and no unadmitted vanilla terrain parity is
+claimed. See [World Generation Foundation](../architecture/WORLD_GENERATION_FOUNDATION.md)
+for the stepwise pinned-source differential and future integration plan.
+
 ## Source admission — already completed
 
 PR #268 independently admitted and promoted the R2C **world-state**

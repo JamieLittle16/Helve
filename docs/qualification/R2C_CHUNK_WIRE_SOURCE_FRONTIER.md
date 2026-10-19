@@ -152,9 +152,12 @@ not a source-admitted production packet.
 4. **Check publication**: selected first-spawn clientbound packet
    ordering, chunk send window, batch delimiters/acknowledgement and
    pacing on the R2B -> R2C cursor. No captured replay allowed.
-5. **Qualify stock-client joining and a visible pregenerated world**,
-   using bounded scratch, generation/revision-bound source receipt,
-   exact packet IDs and unmodified target 26.2 client.
+5. **Repeat the stock-client visible-world qualification against the
+   ordinary, non-test server after source admission**, using bounded
+   scratch, generation/revision-bound source receipts, exact packet
+   IDs and unmodified target 26.2 client. The 25-source / central-3x3
+   test-only visual checkpoint was achieved on 18 October; it is not
+   equivalent to a production publication pass.
 
 There is **no production path** from the discovery inventory to a
 wire encoder. \`source_inspected\`, \`packet_wire_law_proven\`,

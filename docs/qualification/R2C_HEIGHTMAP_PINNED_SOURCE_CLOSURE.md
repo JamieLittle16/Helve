@@ -83,5 +83,7 @@ server-side ZIP and the separate official client JAR.
 Only after all the biome-ID, predicate, outer-wire and Play lifecycle
 gate obligations are satisfied may the live `R2cSourceAdmission`
 capability be inhabited and the currently dormant publisher connected.
-The first real demonstration uses pregenerated vanilla Anvil chunks;
-world generation remains R2D.
+The first real demonstration already used pregenerated vanilla Anvil
+chunks in a test-only stock-client path. Production must be re-tested
+after independent source admission; terrain generation is not an R2C
+or R2D entry prerequisite.

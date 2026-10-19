@@ -1,7 +1,8 @@
 # R2C — Chunk-with-light wire-source closure frontier
 
-**Current status: discovery only. No packet, block-entity, pacing, or biome-ID
-production admission.** This is independent of already-admitted R2C world-state
+**Current status: original discovery, first-pass source observations
+and scoped direct-method second-pass now recorded; complete packet,
+block-entity, pacing, and biome-ID source admission is still blocked.** This is independent of already-admitted R2C world-state
 palette, heightmap, and light semantics.
 
 Helve now has a dormant COLD candidate for the complete explicitly-empty
@@ -89,6 +90,68 @@ under the repository. It produces only declaration fingerprints,
 source-free hazard leads and explicit unresolved review questions. An
 abstract declaration is flagged as declaration-only.
 
+## 19 October 2026: exact outer-envelope direct-method second pass
+
+The second-pass source-free evidence at
+`vanilla/reviews/network/r2c-outer-envelope-second-pass-source-findings.json`
+re-reads the already pinned 26.2 excerpt identities, *not* another broad
+source tree or speculative packet. The five explicit method roots are the
+chunk-with-light packet codec initializer (first-pass index 11),
+constructor (12), `write(RegistryFriendlyByteBuf)` (13),
+`ClientboundLevelChunkPacketData` receiving constructor (14), and
+`ClientboundLightUpdatePacketData` receiving constructor (16).
+The manifest keeps exact full body/excerpt SHA-256 pairs and source archive
+identity. It retains the original first-pass parent and local private bundle
+hash, without committing any official Java text.
+
+**Directly observed, still unadmitted candidate laws:**
+
+- The outer packet's send constructor obtains signed X/Z from
+  `LevelChunk.getPos` and builds chunk and light data. Its writer
+  emits X, Z, chunk data then light data, never light before chunk.
+- The inner chunk receiving constructor consumes heightmaps,
+  VarInt-length-prefixed section bytes (explicit upper rejection at
+  2,097,152), then block-entity entries. Negative/invalid length handling
+  resides in reached buffer delegates and is not proved here.
+- The initial light receiving constructor reads four bitsets in
+  sky-present, block-present, sky-empty, block-empty order followed by
+  sky and block update collections.
+
+The existing candidate body test now independently asserts the exact
+8-byte negative-X/positive-Z big-endian prefix and that chunk fields,
+the single explicit empty block-entity count, and light fields are
+contiguous. `tools/tests/test_r2c_outer_envelope_second_pass.py` checks
+full pinned method fingerprints and makes any silent claim of
+independent VAR/SEM, full delegate closure or production admission fail.
+
+The new hermetic checkpoint can be rerun without a JVM, local Mojang
+source archive or any permission to publish:
+
+```bash
+python3 -m unittest discover -s tools/tests \
+  -p 'test_r2c_outer_envelope_second_pass.py' -v
+cargo test --locked -p helve-server --lib \
+  r2c_section_candidate::tests::explicitly_empty_body_matches_independently_built_fields \
+  -- --exact
+```
+
+The official heightmap state candidate and source-backed socket/ACK
+rehearsal remain distinct: use the existing
+`r2c-official-heightmap-facts.yml` Java 25 workflow for them.
+Neither local test nor that CI workflow converts a review into Atlas
+VAR/SEM admission.
+
+**Specific remaining source steps:** independently review the concrete
+`RegistryFriendlyByteBuf/FriendlyByteBuf` signed `writeInt/readInt`
+delegates and receiving packet constructor; bind exact fingerprints
+of the previously admitted inner chunk/light writers to the parent,
+then close packet registration ID, section-size decode failures,
+zero block-entity list law, `collectChunksToSend` and client ACK/receive.
+Client known-pack/biome numerical IDs and the dense heightmap input
+facts are distinct source gates. Until their independent Atlas VAR/SEM
+decisions succeed, this record is a *source-reading candidate*,
+not a source-admitted production packet.
+
 ## Mandatory closure after inventory
 
 1. **Inspect the exact official method bodies and their delegates**, not
@@ -106,9 +169,12 @@ abstract declaration is flagged as declaration-only.
 4. **Check publication**: selected first-spawn clientbound packet
    ordering, chunk send window, batch delimiters/acknowledgement and
    pacing on the R2B -> R2C cursor. No captured replay allowed.
-5. **Qualify stock-client joining and a visible pregenerated world**,
-   using bounded scratch, generation/revision-bound source receipt,
-   exact packet IDs and unmodified target 26.2 client.
+5. **Repeat the stock-client visible-world qualification against the
+   ordinary, non-test server after source admission**, using bounded
+   scratch, generation/revision-bound source receipts, exact packet
+   IDs and unmodified target 26.2 client. The 25-source / central-3x3
+   test-only visual checkpoint was achieved on 18 October; it is not
+   equivalent to a production publication pass.
 
 There is **no production path** from the discovery inventory to a
 wire encoder. \`source_inspected\`, \`packet_wire_law_proven\`,

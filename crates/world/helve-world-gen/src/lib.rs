@@ -116,7 +116,7 @@ impl SteppedSurface {
     /// Generate a complete, pristine ordinary Helve semantic chunk.
     ///
     /// The caller supplies the **actual** directory-reserved incarnation and
-    /// pre-resolved dimension profile. Reuses two small stack scratch arrays
+    /// pre-resolved dimension profile. Reuses a 256-column height scratch and two section arrays
     /// across sections and allocates only the two final section vectors; the
     /// section builder chooses its final storage with static dispatch.
     ///
@@ -148,22 +148,44 @@ impl SteppedSurface {
         let mut cells = [palette.air; BLOCK_SECTION_CELLS];
         let biome_cells = [palette.biome; BIOME_SECTION_CELLS];
 
+        // Sample one column exactly once, even for 24+ vertical sections.
+        // Two extrema permit cheap whole-section air/solid fast paths;
+        // neither the surface cache nor the cell scratch escapes this call.
+        let mut heights = [0_i64; 256];
+        let mut lowest = i64::MAX;
+        let mut highest = i64::MIN;
+        for z in 0_u8..16 {
+            let world_z = i64::from(position.z) * 16 + i64::from(z);
+            for x in 0_u8..16 {
+                let world_x = i64::from(position.x) * 16 + i64::from(x);
+                let height = self.surface_y(world_x, world_z);
+                heights[usize::from(z) * 16 + usize::from(x)] = height;
+                lowest = lowest.min(height);
+                highest = highest.max(height);
+            }
+        }
+
         for section_index in 0..section_count {
             let section_y = profile.min_section_y()
                 + i32::try_from(section_index).expect("dimension has at most 64 sections");
             let min_y = i64::from(section_y) * 16;
-            for y in 0_u8..16 {
-                for z in 0_u8..16 {
-                    let world_z = i64::from(position.z) * 16 + i64::from(z);
-                    for x in 0_u8..16 {
-                        let world_x = i64::from(position.x) * 16 + i64::from(x);
-                        let index =
-                            usize::from(y) * 256 + usize::from(z) * 16 + usize::from(x);
-                        cells[index] = if min_y + i64::from(y) <= self.surface_y(world_x, world_z) {
-                            palette.solid
-                        } else {
-                            palette.air
-                        };
+            if min_y > highest {
+                cells.fill(palette.air);
+            } else if min_y + 15 <= lowest {
+                cells.fill(palette.solid);
+            } else {
+                for y in 0_u8..16 {
+                    for z in 0_u8..16 {
+                        for x in 0_u8..16 {
+                            let index =
+                                usize::from(y) * 256 + usize::from(z) * 16 + usize::from(x);
+                            let column = usize::from(z) * 16 + usize::from(x);
+                            cells[index] = if min_y + i64::from(y) <= heights[column] {
+                                palette.solid
+                            } else {
+                                palette.air
+                            };
+                        }
                     }
                 }
             }

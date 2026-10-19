@@ -82,6 +82,24 @@ bounded signed Anvil regions / typed COLD parser / exact source receipts
 
 When the gate is met, **R2D** extends the *existing* production publisher to indefinite liveness, deterministic full reconnect, sustained server-resource/backpressure testing and repeat joins that reuse immutable target/world work. It is **not** an instruction to rewrite R2C or implement an R3 scheduler.
 
+## 19 October follow-on: two merged source-independent liveness fixes
+
+The handoff's source-evidence baseline remains valid, but `main`
+subsequently advanced through **#411** (`fe3291181f9d12ecef3dcc0dcde54a5b76a7a763`)
+and **#412** (`059ef9baa1e5f47ec7349dbbcf51e987741a686f`).
+Both are merged. PR #412's last reviewed branch head
+`366a541d583f83199cecc7b0a402486bf414f793` passed its
+Rust/tooling, repository guard, R0 localhost and CLA checks before merge.
+
+The ordinary serial listener now isolates accepted-socket setup failures;
+the continuing R2B Play loop now drains partial bounded outbound writes
+before sleeping on ingress. The original Play driver, world owner, queues,
+timing service, source evidence and production `NoChunks` admission boundary
+are unchanged. These corrections do **not** qualify the product for R2D
+or close any remaining client/biome, heightmap, outer-wire/Play, section
+policy or projection-performance gate. They also do **not** prove a
+full Handshake/Login/Configuration reconnect or simultaneous clients.
+
 ## First action for the next context
 
 1. `cd /home/Jamie/Crucible && git pull --ff-only && git status --short && git rev-parse HEAD`; read this handoff and `R2C_CURRENT_STATE.md`; verify any newer merged work and CI.

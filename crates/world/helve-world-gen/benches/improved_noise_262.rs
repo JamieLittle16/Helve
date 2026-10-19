@@ -77,7 +77,9 @@ fn args() -> Result<Config, String> {
         || cfg.rounds > 1000
         || cfg.warmup > 100
     {
-        return Err("requires 256..262144 points divisible by 256, 1..1000 rounds and <=100 warmups".into());
+        return Err(
+            "requires 256..262144 points divisible by 256, 1..1000 rounds and <=100 warmups".into(),
+        );
     }
     Ok(cfg)
 }
@@ -103,21 +105,17 @@ fn run(case: Case, n: usize, generation: usize) -> (u128, u64, usize) {
             for tile in 0..n / 256 {
                 let origin_x = 0.125;
                 let origin_z = 0.25;
-                let y = f64::from(u8::try_from(tile & 31).expect("5-bit tile height"))
-                    - 64.375;
+                let y = f64::from(u8::try_from(tile & 31).expect("5-bit tile height")) - 64.375;
                 if matches!(case, Case::CoherentReused) {
-                    baseline.sample_plane_16x16(
-                        origin_x, y, origin_z, &mut samples,
-                    );
+                    baseline.sample_plane_16x16(origin_x, y, origin_z, &mut samples);
                 } else {
                     for z in 0_u8..16 {
                         for x in 0_u8..16 {
-                            samples[usize::from(z) * 16 + usize::from(x)] =
-                                baseline.sample(
-                                    origin_x + f64::from(x),
-                                    y,
-                                    origin_z + f64::from(z),
-                                );
+                            samples[usize::from(z) * 16 + usize::from(x)] = baseline.sample(
+                                origin_x + f64::from(x),
+                                y,
+                                origin_z + f64::from(z),
+                            );
                         }
                     }
                 }
@@ -176,7 +174,12 @@ fn main() -> Result<(), String> {
     let mut timings = [Vec::new(), Vec::new(), Vec::new(), Vec::new()];
     let mut sums = [0_u64; 4];
     let mut evaluation_counts = [0_usize; 4];
-    let cases = [Case::Init, Case::Coherent, Case::CoherentReused, Case::Scattered];
+    let cases = [
+        Case::Init,
+        Case::Coherent,
+        Case::CoherentReused,
+        Case::Scattered,
+    ];
     for round in 0..cfg.warmup + cfg.rounds {
         // Rotate which case goes first to reduce systematic thermal bias.
         for j in 0..cases.len() {

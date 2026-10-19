@@ -1,0 +1,622 @@
+{
+  "schema": 1,
+  "kind": "official_26_2_noise_family_bit_fixture_not_sem_admitted",
+  "minecraft": "26.2",
+  "protocol": 776,
+  "data_version": 4903,
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "official_server_sha256": "cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5",
+  "original_manifest_sha256": {
+    "perlin_noise": "82eb2e74d16c80420b46fae1c59a0cd15afa453e85b7b3ca681e385008bafdda",
+    "normal_noise": "d4b8b5ced031550be9ba4161779d09c9c0231a92435b7752c6bdeff70af7e6fb"
+  },
+  "profile": {
+    "amplitudes_bits": [
+      "0x3ff0000000000000",
+      "0x0000000000000000",
+      "0x3fe0000000000000",
+      "0x3ff0000000000000"
+    ],
+    "first_octave": -3,
+    "random_factory": "RandomSource.create(long)"
+  },
+  "seeds": [
+    "0x0000000000000000",
+    "0x0000000000000001",
+    "0xffffffffffffffff",
+    "0x8000000000000000",
+    "0x9e3779b97f4a7c15"
+  ],
+  "coordinates_xyz_bits": [
+    [
+      "0x0000000000000000",
+      "0x0000000000000000",
+      "0x0000000000000000"
+    ],
+    [
+      "0x8000000000000000",
+      "0x0000000000000000",
+      "0x0000000000000000"
+    ],
+    [
+      "0x0000000000000000",
+      "0x8000000000000000",
+      "0x0000000000000000"
+    ],
+    [
+      "0x0000000000000000",
+      "0x0000000000000000",
+      "0x8000000000000000"
+    ],
+    [
+      "0x8000000000000000",
+      "0x8000000000000000",
+      "0x8000000000000000"
+    ],
+    [
+      "0x3fe0000000000000",
+      "0x3fe0000000000000",
+      "0x3fe0000000000000"
+    ],
+    [
+      "0xbfe0000000000000",
+      "0xbfe0000000000000",
+      "0xbfe0000000000000"
+    ],
+    [
+      "0xbff0000000000000",
+      "0xbff0000000000000",
+      "0xbff0000000000000"
+    ],
+    [
+      "0x3ff0000000000000",
+      "0x3ff0000000000000",
+      "0x3ff0000000000000"
+    ],
+    [
+      "0xc020000000000000",
+      "0x4044000000000000",
+      "0xc020000000000000"
+    ],
+    [
+      "0xc030000000000000",
+      "0xc050000000000000",
+      "0x4030000000000000"
+    ],
+    [
+      "0x4030000000000000",
+      "0xc050000000000000",
+      "0xc030000000000000"
+    ],
+    [
+      "0x402fff7ced916873",
+      "0x4073f00000000000",
+      "0x4030004189374bc7"
+    ],
+    [
+      "0x403f200000000000",
+      "0xc04ff00000000000",
+      "0xc03f200000000000"
+    ],
+    [
+      "0xc03f200000000000",
+      "0x4073fe0000000000",
+      "0x403f200000000000"
+    ],
+    [
+      "0x3cacd2b297d889bc",
+      "0xbcacd2b297d889bc",
+      "0x401c000000000000"
+    ],
+    [
+      "0x3ff0000000000001",
+      "0xbff0000000000001",
+      "0xc01c000000000000"
+    ],
+    [
+      "0xc060100000000000",
+      "0xc050200000000000",
+      "0x40700c0000000000"
+    ],
+    [
+      "0x4090008000000000",
+      "0x40a0008000000000",
+      "0xc0b0006000000000"
+    ],
+    [
+      "0xc0f0000000000000",
+      "0xc000000000000000",
+      "0x40f0000000000000"
+    ],
+    [
+      "0x40afffffffde7211",
+      "0xc04f800000000000",
+      "0x3fd0000000000000"
+    ],
+    [
+      "0xc0b000000010c6f8",
+      "0x4073e00000000000",
+      "0xbfd0000000000000"
+    ],
+    [
+      "0x3fc0000000000000",
+      "0x3fd0000000000000",
+      "0x3fd8000000000000"
+    ],
+    [
+      "0x3fe8000000000000",
+      "0x3fec000000000000",
+      "0x3fee000000000000"
+    ],
+    [
+      "0xbfd0000000000000",
+      "0xbfe8000000000000",
+      "0x3fd0000000000000"
+    ],
+    [
+      "0x4130000000000000",
+      "0x4070000000000000",
+      "0xc130000000000000"
+    ],
+    [
+      "0xc130000000000000",
+      "0x0000000000000000",
+      "0x4130000000000000"
+    ],
+    [
+      "0x41d0000000000000",
+      "0xc050000000000000",
+      "0xc1d0000000000000"
+    ],
+    [
+      "0xc1d0000000000000",
+      "0x4073f00000000000",
+      "0x41d0000000000000"
+    ],
+    [
+      "0x3e10000000000000",
+      "0xbe10000000000000",
+      "0x3eb0000000000000"
+    ],
+    [
+      "0x3ff8000000000000",
+      "0xbff4000000000000",
+      "0x4001000000000000"
+    ],
+    [
+      "0xbff8000000000000",
+      "0x3ff4000000000000",
+      "0xc001000000000000"
+    ]
+  ],
+  "stages": {
+    "perlin_noise": {
+      "method_body_sha256": "d26c57b409a8113b0e1cccbe4f2158e158e2078cd1be6e8617588af4201e71d5",
+      "source_methods": {
+        "constructor": {
+          "body_sha256": "284f244706e539438c714b5c6fbbbf5d3e030dac309865d28de8722bad7311a3",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "PerlinNoise(final RandomSource random , final Pair < Integer , DoubleList > pair , final boolean useNewInitialization)"
+        },
+        "create": {
+          "body_sha256": "75af76ad1ae2e6d40d935b7b7e6189885a5a86ca94d358220357f142796906c6",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "create(final RandomSource random , final int firstOctave , final double firstAmplitude , final double ... amplitudes)"
+        },
+        "get_value_3": {
+          "body_sha256": "d26c57b409a8113b0e1cccbe4f2158e158e2078cd1be6e8617588af4201e71d5",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "getValue(final double x , final double y , final double z)"
+        },
+        "get_value_5": {
+          "body_sha256": "6fac8c41416a2d5ec966baab1e3c4cf231408c40932bac469a871c664b7ca838",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "getValue(final double x , final double y , final double z , final double yScale , final double yFudge)"
+        },
+        "skip_octave": {
+          "body_sha256": "d9935d2d05d184965e7d7623fbd5593bd180a06c3800415c675ec2eb8d639e71",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "skipOctave(final RandomSource random)"
+        },
+        "wrap": {
+          "body_sha256": "64bd4c4c429d67919314fbb39b360a4ef6a7c6252abd6f3267b7e78d078b85ac",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "wrap(final double x)"
+        }
+      },
+      "values": [
+        [
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fa6841ca9976cdf",
+          "0x3fcc1b22dc98f294",
+          "0x3fca8c76220cb950",
+          "0xbfb4d11ef5b8b54d",
+          "0xbfd2e066ce2fbbc9",
+          "0x3fc9cfce59a351dd",
+          "0xbfbd487deda24a2a",
+          "0xbf945c5ca127460a",
+          "0x3f9f783ec1f1f190",
+          "0x3fc011fc08214771",
+          "0xbfb0aeb0db8bc5bb",
+          "0xbfc184657f86482f",
+          "0xbfc4afd2d50bd1c2",
+          "0x3fb85b2c0eaf402e",
+          "0x3fbeb10442e8fe92",
+          "0xbf89168a2a84fff8",
+          "0x3fb0ef9448615b78",
+          "0x3fb8be7d80826d8a",
+          "0xbfac62053e776db8",
+          "0x3fbe70d33820b924",
+          "0x3f933d607cd1ae46",
+          "0x3fc317b77be8cc2d",
+          "0x3fbe519c4b220733",
+          "0x3fb0b906aa36344d",
+          "0x3fc317b6d12bda28",
+          "0xbf95afb1bc7dfd24",
+          "0x3fcb5aa045ca5c8c"
+        ],
+        [
+          "0x3faa38f8560d7cc0",
+          "0x3faa38f8560d7cc0",
+          "0x3faa38f8560d7cc0",
+          "0x3faa38f8560d7cc0",
+          "0x3faa38f8560d7cc0",
+          "0x3fb271579938c0f4",
+          "0xbf3fdfbabfd17000",
+          "0xbf6c76a1c901a3ba",
+          "0x3fba02e71966981f",
+          "0xbfb866ffef934afe",
+          "0xbfc6fb10370de13c",
+          "0x3fb7eca64d2591fb",
+          "0xbfbae1d6be52cfb2",
+          "0x3fd15226de37c458",
+          "0xbfc284ca13f6c7ce",
+          "0x3f7e9f424e1c0d7c",
+          "0xbfb2f7cd069b4388",
+          "0xbfc79c92a2664c2d",
+          "0xbfd3cdfb5b1b6897",
+          "0xbfa6b96f918fb906",
+          "0xbfc65f53fe116843",
+          "0x3fb66bb824dc46c1",
+          "0x3fb2ea0e3a8bef90",
+          "0x3fbbf5303ab8011a",
+          "0x3f8ae454465570c4",
+          "0x3fa12e724127a35e",
+          "0x3faa38f856046e8e",
+          "0xbfd435f3a5adad04",
+          "0x3fc0e330fac71b28",
+          "0x3faa38f7c480ffd0",
+          "0x3fb837a4ab526720",
+          "0x3fbb1cacb6b492c5"
+        ],
+        [
+          "0x3fae4bf6d6423b2e",
+          "0x3fae4bf6d6423b2e",
+          "0x3fae4bf6d6423b2e",
+          "0x3fae4bf6d6423b2e",
+          "0x3fae4bf6d6423b2e",
+          "0x3faa904259918c46",
+          "0x3fb99c1b7376ebc6",
+          "0x3fc0bdb54eb57394",
+          "0xbf91da4296bd290c",
+          "0x3fb14136a3c71b4c",
+          "0xbfb479e1b6e476cb",
+          "0x3fc03b5ebbe5c02f",
+          "0xbfbdd91f594297d6",
+          "0xbfa67aa1de39e6bb",
+          "0xbfa8905520153f9a",
+          "0xbfb1d61b84be59f6",
+          "0x3fb76039e605c616",
+          "0x3fc3f7103debc45f",
+          "0xbfc15109e4fb94ef",
+          "0x3f6f60bf27ebebb4",
+          "0x3fbcd9854df2d780",
+          "0x3fb4f926b706b241",
+          "0x3fb0922e6704abbf",
+          "0xbf70190c5a020558",
+          "0x3fb5fef366926dc0",
+          "0xbfc0ec4b529b345a",
+          "0x3fae4bf6d6490074",
+          "0x3fab3ade4d375999",
+          "0x3fbb2758517ae1e2",
+          "0x3fae4bf7055c7bbe",
+          "0xbfc0f9e99ef76e79",
+          "0x3fbe188fab77cafe"
+        ],
+        [
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fc317b77beaf21e",
+          "0x3fa6841ca9976cdf",
+          "0x3fcc1b22dc98f294",
+          "0x3fca8c76220cb950",
+          "0xbfb4d11ef5b8b54d",
+          "0xbfd2e066ce2fbbc9",
+          "0x3fc9cfce59a351dd",
+          "0xbfbd487deda24a2a",
+          "0xbf945c5ca127460a",
+          "0x3f9f783ec1f1f190",
+          "0x3fc011fc08214771",
+          "0xbfb0aeb0db8bc5bb",
+          "0xbfc184657f86482f",
+          "0xbfc4afd2d50bd1c2",
+          "0x3fb85b2c0eaf402e",
+          "0x3fbeb10442e8fe92",
+          "0xbf89168a2a84fff8",
+          "0x3fb0ef9448615b78",
+          "0x3fb8be7d80826d8a",
+          "0xbfac62053e776db8",
+          "0x3fbe70d33820b924",
+          "0x3f933d607cd1ae46",
+          "0x3fc317b77be8cc2d",
+          "0x3fbe519c4b220733",
+          "0x3fb0b906aa36344d",
+          "0x3fc317b6d12bda28",
+          "0xbf95afb1bc7dfd24",
+          "0x3fcb5aa045ca5c8c"
+        ],
+        [
+          "0x3fa29076e11e9308",
+          "0x3fa29076e11e9308",
+          "0x3fa29076e11e9308",
+          "0x3fa29076e11e9308",
+          "0x3fa29076e11e9308",
+          "0xbf9e633b6d800efd",
+          "0x3fb0ef3a66097edd",
+          "0x3fc124e8403f9535",
+          "0xbfb2edde0e433386",
+          "0xbf675bc55e20487e",
+          "0x3f8a8ebe5ca8467e",
+          "0x3f9c6d440f7392a4",
+          "0x3fce3a82ed8ed903",
+          "0x3fd5c79b9d0a759d",
+          "0x3fc0554112930faa",
+          "0xbfb2f86139a6277e",
+          "0x3fc94cde611af090",
+          "0xbfafac61c39cbb42",
+          "0xbfc9e960d5985455",
+          "0x3f91289d4aa2ab84",
+          "0x3fc9c4a1a901a991",
+          "0xbfc3db24ab7c1b04",
+          "0xbf51495a91e9a520",
+          "0xbfb07381517611d4",
+          "0x3fa27ac210b8171e",
+          "0x3fa2d82b1830c379",
+          "0x3fa29076e1227cfe",
+          "0x3fced347f672b519",
+          "0xbfbc11d752712ec3",
+          "0x3fa29074eee0d95b",
+          "0xbfc946613cfd4acc",
+          "0x3fccbaa68bcb3cba"
+        ]
+      ]
+    },
+    "normal_noise": {
+      "method_body_sha256": "578fbb9c36fa89507fbf842effbdadcebb1aeb7369641e972f9e737ef30bd329",
+      "source_methods": {
+        "constructor": {
+          "body_sha256": "52d398b9f46301b0bd5d6e6c675fe5b88760e7dba1cdb5f1ad5596d855255eff",
+          "owner": "net.minecraft.world.level.levelgen.synth.NormalNoise",
+          "signature": "NormalNoise(final RandomSource random , final NormalNoise . NoiseParameters parameters , final boolean useNewInitialization)"
+        },
+        "create": {
+          "body_sha256": "ce4d2746996bf4244a3b79bf86ccdf6c51c36f612047f7843427461e998f7d8e",
+          "owner": "net.minecraft.world.level.levelgen.synth.NormalNoise",
+          "signature": "create(final RandomSource random , final int firstOctave , final double ... amplitudes)"
+        },
+        "create_parameters": {
+          "body_sha256": "5387d64a511913ac0f013cfbd374a997e61fd80be3e458a406e2ebfb12a5302a",
+          "owner": "net.minecraft.world.level.levelgen.synth.NormalNoise",
+          "signature": "create(final RandomSource random , final NormalNoise . NoiseParameters parameters)"
+        },
+        "deviation": {
+          "body_sha256": "2aa56548edebbe567587083d861a73a609068eb4e68c54c7aa0dac7fdefbe3c4",
+          "owner": "net.minecraft.world.level.levelgen.synth.NormalNoise",
+          "signature": "expectedDeviation(final int octaveSpan)"
+        },
+        "get_value_3": {
+          "body_sha256": "578fbb9c36fa89507fbf842effbdadcebb1aeb7369641e972f9e737ef30bd329",
+          "owner": "net.minecraft.world.level.levelgen.synth.NormalNoise",
+          "signature": "getValue(final double x , final double y , final double z)"
+        },
+        "noise_parameters": {
+          "body_sha256": "ce58234fdbd4896e39fbdacebc79ae0bc452148d5739a616a76d9875c59eeaaa",
+          "owner": "net.minecraft.world.level.levelgen.synth.NormalNoise",
+          "signature": "NoiseParameters(int firstOctave , DoubleList amplitudes)"
+        },
+        "perlin_create": {
+          "body_sha256": "92c230c5a209826c90ecad53a0c231a237839a8cbee9a73074e1d6d64b6f8156",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "create(final RandomSource random , final int firstOctave , final DoubleList amplitudes)"
+        },
+        "perlin_get_value_3": {
+          "body_sha256": "d26c57b409a8113b0e1cccbe4f2158e158e2078cd1be6e8617588af4201e71d5",
+          "owner": "net.minecraft.world.level.levelgen.synth.PerlinNoise",
+          "signature": "getValue(final double x , final double y , final double z)"
+        }
+      },
+      "values": [
+        [
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc8b3d1ef6a233d",
+          "0x3fccaf5a2771434a",
+          "0x3fc8512febb3fc65",
+          "0x3fc69c1ae687a20a",
+          "0xbfe57006508a69d2",
+          "0x3fe0220a5fec2d82",
+          "0xbfd04451475746cd",
+          "0x3fc4d84abf351ae9",
+          "0x3fcaa8144c5cccfc",
+          "0xbfac3d0439234f4a",
+          "0x3fd28029639e1c0a",
+          "0xbfc3cf66b1f1e193",
+          "0xbfb1e2ee435a225d",
+          "0xbfbe0b165dabd6ea",
+          "0x3fdf56830aff265a",
+          "0x3fc3c466755d75c2",
+          "0xbfd01c5170680a28",
+          "0x3fc4504e0c15de04",
+          "0x3fc7cb9964598e26",
+          "0x3fc2bf52b412b9f5",
+          "0xbf942e0c8b03ac12",
+          "0x3fcb593de0ec5102",
+          "0x3fd0c446d85e0d15",
+          "0xbfd52791aa29ae26",
+          "0x3fc84b6683958102",
+          "0x3fc0b7a402a05fdc",
+          "0x3fc891b418acbfdd"
+        ],
+        [
+          "0x3f81128070869025",
+          "0x3f81128070869025",
+          "0x3f81128070869025",
+          "0x3f81128070869025",
+          "0x3f81128070869025",
+          "0xbf99a92523f60cb5",
+          "0xbfafa8d5ff7f0fed",
+          "0xbfa3e713bc43e163",
+          "0x3faab7c9761ba33d",
+          "0xbf8f7d925a6e01d5",
+          "0xbfd3cbde1fd59b00",
+          "0x3fde9e5cef964465",
+          "0xbfcb373c9a5ed078",
+          "0x3fcf9542cb426516",
+          "0xbfc7e4dcf1fabab2",
+          "0x3fc859d285c5fa85",
+          "0xbfd37f302ed885fc",
+          "0xbfcd3e8e655ce588",
+          "0xbfdf9ab17fa2fd1a",
+          "0xbf9991150e7573ae",
+          "0xbfe162ab3bcef59e",
+          "0x3fb9ee94415d6045",
+          "0x3f90cde7e64c0372",
+          "0x3fa936a3cde53a80",
+          "0xbfbfb71efba70600",
+          "0xbf410ed3f91e97aa",
+          "0x3f8dfd44dcd6a460",
+          "0xbfe0ac1528584520",
+          "0x3fe2d81791ca174c",
+          "0x3f811274a2453520",
+          "0xbfd2e170e7f5e349",
+          "0x3fe07a548f23ed58"
+        ],
+        [
+          "0xbfc724dc7e1fa475",
+          "0xbfc724dc7e1fa475",
+          "0xbfc724dc7e1fa475",
+          "0xbfc724dc7e1fa475",
+          "0xbfc724dc7e1fa475",
+          "0xbfcdac447f5a84da",
+          "0xbfb10b03fb39baed",
+          "0xbfb1631bfa1ca9d5",
+          "0xbfd3d3e93f04ff79",
+          "0x3f97d9f691f9a4b0",
+          "0xbfd3db3642035fa4",
+          "0x3fd88fcf12ff7402",
+          "0xbfcaa388c434f3f5",
+          "0x3fd68cee14331e06",
+          "0xbfa66029ef9e0a19",
+          "0xbfd3d4b671f3360d",
+          "0x3fd1ac3ce11a9e77",
+          "0xbfa65f60eb1a7d6a",
+          "0xbfcf4f5640b11181",
+          "0x3fbc212f1008d5ea",
+          "0x3fd9762680fdb70e",
+          "0x3fd838edcf90f0c8",
+          "0xbfc98205d4ba606d",
+          "0xbfd5307551e5e555",
+          "0xbfc297c950f999e8",
+          "0xbfdb936866f46aed",
+          "0xbf7d826a0895a9c0",
+          "0xbfac6429c9c1693c",
+          "0x3fc89f0b25a98cbd",
+          "0xbfc724dc64759b5d",
+          "0xbfd1ecf1c35b0ef7",
+          "0xbfceff67519b452c"
+        ],
+        [
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc84b67cd7f4eed",
+          "0x3fc8b3d1ef6a233d",
+          "0x3fccaf5a2771434a",
+          "0x3fc8512febb3fc65",
+          "0x3fc69c1ae687a20a",
+          "0xbfe57006508a69d2",
+          "0x3fe0220a5fec2d82",
+          "0xbfd04451475746cd",
+          "0x3fc4d84abf351ae9",
+          "0x3fcaa8144c5cccfc",
+          "0xbfac3d0439234f4a",
+          "0x3fd28029639e1c0a",
+          "0xbfc3cf66b1f1e193",
+          "0xbfb1e2ee435a225d",
+          "0xbfbe0b165dabd6ea",
+          "0x3fdf56830aff265a",
+          "0x3fc3c466755d75c2",
+          "0xbfd01c5170680a28",
+          "0x3fc4504e0c15de04",
+          "0x3fc7cb9964598e26",
+          "0x3fc2bf52b412b9f5",
+          "0xbf942e0c8b03ac12",
+          "0x3fcb593de0ec5102",
+          "0x3fd0c446d85e0d15",
+          "0xbfd52791aa29ae26",
+          "0x3fc84b6683958102",
+          "0x3fc0b7a402a05fdc",
+          "0x3fc891b418acbfdd"
+        ],
+        [
+          "0x3fd095ee6b1a0352",
+          "0x3fd095ee6b1a0352",
+          "0x3fd095ee6b1a0352",
+          "0x3fd095ee6b1a0352",
+          "0x3fd095ee6b1a0352",
+          "0x3fc79a7506f97592",
+          "0x3fd39c57503d86bd",
+          "0x3fd60e75d6be81a4",
+          "0x3fb930c0c7265102",
+          "0xbfb8b771ec65cb1e",
+          "0x3fc4e31c95e7d31b",
+          "0x3fc9ffb7d7bbcc6d",
+          "0x3fd4a8aaeba30e12",
+          "0x3fe21e4befa38ed6",
+          "0x3fd7d228479ad0b8",
+          "0xbfcd70da4c742f61",
+          "0x3fddd59a626e0462",
+          "0xbfa0ff724529d2ac",
+          "0xbfc8e45626544e55",
+          "0x3fdc5edd2156f0e0",
+          "0x3fbaef1d105c84cd",
+          "0x3f928f63484d83b5",
+          "0x3fcb0e352ce3a1d2",
+          "0x3fc2e1875079482c",
+          "0x3fc9a2a11f8a6642",
+          "0x3fcc50f50331a9f0",
+          "0xbfcd34cf881cd052",
+          "0x3fc3c93e284cb19c",
+          "0xbfd5cb108309444a",
+          "0x3fd095ed9784fa50",
+          "0xbfc720e33b7d8236",
+          "0x3fde851f254a8302"
+        ]
+      ]
+    }
+  },
+  "source_text_included": false,
+  "independent_var_sem_admitted": false,
+  "production_worldgen_enabled": false,
+  "note": "320 real user-captured official runtime candidate bits; compression preserves all raw inputs/outputs. Does NOT certify VAR/SEM or a Rust Perlin/Normal implementation."
+}

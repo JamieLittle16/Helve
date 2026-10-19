@@ -4,7 +4,7 @@
 **Target:** Java 26.2 · Protocol 776 · DataVersion 4903  
 **Official source ZIP lock:** `1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750`  
 **Official server runtime lock:** `cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5`  
-**Current status:** source-free bit-level differential *format* and non-vanilla whole-cost benchmark harness implemented; **no admitted 26.2 noise implementation or official noise output vectors yet**.
+**Current status (19 October 2026):** source-free independent official-JVM candidate bit captures now exist for 160 `ImprovedNoise`, 160 `PerlinNoise` and 160 `NormalNoise` samples; the latter two have been supplied by the source-owning user and independently checked against the uploaded method inventory. **Their source semantics and constructor RNG law are not yet independently admitted.** No production vanilla 26.2 density router, generated terrain or chunk-publication authority is certified.
 
 ## Hard correctness law
 
@@ -244,9 +244,10 @@ unchanged.
 
 ## Local official 26.2 Perlin / Normal / Density source-method frontier
 
-The independent official-runtime `ImprovedNoise` collector already supplies
-160 candidate raw-bit vectors. **No such reference has yet been captured
-for the Perlin/Normal family or a density-router function.** To avoid
+The independent official-runtime `ImprovedNoise` collector supplies 160
+candidate raw-bit vectors, and the source-owning user has now provided
+**160 PerlinNoise and 160 NormalNoise output vectors** using the same pinned
+26.2 source/runtime. **No density-router reference has been captured.** To avoid
 inventing Java-version-specific constructors, octave selection, amplitude
 normalisation, domain wrap or graph evaluation laws, use the new bounded
 source-owning review command:
@@ -341,21 +342,81 @@ output is a **fresh external JSON path** that cannot overwrite evidence.
 Synthetic CI tests compile independent fake `PerlinNoise` and
 `NormalNoise` classes and verify static factory overloads, exact octave
 profile, seed binding, signed-zero transport, SHA mismatch refusal and
-lossless manifest validation. Fake Java outputs are never described as
-Minecraft samples. Neither official family run has been executed as
-part of this repository change; output bit vectors remain to be
-captured on the user's source-owning machine.
+lossless manifest validation. Fake Java outputs are never described as Minecraft samples. **Both
+family runs have now been performed on the user's source-owning machine.**
+The two private outside-repository 160-vector JSON manifests have SHA-256
+`82eb2e74d16c80420b46fae1c59a0cd15afa453e85b7b3ca681e385008bafdda`
+(Perlin) and
+`d4b8b5ced031550be9ba4161779d09c9c0231a92435b7752c6bdeff70af7e6fb`
+(Normal). All 14 bound source-method SHA fingerprints (6 + 8), five direct
+64-bit seeds and exact 32 input-coordinate tuples per seed match the
+previously uploaded Atlas inventory and the agreed capture contract.
+These are **candidate real official-JVM output oracles**, not yet source-
+admitted constructor/density semantics. The manifest data remain outside
+the repository; hosted CI currently tests only the source-free transport.
 
 **Source custody/admission remains explicitly OPEN**: exact indexed
 method fingerprints and output parity do not independently review
 RNG consumption, constructor branch conditions, legacy/new mode,
 normalisation, octave/parameter exceptions, `Mth.lfloor`, inner
-`ImprovedNoise#noise/5`, biome or density graph semantics. They do not
-certify a Rust `PerlinNoise`/`NormalNoise` implementation. Once the
-two official manifests are available, a *separate* full Rust port and
-bitwise differential acceptance are needed, followed by targeted
-source VAR/SEM review and whole chunk-latency benchmarking. No R2C
+`ImprovedNoise#noise/5`, biome or density graph semantics. They do not certify a Rust `PerlinNoise`/`NormalNoise` implementation.
+With both official output manifests now available, the next required seam
+is the source-free constructed-state capture below, a *separate* full
+Rust port with 320 bitwise differential comparisons, targeted source
+VAR/SEM review, and whole chunk-latency benchmarking. No R2C
 publication or R2D generation switch is enabled.
+
+## Constructed noise-family numeric-state oracle (source-free, still unadmitted)
+
+\`tools/worldgen_26_2_noise_constructor_state_capture.py\` takes one
+of the **actual 160-vector official family manifests** as a reference,
+verifies its pinned source/runtime hashes and all expected methods
+against the private local Atlas, then invokes the **same official JVM
+factory** for the **same five seeds and explicit octave profile**.
+
+The tool reflects and records read-only *numeric state*, not source:
+each Perlin octave's live/null slot, its 256-byte permutation,
+three \`double\` offsets as raw IEEE-754 bits, the actual amplitude
+list and scalar numeric factor fields. \`NormalNoise\` traces its two
+nested Perlin instances separately and captures its factor field(s).
+Observed private field labels are retained only to aid source-owning
+review; their mathematical interpretation is **not guessed**. Missing
+or surprising typed structures, duplicate/broken permutation values,
+unknown seed or malformed output fail closed. Nothing installs into
+the production resident world and no semantic admission is implied.
+
+This is the next necessary bridge before attempting a bit-exact
+\`PerlinNoise\`/\`NormalNoise\` Rust port: matching an \`ImprovedNoise\`
+sampler alone says nothing about precisely how Java selects, seeds,
+skips and weights its multiple octave samplers. A five-seed
+state snapshot can give independent constructor-state test targets
+but does **not** certify RNG consumption for all possible seeds.
+
+Run locally with the two already captured official output files:
+
+\`\`\`bash
+cd ~/Crucible
+git switch main && git pull --ff-only
+python3 tools/worldgen_26_2_noise_constructor_state_capture.py \
+  --reference /tmp/helve-26_2-perlin-official-01.json \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --output /tmp/helve-26_2-perlin-state-01.json
+python3 tools/worldgen_26_2_noise_constructor_state_capture.py \
+  --reference /tmp/helve-26_2-normal-official-01.json \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --output /tmp/helve-26_2-normal-state-01.json
+\`\`\`
+
+Send back only the resulting source-free numeric-state JSONs; do not
+upload proprietary Java source, a server JAR or your private Atlas
+database. Each output is created exclusively and will refuse to
+overwrite existing evidence. After independently validating the
+snapshots, use them alongside both raw-bit output manifests to
+implement and compare the actual 26.2 octave aggregation in Rust.
+The independent source/VAR/SEM proof and all density-router semantics
+remain OPEN.
 
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 

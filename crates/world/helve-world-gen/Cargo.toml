@@ -21,5 +21,9 @@ helve-benchmark-support = { path = "../../qualification/helve-benchmark-support"
 name = "worldgen_cold"
 harness = false
 
+[[bench]]
+name = "improved_noise_262"
+harness = false
+
 [lints]
 workspace = true

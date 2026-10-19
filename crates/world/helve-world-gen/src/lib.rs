@@ -11,6 +11,10 @@
 
 #![forbid(unsafe_code)]
 
+/// Source-free-vector-qualified, immutable 26.2 improved-gradient noise candidate.
+/// Not yet a source/SEM-admitted production terrain generator.
+pub mod improved_noise_262;
+
 use helve_types::{ChunkGeneration, ChunkPos};
 use helve_world_chunk::{
     ChunkBiomeColumn, ChunkBiomeColumnError, ChunkCoreError, ChunkSemanticStateError,

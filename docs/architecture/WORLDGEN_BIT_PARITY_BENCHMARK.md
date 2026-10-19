@@ -113,6 +113,57 @@ source method selection, source/runtime mismatch rejection, output
 exclusivity and lossless transport. It **does not** pass by substituting
 a synthetic answer for the official reference.
 
+## First Rust ImprovedNoise 26.2 candidate — 160 exact official vector outputs
+
+The user-supplied source-free 26.2 JVM capture has been condensed **without
+changing any 64-bit field** into
+`crates/world/helve-world-gen/tests/data/improved_noise_26_2_rawbits.tsv`.
+The original JSON SHA-256 is
+`ad25d4e88845a287ec37e674c70ecf55443a5b8212727e5d75343cbbe5d9a33f`,
+with 160 unique seed/coordinate points, five direct `RandomSource.create(long)`
+seed bit-patterns, source archive and official-server hashes and a
+nonempty `ImprovedNoise#noise(double,double,double)` method-body SHA
+`c68ea05ed69189a96235103e477267205303afbc7e100bdfdbf2473b3f915bf2`.
+This is authentic **candidate** evidence from the locally pinned runtime
+probe; it has not separately proved every reached Java delegate or the
+full terrain pipeline.
+
+The isolated `ImprovedNoise262` Rust sampler in `helve-world-gen`
+constructs a fixed 256-byte seed-specific permutation and 3 offsets
+using the observed legacy 48-bit transition/rejection rules, then
+evaluates the 3D gradient noise with fixed floating-point operation
+order. No dynamic dispatch, allocations, mutexes or random updates
+occur during `sample()`. It is NOT yet connected to a production
+worldgen or client publication path. Both builds must pass the
+**160/160 raw `f64::to_bits()` fixture test**:
+
+```bash
+cargo test --locked -p helve-world-gen --test improved_noise_262_reference
+cargo test --release --locked -p helve-world-gen --test improved_noise_262_reference
+```
+
+Each output is compared by exact bits, not numeric equality/tolerance.
+The tests also check immutable state, independent seeds and concurrent
+reads of shared seed states. A passing 160-vector reference is an
+important first test, but does **not** prove generic all-coordinates
+bit identity, five-argument overloads, derivatives, `PerlinNoise`,
+`NormalNoise`, the `DensityFunctions` graph or final chunk correctness.
+Source closure and independent VAR/SEM admission remain explicit blockers.
+
+The new isolated scalar kernel benchmark compares three **different**
+costs on the same strict implementation: seed-state setup, coherent
+3D 16×16 lattice traversal and deterministic scattered coordinates.
+It reports p50/p95/p99 **per batch**, not per noise evaluation,
+and requires the existing hardware-provenance and rotating-case protocol.
+Benchmarks do not prove a speedup until multiple controlled on-target
+runs compare source-faithful reference, specific optimisations and
+the full chunk-availability critical path.
+
+```bash
+cargo bench --locked -p helve-world-gen --bench improved_noise_262 -- \
+  --points 4096 --warmup 5 --rounds 40 --output /tmp/improved-noise-bench.json
+```
+
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 
 The current `SteppedSurface` benchmark is a mechanism baseline, not a real-noise benchmark. It records *three distinct costs* instead of quoting an isolated microbenchmark as chunk loading:

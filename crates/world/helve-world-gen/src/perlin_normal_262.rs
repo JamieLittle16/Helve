@@ -2,8 +2,9 @@
 //!
 //! Four explicit octave slots, weights and Java float operations are driven by
 //! the independently supplied official-runtime state snapshots. This module
-//! intentionally does NOT claim the full seed-to-constructor algorithm:
-//! `from_observed_parts` requires the actual octave permutations and offsets.
+//! now reconstructs the pinned four-octave *direct-seed* legacy profile,
+//! while `from_observed_parts` independently retains exact JVM-state loading.
+//! Other parameter profiles and random factories are not admitted.
 //! Source/VAR/SEM admission and normal terrain publication remain closed.
 
 use crate::improved_noise_262::{ImprovedNoise262, LegacyBits};

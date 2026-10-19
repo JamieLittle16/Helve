@@ -1048,32 +1048,13 @@ pub(crate) fn serve_world_projection_wait(
             .set_read_timeout(Some(Duration::from_millis(wait_ms)))
             .map_err(|error| transport_error("read-timeout", &error))?;
 
-        match transport.read(&mut session.read_scratch) {
-            Ok(0) => {
-                if session.driver.buffered_ingress() != 0 {
-                    return Err(R2bPlaytestError::TruncatedEof {
-                        buffered_ingress: session.driver.buffered_ingress(),
-                    });
-                }
-                return Ok(R2bPlaytestExit::LivePeerEof {
-                    teleport_acknowledged,
-                    accepted_keep_alives,
-                    discarded_world_frames,
-                    latency_ms: session.latency_ms(),
-                });
-            }
-            Ok(read) => session
-                .driver
-                .ingest::<Infallible>(&session.read_scratch[..read])
-                .map_err(R2bPlaytestError::Driver)?,
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    io::ErrorKind::WouldBlock
-                        | io::ErrorKind::TimedOut
-                        | io::ErrorKind::Interrupted
-                ) => {}
-            Err(error) => return Err(transport_error("read", &error)),
+        if !read_one_play_fragment(transport, session)? {
+            return Ok(R2bPlaytestExit::LivePeerEof {
+                teleport_acknowledged,
+                accepted_keep_alives,
+                discarded_world_frames,
+                latency_ms: session.latency_ms(),
+            });
         }
     }
 }
@@ -1125,6 +1106,41 @@ fn discard_one_complete_play_frame(session: &mut R2bPlaySession) -> Result<(), R
     {
         TransactionResult::Committed(_) => Ok(()),
         TransactionResult::Incomplete => Err(R2bPlaytestError::DiscardInvariant),
+    }
+}
+
+/// Read one fragment into the original R2B driver. All transient I/O
+/// outcomes retain the existing bounded ingress and single read scratch.
+/// A clean EOF returns false; an incomplete framed packet rejects EOF.
+#[inline]
+fn read_one_play_fragment<R: Read>(
+    transport: &mut R,
+    session: &mut R2bPlaySession,
+) -> Result<bool, R2bPlaytestError> {
+    match transport.read(&mut session.read_scratch) {
+        Ok(0) => {
+            let buffered_ingress = session.driver.buffered_ingress();
+            if buffered_ingress != 0 {
+                return Err(R2bPlaytestError::TruncatedEof { buffered_ingress });
+            }
+            Ok(false)
+        }
+        Ok(read) => {
+            session
+                .driver
+                .ingest::<Infallible>(&session.read_scratch[..read])
+                .map_err(R2bPlaytestError::Driver)?;
+            Ok(true)
+        }
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut | io::ErrorKind::Interrupted
+            ) =>
+        {
+            Ok(true)
+        }
+        Err(error) => Err(transport_error("read", &error)),
     }
 }
 

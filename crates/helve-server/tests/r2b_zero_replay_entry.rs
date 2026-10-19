@@ -498,3 +498,120 @@ fn any_captured_play_body_is_rejected_before_transport_io() {
     assert_eq!(transport.next_read, 0);
     assert!(transport.output.is_empty());
 }
+
+fn read_tcp_frame(peer: &mut std::net::TcpStream) -> Vec<u8> {
+    let mut length = 0_usize;
+    for shift in (0..5).map(|index| index * 7) {
+        let mut octet = [0_u8];
+        peer.read_exact(&mut octet)
+            .expect("bounded TCP frame length");
+        length |= usize::from(octet[0] & 0x7f) << shift;
+        if octet[0] & 0x80 == 0 {
+            assert!(
+                (1..=65_535).contains(&length),
+                "TCP frame exceeds admission bound"
+            );
+            let mut body = vec![0_u8; length];
+            peer.read_exact(&mut body).expect("complete TCP frame body");
+            return body;
+        }
+    }
+    panic!("overlong TCP packet length");
+}
+
+/// Unlike the post-R2B two-socket COLD-world test, this starts each physical
+/// connection at the actual Handshake/Login/Configuration transport boundary.
+/// It reuses one immutable process-owned image and context; it does *not*
+/// attach real source chunks or admit production R2C publication.
+#[test]
+fn two_physical_tcp_sessions_reenter_play_from_full_preplay() {
+    use std::net::{TcpListener, TcpStream};
+    use std::time::Duration;
+
+    let configuration = configuration_bodies();
+    let context = empty_play_context(&configuration);
+    let image = image();
+    let expected_play = prepared_bodies(&image);
+    let listener = TcpListener::bind(("127.0.0.1", 0)).expect("bounded localhost listener");
+    let address = listener.local_addr().expect("bound localhost address");
+
+    let client = std::thread::spawn(move || {
+        let mut observed_joins = Vec::new();
+        for _ in 0..2 {
+            let mut peer = TcpStream::connect(address).expect("fresh physical client connection");
+            peer.set_read_timeout(Some(Duration::from_secs(5)))
+                .expect("client read deadline");
+            peer.set_write_timeout(Some(Duration::from_secs(5)))
+                .expect("client write deadline");
+            peer.set_nodelay(true).expect("low-latency loopback client");
+
+            peer.write_all(&login_client_chunk())
+                .expect("Handshake, LoginStart and LoginAck");
+            assert_eq!(
+                read_tcp_frame(&mut peer)[0],
+                2,
+                "each session begins with LoginFinished"
+            );
+
+            peer.write_all(&known_pack_chunk())
+                .expect("client selected known-pack response");
+            let mut emitted = Vec::new();
+            for expected in &configuration {
+                let actual = read_tcp_frame(&mut peer);
+                assert_eq!(actual.as_slice(), expected.as_ref());
+                emitted.push(actual);
+            }
+
+            peer.write_all(&finish_configuration_chunk())
+                .expect("client finishes Configuration");
+            for expected in &expected_play {
+                let actual = read_tcp_frame(&mut peer);
+                assert_eq!(actual.as_slice(), expected.as_slice());
+                emitted.push(actual);
+            }
+            observed_joins.push(emitted);
+            // Dropping the client closes the physical connection before the
+            // next accepted socket; no process-level image is reconstructed.
+        }
+        assert_eq!(
+            observed_joins[0], observed_joins[1],
+            "both complete protocol joins emitted the same immutable image"
+        );
+    });
+
+    for _ in 0..2 {
+        let (mut transport, _) = listener.accept().expect("fresh physical TCP accept");
+        transport
+            .set_read_timeout(Some(Duration::from_secs(5)))
+            .expect("bounded server read");
+        transport
+            .set_write_timeout(Some(Duration::from_secs(5)))
+            .expect("bounded server write");
+        transport.set_nodelay(true).expect("low-latency server TCP");
+
+        let outcome = enter_r2b_play_blocking_transport(
+            &mut transport,
+            session_epoch(),
+            &context,
+            &image,
+            snapshot(),
+        )
+        .expect("fresh R2B full-protocol entry");
+        let R2bEntryOutcome::WorldProjectionReady(session) = outcome else {
+            panic!("rejoining client must reach R2B WorldProjectionReady");
+        };
+        assert_eq!(session.buffered_ingress(), 0);
+        assert_eq!(session.queued_egress(), 0);
+        assert_eq!(session.read_scratch_bytes(), 16 * 1_024);
+        assert_eq!(session.pending_keep_alive(), None);
+        assert_eq!(
+            session
+                .teleport_transaction()
+                .awaiting()
+                .expect("fresh teleport per full join")
+                .id,
+            1
+        );
+    }
+    client.join().expect("both physical clients completed");
+}

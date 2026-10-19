@@ -13,6 +13,8 @@
 
 /// Source-free-vector-qualified, immutable 26.2 improved-gradient noise candidate.
 /// Not yet a source/SEM-admitted production terrain generator.
+/// Non-admitted immutable density-expression DAG and COLD 3D cell sampling.
+pub mod density_kernel_262;
 pub mod explicit_noise_stack_262;
 pub mod improved_noise_262;
 /// Source-free JVM-state-backed Perlin and Normal noise candidates; not seed-authorised or production-admitted.

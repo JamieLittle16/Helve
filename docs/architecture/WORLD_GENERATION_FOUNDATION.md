@@ -12,6 +12,7 @@ The generator is a **producer**, never a new owner. It creates ordinary `LiveChu
 ```text
 seed + world coordinates + pre-resolved dimension profile
     -> statically dispatched sampling kernel (COLD)
+    -> 256-column height scratch reused across the whole chunk
     -> per-section reusable 4096-block / 64-biome scratch
     -> GeneratedSectionBuilder (selected storage mechanism)
     -> LiveChunkCore + ChunkBiomeColumn
@@ -24,7 +25,7 @@ There is **no second resident map**, owned per-chunk target packet, NBT intermed
 
 ## First isolated example: `SteppedSurface`
 
-`SteppedSurface::new(seed, base_y, amplitude)` samples a fixed-width, coordinate-derived, 8×8 stepped surface without global mutable RNG state or floating-point arithmetic. For each section it fills a single reusable 4096-element Y/Z/X block scratch and a 64-element biome scratch, then calls a statically selected builder to construct the *final* section storage. The baseline biome is one explicit caller-supplied semantic ID; the palette also supplies air and solid IDs. The algorithm never guesses real 26.2 block/biome ordinals.
+`SteppedSurface::new(seed, base_y, amplitude)` samples a fixed-width, coordinate-derived, 8×8 stepped surface without global mutable RNG state or floating-point arithmetic. The rule samples exactly 256 horizontal columns **once per chunk**, tracks the minimum and maximum sampled height, and fills entirely air/solid sections with a single array fill. Only intersecting sections need 4096 Y/Z/X comparisons. It reuses one 4096-element block scratch, one 64-element biome scratch and a 256-element height scratch before calling a statically selected builder to construct the *final* section storage. The baseline biome is one explicit caller-supplied semantic ID; the palette also supplies air and solid IDs. The algorithm never guesses real 26.2 block/biome ordinals.
 
 An exact same-seed/sample-coordinate pair produces the same result regardless of:
 - call sequence, chunk creation order, client count or thread placement;

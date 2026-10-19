@@ -330,7 +330,7 @@ impl ImprovedNoise262 {
             let shifted_z = (origin_z + f64::from(local_z)) + self.offset_z;
             let integer_z = java_floor(shifted_z);
             let delta_z = shifted_z - f64::from(integer_z);
-            let delta_z_minus_one = delta_z - 1.0;
+            let z_corner_offset = delta_z - 1.0;
             let fade_z = smoothstep(delta_z);
             let row_start = usize::from(local_z) * 16;
 
@@ -363,25 +363,25 @@ impl ImprovedNoise262 {
                     self.p(column.aa.wrapping_add(integer_z).wrapping_add(1)),
                     column.dx,
                     delta_y,
-                    delta_z_minus_one,
+                    z_corner_offset,
                 );
                 let corner101 = grad_dot(
                     self.p(column.ba.wrapping_add(integer_z).wrapping_add(1)),
                     column.dx_minus_one,
                     delta_y,
-                    delta_z_minus_one,
+                    z_corner_offset,
                 );
                 let corner011 = grad_dot(
                     self.p(column.ab.wrapping_add(integer_z).wrapping_add(1)),
                     column.dx,
                     delta_y_minus_one,
-                    delta_z_minus_one,
+                    z_corner_offset,
                 );
                 let corner111 = grad_dot(
                     self.p(column.bb.wrapping_add(integer_z).wrapping_add(1)),
                     column.dx_minus_one,
                     delta_y_minus_one,
-                    delta_z_minus_one,
+                    z_corner_offset,
                 );
                 output[row_start + local_x] = lerp3(
                     [column.fade_x, fade_y, fade_z],

@@ -41,11 +41,22 @@ class DensityDelegateFrontierTests(unittest.TestCase):
     def test_exact_eight_reflection_profiles_and_java_record_superclass(self):
         records = self.classes()
         lines = "\n".join(
-            "\t".join((name, data["implementation_class"],
-                       data["compute_declaring_class"], data["superclass"]))
+            "|".join((frontier.OUTPUT_PREFIX, name, data["implementation_class"],
+                      data["compute_declaring_class"], data["superclass"]))
             for name, data in records.items()
         )
         self.assertEqual(frontier.parse_runtime_output(lines), records)
+        # A real Minecraft bootstrap may emit unrelated diagnostic lines to
+        # stdout before or among probe rows. Only our tagged output is data.
+        bootstrap_lines = lines.splitlines()
+        noisy = ("[INFO] bootstrapped 26.2\\n" +
+                 "\\n[WARN] optional datafixer unavailable\\n".join(bootstrap_lines) +
+                 "\\n[INFO] done").replace("\\\\n", "\\n")
+        self.assertEqual(frontier.parse_runtime_output(noisy), records)
+        with self.assertRaisesRegex(frontier.DelegateFrontierError, "tagged profile rows"):
+            frontier.parse_runtime_output(lines.replace(frontier.OUTPUT_PREFIX, "OTHER", 1))
+        with self.assertRaisesRegex(frontier.DelegateFrontierError, "tagged profile rows"):
+            frontier.parse_runtime_output(lines + "\\n" + bootstrap_lines[0])
         with self.assertRaises(frontier.DelegateFrontierError):
             frontier.parse_runtime_output(lines.replace("add_gradients", "mul_gradients", 1))
         with self.assertRaises(frontier.DelegateFrontierError):

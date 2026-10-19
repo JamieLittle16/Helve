@@ -108,6 +108,13 @@ admission. It is **not** an R2C/ R2D exit requirement or a terrain-parity
 claim. The exact 26.2 parity source-review and optimisation sequence is
 in [World Generation Foundation](../architecture/WORLD_GENERATION_FOUNDATION.md).
 
+**Worldgen qualification instrumentation (parallel):** the separate
+[Worldgen Bit Parity and Benchmark](../architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md)
+records a source-free whole-cost COLD section baseline and a pinned 26.2
+raw-bit differential contract. It does not authorize real 26.2 generation
+or modify R2C/R2D publication. Performance claims require official noise
+stage reference vectors and representative controlled-hardware runs.
+
 ### R2D — top-level R2 qualification
 
 Goal: red-team the complete persistent visible world after R2C has made terrain native.

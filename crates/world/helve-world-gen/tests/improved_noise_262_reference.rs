@@ -49,7 +49,10 @@ fn all_160_pinned_official_jvm_samples_are_bit_exact() {
         );
         verified_vectors += 1;
     }
-    assert_eq!(verified_vectors, 160, "the complete frozen oracle must be checked");
+    assert_eq!(
+        verified_vectors, 160,
+        "the complete frozen oracle must be checked"
+    );
     assert_eq!(samplers.len(), 5, "exactly five distinct official seeds");
 }
 

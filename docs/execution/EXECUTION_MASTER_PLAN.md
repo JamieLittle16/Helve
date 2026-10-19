@@ -101,6 +101,13 @@ R2C establishes the permanent two-tier world access shape: sparse lifecycle dire
 
 **For the concrete 19 October 2026 readiness sequence**, use [R2C → R2D readiness handoff](R2C_TO_R2D_READINESS_HANDOFF_2026-10-19.md). The R2C test-only 25-column stock-client visual checkpoint is complete; a normal-build admitted publisher, selected Configuration source truth, source/VAR/SEM closure, performance policy and sustained/reconnect qualification remain distinct. **R2D does not require world generation**, arbitrary block entities or R3 region scheduling.
 
+**Parallel, non-blocking foundation:** `crates/world/helve-world-gen`
+holds a deterministic, deliberately non-vanilla COLD generation example
+that creates ordinary Helve semantic chunks through the existing runtime
+admission. It is **not** an R2C/ R2D exit requirement or a terrain-parity
+claim. The exact 26.2 parity source-review and optimisation sequence is
+in [World Generation Foundation](../architecture/WORLD_GENERATION_FOUNDATION.md).
+
 ### R2D — top-level R2 qualification
 
 Goal: red-team the complete persistent visible world after R2C has made terrain native.

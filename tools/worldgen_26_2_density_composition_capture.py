@@ -116,9 +116,15 @@ public final class HelveDensityCompositionBits {
     // Same version detection/registry bootstrap used by the prior official
     // 26.2 state/primitive probes: loading DensityFunctions first is invalid.
     Class<?> shared = Class.forName("net.minecraft.SharedConstants");
-    exactStatic(shared, "tryDetectVersion", void.class).invoke(null);
+    Method detect = shared.getMethod("tryDetectVersion");
+    if (!Modifier.isStatic(detect.getModifiers()) || detect.getParameterCount() != 0)
+      throw new IllegalStateException("26.2 version detection signature mismatch");
+    detect.invoke(null);
     Class<?> bootstrap = Class.forName("net.minecraft.server.Bootstrap");
-    exactStatic(bootstrap, "bootStrap", void.class).invoke(null);
+    Method boot = bootstrap.getMethod("bootStrap");
+    if (!Modifier.isStatic(boot.getModifiers()) || boot.getParameterCount() != 0)
+      throw new IllegalStateException("26.2 bootstrap signature mismatch");
+    boot.invoke(null);
     Class<?> density = Class.forName("net.minecraft.world.level.levelgen.DensityFunction");
     Class<?> context = Class.forName("net.minecraft.world.level.levelgen.DensityFunction$FunctionContext");
     Class<?> single = Class.forName("net.minecraft.world.level.levelgen.DensityFunction$SinglePointContext");

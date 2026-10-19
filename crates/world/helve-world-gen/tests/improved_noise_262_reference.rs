@@ -1,5 +1,5 @@
 //! Bit-for-bit acceptance against the 160 source-free JVM captures supplied
-//! for the pinned Minecraft Java 26.2 ImprovedNoise three-coordinate overload.
+//! for the pinned Minecraft Java 26.2 `ImprovedNoise` three-coordinate overload.
 //! Fixture preserves the archive/runtime/body identities and originating JSON
 //! SHA-256. Passing does NOT substitute for independent source/VAR/SEM closure.
 
@@ -22,7 +22,7 @@ fn hex64(value: &str) -> u64 {
 #[test]
 fn all_160_pinned_official_jvm_samples_are_bit_exact() {
     let mut samplers = BTreeMap::<u64, ImprovedNoise262>::new();
-    let mut samples = 0_usize;
+    let mut verified_vectors = 0_usize;
     for (line_number, line) in ORACLE.lines().enumerate() {
         if line.starts_with('#') || line.is_empty() {
             continue;
@@ -47,9 +47,9 @@ fn all_160_pinned_official_jvm_samples_are_bit_exact() {
             y.to_bits(),
             z.to_bits()
         );
-        samples += 1;
+        verified_vectors += 1;
     }
-    assert_eq!(samples, 160, "the complete frozen oracle must be checked");
+    assert_eq!(verified_vectors, 160, "the complete frozen oracle must be checked");
     assert_eq!(samplers.len(), 5, "exactly five distinct official seeds");
 }
 

@@ -109,6 +109,14 @@ VAR/SEM approval. No official 26.2 reference vectors, admitted noise rules,
 production worldgen selector or chunk publication path are added here.
 See [Worldgen Bit Parity and Benchmark](../architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md).
 
+The first worldgen source-owned official JVM capture tool now exists
+(`worldgen_26_2_improved_noise_capture.py`), requiring the local pinned
+26.2 source ZIP, matching Atlas and official runtime SHA. It targets the
+three-coordinate `ImprovedNoise` sampler and **does not** claim that
+its 160-vector official run has been performed or that constructor/RNG
+delegates have been admitted. Production R2C publication remains locked.
+See [Worldgen Bit Parity and Benchmark](../architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md).
+
 ## Source admission — already completed
 
 PR #268 independently admitted and promoted the R2C **world-state**

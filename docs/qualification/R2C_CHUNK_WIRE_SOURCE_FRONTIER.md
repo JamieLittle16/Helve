@@ -1,7 +1,8 @@
 # R2C — Chunk-with-light wire-source closure frontier
 
-**Current status: discovery only. No packet, block-entity, pacing, or biome-ID
-production admission.** This is independent of already-admitted R2C world-state
+**Current status: original discovery, first-pass source observations
+and scoped direct-method second-pass now recorded; complete packet,
+block-entity, pacing, and biome-ID source admission is still blocked.** This is independent of already-admitted R2C world-state
 palette, heightmap, and light semantics.
 
 Helve now has a dormant COLD candidate for the complete explicitly-empty
@@ -88,6 +89,51 @@ ambiguous class, excessive class methods, existing output, or output
 under the repository. It produces only declaration fingerprints,
 source-free hazard leads and explicit unresolved review questions. An
 abstract declaration is flagged as declaration-only.
+
+## 19 October 2026: exact outer-envelope direct-method second pass
+
+The second-pass source-free evidence at
+`vanilla/reviews/network/r2c-outer-envelope-second-pass-source-findings.json`
+re-reads the already pinned 26.2 excerpt identities, *not* another broad
+source tree or speculative packet. The five explicit method roots are the
+chunk-with-light packet codec initializer (first-pass index 11),
+constructor (12), `write(RegistryFriendlyByteBuf)` (13),
+`ClientboundLevelChunkPacketData` receiving constructor (14), and
+`ClientboundLightUpdatePacketData` receiving constructor (16).
+The manifest keeps exact full body/excerpt SHA-256 pairs and source archive
+identity. It retains the original first-pass parent and local private bundle
+hash, without committing any official Java text.
+
+**Directly observed, still unadmitted candidate laws:**
+
+- The outer packet's send constructor obtains signed X/Z from
+  `LevelChunk.getPos` and builds chunk and light data. Its writer
+  emits X, Z, chunk data then light data, never light before chunk.
+- The inner chunk receiving constructor consumes heightmaps,
+  VarInt-length-prefixed section bytes (explicit upper rejection at
+  2,097,152), then block-entity entries. Negative/invalid length handling
+  resides in reached buffer delegates and is not proved here.
+- The initial light receiving constructor reads four bitsets in
+  sky-present, block-present, sky-empty, block-empty order followed by
+  sky and block update collections.
+
+The existing candidate body test now independently asserts the exact
+8-byte negative-X/positive-Z big-endian prefix and that chunk fields,
+the single explicit empty block-entity count, and light fields are
+contiguous. `tools/tests/test_r2c_outer_envelope_second_pass.py` checks
+full pinned method fingerprints and makes any silent claim of
+independent VAR/SEM, full delegate closure or production admission fail.
+
+**Specific remaining source steps:** independently review the concrete
+`RegistryFriendlyByteBuf/FriendlyByteBuf` signed `writeInt/readInt`
+delegates and receiving packet constructor; bind exact fingerprints
+of the previously admitted inner chunk/light writers to the parent,
+then close packet registration ID, section-size decode failures,
+zero block-entity list law, `collectChunksToSend` and client ACK/receive.
+Client known-pack/biome numerical IDs and the dense heightmap input
+facts are distinct source gates. Until their independent Atlas VAR/SEM
+decisions succeed, this record is a *source-reading candidate*,
+not a source-admitted production packet.
 
 ## Mandatory closure after inventory
 

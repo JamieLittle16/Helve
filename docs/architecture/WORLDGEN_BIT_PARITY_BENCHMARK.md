@@ -242,6 +242,49 @@ evaluation order. This mechanism does not evaluate a vanilla density
 router or generate chunks. The production publication gate remains
 unchanged.
 
+## Local official 26.2 Perlin / Normal / Density source-method frontier
+
+The independent official-runtime `ImprovedNoise` collector already supplies
+160 candidate raw-bit vectors. **No such reference has yet been captured
+for the Perlin/Normal family or a density-router function.** To avoid
+inventing Java-version-specific constructors, octave selection, amplitude
+normalisation, domain wrap or graph evaluation laws, use the new bounded
+source-owning review command:
+
+```bash
+cd ~/Crucible
+git switch main && git pull --ff-only
+python3 tools/worldgen_26_2_noise_family_frontier.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-noise-family-methods.json
+```
+
+It verifies the **exact pinned 26.2 source ZIP and Atlas lock** before
+querying four explicit root types: `PerlinNoise`, `NormalNoise`,
+`DensityFunctions` and `NoiseRouter`. Every indexed method
+signature is accompanied by its exact Atlas body/normalised SHA
+(if present), observed hazards, resolved delegates, and unresolved
+call-site counts. Root absence, excess declarations, invalid hashes
+and source/Atlas identity ambiguity all fail closed. Outputs are
+source-free, bounded, created exclusively **outside the repository**;
+there are no Mojang source bodies, Java binaries or runtime classes.
+The inventory alone is **not semantic admission**. Missing method
+bodies/unresolved call sites remain explicit work, and the manifest
+always declares `independent_var_sem_admitted=false` and
+`production_worldgen_enabled=false`.
+
+The next independently reviewed seam must pin **specific constructors,
+random stream consumption, octave masks/weights, coordinate wrapping,
+sample overloads, and their reached delegates** for these families.
+Only then should a follow-up official-JVM vector collector be built
+for a concrete Perlin/Normal construction case, followed by the Rust
+implementation and bit-parity tests. A density-function DAG remains
+separately gated on exact node identities and evaluation rules.
+No real source/SEM admission or official family vectors are claimed
+from this method inventory.
+
 ## Reproducible performance harness (source-free, *not* a 26.2 noise result)
 
 The current `SteppedSurface` benchmark is a mechanism baseline, not a real-noise benchmark. It records *three distinct costs* instead of quoting an isolated microbenchmark as chunk loading:

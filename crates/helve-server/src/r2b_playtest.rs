@@ -1041,15 +1041,9 @@ pub(crate) fn serve_world_projection_wait(
             }
             _ => liveness_deadline_ms,
         };
-        // A successful TCP write need not drain the bounded driver queue.
-        // Do not block on inbound reads while previously admitted Play bytes
-        // still need to leave the *same* connection-owned egress buffer.
-        // The next loop iteration retries one write, after control/liveness
-        // service; write timeout/zero progress still reject the slow peer.
-        if session.queued_egress() != 0 {
+        let Some(wait_ms) = read_wait_when_egress_drained(session, now_ms, deadline_ms) else {
             continue;
-        }
-        let wait_ms = deadline_ms.saturating_sub(now_ms).max(1);
+        };
         transport
             .set_read_timeout(Some(Duration::from_millis(wait_ms)))
             .map_err(|error| transport_error("read-timeout", &error))?;
@@ -1132,6 +1126,18 @@ fn discard_one_complete_play_frame(session: &mut R2bPlaySession) -> Result<(), R
         TransactionResult::Committed(_) => Ok(()),
         TransactionResult::Incomplete => Err(R2bPlaytestError::DiscardInvariant),
     }
+}
+
+/// Never block waiting for client input while an earlier short write left
+/// bytes in the same bounded Play queue. The outer loop retries one write
+/// and services liveness again; no second queue or busy wait on zero progress.
+#[inline]
+fn read_wait_when_egress_drained(
+    session: &R2bPlaySession,
+    now_ms: u64,
+    deadline_ms: u64,
+) -> Option<u64> {
+    (session.queued_egress() == 0).then(|| deadline_ms.saturating_sub(now_ms).max(1))
 }
 
 fn write_play_once<W: Write>(
@@ -1744,7 +1750,9 @@ mod play_short_write_tests {
     use helve_session_core::LivenessState;
     use helve_target_26_2::r2b::TeleportTransaction;
 
-    use super::{R2bPlaySession, R2bPlaytestError, write_play_once};
+    use super::{
+        R2bPlaySession, R2bPlaytestError, read_wait_when_egress_drained, write_play_once,
+    };
 
     struct BoundedWriter {
         maximum_per_write: usize,
@@ -1805,6 +1813,25 @@ mod play_short_write_tests {
         assert_eq!(session.queued_egress(), 0);
         write_play_once(&mut sink, &mut session).expect("empty queue no-op");
         assert_eq!(sink.written, expected, "empty queue must not replay bytes");
+    }
+
+    #[test]
+    fn an_unfinished_play_write_disables_blocking_read() {
+        let mut session = queued_session();
+        assert_eq!(read_wait_when_egress_drained(&session, 30, 50), None);
+        let mut sink = BoundedWriter {
+            maximum_per_write: 1024,
+            written: Vec::new(),
+        };
+        write_play_once(&mut sink, &mut session).expect("drain bounded frame");
+        assert_eq!(
+            read_wait_when_egress_drained(&session, 30, 50),
+            Some(20)
+        );
+        assert_eq!(
+            read_wait_when_egress_drained(&session, 60, 50),
+            Some(1)
+        );
     }
 
     #[test]

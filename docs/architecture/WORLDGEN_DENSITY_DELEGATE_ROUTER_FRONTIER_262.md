@@ -40,3 +40,23 @@ If the command succeeds, upload only the source-free JSON; otherwise provide the
 Use concrete `runtime_profiles`, `compute_declaring_class` and `atlas_frontier` to prioritise the **actual** reached add/mul compute delegates, their runtime shortcuts and relevant noise-holder/sampling contexts. Review source bodies locally against their recorded fingerprints and source/VAR/SEM hazards before generalising signed-zero behavior or building nested typed DAG nodes. Then select the narrowest true noise router leaf and capture official `DensityFunction.compute` with resolved seed/parameters and integer block coordinates, followed by bitwise Rust tests.
 
 Implementation efficiency requirement: keep a single immutable compiled world/dimension sampler owner, share existing exact-bit `NormalNoise262`, retain caller-owned scratch for batched samples and do not build an NBT or packet representation on the hot path. Measure whole-cost chunk generation before declaring performance qualification.
+
+
+### Official JVM output framing correction
+
+A first source-owning run failed during `parse_runtime_output` with
+`incorrect runtime profile order or shape: add_gradients`, **after** the
+version/source/runtime checks. This is a collector transport failure, not a
+new finding about density algebra. The exact unframed JVM stdout was not
+recorded, so the specific interfering line has not been established.
+
+The collector now emits an explicit `HELVE26_2_DENSITY_DELEGATE|` prefix and
+pipe-delimited records for each of its eight profiles. Only fully tagged rows
+participate in structural validation; unrelated JVM bootstrap logging is
+ignored, while missing, extra, repeated, reordered or malformed tagged rows
+fail closed. Output size and line count are bounded. The independent toy-JVM
+tests exercise both clean output and interleaved startup log messages.
+
+Re-run the same source-owning command after this change reaches `main`.
+Neither admission nor official delegate inventory is claimed until that actual
+probe succeeds.

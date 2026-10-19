@@ -17,7 +17,7 @@ pub const OBSERVED_OCTAVES_262: usize = 4;
 /// an otherwise equivalent implementation without this operation.
 const WRAP_PERIOD: f64 = 33_554_432.0;
 
-/// NormalNoise's second Perlin family samples a slightly expanded position.
+/// `NormalNoise`'s second Perlin family samples a slightly expanded position.
 /// The number is an evaluated output-matching candidate, not an independent
 /// declaration that every target-version constructor has this scaling.
 const NORMAL_SECOND_INPUT_MULTIPLIER: f64 = 1.018_126_888_217_522_7;

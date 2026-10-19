@@ -69,8 +69,7 @@ impl<'a, const N: usize> DensityKernel262<'a, N> {
         }
         for (node, operation) in nodes.iter().enumerate() {
             match operation {
-                DensityNode262::Add { left, right }
-                | DensityNode262::Multiply { left, right } => {
+                DensityNode262::Add { left, right } | DensityNode262::Multiply { left, right } => {
                     if *left >= node {
                         return Err(DensityKernelError262::InvalidDependency {
                             node,
@@ -97,8 +96,7 @@ impl<'a, const N: usize> DensityKernel262<'a, N> {
                 continue;
             }
             match nodes[index] {
-                DensityNode262::Add { left, right }
-                | DensityNode262::Multiply { left, right } => {
+                DensityNode262::Add { left, right } | DensityNode262::Multiply { left, right } => {
                     reachable[left] = true;
                     reachable[right] = true;
                 }
@@ -118,13 +116,7 @@ impl<'a, const N: usize> DensityKernel262<'a, N> {
     /// Sampling never allocates and never touches an authoritative world.
     #[must_use]
     #[inline]
-    pub fn sample_with_scratch(
-        &self,
-        x: f64,
-        y: f64,
-        z: f64,
-        scratch: &mut [f64; N],
-    ) -> f64 {
+    pub fn sample_with_scratch(&self, x: f64, y: f64, z: f64, scratch: &mut [f64; N]) -> f64 {
         for (index, node) in self.nodes.iter().enumerate() {
             scratch[index] = match *node {
                 DensityNode262::Constant(value) => value,

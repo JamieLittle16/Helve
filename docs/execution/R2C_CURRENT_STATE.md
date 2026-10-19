@@ -98,6 +98,17 @@ lighting is synthesized, and no unadmitted vanilla terrain parity is
 claimed. See [World Generation Foundation](../architecture/WORLD_GENERATION_FOUNDATION.md)
 for the stepwise pinned-source differential and future integration plan.
 
+## Worldgen strict-parity instrumentation — not a production terrain profile
+
+The separate `helve-world-gen` test crate now has an offline raw IEEE-754
+differential contract for independently collected official 26.2 noise
+vectors plus a staged source-free COLD whole-cost benchmark (sampling,
+final section construction, authoritative resident admission). The manifest
+validator never treats a matching hash or vector file as independent source
+VAR/SEM approval. No official 26.2 reference vectors, admitted noise rules,
+production worldgen selector or chunk publication path are added here.
+See [Worldgen Bit Parity and Benchmark](../architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md).
+
 ## Source admission — already completed
 
 PR #268 independently admitted and promoted the R2C **world-state**

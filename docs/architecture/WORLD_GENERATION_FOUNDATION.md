@@ -56,6 +56,18 @@ Tests assert: signed chunk-boundary sampling; all 96 block levels and 64 quart b
 
 CI must be green on the exact PR head before merging. These tests are **not** a substitute for the R2C production chunk-source/VAR/SEM gate.
 
+## Strict-parity and whole-cost measurement gate
+
+The first benchmark and official-reference differential infrastructure are now
+specified in [Worldgen Bit Parity and Benchmark](WORLDGEN_BIT_PARITY_BENCHMARK.md).
+The source-free `SteppedSurface` whole-cost harness measures sampling,
+final section construction and genuine resident admission separately, with
+host and compiler provenance; it is **not a vanilla noise benchmark**.
+The raw IEEE-754 differential checks source-locked `u64` output patterns
+rather than accepting epsilon errors. Without an independently verified
+official noise sampler and its target 26.2 source fingerprint, **no strict
+vanilla noise-parity claim is made** and no speedup is certified.
+
 ## Exact vanilla 26.2 generator roadmap — future distinct gates
 
 1. **Pinned generation source map and proof contracts.** Identify official 26.2 seed mixing, noise parameter registries, climate/RNG seeding, noise router/density functions, structure and decoration ordering using the existing Atlas/source-lock discipline. Record exact target selections and source-free VAR/SEM with complete error/delegate coverage. Do not infer from an older Java Edition version.

@@ -75,6 +75,9 @@ pub enum SurfaceGenerationError<E> {
     Compose(ChunkSemanticStateError),
 }
 
+/// The generated result is a normal Helve semantic chunk, not a second world owner.
+pub type GeneratedChunk<S, Blocks, B, Biomes> = LiveChunkSemanticState<S, Blocks, B, Biomes>;
+
 /// A small **non-vanilla** deterministic reference terrain rule.
 ///
 /// One seeded height sample is used for each 8×8 world-space plateau.
@@ -103,6 +106,11 @@ impl SteppedSurface {
     /// Widened arithmetic avoids overflow for even extreme i32 chunk
     /// coordinates. Euclidean division keeps the same 8×8 cells on both
     /// sides of negative chunk boundaries.
+    ///
+    /// # Panics
+    /// The fixed u8 amplitude mathematically bounds the sample span and
+    /// modulo result to fit u64 and i64 respectively; a conversion panic
+    /// would indicate this invariant had been violated.
     #[must_use]
     pub fn surface_y(&self, world_x: i64, world_z: i64) -> i64 {
         let cell_x = world_x.div_euclid(8);
@@ -134,6 +142,10 @@ impl SteppedSurface {
     /// # Errors
     /// Fails on block/biome builder error or an incompatible chunk/lattice.
     /// No world state is touched; call inside `admit_chunk` for atomic install.
+    ///
+    /// # Panics
+    /// The frozen dimension profile admits at most 64 sections; a
+    /// section-index conversion panic would violate that source contract.
     pub fn generate_chunk<S, B, Builder>(
         &self,
         position: ChunkPos,
@@ -142,7 +154,7 @@ impl SteppedSurface {
         palette: SurfacePalette<S, B>,
         builder: &mut Builder,
     ) -> Result<
-        LiveChunkSemanticState<S, Builder::Blocks, B, Builder::Biomes>,
+        GeneratedChunk<S, Builder::Blocks, B, Builder::Biomes>,
         SurfaceGenerationError<Builder::Error>,
     >
     where

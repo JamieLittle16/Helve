@@ -219,7 +219,8 @@ impl NormalNoise262 {
             x_axis[usize::from(local)] = origin_x + f64::from(local);
             z_axis[usize::from(local)] = origin_z + f64::from(local);
         }
-        self.first.sample_axis_grid_16x16(&x_axis, y, &z_axis, output);
+        self.first
+            .sample_axis_grid_16x16(&x_axis, y, &z_axis, output);
         for value in &mut x_axis {
             *value *= NORMAL_SECOND_INPUT_MULTIPLIER;
         }
@@ -246,13 +247,7 @@ mod tests {
     #[test]
     fn finite_wrap_is_periodic_at_exact_modulus() {
         assert_eq!(wrap_coordinate(0.0).to_bits(), 0.0_f64.to_bits());
-        assert_eq!(
-            wrap_coordinate(33_554_432.0).to_bits(),
-            0.0_f64.to_bits()
-        );
-        assert_eq!(
-            wrap_coordinate(-33_554_432.0).to_bits(),
-            0.0_f64.to_bits()
-        );
+        assert_eq!(wrap_coordinate(33_554_432.0).to_bits(), 0.0_f64.to_bits());
+        assert_eq!(wrap_coordinate(-33_554_432.0).to_bits(), 0.0_f64.to_bits());
     }
 }

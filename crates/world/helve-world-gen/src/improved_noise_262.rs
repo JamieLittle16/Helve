@@ -192,7 +192,7 @@ impl ImprovedNoise262 {
 
     /// Restores a complete, immutable sampler from externally observed
     /// numeric constructor state. This bypasses RNG reconstruction; only
-    /// `new(seed)` constructs the separate directly seeded ImprovedNoise.
+    /// `new(seed)` constructs the separate directly seeded `ImprovedNoise`.
     ///
     /// The permutation is validated before use. Caller-supplied offset
     /// bit patterns are preserved without normalisation or recomputation.

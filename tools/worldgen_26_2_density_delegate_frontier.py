@@ -64,6 +64,7 @@ COMPOSITION_BODY_PINS = {
     "mul_factory": "c5d5aaa53f8650d9068362c193487625eeeb057633eaafb0142651a4cc29d7f1",
 }
 JAVA_CLASS = re.compile(r"net\.minecraft(?:\.[A-Za-z_$][\w$]*)+\Z")
+PARENT_CLASS = re.compile(r"(?:net\\.minecraft|java\\.lang)(?:\\.[A-Za-z_$][\\w$]*)+\\Z")
 METHOD_HASH = re.compile(r"[0-9a-f]{64}\Z")
 
 
@@ -147,7 +148,7 @@ def parse_runtime_output(output: str) -> dict[str, dict[str, str]]:
         concrete, compute, parent = cells[1:]
         if not JAVA_CLASS.fullmatch(concrete) or not JAVA_CLASS.fullmatch(compute):
             raise DelegateFrontierError(f"invalid 26.2 delegate class identity: {profile}")
-        if parent != "-" and not JAVA_CLASS.fullmatch(parent):
+        if parent != "-" and not PARENT_CLASS.fullmatch(parent):
             raise DelegateFrontierError(f"invalid 26.2 delegate superclass identity: {profile}")
         if concrete != compute and parent == "-":
             raise DelegateFrontierError(f"unexplained inherited compute owner: {profile}")
@@ -215,13 +216,13 @@ def method_record(conn: sqlite3.Connection, row: sqlite3.Row) -> dict:
 
 def inventory(conn: sqlite3.Connection, runtime: dict[str, dict[str, str]]) -> dict:
     nested = atlas_types(conn)
-    known = nested | set(ROOT_TYPES)
     used = {v["implementation_class"] for v in runtime.values()} | {
         v["compute_declaring_class"] for v in runtime.values()
     }
-    if not used <= known:
-        raise DelegateFrontierError("runtime classes outside pinned density family/root targets: " +
-                                    ", ".join(sorted(used - known)))
+    # The JVM can select a delegate outside DensityFunctions$..., so
+    # resolve any actual worldgen compute type from the pinned Atlas.
+    if any(not name.startswith("net.minecraft.world.level.levelgen.") for name in used):
+        raise DelegateFrontierError("unexpected worldgen delegate package")
     # Distinguish guessed optional root names from actual source type matches.
     requested = sorted(set(ROOT_TYPES) | used | nested)
     results = []

@@ -47,6 +47,7 @@ ROOT_TYPES = (
 REQUIRED_ROOTS = frozenset(ROOT_TYPES[:2])
 DENSITY_NESTED_PREFIX = primitive.DENSITY + "$"
 PROFILES = tuple(composed.PROFILES)
+OUTPUT_PREFIX = "HELVE26_2_DENSITY_DELEGATE"
 MAX_METHODS_PER_TYPE = 512
 MAX_NESTED_TYPES = 192
 MAX_REVIEW_METHODS = 2048
@@ -92,8 +93,9 @@ public final class HelveDensityDelegateTypes {
     Method compute = concrete.getMethod("compute", context);
     String superName = concrete.getSuperclass() == null
         ? "-" : concrete.getSuperclass().getName();
-    System.out.println(label + "\t" + concrete.getName() + "\t" +
-        compute.getDeclaringClass().getName() + "\t" + superName);
+    System.out.println("HELVE26_2_DENSITY_DELEGATE|" + label + "|" +
+        concrete.getName() + "|" + compute.getDeclaringClass().getName() +
+        "|" + superName);
   }
   public static void main(String[] unused) throws Exception {
     Class<?> shared = Class.forName("net.minecraft.SharedConstants");
@@ -136,16 +138,33 @@ public final class HelveDensityDelegateTypes {
 
 
 def parse_runtime_output(output: str) -> dict[str, dict[str, str]]:
-    """Require eight exact profile identities, nonempty exact JVM class names."""
-    rows = output.splitlines()
+    """Parse ONLY eight bounded, tagged probe rows; ignore runtime logger stdout.
+
+    The official server's bootstrap may write diagnostic lines to stdout.
+    Requiring the first eight *global* stdout lines to be Helve rows confuses
+    logging with protocol output. The explicit original-Java tag disambiguates
+    those channels, while order, identities, duplicates and missing rows
+    still fail closed. No private log bodies are written to the manifest.
+    """
+    if len(output) > 262_144:
+        raise DelegateFrontierError("unexpectedly large official JVM stdout")
+    all_lines = output.splitlines()
+    if len(all_lines) > 512:
+        raise DelegateFrontierError("too many official JVM stdout lines")
+    rows = [line for line in all_lines if line.startswith(OUTPUT_PREFIX + "|")]
     if len(rows) != len(PROFILES):
-        raise DelegateFrontierError(f"official reflection produced {len(rows)} classes, expected 8")
+        # Report only the public output framing counts, never dump log lines.
+        raise DelegateFrontierError(
+            f"official reflection emitted {len(rows)} tagged profile rows, "
+            f"expected {len(PROFILES)} (stdout lines={len(all_lines)}); "
+            "startup diagnostics are not probe records"
+        )
     result = {}
     for profile, line in zip(PROFILES, rows, strict=True):
-        cells = line.split("\t")
-        if len(cells) != 4 or cells[0] != profile:
-            raise DelegateFrontierError(f"incorrect runtime profile order or shape: {profile}")
-        concrete, compute, parent = cells[1:]
+        cells = line.split("|")
+        if len(cells) != 5 or cells[0] != OUTPUT_PREFIX or cells[1] != profile:
+            raise DelegateFrontierError(f"incorrect tagged runtime profile order or shape: {profile}")
+        concrete, compute, parent = cells[2:]
         if not JAVA_CLASS.fullmatch(concrete) or not JAVA_CLASS.fullmatch(compute):
             raise DelegateFrontierError(f"invalid 26.2 delegate class identity: {profile}")
         if parent != "-" and not PARENT_CLASS.fullmatch(parent):
@@ -292,8 +311,9 @@ def validate(manifest: dict, lock: dict) -> None:
         raise DelegateFrontierError("missing or substituted runtime profile classes")
     # Validates shape, order and class names without trusting runtime metadata.
     lines = "\n".join(
-        "\t".join((p, profiles[p]["implementation_class"], profiles[p]["compute_declaring_class"],
-                  profiles[p]["superclass"])) for p in PROFILES
+        "|".join((OUTPUT_PREFIX, p, profiles[p]["implementation_class"],
+                  profiles[p]["compute_declaring_class"], profiles[p]["superclass"]))
+        for p in PROFILES
     )
     if parse_runtime_output(lines) != profiles:
         raise DelegateFrontierError("runtime profile identities changed")

@@ -1041,37 +1041,20 @@ pub(crate) fn serve_world_projection_wait(
             }
             _ => liveness_deadline_ms,
         };
-        let wait_ms = deadline_ms.saturating_sub(now_ms).max(1);
+        let Some(wait_ms) = read_wait_when_egress_drained(session, now_ms, deadline_ms) else {
+            continue;
+        };
         transport
             .set_read_timeout(Some(Duration::from_millis(wait_ms)))
             .map_err(|error| transport_error("read-timeout", &error))?;
 
-        match transport.read(&mut session.read_scratch) {
-            Ok(0) => {
-                if session.driver.buffered_ingress() != 0 {
-                    return Err(R2bPlaytestError::TruncatedEof {
-                        buffered_ingress: session.driver.buffered_ingress(),
-                    });
-                }
-                return Ok(R2bPlaytestExit::LivePeerEof {
-                    teleport_acknowledged,
-                    accepted_keep_alives,
-                    discarded_world_frames,
-                    latency_ms: session.latency_ms(),
-                });
-            }
-            Ok(read) => session
-                .driver
-                .ingest::<Infallible>(&session.read_scratch[..read])
-                .map_err(R2bPlaytestError::Driver)?,
-            Err(error)
-                if matches!(
-                    error.kind(),
-                    io::ErrorKind::WouldBlock
-                        | io::ErrorKind::TimedOut
-                        | io::ErrorKind::Interrupted
-                ) => {}
-            Err(error) => return Err(transport_error("read", &error)),
+        if !read_one_play_fragment(transport, session)? {
+            return Ok(R2bPlaytestExit::LivePeerEof {
+                teleport_acknowledged,
+                accepted_keep_alives,
+                discarded_world_frames,
+                latency_ms: session.latency_ms(),
+            });
         }
     }
 }
@@ -1126,8 +1109,55 @@ fn discard_one_complete_play_frame(session: &mut R2bPlaySession) -> Result<(), R
     }
 }
 
-fn write_play_once(
-    transport: &mut TcpStream,
+/// Read one fragment into the original R2B driver. All transient I/O
+/// outcomes retain the existing bounded ingress and single read scratch.
+/// A clean EOF returns false; an incomplete framed packet rejects EOF.
+#[inline]
+fn read_one_play_fragment<R: Read>(
+    transport: &mut R,
+    session: &mut R2bPlaySession,
+) -> Result<bool, R2bPlaytestError> {
+    match transport.read(&mut session.read_scratch) {
+        Ok(0) => {
+            let buffered_ingress = session.driver.buffered_ingress();
+            if buffered_ingress != 0 {
+                return Err(R2bPlaytestError::TruncatedEof { buffered_ingress });
+            }
+            Ok(false)
+        }
+        Ok(read) => {
+            session
+                .driver
+                .ingest::<Infallible>(&session.read_scratch[..read])
+                .map_err(R2bPlaytestError::Driver)?;
+            Ok(true)
+        }
+        Err(error)
+            if matches!(
+                error.kind(),
+                io::ErrorKind::WouldBlock | io::ErrorKind::TimedOut | io::ErrorKind::Interrupted
+            ) =>
+        {
+            Ok(true)
+        }
+        Err(error) => Err(transport_error("read", &error)),
+    }
+}
+
+/// Never block waiting for client input while an earlier short write left
+/// bytes in the same bounded Play queue. The outer loop retries one write
+/// and services liveness again; no second queue or busy wait on zero progress.
+#[inline]
+fn read_wait_when_egress_drained(
+    session: &R2bPlaySession,
+    now_ms: u64,
+    deadline_ms: u64,
+) -> Option<u64> {
+    (session.queued_egress() == 0).then(|| deadline_ms.saturating_sub(now_ms).max(1))
+}
+
+fn write_play_once<W: Write>(
+    transport: &mut W,
     session: &mut R2bPlaySession,
 ) -> Result<(), R2bPlaytestError> {
     let pending = session.driver.pending_egress().len();
@@ -1723,5 +1753,141 @@ mod r2c_stock_client_diagnostic {
         panic!(
             "R2C diagnostic exhausted {MAX_PREPLAY_CONNECTIONS} pre-Play connections without reaching Play; examine client latest.log and selected offline name Stato16"
         );
+    }
+}
+
+#[cfg(test)]
+mod play_short_write_tests {
+    use std::convert::Infallible;
+    use std::io::{self, Write};
+
+    use helve_connection_core::ConnectionLimits;
+    use helve_connection_driver::ConnectionDriver;
+    use helve_session_core::LivenessState;
+    use helve_target_26_2::r2b::TeleportTransaction;
+
+    use super::{
+        R2bPlaySession, R2bPlaytestError, read_one_play_fragment, read_wait_when_egress_drained,
+        write_play_once,
+    };
+
+    struct BoundedWriter {
+        maximum_per_write: usize,
+        written: Vec<u8>,
+    }
+
+    impl Write for BoundedWriter {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            let n = self.maximum_per_write.min(bytes.len());
+            self.written.extend_from_slice(&bytes[..n]);
+            Ok(n)
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    fn queued_session() -> R2bPlaySession {
+        let mut session = R2bPlaySession {
+            driver: ConnectionDriver::new(
+                ConnectionLimits::new(64, 256, 1024).expect("finite driver bounds"),
+            ),
+            read_scratch: vec![0; 32].into_boxed_slice(),
+            teleport: TeleportTransaction::new(),
+            liveness: LivenessState::new(0, 0).expect("valid origin"),
+        };
+        session
+            .driver
+            .queue_frame::<Infallible>(&[0x22, 0x11, 0x33, 0x44, 0x55, 0x66, 0x77])
+            .expect("bounded synthetic Play frame");
+        session
+    }
+
+    #[test]
+    fn successful_short_writes_retain_exact_suffix_until_fully_sent() {
+        let mut session = queued_session();
+        let expected = session.pending_play_egress().to_vec();
+        assert!(expected.len() > 2);
+        let mut sink = BoundedWriter {
+            maximum_per_write: 2,
+            written: Vec::new(),
+        };
+        write_play_once(&mut sink, &mut session).expect("initial short write");
+        assert_eq!(sink.written, expected[..2]);
+        assert_eq!(session.queued_egress(), expected.len() - 2);
+
+        let mut attempts = 1;
+        while session.queued_egress() != 0 {
+            write_play_once(&mut sink, &mut session).expect("retry short write");
+            attempts += 1;
+            assert!(attempts <= expected.len(), "write made no bounded progress");
+        }
+        assert_eq!(
+            sink.written, expected,
+            "no byte loss, duplication or reordering"
+        );
+        assert_eq!(session.queued_egress(), 0);
+        write_play_once(&mut sink, &mut session).expect("empty queue no-op");
+        assert_eq!(sink.written, expected, "empty queue must not replay bytes");
+    }
+
+    #[test]
+    fn an_unfinished_play_write_disables_blocking_read() {
+        let mut session = queued_session();
+        assert_eq!(read_wait_when_egress_drained(&session, 30, 50), None);
+        let mut sink = BoundedWriter {
+            maximum_per_write: 1024,
+            written: Vec::new(),
+        };
+        write_play_once(&mut sink, &mut session).expect("drain bounded frame");
+        assert_eq!(read_wait_when_egress_drained(&session, 30, 50), Some(20));
+        assert_eq!(read_wait_when_egress_drained(&session, 60, 50), Some(1));
+    }
+
+    #[test]
+    fn retained_play_read_scratch_keeps_complete_and_truncated_eof_distinct() {
+        let mut session = queued_session();
+        let scratch_address = session.read_scratch.as_ptr();
+        let mut incoming = io::Cursor::new([0x02_u8, 0x04, 0x05]);
+        assert!(read_one_play_fragment(&mut incoming, &mut session).expect("ingress accepted"));
+        assert_eq!(session.buffered_ingress(), 3);
+        assert_eq!(session.read_scratch.as_ptr(), scratch_address);
+        assert_eq!(session.read_scratch_bytes(), 32);
+
+        let mut clean_session = queued_session();
+        let mut clean_eof = io::Cursor::new(Vec::<u8>::new());
+        assert!(!read_one_play_fragment(&mut clean_eof, &mut clean_session).expect("clean EOF"));
+
+        let mut truncated_session = queued_session();
+        truncated_session
+            .driver
+            .ingest::<Infallible>(&[0x80])
+            .expect("bounded incomplete frame prefix");
+        assert!(matches!(
+            read_one_play_fragment(&mut clean_eof, &mut truncated_session),
+            Err(R2bPlaytestError::TruncatedEof {
+                buffered_ingress: 1
+            })
+        ));
+    }
+
+    #[test]
+    fn zero_progress_write_rejects_without_consuming_queued_bytes() {
+        let mut session = queued_session();
+        let expected = session.pending_play_egress().to_vec();
+        let mut sink = BoundedWriter {
+            maximum_per_write: 0,
+            written: Vec::new(),
+        };
+        assert!(matches!(
+            write_play_once(&mut sink, &mut session),
+            Err(R2bPlaytestError::Io {
+                kind: io::ErrorKind::WriteZero,
+                ..
+            })
+        ));
+        assert!(sink.written.is_empty());
+        assert_eq!(session.pending_play_egress(), expected);
     }
 }

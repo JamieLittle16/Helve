@@ -99,7 +99,7 @@ impl<const N: usize> ExplicitNoiseStack262<N> {
                 &z_axis,
                 &mut contributions,
             );
-            for (value, contribution) in output.iter_mut().zip(contributions) {
+            for (value, contribution) in output.iter_mut().zip(contributions.iter().copied()) {
                 *value += contribution * layer.weight;
             }
         }

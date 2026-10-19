@@ -5,12 +5,7 @@
 use helve_world_gen::explicit_noise_stack_262::{ExplicitNoiseLayer262, ExplicitNoiseStack262};
 use helve_world_gen::improved_noise_262::ImprovedNoise262;
 
-fn check_axis_grid(
-    sampler: &ImprovedNoise262,
-    x_axis: &[f64; 16],
-    y: f64,
-    z_axis: &[f64; 16],
-) {
+fn check_axis_grid(sampler: &ImprovedNoise262, x_axis: &[f64; 16], y: f64, z_axis: &[f64; 16]) {
     let mut output = [f64::NAN; 256];
     sampler.sample_axis_grid_16x16(x_axis, y, z_axis, &mut output);
     for (iz, &z) in z_axis.iter().enumerate() {
@@ -27,15 +22,40 @@ fn check_axis_grid(
 #[test]
 fn arbitrary_axes_match_scalar_bits_including_repetition_and_negative_zero() {
     let irregular_x = [
-        0.0, -0.0, -16.0, -15.999, 15.0, 16.0, 31.125, -31.125,
-        0.0, 0.125, -0.125, 1024.25, -1024.25,
-        1_048_576.0, -1_048_576.0, 1_073_741_824.0,
+        0.0,
+        -0.0,
+        -16.0,
+        -15.999,
+        15.0,
+        16.0,
+        31.125,
+        -31.125,
+        0.0,
+        0.125,
+        -0.125,
+        1024.25,
+        -1024.25,
+        1_048_576.0,
+        -1_048_576.0,
+        1_073_741_824.0,
     ];
     let irregular_z = [
-        -0.0, 0.0, -16.0, -16.0, -17.0, 17.0, 0.75, -0.75,
-        31.5, -31.5, 0.000_000_000_000_000_2,
-        -0.000_000_000_000_000_2, 128.25, -128.25,
-        -1_073_741_824.0, 1_073_741_824.0,
+        -0.0,
+        0.0,
+        -16.0,
+        -16.0,
+        -17.0,
+        17.0,
+        0.75,
+        -0.75,
+        31.5,
+        -31.5,
+        0.000_000_000_000_000_2,
+        -0.000_000_000_000_000_2,
+        128.25,
+        -128.25,
+        -1_073_741_824.0,
+        1_073_741_824.0,
     ];
     for seed in [0, 1, u64::MAX, 1_u64 << 63, 0x9e37_79b9_7f4a_7c15] {
         let sampler = ImprovedNoise262::new(seed);
@@ -79,10 +99,14 @@ fn check_stack<const N: usize>(
 #[test]
 fn frequency_scaled_four_octave_stack_matches_scalar_on_every_cell() {
     let origins = [
-        (0.0, 0.0, 0.0), (-0.0, -0.0, -0.0),
-        (-16.0, -64.0, -16.0), (-17.0, -63.5, 15.0),
-        (15.0, 319.0, -17.0), (31.125, -63.875, -31.125),
-        (-31.125, 319.875, 31.125), (1_048_576.0, 256.0, -1_048_576.0),
+        (0.0, 0.0, 0.0),
+        (-0.0, -0.0, -0.0),
+        (-16.0, -64.0, -16.0),
+        (-17.0, -63.5, 15.0),
+        (15.0, 319.0, -17.0),
+        (31.125, -63.875, -31.125),
+        (-31.125, 319.875, 31.125),
+        (1_048_576.0, 256.0, -1_048_576.0),
         (-1_073_741_824.0, 319.0, 1_073_741_824.0),
     ];
     for seed in [0, 1, u64::MAX, 1_u64 << 63, 0x9e37_79b9_7f4a_7c15] {
@@ -109,9 +133,11 @@ fn empty_stack_is_positive_zero_and_zero_weights_are_not_skipped() {
         ExplicitNoiseLayer262::new(ImprovedNoise262::new(2), -0.5, -0.0),
     ]);
     check_stack(&zero_weight, -15.125, 319.875, -16.25);
-    let lone = ExplicitNoiseStack262::new([
-        ExplicitNoiseLayer262::new(ImprovedNoise262::new(42), 0.75, 1.0),
-    ]);
+    let lone = ExplicitNoiseStack262::new([ExplicitNoiseLayer262::new(
+        ImprovedNoise262::new(42),
+        0.75,
+        1.0,
+    )]);
     check_stack(&lone, 0.125, -64.375, -31.125);
 }
 
@@ -124,7 +150,10 @@ fn layers_can_be_evaluated_on_independent_workers() {
             let borrowed = &stack;
             scope.spawn(move || {
                 for _ in 0..12 {
-                    assert_eq!(borrowed.sample(-16.125, -63.875, 15.125).to_bits(), baseline);
+                    assert_eq!(
+                        borrowed.sample(-16.125, -63.875, 15.125).to_bits(),
+                        baseline
+                    );
                     check_stack(borrowed, -16.125, -63.875, 15.125);
                 }
             });

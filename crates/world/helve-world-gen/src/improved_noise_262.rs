@@ -65,7 +65,7 @@ impl LegacyBits {
     fn next_bits(&mut self, count: u32) -> u32 {
         self.state = self.state.wrapping_mul(Self::MULTIPLIER).wrapping_add(11) & Self::MASK;
         u32::try_from(self.state >> (48 - count))
-            .expect("only 26, 27 or 31 random bits are requested")
+            .expect("only 26, 27, 31 or 32 random bits are requested")
     }
 
     /// Match Java RandomSource.nextLong(): signed 32-bit halves are added,

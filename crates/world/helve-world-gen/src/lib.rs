@@ -339,6 +339,33 @@ mod tests {
     }
 
     #[test]
+    fn fixed_width_surface_hash_has_frozen_independent_seed_vectors() {
+        // Precomputed with independent wrapping-u64 arithmetic, not by
+        // calling the same sampler to manufacture an expected value.
+        let cases = [
+            (7_u64, -7_i32, 5_u8, -1_i64, -1_i64, -11_i64),
+            (7, -7, 5, -8, -16, -3),
+            (7, -7, 5, 15, 16, -7),
+            (7, -7, 5, 16, 16, -9),
+            (901, -4, 4, -16, 0, -4),
+            (901, -4, 4, -1, 0, -7),
+            (44, -9, 7, 0, -3, -9),
+            (
+                u64::MAX, i32::MAX, u8::MAX,
+                i64::from(i32::MIN) * 16, i64::from(i32::MAX) * 16,
+                2_147_483_886,
+            ),
+        ];
+        for (seed, base_y, amplitude, x, z, expected) in cases {
+            assert_eq!(
+                SteppedSurface::new(seed, base_y, amplitude).surface_y(x, z),
+                expected,
+                "seed={seed}, x={x}, z={z}",
+            );
+        }
+    }
+
+    #[test]
     fn generated_sections_match_world_coordinates_and_keep_pristine_revision() {
         let rule = SteppedSurface::new(901, -4, 4);
         let position = ChunkPos { x: -1, z: 0 };

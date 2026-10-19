@@ -1,8 +1,9 @@
 //! Source-free COLD worldgen cost accounting. Not a Minecraft 26.2 noise
-//! benchmark: SteppedSurface is deliberately NOT the vanilla noise router.
+//! benchmark: `SteppedSurface` is deliberately NOT the vanilla noise router.
 
 use std::convert::Infallible;
 use std::env;
+use std::fmt::Write as _;
 use std::fs;
 use std::hint::black_box;
 use std::time::Instant;
@@ -247,7 +248,7 @@ fn main() -> Result<(), String> {
         if i > 0 {
             json.push(',');
         }
-        json.push_str(&format!(
+        write!(&mut json,
             "{{\"name\":\"{}\",\"samples\":{},\"p50_ns\":{},\
             \"p95_ns\":{},\"p99_ns\":{},\"max_ns\":{},\
             \"total_sample_ns\":{}}}",
@@ -258,7 +259,7 @@ fn main() -> Result<(), String> {
             summary.p99_ns,
             summary.max_ns,
             summary.total_ns
-        ));
+        ).expect("writing to String cannot fail");
     }
     json.push_str("]}");
     if let Some(path) = &cfg.output {

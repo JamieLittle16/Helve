@@ -61,7 +61,7 @@ jobs:
           mkdir -p target/helve-qualification/worldgen
           cargo bench --locked -p helve-world-gen --bench worldgen_cold -- \
             --chunks 2 --warmup 1 --rounds 2 \
-            --output target/helve-qualification/worldgen/smoke.json
+            --output "${GITHUB_WORKSPACE}/target/helve-qualification/worldgen/smoke.json"
 
       - name: Validate structural benchmark artifact, not elapsed-time thresholds
         run: |

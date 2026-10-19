@@ -11,7 +11,9 @@ const ORACLE: &str = include_str!("data/improved_noise_26_2_rawbits.tsv");
 
 fn hex64(value: &str) -> u64 {
     u64::from_str_radix(
-        value.strip_prefix("0x").expect("oracle must contain 0x prefix"),
+        value
+            .strip_prefix("0x")
+            .expect("oracle must contain 0x prefix"),
         16,
     )
     .expect("oracle has exactly 64-bit hexadecimal input/output")
@@ -32,10 +34,13 @@ fn all_160_pinned_official_jvm_samples_are_bit_exact() {
         let y = f64::from_bits(hex64(values[2]));
         let z = f64::from_bits(hex64(values[3]));
         let expected = hex64(values[4]);
-        let sampler = samplers.entry(seed).or_insert_with(|| ImprovedNoise262::new(seed));
+        let sampler = samplers
+            .entry(seed)
+            .or_insert_with(|| ImprovedNoise262::new(seed));
         let actual = sampler.sample(x, y, z).to_bits();
         assert_eq!(
-            actual, expected,
+            actual,
+            expected,
             "source-free 26.2 oracle mismatch: line {}, seed {seed:#018x}, x {:#018x}, y {:#018x}, z {:#018x}, actual {actual:#018x}, expected {expected:#018x}",
             line_number + 1,
             x.to_bits(),
@@ -76,10 +81,7 @@ fn independent_cold_workers_do_not_share_mutable_rng_state() {
                 for i in 0..1_000 {
                     let offset = f64::from(i);
                     let _ = sampler.sample(offset / 4.0, 0.25, -offset / 8.0);
-                    assert_eq!(
-                        sampler.sample(-31.125, 319.875, 31.125).to_bits(),
-                        baseline
-                    );
+                    assert_eq!(sampler.sample(-31.125, 319.875, 31.125).to_bits(), baseline);
                 }
             });
         }

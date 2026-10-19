@@ -68,7 +68,7 @@ impl LegacyBits {
             .expect("only 26, 27, 31 or 32 random bits are requested")
     }
 
-    /// Match Java RandomSource.nextLong(): signed 32-bit halves are added,
+    /// Match Java `RandomSource.nextLong()`: signed 32-bit halves are added,
     /// not simply OR-combined. Each fork consumes exactly two 32-bit draws.
     pub(crate) fn next_long(&mut self) -> u64 {
         let upper = i64::from(i32::from_ne_bytes(self.next_bits(32).to_ne_bytes())) << 32;

@@ -56,11 +56,7 @@ impl LegacyBits {
 
     #[inline]
     fn next_bits(&mut self, count: u32) -> u32 {
-        self.state = self
-            .state
-            .wrapping_mul(Self::MULTIPLIER)
-            .wrapping_add(11)
-            & Self::MASK;
+        self.state = self.state.wrapping_mul(Self::MULTIPLIER).wrapping_add(11) & Self::MASK;
         (self.state >> (48 - count)) as u32
     }
 
@@ -197,7 +193,12 @@ impl ImprovedNoise262 {
         let c100 = grad_dot(self.p(ba.wrapping_add(iz)), dx - 1.0, dy, dz);
         let c010 = grad_dot(self.p(ab.wrapping_add(iz)), dx, dy - 1.0, dz);
         let c110 = grad_dot(self.p(bb.wrapping_add(iz)), dx - 1.0, dy - 1.0, dz);
-        let c001 = grad_dot(self.p(aa.wrapping_add(iz).wrapping_add(1)), dx, dy, dz - 1.0);
+        let c001 = grad_dot(
+            self.p(aa.wrapping_add(iz).wrapping_add(1)),
+            dx,
+            dy,
+            dz - 1.0,
+        );
         let c101 = grad_dot(
             self.p(ba.wrapping_add(iz).wrapping_add(1)),
             dx - 1.0,
@@ -235,9 +236,11 @@ impl ImprovedNoise262 {
     /// exposing mutable RNG state or copying the 256-byte permutation.
     #[must_use]
     pub fn permutation_checksum(&self) -> u64 {
-        self.permutation.iter().fold(0xcbf2_9ce4_8422_2325_u64, |acc, &v| {
-            (acc ^ u64::from(v)).wrapping_mul(0x100_0000_01b3)
-        })
+        self.permutation
+            .iter()
+            .fold(0xcbf2_9ce4_8422_2325_u64, |acc, &v| {
+                (acc ^ u64::from(v)).wrapping_mul(0x100_0000_01b3)
+            })
     }
 }
 

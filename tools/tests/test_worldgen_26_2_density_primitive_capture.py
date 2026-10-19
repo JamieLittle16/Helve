@@ -169,7 +169,7 @@ class DensityPrimitiveCaptureTests(unittest.TestCase):
             src = root / "src/net/minecraft/world/level/levelgen"
             src.mkdir(parents=True)
             shared = root / "src/net/minecraft"
-            shared.mkdir(parents=True)
+            shared.mkdir(parents=True, exist_ok=True)
             (shared / "SharedConstants.java").write_text(
                 """package net.minecraft;
                 public final class SharedConstants {

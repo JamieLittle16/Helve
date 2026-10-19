@@ -15,6 +15,36 @@ individual investigations; they do **not** override later merged admissions,
 implementations or CI results. Git history retains the earlier detailed ledger.
 Do not restart a closed source-review family based on an old pending note.
 
+## Post-handoff R2C/R2D liveness hardening (19 October 2026)
+
+PRs **#411** (`fe3291181f9d12ecef3dcc0dcde54a5b76a7a763`) and
+**#412** (`059ef9baa1e5f47ec7349dbbcf51e987741a686f`) are merged
+on `main`, after the #410 handoff. At the #412 PR head
+`366a541d583f83199cecc7b0a402486bf414f793`, all four triggered
+checks passed.
+
+- **Accepted socket setup is per-connection:** a failure to configure
+  read/write timeouts or `TCP_NODELAY` no longer terminates the normal
+  long-lived listener and drops its single resident world. The explicitly
+  one-shot `--once` path still reports the failure.
+- **Short Play writes make outbound progress:** a successful partial
+  `TcpStream::write` no longer causes the continuing Play loop to block
+  on inbound reads with pending bounded egress. Each next iteration first
+  services existing control/liveness and retries one write through the
+  original driver. Zero-progress writes remain fail-closed.
+- **Regression coverage:** deterministic short/zero-write tests preserve
+  exact bytes without duplication, a distinct read-wait decision prevents
+  premature read blocking, and the original read scratch/driver distinguishes
+  clean from truncated EOF.
+
+These are **source-independent transport/liveness hardening only**, not
+full-handshake reconnect, simultaneous client service, sustained
+backpressure qualification, measured R2C.6 projection/cache selection,
+or permission to construct production `R2cSourceAdmission`. The normal
+server still accepts clients serially and publishes **no chunks**. All
+R2C → R2D readiness checklist obligations in the 19 October handoff
+remain required.
+
 ## Source admission — already completed
 
 PR #268 independently admitted and promoted the R2C **world-state**

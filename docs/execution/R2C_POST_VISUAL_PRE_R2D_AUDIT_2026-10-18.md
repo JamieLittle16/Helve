@@ -2,6 +2,8 @@
 
 Baseline: `093ae2cee68c86706beebaeb6986d5c088d62e57`; official Minecraft Java 26.2, protocol 776, DataVersion 4903.
 
+**Current closure/readiness status (19 October 2026):** [R2C → R2D readiness handoff](R2C_TO_R2D_READINESS_HANDOFF_2026-10-19.md) supersedes this document for PR #389–#409 progress and the R2C exit checklist. Keep the original 18 October findings as historical evidence; in particular, no normal-path per-session Anvil import remains, but production positive chunk publication and independent remaining VAR/SEM are still blocked. The post-#409 client callback verification is *source-free structural evidence*, not final admission. R2D remains a **pregenerated-world persistent liveness/reconnect** stage; world generation is not required for entry.
+
 **Historical audit update (PR #389, 18 October):** The ordinary
 executable now creates a single nonpublishing COLD `R2cColdWorldHost`
 before the accept loop and reuses its resident directory/receipts across

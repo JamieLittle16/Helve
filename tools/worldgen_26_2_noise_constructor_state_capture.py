@@ -176,7 +176,7 @@ public final class HelveFamilyStateBits {
       if (!line.matches("[0-9a-f]{16}") || ++count>5) {
         throw new IllegalArgumentException("invalid or excessive seed rows");
       }
-      seed=line;
+      seed="0x"+line;
       Object random=randomCreate.invoke(null,Long.parseUnsignedLong(line,16));
       Object sampler=sampleFactory(args[0].equals("perlin_noise"),random);
       if(args[0].equals("perlin_noise")) perlin(sampler,"root");

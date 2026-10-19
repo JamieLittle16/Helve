@@ -162,7 +162,7 @@ class CaptureTests(unittest.TestCase):
             self.assertEqual(outputs[0], "0x0000000000000000")
             self.assertEqual(outputs[1], "0x8000000000000000")
             self.assertEqual(outputs[2], "0x0000000000000000")
-            self.assertEqual(outputs[5], "0x3fe8000000000000")  # 0.5 + 0.5 + 0.5 = 1.5
+            self.assertEqual(outputs[5], "0x3ff8000000000000")  # 0.5 + 0.5 + 0.5 = 1.5
             self.assertEqual(outputs[5], capture.float_bits(1.5))
 
 

@@ -47,7 +47,7 @@ const GRADIENT: [[i32; 3]; 16] = [
 /// Seeding and bounded-int rejection consume exactly the prescribed calls;
 /// no std RNG implementation or floating-point approximation is substituted.
 #[derive(Debug)]
-struct LegacyBits {
+pub(crate) struct LegacyBits {
     state: u64,
 }
 
@@ -55,7 +55,7 @@ impl LegacyBits {
     const MASK: u64 = (1_u64 << 48) - 1;
     const MULTIPLIER: u64 = 0x5dee_ce66d;
 
-    fn new(seed: u64) -> Self {
+    pub(crate) fn new(seed: u64) -> Self {
         Self {
             state: (seed ^ Self::MULTIPLIER) & Self::MASK,
         }
@@ -66,6 +66,14 @@ impl LegacyBits {
         self.state = self.state.wrapping_mul(Self::MULTIPLIER).wrapping_add(11) & Self::MASK;
         u32::try_from(self.state >> (48 - count))
             .expect("only 26, 27 or 31 random bits are requested")
+    }
+
+    /// Match Java RandomSource.nextLong(): signed 32-bit halves are added,
+    /// not simply OR-combined. Each fork consumes exactly two 32-bit draws.
+    pub(crate) fn next_long(&mut self) -> u64 {
+        let upper = i64::from(i32::from_ne_bytes(self.next_bits(32).to_ne_bytes())) << 32;
+        let lower = i64::from(i32::from_ne_bytes(self.next_bits(32).to_ne_bytes()));
+        u64::from_ne_bytes(upper.wrapping_add(lower).to_ne_bytes())
     }
 
     #[inline]
@@ -157,6 +165,35 @@ fn grad_dot(hash: u8, x: f64, y: f64, z: f64) -> f64 {
     (f64::from(gradient[0]) * x + f64::from(gradient[1]) * y) + f64::from(gradient[2]) * z
 }
 
+/// Exact Java `("octave_" + index).hashCode()` in wrapping i32 arithmetic.
+/// Covers signed i32 minima as well as the four observed octave indices.
+fn java_octave_hash(octave: i32) -> i32 {
+    let mut hash = 0_i32;
+    for &byte in b"octave_" {
+        hash = hash.wrapping_mul(31).wrapping_add(i32::from(byte));
+    }
+    if octave < 0 {
+        hash = hash.wrapping_mul(31).wrapping_add(i32::from(b'-'));
+    }
+    let mut magnitude = octave.unsigned_abs();
+    let mut reversed_digits = [0_u8; 10];
+    let mut length = 0;
+    loop {
+        reversed_digits[length] = u8::try_from(magnitude % 10).expect("decimal digit fits u8");
+        length += 1;
+        magnitude /= 10;
+        if magnitude == 0 {
+            break;
+        }
+    }
+    for &digit in reversed_digits[..length].iter().rev() {
+        hash = hash
+            .wrapping_mul(31)
+            .wrapping_add(i32::from(b'0' + digit));
+    }
+    hash
+}
+
 impl ImprovedNoise262 {
     /// Prepares one complete independent sampler using the direct bit-pattern
     /// seed given to the official `RandomSource.create(long)` probe.
@@ -190,6 +227,17 @@ impl ImprovedNoise262 {
         }
     }
 
+    /// Construct one octave from a legacy positional factory's signed Java
+    /// `String.hashCode()` seed for `octave_<index>`. No string allocation is
+    /// needed: all decimal digits are converted on the construction path.
+    /// This is a candidate for the pinned 26.2 four-octave profile, not
+    /// independently source-admitted for other random factories.
+    #[must_use]
+    pub(crate) fn from_legacy_positional_octave(factory_seed: u64, octave: i32) -> Self {
+        let hash = i64::from(java_octave_hash(octave));
+        Self::new(factory_seed ^ u64::from_ne_bytes(hash.to_ne_bytes()))
+    }
+
     /// Restores a complete, immutable sampler from externally observed
     /// numeric constructor state. This bypasses RNG reconstruction; only
     /// `new(seed)` constructs the separate directly seeded `ImprovedNoise`.
@@ -218,6 +266,17 @@ impl ImprovedNoise262 {
             offset_y,
             offset_z,
         })
+    }
+
+    /// Compare complete numeric state, including permutation bytes and raw
+    /// IEEE-754 offset bits, without rounding or allocating diagnostic strings.
+    /// Useful for an independently observed constructor-state acceptance gate.
+    #[must_use]
+    pub fn state_bits_equal(&self, other: &Self) -> bool {
+        self.permutation == other.permutation
+            && self.offset_x.to_bits() == other.offset_x.to_bits()
+            && self.offset_y.to_bits() == other.offset_y.to_bits()
+            && self.offset_z.to_bits() == other.offset_z.to_bits()
     }
 
     #[inline]

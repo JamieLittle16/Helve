@@ -154,6 +154,10 @@ impl ImprovedNoise262 {
     /// Prepares one complete independent sampler using the direct bit-pattern
     /// seed given to the official `RandomSource.create(long)` probe.
     /// Allocate once per resolved seed/parameter, never once per noise sample.
+    ///
+    /// # Panics
+    /// Only if a statically bounded permutation index 0..255 or its bounded
+    /// random jump cannot be represented by the fixed integer types.
     #[must_use]
     pub fn new(seed_bits: u64) -> Self {
         let mut random = LegacyBits::new(seed_bits);

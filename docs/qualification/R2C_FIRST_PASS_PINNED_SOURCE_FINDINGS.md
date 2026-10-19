@@ -3,8 +3,18 @@
 **Evidence status:** source text personally inspected from the 17 October 2026 local
 review bundle. This is a **first pass**, not a complete delegation closure,
 independent human review, independent Atlas gate, VAR/SEM source admission or
-authorization for live Play chunk publication. In particular, no stock-client
-world render has yet been demonstrated.
+authorization for live Play chunk publication. The later 18 October stock-client
+test-only 25-source-chunk visual demonstration **did** render the central 3x3;
+the first-pass findings below remain *historical, unadmitted source
+evidence* rather than the current runtime status.
+
+**19 October second pass:** a narrow source-free artifact
+`vanilla/reviews/network/r2c-outer-envelope-second-pass-source-findings.json`
+now confirms the exact direct packet-constructor/write and receiving-field
+order for five of these 19 pinned methods. See
+`R2C_CHUNK_WIRE_SOURCE_FRONTIER.md` for its explicit reached-delegate
+and exception/packet-identity exclusions. Neither first nor second
+pass grants independent source VAR/SEM authority.
 
 ## Exact provenance and safe retention
 

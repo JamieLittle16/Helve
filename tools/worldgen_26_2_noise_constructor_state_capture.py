@@ -32,7 +32,7 @@ import worldgen_26_2_perlin_normal_capture as family
 ROOT = Path(__file__).resolve().parents[1]
 HEX64 = re.compile(r"0x[0-9a-f]{16}\Z")
 HEX512 = re.compile(r"[0-9a-f]{512}\Z")
-SEEDS = tuple(f"0x{seed:016x}" for seed in improved.SEEDS)
+SEEDS = tuple(dict.fromkeys(record["seed_bits"] for record in improved.probes()))
 KINDS = frozenset({"D", "I", "A", "P", "Z", "L"})
 MAX_RECORDS_PER_SEED = 150
 

@@ -37,7 +37,7 @@ pub trait GeneratedSectionBuilder<S: Copy + Eq, B: Copy + Eq> {
     type Biomes: BiomeSection<B>;
     type Error;
 
-    /// Build exactly one 4096-state final block section, Y/Z/X linearized.
+    /// Build one block section from a uniform value or 4096 Y/Z/X-linearized cells.
     ///
     /// # Errors
     /// Returns a mechanism-specific section construction error.
@@ -46,7 +46,7 @@ pub trait GeneratedSectionBuilder<S: Copy + Eq, B: Copy + Eq> {
         samples: SectionSamples<'_, S, BLOCK_SECTION_CELLS>,
     ) -> Result<Self::Blocks, Self::Error>;
 
-    /// Build exactly one 64-biome quart section, in the semantic biome lattice.
+    /// Build one biome section from a uniform value or 64 quart-biome cells.
     ///
     /// # Errors
     /// Returns a mechanism-specific biome-section construction error.
@@ -154,7 +154,7 @@ impl SteppedSurface {
         let mut blocks = Vec::with_capacity(section_count);
         let mut biomes = Vec::with_capacity(section_count);
         let mut cells = [palette.air; BLOCK_SECTION_CELLS];
- 
+
         // Sample one column exactly once, even for 24+ vertical sections.
         // Two extrema permit cheap whole-section air/solid fast paths;
         // neither the surface cache nor the cell scratch escapes this call.

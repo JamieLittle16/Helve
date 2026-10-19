@@ -54,7 +54,11 @@ class NoiseFamilyCaptureTests(unittest.TestCase):
     def test_missing_changed_or_duplicated_method_always_rejects(self):
         stage = "perlin_noise"
         rows = self.make_methods(stage)
-        with mock.patch.object(capture.projection, "_exact_type_methods", side_effect=lambda conn, owner, limit: rows[owner][:-1]):
+        with mock.patch.object(capture.projection, "_exact_type_methods", side_effect=lambda conn, owner, limit: rows[owner][:-1]), \
+             mock.patch.object(capture.source_probe, "record_template", side_effect=lambda conn, row, candidate: {
+                 "source": {"type": row["owner"], "signature": row["signature"],
+                            "body_sha256": row["hash"], "normalized_sha256": "f" * 64}
+             }):
             with self.assertRaisesRegex(capture.CaptureError, "missing exact source method"):
                 capture.bound_methods(mock.MagicMock(), stage)
         rows = self.make_methods(stage)

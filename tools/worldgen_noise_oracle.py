@@ -39,6 +39,14 @@ def _fixed_hex64(value: object, name: str) -> str:
 def validate(manifest: object, lock: dict, kind: str) -> dict[tuple[str, ...], str]:
     if not isinstance(manifest, dict) or manifest.get("schema") != 1:
         raise OracleError("unsupported noise oracle manifest schema")
+    expected_keys = {
+        "schema", "kind", "minecraft", "protocol", "data_version",
+        "source_archive_sha256", "official_server_sha256", "stage",
+        "method_body_sha256", "source_text_included",
+        "independent_var_sem_admitted", "production_worldgen_enabled", "vectors",
+    }
+    if set(manifest) != expected_keys:
+        raise OracleError("unexpected manifest metadata or source-rich payload")
     if manifest.get("kind") != kind:
         raise OracleError("candidate/oracle role mismatch")
     for field, expected in (

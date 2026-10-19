@@ -21,6 +21,14 @@ use helve_world_contract::{
 };
 use helve_world_runtime::DimensionRuntimeProfile;
 
+/// One typed section sample. Uniform sections avoid creating, scanning or
+/// copying a redundant dense 4096-cell array in the common full/empty case.
+#[derive(Clone, Copy, Debug)]
+pub enum SectionSamples<'a, T: Copy + Eq, const N: usize> {
+    Uniform(T),
+    Dense(&'a [T; N]),
+}
+
 /// A statically dispatched adapter from sampled *semantic values* to the selected
 /// section mechanism. The adapter owns neither a second world nor any resident index.
 /// A future palette/packed section can implement this without changing worldgen logic.
@@ -35,7 +43,7 @@ pub trait GeneratedSectionBuilder<S: Copy + Eq, B: Copy + Eq> {
     /// Returns a mechanism-specific section construction error.
     fn blocks(
         &mut self,
-        cells: &[S; BLOCK_SECTION_CELLS],
+        samples: SectionSamples<'_, S, BLOCK_SECTION_CELLS>,
     ) -> Result<Self::Blocks, Self::Error>;
 
     /// Build exactly one 64-biome quart section, in the semantic biome lattice.
@@ -44,7 +52,7 @@ pub trait GeneratedSectionBuilder<S: Copy + Eq, B: Copy + Eq> {
     /// Returns a mechanism-specific biome-section construction error.
     fn biomes(
         &mut self,
-        cells: &[B; BIOME_SECTION_CELLS],
+        samples: SectionSamples<'_, B, BIOME_SECTION_CELLS>,
     ) -> Result<Self::Biomes, Self::Error>;
 }
 
@@ -116,7 +124,7 @@ impl SteppedSurface {
     /// Generate a complete, pristine ordinary Helve semantic chunk.
     ///
     /// The caller supplies the **actual** directory-reserved incarnation and
-    /// pre-resolved dimension profile. Reuses a 256-column height scratch and two section arrays
+    /// pre-resolved dimension profile. Reuses a 256-column height scratch and one dense section array
     /// across sections and allocates only the two final section vectors; the
     /// section builder chooses its final storage with static dispatch.
     ///
@@ -146,8 +154,7 @@ impl SteppedSurface {
         let mut blocks = Vec::with_capacity(section_count);
         let mut biomes = Vec::with_capacity(section_count);
         let mut cells = [palette.air; BLOCK_SECTION_CELLS];
-        let biome_cells = [palette.biome; BIOME_SECTION_CELLS];
-
+ 
         // Sample one column exactly once, even for 24+ vertical sections.
         // Two extrema permit cheap whole-section air/solid fast paths;
         // neither the surface cache nor the cell scratch escapes this call.
@@ -169,10 +176,10 @@ impl SteppedSurface {
             let section_y = profile.min_section_y()
                 + i32::try_from(section_index).expect("dimension has at most 64 sections");
             let min_y = i64::from(section_y) * 16;
-            if min_y > highest {
-                cells.fill(palette.air);
+            let samples = if min_y > highest {
+                SectionSamples::Uniform(palette.air)
             } else if min_y + 15 <= lowest {
-                cells.fill(palette.solid);
+                SectionSamples::Uniform(palette.solid)
             } else {
                 for y in 0_u8..16 {
                     for z in 0_u8..16 {
@@ -188,15 +195,16 @@ impl SteppedSurface {
                         }
                     }
                 }
-            }
+                SectionSamples::Dense(&cells)
+            };
             blocks.push(
                 builder
-                    .blocks(&cells)
+                    .blocks(samples)
                     .map_err(|cause| SurfaceGenerationError::BlockSection { section_y, cause })?,
             );
             biomes.push(
                 builder
-                    .biomes(&biome_cells)
+                    .biomes(SectionSamples::Uniform(palette.biome))
                     .map_err(|cause| SurfaceGenerationError::BiomeSection { section_y, cause })?,
             );
         }
@@ -224,7 +232,7 @@ mod tests {
     use helve_world_reference::{DirectBiomeSection, DirectBlockSection};
     use helve_world_runtime::{DimensionRuntimeProfile, SemanticDimensionInstance, SemanticResidentLoadError};
 
-    use super::{GeneratedSectionBuilder, SteppedSurface, SurfaceGenerationError, SurfacePalette};
+    use super::{GeneratedSectionBuilder, SectionSamples, SteppedSurface, SurfaceGenerationError, SurfacePalette};
 
     #[derive(Clone, Copy, Debug, Eq, PartialEq)]
     enum State {
@@ -248,6 +256,8 @@ mod tests {
     #[derive(Default)]
     struct ReferenceBuilder {
         sections_built: usize,
+        uniform_blocks: usize,
+        dense_blocks: usize,
         reject_at: Option<usize>,
     }
 
@@ -256,21 +266,41 @@ mod tests {
         type Biomes = DirectBiomeSection<Biome>;
         type Error = &'static str;
 
-        fn blocks(&mut self, cells: &[State; BLOCK_SECTION_CELLS]) -> Result<Self::Blocks, Self::Error> {
+        fn blocks(
+            &mut self,
+            samples: SectionSamples<'_, State, BLOCK_SECTION_CELLS>,
+        ) -> Result<Self::Blocks, Self::Error> {
             self.sections_built += 1;
             if self.reject_at == Some(self.sections_built) {
                 return Err("deliberate builder rejection");
             }
-            Ok(DirectBlockSection::from_decoded_cells(cells, &Facts))
+            Ok(match samples {
+                SectionSamples::Uniform(state) => {
+                    self.uniform_blocks += 1;
+                    DirectBlockSection::filled(state, &Facts)
+                }
+                SectionSamples::Dense(cells) => {
+                    self.dense_blocks += 1;
+                    DirectBlockSection::from_decoded_cells(cells, &Facts)
+                }
+            })
         }
 
-        fn biomes(&mut self, cells: &[Biome; BIOME_SECTION_CELLS]) -> Result<Self::Biomes, Self::Error> {
-            let mut section = DirectBiomeSection::filled(cells[0]);
-            section.fill_with(|x, y, z| {
-                let local = SectionBiomePos::new(x, y, z).expect("4x4x4 quart coordinate");
-                cells[local.index()]
-            });
-            Ok(section)
+        fn biomes(
+            &mut self,
+            samples: SectionSamples<'_, Biome, BIOME_SECTION_CELLS>,
+        ) -> Result<Self::Biomes, Self::Error> {
+            Ok(match samples {
+                SectionSamples::Uniform(biome) => DirectBiomeSection::filled(biome),
+                SectionSamples::Dense(cells) => {
+                    let mut section = DirectBiomeSection::filled(cells[0]);
+                    section.fill_with(|x, y, z| {
+                        let local = SectionBiomePos::new(x, y, z).expect("4x4x4 quart coordinate");
+                        cells[local.index()]
+                    });
+                    section
+                }
+            })
         }
     }
 
@@ -317,6 +347,8 @@ mod tests {
             position, ChunkGeneration(17), profile(), PALETTE, &mut builder
         ).unwrap();
         assert_eq!(builder.sections_built, 6);
+        assert!(builder.uniform_blocks > 0);
+        assert!(builder.dense_blocks > 0);
         assert_eq!(chunk.position(), position);
         assert_eq!(chunk.generation(), ChunkGeneration(17));
         assert_eq!(chunk.revision(), ChunkRevision(0));

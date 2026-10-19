@@ -6,7 +6,15 @@
 //! `from_observed_parts` requires the actual octave permutations and offsets.
 //! Source/VAR/SEM admission and normal terrain publication remain closed.
 
-use crate::improved_noise_262::ImprovedNoise262;
+use crate::improved_noise_262::{ImprovedNoise262, LegacyBits};
+
+/// Four-slot official-JVM reference profile: octaves -3..=0, with a muted
+/// -2 octave. Only the direct-seed factory for THIS profile is qualified.
+const DIRECT_PROFILE_FIRST_OCTAVE: i32 = -3;
+const DIRECT_PROFILE_AMPLITUDES: [f64; 4] = [1.0, 0.0, 0.5, 1.0];
+const DIRECT_PROFILE_INPUT_FACTOR: f64 = f64::from_bits(0x3fc0_0000_0000_0000);
+const DIRECT_PROFILE_VALUE_FACTOR: f64 = f64::from_bits(0x3fe1_1111_1111_1111);
+const DIRECT_PROFILE_NORMAL_FACTOR: f64 = f64::from_bits(0x3ff5_5555_5555_5555);
 
 /// Exactly the four octave slots in the explicitly pinned fixture profile.
 /// A zero-amplitude absent octave stays absent, rather than consuming RNG.
@@ -77,6 +85,68 @@ impl PerlinNoise262 {
             lowest_freq_input_factor,
             lowest_freq_value_factor,
         }
+    }
+
+    /// Construct the pinned 26.2 four-octave family directly from any
+    /// `RandomSource.create(long)` seed bit pattern. The parent legacy RNG
+    /// supplies one signed Java `nextLong()` to a positional factory;
+    /// nonzero-amplitude octaves then derive independent hash-named RNGs.
+    /// A muted octave is absent and does not consume a parent RNG draw.
+    ///
+    /// This is intentionally NOT a general Minecraft world-seed constructor:
+    /// other parameter arrays, random-factory types and source semantics
+    /// still require separate official-runtime/source qualification.
+    #[must_use]
+    pub fn from_direct_seed_observed_profile(seed_bits: u64) -> Self {
+        let mut parent = LegacyBits::new(seed_bits);
+        Self::from_positional_factory_observed_profile(parent.next_long())
+    }
+
+    fn from_positional_factory_observed_profile(factory_seed: u64) -> Self {
+        let octaves = std::array::from_fn(|slot| {
+            if DIRECT_PROFILE_AMPLITUDES[slot] == 0.0 {
+                None
+            } else {
+                let octave_number = DIRECT_PROFILE_FIRST_OCTAVE
+                    + i32::try_from(slot).expect("four octave slots fit i32");
+                Some(ImprovedNoise262::from_legacy_positional_octave(
+                    factory_seed,
+                    octave_number,
+                ))
+            }
+        });
+        Self::from_observed_parts(
+            DIRECT_PROFILE_FIRST_OCTAVE,
+            DIRECT_PROFILE_AMPLITUDES,
+            octaves,
+            DIRECT_PROFILE_INPUT_FACTOR,
+            DIRECT_PROFILE_VALUE_FACTOR,
+        )
+    }
+
+    /// Compare every numeric constructor field, including raw bits of
+    /// amplitude/frequency/value factors and complete active octave state.
+    #[must_use]
+    pub fn state_bits_equal(&self, other: &Self) -> bool {
+        self.first_octave == other.first_octave
+            && self
+                .amplitudes
+                .iter()
+                .zip(other.amplitudes.iter())
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+            && self
+                .octaves
+                .iter()
+                .zip(other.octaves.iter())
+                .all(|(a, b)| match (a, b) {
+                    (None, None) => true,
+                    (Some(a), Some(b)) => a.state_bits_equal(b),
+                    _ => false,
+                })
+            && self.lowest_freq_input_factor.to_bits()
+                == other.lowest_freq_input_factor.to_bits()
+            && self.lowest_freq_value_factor.to_bits()
+                == other.lowest_freq_value_factor.to_bits()
     }
 
     /// The first source-observed octave position; informational for this
@@ -190,6 +260,25 @@ impl NormalNoise262 {
             second,
             value_factor,
         }
+    }
+
+    /// Construct both independent observed-profile Perlin branches from one
+    /// parent legacy RNG. Each branch uses a distinct consecutive signed
+    /// Java `nextLong()` positional fork (two 32-bit draws per fork).
+    #[must_use]
+    pub fn from_direct_seed_observed_profile(seed_bits: u64) -> Self {
+        let mut parent = LegacyBits::new(seed_bits);
+        let first = PerlinNoise262::from_positional_factory_observed_profile(parent.next_long());
+        let second = PerlinNoise262::from_positional_factory_observed_profile(parent.next_long());
+        Self::from_observed_parts(first, second, DIRECT_PROFILE_NORMAL_FACTOR)
+    }
+
+    /// Compare both independent Perlin states and the exact normal factor.
+    #[must_use]
+    pub fn state_bits_equal(&self, other: &Self) -> bool {
+        self.first.state_bits_equal(&other.first)
+            && self.second.state_bits_equal(&other.second)
+            && self.value_factor.to_bits() == other.value_factor.to_bits()
     }
 
     /// Evaluate the observed normal-noise candidate in exact ordered sums.

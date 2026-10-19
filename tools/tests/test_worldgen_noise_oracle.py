@@ -99,7 +99,9 @@ class NoiseOracleTests(unittest.TestCase):
                 oracle.compare(self.ref, changed, LOCK)
 
     def test_missing_negative_zero_and_few_seeds_fail(self):
-        self.ref["vectors"][0]["x_bits"] = bits(2.0)
+        for vector in self.ref["vectors"]:
+            if vector["x_bits"] == bits(-0.0):
+                vector["x_bits"] = bits(2.0)
         with self.assertRaisesRegex(oracle.OracleError, "missing -0.0"):
             oracle.compare(self.ref, self.candidate, LOCK)
         self.ref = manifest("official_26_2_noise_oracle_candidate")

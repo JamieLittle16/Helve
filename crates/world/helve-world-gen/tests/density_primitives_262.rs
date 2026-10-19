@@ -2,9 +2,7 @@
 //! raw-bit outputs, never inferred from a Rust float expected value.
 //! This does NOT qualify arbitrary router nodes, random state or chunk publication.
 
-use helve_world_gen::density_primitives_262::{
-    DensityPrimitive262, DensityPrimitiveError262,
-};
+use helve_world_gen::density_primitives_262::{DensityPrimitive262, DensityPrimitiveError262};
 
 const OFFICIAL: &str = include_str!("data/density_primitive_26_2_rawbits.tsv");
 const SEEDS: [&str; 5] = [
@@ -21,8 +19,8 @@ const PROFILES: [&str; 4] = [
     "gradient_reverse",
 ];
 const Y_LEVELS: [i32; 32] = [
-    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64, 127, 128, 255,
-    256, 318, 319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
+    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64, 127, 128, 255, 256, 318,
+    319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
 ];
 
 fn raw_bits(hex: &str) -> u64 {
@@ -33,7 +31,9 @@ fn raw_bits(hex: &str) -> u64 {
 
 fn primitive(profile: &str) -> DensityPrimitive262 {
     match profile {
-        "constant_negative_zero" => DensityPrimitive262::constant(f64::from_bits(0x8000_0000_0000_0000)),
+        "constant_negative_zero" => {
+            DensityPrimitive262::constant(f64::from_bits(0x8000_0000_0000_0000))
+        }
         "constant_fraction" => DensityPrimitive262::constant(0.5),
         "gradient_world_height" => DensityPrimitive262::y_clamped_gradient(-64, 320, -1.0, 1.0)
             .expect("observed official profile has valid bounds"),
@@ -48,7 +48,10 @@ fn all_640_pinned_official_density_compute_raw_bits_match() {
     assert!(OFFICIAL.contains("Original complete official capture JSON SHA256: b1ee06e998b19ede5a283af2757e192dbb75fb6b761b55fa0d6a8a5f1e2297bc"));
     assert!(OFFICIAL.contains("Target 26.2 protocol 776 data version 4903"));
     let mut count = 0;
-    for line in OFFICIAL.lines().filter(|line| !line.starts_with('#') && !line.is_empty()) {
+    for line in OFFICIAL
+        .lines()
+        .filter(|line| !line.starts_with('#') && !line.is_empty())
+    {
         let fields: Vec<_> = line.split_whitespace().collect();
         assert_eq!(fields.len(), 6, "row {count}");
         let (profile_idx, seed_idx, position_idx) = (count / 160, (count / 32) % 5, count % 32);
@@ -58,9 +61,19 @@ fn all_640_pinned_official_density_compute_raw_bits_match() {
         let block_y = fields[3].parse::<i32>().expect("official block Y");
         let block_z = fields[4].parse::<i32>().expect("official block Z");
         let pos = i32::try_from(position_idx).expect("32 positions");
-        assert_eq!(block_x, if pos % 2 == 0 { 33_554_432 } else { -33_554_432 } + pos * 13);
+        assert_eq!(
+            block_x,
+            if pos % 2 == 0 {
+                33_554_432
+            } else {
+                -33_554_432
+            } + pos * 13
+        );
         assert_eq!(block_y, Y_LEVELS[position_idx]);
-        assert_eq!(block_z, if pos % 3 == 0 { pos * 17 } else { -pos * 17 } - 16);
+        assert_eq!(
+            block_z,
+            if pos % 3 == 0 { pos * 17 } else { -pos * 17 } - 16
+        );
         let expected = raw_bits(fields[5]);
         let actual = primitive(fields[0]).sample_block_y(block_y).to_bits();
         assert_eq!(
@@ -70,14 +83,20 @@ fn all_640_pinned_official_density_compute_raw_bits_match() {
         );
         count += 1;
     }
-    assert_eq!(count, 640, "four official profiles × five seed labels × 32 positions");
+    assert_eq!(
+        count, 640,
+        "four official profiles × five seed labels × 32 positions"
+    );
 }
 
 #[test]
 fn preserves_raw_signed_zero_and_distinguishes_non_equivalent_lerp_order() {
     let negative_zero = DensityPrimitive262::constant(-0.0);
     for block_y in [i32::MIN, -64, 0, 128, 320, i32::MAX] {
-        assert_eq!(negative_zero.sample_block_y(block_y).to_bits(), (-0.0_f64).to_bits());
+        assert_eq!(
+            negative_zero.sample_block_y(block_y).to_bits(),
+            (-0.0_f64).to_bits()
+        );
     }
     let height = DensityPrimitive262::y_clamped_gradient(-64, 320, -1.0, 1.0).unwrap();
     assert_eq!(height.sample_block_y(-64).to_bits(), (-1.0_f64).to_bits());
@@ -97,7 +116,11 @@ fn y_only_coherent_planes_and_cells_reuse_one_sample_per_vertical_level() {
         let density = primitive(profile);
         let mut horizontal = [f64::NAN; 256];
         density.sample_plane_16x16(-29, &mut horizontal);
-        assert!(horizontal.iter().all(|v| v.to_bits() == density.sample_block_y(-29).to_bits()));
+        assert!(
+            horizontal
+                .iter()
+                .all(|v| v.to_bits() == density.sample_block_y(-29).to_bits())
+        );
 
         // Keep the 32-KiB test buffer off the test thread stack.
         let mut output = vec![f64::NAN; 4096];
@@ -105,7 +128,11 @@ fn y_only_coherent_planes_and_cells_reuse_one_sample_per_vertical_level() {
         density.sample_cell_16x16x16(-38, cell).unwrap();
         for (y, plane) in output.chunks_exact(256).enumerate() {
             let world_y = -38 + i32::try_from(y).unwrap();
-            assert!(plane.iter().all(|v| v.to_bits() == density.sample_block_y(world_y).to_bits()));
+            assert!(
+                plane
+                    .iter()
+                    .all(|v| v.to_bits() == density.sample_block_y(world_y).to_bits())
+            );
         }
     }
 }

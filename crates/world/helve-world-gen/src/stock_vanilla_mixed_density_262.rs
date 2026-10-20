@@ -84,7 +84,7 @@ impl<'a> StockVanillaMixedDensity262<'a> {
     }
 
     #[inline]
-    fn from_values(self, noise: f64, primitive: f64) -> f64 {
+    fn combine_observed(self, noise: f64, primitive: f64) -> f64 {
         let (left, right) = match self.order {
             StockVanillaMixedOrder262::NoiseFirst => (noise, primitive),
             StockVanillaMixedOrder262::PrimitiveFirst => (primitive, noise),
@@ -116,7 +116,7 @@ impl<'a> StockVanillaMixedDensity262<'a> {
         {
             return 0.0;
         }
-        self.from_values(self.noise.sample_block(x, y, z), first_y)
+        self.combine_observed(self.noise.sample_block(x, y, z), first_y)
     }
 
     /// Evaluate a caller-owned, Z/X ordered 16×16 plane with the coherent
@@ -146,7 +146,7 @@ impl<'a> StockVanillaMixedDensity262<'a> {
         }
         self.noise.sample_plane_16x16(x, y, z, output)?;
         for noise in output {
-            *noise = self.from_values(*noise, value);
+            *noise = self.combine_observed(*noise, value);
         }
         Ok(())
     }
@@ -181,7 +181,7 @@ impl<'a> StockVanillaMixedDensity262<'a> {
         for (dy, plane) in (0_i32..16).zip(output.chunks_exact_mut(256)) {
             let value = self.primitive.sample_block_y(y + dy);
             for noise in plane {
-                *noise = self.from_values(*noise, value);
+                *noise = self.combine_observed(*noise, value);
             }
         }
         Ok(())

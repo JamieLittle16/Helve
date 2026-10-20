@@ -39,6 +39,7 @@ KIND = "official_26_2_stock_registered_world_seed_noise_density_oracle"
 STAGE = "stock_registry_random_state_noise_compute_candidate_not_source_admitted"
 FRONTIER_SHA256 = "1ce8eec830e497ccae7cb814705fd820fa466fb7824c7c220b54313aabe5c2c7"
 PREFIX = "HELVE26_2_WORLD_SEED_DENSITY|"
+FAILURE_TAG = "HELVE26_2_WORLD_SEED_FAILURE|"
 JAVA_SOURCE = Path(__file__).resolve().parent / "worldgen_java/HelveWorldSeededDensity262.java"
 FRONTIER = Path("/tmp/helve-26_2-random-state-binding-frontier-01.json")
 VANILLA_REGISTRIES = "net.minecraft.data.registries.VanillaRegistries"
@@ -180,6 +181,35 @@ def parse_bits(stdout: str, expected: int = N_RECORDS) -> list[str]:
     return values
 
 
+def java_probe_failure(stdout: str) -> str | None:
+    """Read a single explicit JVM error through the original stdout FD.
+
+    Minecraft startup can redirect BOTH Java stdout/stderr or install a
+    handler which prints only 'Exception in thread "main"'. The original
+    Java bridge now catches Throwable and emits this tagged, bounded row
+    without trusting Java's default uncaught-exception printer. No success
+    or admission can be inferred from a failure tag.
+    """
+    if not isinstance(stdout, str) or len(stdout.encode("utf-8")) > 256_000:
+        raise WorldSeedNoiseError("invalid size for JVM probe output")
+    found = [line for line in stdout.splitlines() if line.startswith(FAILURE_TAG)]
+    if not found:
+        return None
+    if len(found) != 1:
+        raise WorldSeedNoiseError("duplicate official JVM error records")
+    cells = found[0].split("|")
+    if len(cells) != 5 or cells[0] != FAILURE_TAG[:-1]:
+        raise WorldSeedNoiseError("malformed official JVM error record")
+    _, phase, deepest, outer, message = cells
+    if (not re.fullmatch(r"[A-Za-z0-9._-]{1,80}", phase)
+        or not re.fullmatch(r"[A-Za-z0-9.$_]{1,160}", deepest)
+        or not re.fullmatch(r"[A-Za-z0-9.$_]{1,160}", outer)
+        or not 1 <= len(message) <= 700
+        or any(ord(char) < 32 or ord(char) > 126 for char in message)):
+        raise WorldSeedNoiseError("invalid official JVM diagnostic fields")
+    return f"JVM PHASE: {phase} | ROOT CAUSE: {deepest}: {message} | OUTER: {outer}"
+
+
 def java_failure_detail(stderr: str, *, limit: int = 6000) -> str:
     """Put the deepest JVM cause on ONE line; retain bounded stack frames.
 
@@ -246,9 +276,14 @@ def oracle(server: Path, points: list[dict], *, timeout: int = 180) -> list[str]
              os.pathsep.join([str(work), *(str(part) for part in cp)]),
              "HelveWorldSeededDensity262"],
             input=rows, text=True, capture_output=True, check=False, timeout=timeout)
+        failure = java_probe_failure(run.stdout)
+        if failure is not None:
+            raise WorldSeedNoiseError("real stock-registry 26.2 world-seed JVM path "
+                                      "is NOT VERIFIED: " + failure)
         if run.returncode:
             raise WorldSeedNoiseError("real stock-registry 26.2 world-seed JVM path "
-                                      "is NOT VERIFIED: " + java_failure_detail(run.stderr))
+                                      "is NOT VERIFIED (no tagged Java error): "
+                                      + java_failure_detail(run.stderr))
         return parse_bits(run.stdout)
 
 

@@ -145,3 +145,28 @@ A fallback diagnostic independent of terminal copy/paste is to redirect the
 collector stderr into a temporary file outside the repo and inspect its
 `JVM ROOT CAUSE`, `Exception in thread` and `Caused by` lines. No
 private source, Minecraft jar or Atlas database should be uploaded.
+
+
+### Official JVM uncaught-exception output is itself truncated
+
+After #442 the user's captured stderr file contained exactly **two lines**:
+`... JVM ROOT CAUSE: Exception in thread "main"` and
+`Exception in thread "main"`. There was **no exception type, message or
+stack trace** in the underlying subprocess stderr. This is therefore not
+a Python formatting/terminal-copy issue; the official bootstrapped JVM has
+not provided its normal uncaught exception stack to the collector.
+
+The original Java probe now catches `Throwable` *inside the probe's main
+entrypoint*, unwraps the deepest reflected `InvocationTargetException`
+cause, tracks the bounded source-free phase (bootstrap, actual class lookup,
+stock registry, seed-state creation, bound holder, or numeric compute),
+and writes a **single tagged error** directly to `FileDescriptor.out`,
+which the existing official runtime capture method has demonstrated is
+available even when Minecraft replaces `System.out`.
+
+The Python capture validates that exact one-row error protocol, refuses
+malformed/duplicated error tags, and **always fails closed**. An original,
+independently compiled toy JVM now exercises an exception thrown by
+`VanillaRegistries.createLookup()` *after* bootstrap's stdout redirect and
+confirms a phase and Java exception class survive end-to-end. This is
+diagnostics, not independent registry/source/VAR/SEM or numeric admission.

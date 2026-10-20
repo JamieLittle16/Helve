@@ -15,22 +15,30 @@ use crate::density_primitives_262::{DensityPrimitive262, DensityPrimitiveError26
 /// Source-free JVM-output-qualified *candidate* composition of exactly two
 /// immutable density primitives, evaluated at integer Minecraft block Y.
 ///
-/// The multiplication variants distinguish the constant-factor path from
-/// the observed two-dynamic-function path. That distinction is derived from
-/// the captured factory outputs, NOT from independently reviewed delegates.
+/// Both addition and multiplication have source-locked JVM-observed shape
+/// distinctions: `Ap2.compute` handles two nonconstant primitives;
+/// `MulOrAdd` reaches `PureTransformer.compute` with a constant operand.
+/// Those identities were observed via official reflection and Atlas
+/// fingerprints, NOT independently source-reviewed or production-admitted.
 #[derive(Clone, Copy, Debug)]
 pub enum DensityComposition262 {
-    /// Ordered addition of two previously observed integer-Y primitives.
-    Add {
+    /// Official `DensityFunctions$Ap2.compute` path: two nonconstant leaves.
+    AddFunctions {
         left: DensityPrimitive262,
         right: DensityPrimitive262,
     },
-    /// Observed constant-factor composition; preserves signed-zero products.
+    /// Official `DensityFunctions$MulOrAdd` path, reached through
+    /// `PureTransformer.compute` for a constant-factor addition.
+    AddWithConstant {
+        left: DensityPrimitive262,
+        right: DensityPrimitive262,
+    },
+    /// Observed `MulOrAdd` constant-factor composition; preserves signed zeros.
     MultiplyWithConstant {
         left: DensityPrimitive262,
         right: DensityPrimitive262,
     },
-    /// Observed nonconstant pair: return positive zero for a +0 left
+    /// Observed `Ap2.compute` nonconstant pair: return positive zero for a +0 left
     /// operand before evaluating the second operand.
     MultiplyFunctions {
         left: DensityPrimitive262,
@@ -42,7 +50,16 @@ impl DensityComposition262 {
     /// Construct a source-free qualified candidate for a two-primitive add.
     #[must_use]
     pub const fn add(left: DensityPrimitive262, right: DensityPrimitive262) -> Self {
-        Self::Add { left, right }
+        // The official 26.2 JVM class capture (2026-10-20) distinguishes
+        // Ap2 from MulOrAdd/PureTransformer even for addition. Select
+        // once at construction, not inside the sampling hot path.
+        if matches!(left, DensityPrimitive262::Constant(_))
+            || matches!(right, DensityPrimitive262::Constant(_))
+        {
+            Self::AddWithConstant { left, right }
+        } else {
+            Self::AddFunctions { left, right }
+        }
     }
 
     /// Select the observed 26.2 multiplication behavior by primitive shape.
@@ -67,7 +84,7 @@ impl DensityComposition262 {
     #[inline]
     pub fn sample_block_y(&self, block_y: i32) -> f64 {
         match *self {
-            Self::Add { left, right } => {
+            Self::AddFunctions { left, right } | Self::AddWithConstant { left, right } => {
                 left.sample_block_y(block_y) + right.sample_block_y(block_y)
             }
             Self::MultiplyWithConstant { left, right } => {

@@ -63,3 +63,48 @@ bootstrap that actively replaces `System.out` with a sink.
 Re-run the same source-owning command after this change reaches `main`.
 Neither admission nor official delegate inventory is claimed until that actual
 probe succeeds.
+
+
+## Actual pinned official 26.2 delegate result — 20 October 2026
+
+The official class/Atlas probe **succeeded** after the #435 stdout-descriptor fix. The source-free capture is 104,689 bytes, SHA-256 `2b97fea7676ba68d563a1ef97b350ded934998f3359588b22884e9ecf992d578`; it confirms the prior source archive SHA-256 `1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750` and official server SHA-256 `cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5`. The Atlas inventory contains **41 type entries**, **33 nested `DensityFunctions$` types**, and **99 selected method records**. Every type/method remains explicitly **indexed/unreviewed**. One optional old-package type guess (`net.minecraft.data.worldgen.NoiseRouterData`) is absent; the 26.2 Atlas *does* contain `net.minecraft.world.level.levelgen.NoiseRouterData`.
+
+### Exact runtime delegate classes observed
+
+| Factory input profile | Runtime returned class | Actual `compute(FunctionContext)` declaring class |
+| --- | --- | --- |
+| `add_gradients` | `DensityFunctions$Ap2` | `DensityFunctions$Ap2` |
+| `mul_gradients` | `DensityFunctions$Ap2` | `DensityFunctions$Ap2` |
+| `add_self` | `DensityFunctions$Ap2` | `DensityFunctions$Ap2` |
+| `add_zero_left`, `add_zero_right` | `DensityFunctions$MulOrAdd` | `DensityFunctions$PureTransformer` |
+| `mul_zero_left`, `mul_zero_right`, `mul_half` | `DensityFunctions$MulOrAdd` | `DensityFunctions$PureTransformer` |
+
+Each returned class has observed superclass `java.lang.Record`. The actual source-body SHA-256 fingerprints are:
+- `DensityFunctions$TwoArgumentSimpleFunction.create(...)`: `9af3b85f9d23a6a40536e9c4a1407128deda101ec42931b9270c0d8e770a2ed3`.
+- `DensityFunctions$Ap2.compute(FunctionContext)`: `54d44e99cae188665438eda580ab0a76204c0c486b80edb603f32fa4375b3e48`.
+- `DensityFunctions$PureTransformer.compute(FunctionContext)`: `80087cd337e4ac54a98884a9c47579f4573740fc983f033ed2243e579515a6dd`.
+- `DensityFunctions$MulOrAdd.transform(double)`: `e79f2b7c60401078dbf018e2c2be31f16f64ced0ba0bb49481e51d67290bfb91`.
+
+The Atlas source-call inventory explicitly retains `this.argument2.compute/1`, `this.argument2.minValue/0` and `this.argument2.maxValue/0` as **unresolved** within `Ap2.compute`; do not claim source/delegate equivalence solely from the reflective class name or one successful output vector.
+
+### Rust alignment
+
+The eight profile/class/compute fingerprints are frozen in `crates/world/helve-world-gen/tests/data/density_delegate_26_2_observed.tsv`. `DensityComposition262` now chooses both addition and multiplication execution *shape* once at construction:
+- `AddFunctions` and `MultiplyFunctions` for two nonconstant leaves, matching the **observed `Ap2` class**.
+- `AddWithConstant` and `MultiplyWithConstant` for one or more constants, matching the **observed `MulOrAdd`/`PureTransformer` path**.
+
+This change preserves all 1,280 earlier golden JVM raw-bit outputs, including the nonconstant positive-zero multiplication shortcut. It does **not** widen semantic claims to arbitrary density graphs, unobserved constant-folding cases, source branch details or production worldgen.
+
+### Source-grounded next NoiseRouter target
+
+The pinned Atlas contains the following exact **unreviewed** implementation targets:
+
+| 26.2 method | Body SHA-256 | Specific outstanding dependency |
+| --- | --- | --- |
+| `DensityFunctions$Noise.compute(FunctionContext)` | `bbef25d12896f0895c6fbec4523095fe3c1f42a3ece3229dfebdad793adbe9fe` | `this.noise.getValue/3`, context X/Y/Z |
+| `DensityFunctions.noise(Holder, double, double)` | `410456eefd7a1364a89705b96c7b31fd0f044c4b017eb521264370d2bdd424f9` | `DensityFunction.NoiseHolder` binding |
+| `RandomState.getOrCreateNoise(ResourceKey)` | `056547e13816f7c7dd9a3a82e1acadbbc7e5729da50b3103f28b6d20a115e7ca` | `Noises.instantiate`, holder/registry and position-derived seeding |
+| `RandomState.create(NoiseGeneratorSettings, HolderGetter, long)` | `cf52d92bbb7a73f32a72e7480ed98c2d08efdd48f5815b4342e37f8191eaf64f` | World-seed and generator-settings binding |
+| `NoiseRouter.mapAll(Visitor)` | `61ea5c6e319640ee561342ceeb9833aaf9c832ce3aa296e27a2bc1f965a9897c` | Routing/caches across 15 recorded router fields |
+
+The next source review should start with `DensityFunctions$Noise.compute` and `DensityFunction.NoiseHolder` at the pinned source, then the actual `RandomState` noise-holder/registry binding, rather than applying generic `NormalNoise262` outputs as if they were automatically world-seed derived. Create a source-free official JVM oracle for this specific noise-backed density path before implementing Rust routing. The source/VAR/SEM and production-worldgen gates remain **closed**.

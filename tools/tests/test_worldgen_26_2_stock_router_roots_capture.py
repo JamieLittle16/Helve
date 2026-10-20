@@ -290,6 +290,25 @@ class RouterRootsTests(unittest.TestCase):
                  records[0]["fields"][0]["first_level_density_children"]],
                 ["left", "right"])
             self.assertEqual(records[0]["fields"][0]["field"],"root00")
+            # The SAME independent Java toy exercises the new bounded
+            # shape walk; its package-private field-10 child must be
+            # traversed without assuming a public enclosing class.
+            import worldgen_26_2_stock_router_graph_capture as graph
+            with mock.patch.object(router.official, "extract_classpath",
+                                   return_value=[out]):
+                graphs=graph.observe(workspace/"toy.jar",
+                                     {"bound_router_roots":records},timeout=90)
+            self.assertEqual(len(graphs),4)
+            for group in graphs:
+                self.assertEqual(len(group["roots"]),15)
+                node=group["nodes"][group["roots"][10]["node_id"]]
+                self.assertEqual(node["implementation_class"],
+                                 level+".DensityFunctions$FindTopSurface")
+                self.assertEqual([c["slot"] for c in node["density_children"]],
+                                 ["delegate"])
+                self.assertTrue(group["opaque_record_slots"]>0)
+                self.assertFalse(any(n["depth"]>graph.GRAPH_DEPTH
+                                     for n in group["nodes"]))
             # Exact official failure analogue: field 10 contains a
             # package-private nested record whose typed child accessor must
             # be explicitly accessible to the standalone reflection probe.

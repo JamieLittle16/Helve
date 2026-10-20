@@ -11,8 +11,11 @@
 //! No heap allocation, RNG step, string hashing, registry or dispatch occurs
 //! in subsequent sampling calls.
 
+use crate::density_noise_direct_262::DirectNoiseScale262;
 use crate::improved_noise_262::ImprovedNoise262;
-use crate::registered_noise_state_262::{RegisteredNormalObserved262, RegisteredPerlinObserved262};
+use crate::registered_noise_state_262::{
+    RegisteredNoiseDensityObserved262, RegisteredNormalObserved262, RegisteredPerlinObserved262,
+};
 
 /// Exact three built-in overworld noise keys examined on stock Java 26.2.
 /// This enum is deliberately not an arbitrary datapack registry abstraction.
@@ -217,10 +220,18 @@ pub fn from_stock_world_seed_candidate(
     seed_bits: u64,
     key: StockRegisteredNoiseKey262,
 ) -> RegisteredNormalObserved262 {
-    let (first_octave, amplitudes, noise_hash) = key.parameters();
-
     let mut root = XoroshiroBits262::from_world_seed(seed_bits);
     let noise_positional = root.fork_positional();
+    from_positional_candidate(noise_positional, key)
+}
+
+/// Derive an independent keyed NormalNoise from a borrowed root positional
+/// factory. Every built-in key sees the same root pair, with its own MD5 salt.
+fn from_positional_candidate(
+    noise_positional: [u64; 2],
+    key: StockRegisteredNoiseKey262,
+) -> RegisteredNormalObserved262 {
+    let (first_octave, amplitudes, noise_hash) = key.parameters();
     let mut named_random = named_fork(noise_positional, noise_hash);
     let first = construct_perlin(&mut named_random, first_octave, amplitudes);
     let second = construct_perlin(&mut named_random, first_octave, amplitudes);
@@ -240,6 +251,63 @@ pub fn from_stock_world_seed_candidate(
 
     RegisteredNormalObserved262::from_observed_parts(first, second, value_factor)
         .expect("stock normal factor is finite")
+}
+
+
+/// Three independent stock-registered 26.2 numeric noise states owned once
+/// per world seed. No extra world, registry, chunk or cache owner is introduced.
+#[derive(Clone, Debug)]
+pub struct StockWorldSeededNoiseSet262 {
+    temperature: RegisteredNormalObserved262,
+    continentalness: RegisteredNormalObserved262,
+    erosion: RegisteredNormalObserved262,
+}
+
+impl StockWorldSeededNoiseSet262 {
+    /// Prepare all three registered noise families from **one** world-root
+    /// positional factory; key hashing and octave allocation are COLD only.
+    #[must_use]
+    pub fn new_candidate(seed_bits: u64) -> Self {
+        let mut root = XoroshiroBits262::from_world_seed(seed_bits);
+        let positional = root.fork_positional();
+        Self {
+            temperature: from_positional_candidate(
+                positional,
+                StockRegisteredNoiseKey262::Temperature,
+            ),
+            continentalness: from_positional_candidate(
+                positional,
+                StockRegisteredNoiseKey262::Continentalness,
+            ),
+            erosion: from_positional_candidate(positional, StockRegisteredNoiseKey262::Erosion),
+        }
+    }
+
+    /// Borrow the immutable prepared state; no cloning of permutation arrays.
+    #[must_use]
+    pub fn get(&self, key: StockRegisteredNoiseKey262) -> &RegisteredNormalObserved262 {
+        match key {
+            StockRegisteredNoiseKey262::Temperature => &self.temperature,
+            StockRegisteredNoiseKey262::Continentalness => &self.continentalness,
+            StockRegisteredNoiseKey262::Erosion => &self.erosion,
+        }
+    }
+
+    /// Preselect noise identity and density scale outside scalar/plane/cell
+    /// loops; returned borrowed leaf performs no per-sample key dispatch.
+    #[must_use]
+    pub const fn density(
+        &self,
+        key: StockRegisteredNoiseKey262,
+        scale: DirectNoiseScale262,
+    ) -> RegisteredNoiseDensityObserved262<'_> {
+        let state = match key {
+            StockRegisteredNoiseKey262::Temperature => &self.temperature,
+            StockRegisteredNoiseKey262::Continentalness => &self.continentalness,
+            StockRegisteredNoiseKey262::Erosion => &self.erosion,
+        };
+        RegisteredNoiseDensityObserved262::new(state, scale)
+    }
 }
 
 #[cfg(test)]

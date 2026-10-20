@@ -129,6 +129,7 @@ public final class HelveStockNoiseChunkCell262 {
     // reflectively readable without opening that exact Field, even though
     // getField("INSTANCE") succeeds. Do not change the shared stock bridge,
     // widen access globally, or substitute a synthetic Beardifier marker.
+    phase="stock-BeardifierMarker-INSTANCE";
     Field beardifierInstance=markerEnum.getField("INSTANCE");
     if (!markerEnum.isEnum() ||
         !Modifier.isStatic(beardifierInstance.getModifiers()) ||

@@ -259,7 +259,6 @@ public final class HelveStockNoiseChunkCell262 {
       Object stockPicker,Object noBlending) throws Exception {
     for(int chunkIndex=0;chunkIndex<2;chunkIndex++){
       int origin=chunkIndex==0?0:-16;
-      int firstCell=Math.floorDiv(origin,4);
       phase="adjacent-construct-"+si+"-"+chunkIndex;
       Object chunk=ctor.newInstance(4,state,origin,origin,shape,
           noBeard,settings,stockPicker,noBlending);
@@ -273,12 +272,16 @@ public final class HelveStockNoiseChunkCell262 {
       int emitted=0;
       for(int cellXOffset=0;cellXOffset<2;cellXOffset++){
         phase="adjacent-advance-"+si+"-"+chunkIndex+"-"+cellXOffset;
-        advance.invoke(chunk,firstCell+cellXOffset);
+        // The constructor receives absolute block origins; this argument
+        // indexes the NoiseChunk's local X-cell grid (0..cellCountXZ-1).
+        advance.invoke(chunk,cellXOffset);
         for(int cellZOffset=0;cellZOffset<2;cellZOffset++){
           for(int cellY=17;cellY>=15;cellY--){
             phase="adjacent-select-"+si+"-"+chunkIndex+"-"+cellXOffset+
                 "-"+cellZOffset+"-"+cellY;
-            select.invoke(chunk,cellY,firstCell+cellZOffset);
+            // The Z cell index is local too. For a -16 chunk origin,
+            // passing the absolute cell coordinate -4 accessed index -4.
+            select.invoke(chunk,cellY,cellZOffset);
             for(int localY=7;localY>=0;localY--){
               int y=-64+cellY*8+localY;
               updateY.invoke(chunk,y,(double)localY/8.0);

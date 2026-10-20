@@ -225,7 +225,7 @@ pub fn from_stock_world_seed_candidate(
     from_positional_candidate(noise_positional, key)
 }
 
-/// Derive an independent keyed NormalNoise from a borrowed root positional
+/// Derive an independent keyed `NormalNoise` from a borrowed root positional
 /// factory. Every built-in key sees the same root pair, with its own MD5 salt.
 fn from_positional_candidate(
     noise_positional: [u64; 2],

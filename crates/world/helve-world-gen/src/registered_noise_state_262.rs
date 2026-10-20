@@ -13,7 +13,9 @@
 
 use crate::density_noise_direct_262::{DirectNoiseCellError262, DirectNoiseScale262};
 use crate::improved_noise_262::ImprovedNoise262;
-use crate::perlin_normal_262::{NORMAL_SECOND_INPUT_MULTIPLIER, sample_perlin_parts, wrap_coordinate};
+use crate::perlin_normal_262::{
+    NORMAL_SECOND_INPUT_MULTIPLIER, sample_perlin_parts, wrap_coordinate,
+};
 
 /// Upper bound for one prepared stock 26.2 Perlin amplitude/octave span.
 /// A future reviewed source binding may narrow this limit, never bypass it.

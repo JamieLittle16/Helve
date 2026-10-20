@@ -34,6 +34,8 @@ pub mod perlin_normal_262;
 pub mod registered_noise_state_262;
 /// Exact stock-key world-seed Xoroshiro constructor candidate; COLD only, with separate source/VAR/SEM and production gates.
 pub mod seeded_registered_noise_262;
+/// Bounded mixed registered-noise and integer-Y density expression substrate; not vanilla router admission.
+pub mod stock_density_program_262;
 
 use helve_types::{ChunkGeneration, ChunkPos};
 use helve_world_chunk::{

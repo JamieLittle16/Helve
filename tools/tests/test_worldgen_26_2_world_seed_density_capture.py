@@ -176,6 +176,46 @@ class StockWorldSeedDensityTests(unittest.TestCase):
                     target.capture(source=home/"src.zip",db=home/"atlas",
                         lock=lock,server=home/"jar",frontier=home/"frontier",output=output)
 
+    def test_raw_stdout_jvm_failure_tag_is_single_bounded_and_fail_closed(self):
+        tag = target.FAILURE_TAG
+        event = (
+            tag + "stock-registry-createLookup|java.lang.NoSuchMethodException|"
+            "java.lang.reflect.InvocationTargetException|"
+            "net.minecraft.data.registries.VanillaRegistries.createLookup()"
+        )
+        expected = target.java_probe_failure("[INFO] boot\n" + event + "\n")
+        self.assertIn("JVM PHASE: stock-registry-createLookup", expected)
+        self.assertIn("ROOT CAUSE: java.lang.NoSuchMethodException", expected)
+        self.assertIn("VanillaRegistries.createLookup()", expected)
+        for corrupted in (event + "\n" + event,
+                          tag + "bad|unexpected|row",
+                          tag + "stock-registry-createLookup|java.lang.Error|"
+                                "java.lang.Error|bad|extra",
+                          tag + "stock-registry-createLookup|java.lang.Error|"
+                                "java.lang.Error|bad\\x00message"):
+            with self.subTest(corrupted=repr(corrupted)[:55]):
+                with self.assertRaises(target.WorldSeedNoiseError):
+                    target.java_probe_failure(corrupted)
+        self.assertIsNone(target.java_probe_failure("unrelated bootstrap output"))
+
+    def test_raw_stdout_jvm_error_takes_priority_over_broken_stderr(self):
+        error = (
+            target.FAILURE_TAG
+            + "noise-registry-lookup|java.lang.IllegalStateException|"
+            "java.lang.reflect.InvocationTargetException|unbound stock noise registry"
+        )
+        with mock.patch.object(target.official, "extract_classpath", return_value=[]), \
+             mock.patch.object(target.subprocess, "run", side_effect=[
+                 subprocess.CompletedProcess(["javac"], 0, "", ""),
+                 subprocess.CompletedProcess(["java"], 2, error + "\n",
+                                             'Exception in thread "main"\n'),
+             ]):
+            with self.assertRaises(target.WorldSeedNoiseError) as caught:
+                target.oracle(Path("/tmp/official-runtime.jar"), target.input_rows())
+        self.assertIn("JVM PHASE: noise-registry-lookup", str(caught.exception))
+        self.assertIn("unbound stock noise registry", str(caught.exception))
+        self.assertNotIn('Exception in thread "main"', str(caught.exception))
+
     def test_java_exception_is_not_hidden_by_terminally_deprecated_joml_warnings(self):
         warnings = (
             "WARNING: A terminally deprecated method in sun.misc.Unsafe has been called\n"
@@ -325,6 +365,28 @@ class StockWorldSeedDensityTests(unittest.TestCase):
             self.assertNotEqual(observed[0],observed[32])
             self.assertNotEqual(observed[0],observed[96])
             self.assertNotEqual(observed[0],observed[288])
+
+            # Negative experiment with a REAL compiled independent toy JVM.
+            # Its Bootstrap replaces System.out, its registry method throws,
+            # and default System.err may be incomplete. The original bridge
+            # must emit the typed ROOT CAUSE via FileDescriptor.out.
+            file("net.minecraft.data.registries", "VanillaRegistries",
+                 "public class VanillaRegistries {"
+                 "public static net.minecraft.core.HolderLookup.Provider createLookup(){"
+                 "throw new IllegalStateException(\"missing authentic noise registry\");}}")
+            changed=subprocess.run(
+                ["javac","-encoding","UTF-8","-d",str(output),
+                 *[str(p) for p in src.rglob("*.java")]],
+                capture_output=True,text=True,timeout=30)
+            self.assertEqual(changed.returncode, 0, changed.stderr)
+            with mock.patch.object(target.official, "extract_classpath",
+                                   return_value=[output]):
+                with self.assertRaises(target.WorldSeedNoiseError) as failed:
+                    target.oracle(work/"fake.jar",target.input_rows(),timeout=60)
+            detail = str(failed.exception)
+            self.assertIn("JVM PHASE: stock-registry-createLookup", detail)
+            self.assertIn("ROOT CAUSE: java.lang.IllegalStateException", detail)
+            self.assertIn("missing authentic noise registry", detail)
 
 
 if __name__=="__main__":

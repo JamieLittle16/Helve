@@ -7,7 +7,9 @@
 //! delegates to the existing 1,920-JVM-vector-qualified stock mixed evaluator.
 //! Another typed leaf reuses the 1,280-vector-qualified two-primitive composition.
 //! Both preserve the observed 26.2 Ap2 +0 and MulOrAdd signed-zero behaviour.
-//! Arbitrary compositions remain unqualified.
+//! An explicit Ap2-multiply DAG node additionally demand-evaluates its right
+//! child, preserving that observed early return even across nested subgraphs.
+//! Factory selection, arbitrary graph shapes and full finalDensity remain open.
 //! No production authority.
 //!
 //! A maximum of 32 immutable nodes and fixed per-worker scratch bound hot-path
@@ -213,10 +215,12 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         })
     }
 
-    /// Evaluate a block with fixed, fully overwritten per-worker scratch.
+    /// Evaluate a block using caller-owned, fixed-bounded scratch.
     ///
-    /// This is **explicit eager IEEE arithmetic**, NOT a claim of the
-    /// unreviewed vanilla mixed `DensityFunctions` factory/delegate rules.
+    /// Eager programs overwrite all N slots. Explicit Ap2 programs compute
+    /// only demanded nodes and do not overwrite skipped subtree slots; only
+    /// the returned output is guaranteed meaningful. This does not authorize
+    /// arbitrary vanilla factory/delegate graph shapes.
     #[must_use]
     #[inline]
     pub fn sample_with_scratch(
@@ -255,6 +259,55 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             };
         }
         scratch[N - 1]
+    }
+
+    /// Evaluate one demanded child once per sample. COLD validation
+    /// guarantees backward edges and a maximum nesting depth of 32.
+    /// Siblings reached from two parents share the same computed value.
+    /// No heap allocation, dynamic registry or world owner is involved.
+    fn evaluate_demand(
+        &self,
+        index: usize,
+        block: (i32, i32, i32),
+        scratch: &mut [f64; N],
+        computed: &mut [bool; N],
+    ) -> f64 {
+        if computed[index] {
+            return scratch[index];
+        }
+        let value = match self.nodes[index] {
+            StockDensityNode262::Primitive(primitive) => primitive.sample_block_y(block.1),
+            StockDensityNode262::RegisteredNoise(noise) => {
+                noise.sample_block(block.0, block.1, block.2)
+            }
+            StockDensityNode262::ObservedMixed(mixed) => {
+                mixed.sample_block(block.0, block.1, block.2)
+            }
+            StockDensityNode262::ObservedPrimitiveComposition(composed) => {
+                composed.sample_block_y(block.1)
+            }
+            StockDensityNode262::Add { left, right } => {
+                let a = self.evaluate_demand(left, block, scratch, computed);
+                let b = self.evaluate_demand(right, block, scratch, computed);
+                a + b
+            }
+            StockDensityNode262::Multiply { left, right } => {
+                let a = self.evaluate_demand(left, block, scratch, computed);
+                let b = self.evaluate_demand(right, block, scratch, computed);
+                a * b
+            }
+            StockDensityNode262::ExplicitAp2Multiply { left, right } => {
+                let first = self.evaluate_demand(left, block, scratch, computed);
+                if first.to_bits() == 0.0_f64.to_bits() {
+                    0.0
+                } else {
+                    first * self.evaluate_demand(right, block, scratch, computed)
+                }
+            }
+        };
+        scratch[index] = value;
+        computed[index] = true;
+        value
     }
 
     /// Scalar convenience form, with all scratch allocated on the stack.

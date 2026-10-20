@@ -15,6 +15,10 @@
 /// Production admission and full DensityFunctions/NoiseRouter semantics remain closed.
 pub mod density_composition_262;
 
+/// Official-JVM-vector-qualified, direct-seeded noise-backed density leaf.
+/// Borrow-only COLD hot path; NOT world RandomState, NoiseRouter or production admitted.
+pub mod density_noise_direct_262;
+
 /// Source-free-vector-qualified, immutable 26.2 improved-gradient noise candidate.
 /// Not yet a source/SEM-admitted production terrain generator.
 /// Non-admitted immutable density-expression DAG and COLD 3D cell sampling.

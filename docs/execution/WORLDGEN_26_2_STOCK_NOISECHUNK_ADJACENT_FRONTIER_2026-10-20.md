@@ -92,6 +92,40 @@ and production gates remain **false**. The existing adjacent JVM probe is an
 **experimental hypothesis** until those semantics are verified and genuine
 new JVM values are captured. Do not silently promote it to a canonical oracle.
 
+## First real adjacent-cell invocation — negative-origin failure and correction
+
+The first **actual** pinned source/JAR run, from merged PR #468 at
+`a6462d1904a011c8a7a40c5b0be78e45756c7352`, stopped fail-closed:
+
+```text
+JVM PHASE: adjacent-select-0-1-0-0-17
+ROOT: java.lang.ArrayIndexOutOfBoundsException
+CAUSE: Index -4 out of bounds for length 5
+```
+
+This failure occurred at world-seed index zero, **second chunk origin
+(-16,-16)**, first X/Z cell, Y cell 17. The experimental Java mode had
+called `advanceCellX(firstCell+cellXOffset)` and
+`selectCellYZ(cellY,firstCell+cellZOffset)`, with `firstCell=-4`.
+The select call demonstrably supplied a negative index to a stock
+5-element array; no 768-value file was produced, and the partial
+stdout is **not** a valid oracle.
+
+This repair uses **local** X/Z cell indices `cellXOffset` and
+`cellZOffset` (0 or 1) for these two lifecycle calls, while keeping
+the original `NoiseChunk` constructor's absolute block-space origin
+and keeping `updateForX`/`updateForZ` in absolute world block
+coordinates. It updates only the **experimental adjacent mode**;
+previous immutable 16/128/512 captures and their vectors are untouched.
+A regression test pins this separation.
+
+**Admission boundary:** The failure makes the original index misuse
+concrete; the repair's complete fidelity to vanilla's `doFill` loop
+still requires independent source-body review and a successful new JVM
+run. In particular, no conclusion is yet established about cache
+freshness, later `swapSlices` calls, or canonical chunk traversal.
+All production/VAR/SEM and canonical gates remain **false**.
+
 ## One new original JVM run — only after source inspection
 
 ```bash

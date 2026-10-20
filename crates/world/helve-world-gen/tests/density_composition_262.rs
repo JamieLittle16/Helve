@@ -232,7 +232,10 @@ fn all_official_factory_runtime_delegate_classes_are_statically_selected() {
             }
         };
         assert_eq!(fields[1], format!("{implementation_root}{expected_type}"));
-        assert_eq!(fields[2], format!("{implementation_root}{expected_compute}"));
+        assert_eq!(
+            fields[2],
+            format!("{implementation_root}{expected_compute}")
+        );
         assert_eq!(fields[3], expected_hash);
         count += 1;
     }

@@ -67,6 +67,31 @@ If an original method is absent/overloaded, the collector intentionally
 fails; inspect source and adapt it instead of guessing from a different
 Minecraft release.
 
+## First source-free lifecycle review packet — received
+
+The user ran the source-owning lifecycle packet tool against the exact pinned
+private Minecraft 26.2 source and Atlas on **20 October 2026**. The resulting
+**8,827-byte**, source-free JSON had SHA-256
+`ff46d300be0e7a683e8f301c6bc476b7babc892207540074f167b698ce4fa1b2`.
+Do **not** rerun this unchanged packet just to rediscover the same calls.
+
+It resolves **12 bounded method identities**, including actual
+`NoiseBasedChunkGenerator.fillFromNoise` and `doFill`, and
+`NoiseChunk.swapSlices`. Within `doFill`, the Atlas's syntactic callsite
+order is `initializeForFirstCellX`, `advanceCellX`, `selectCellYZ`,
+`updateForY`, `updateForX`, `updateForZ`, `swapSlices`, then
+`stopInterpolation`. The former method has a same-type `doFill`
+callsite. All 12 methods are still `reviewed:false`.
+
+**Limit of this receipt:** Callsite text order alone establishes neither loop
+nesting nor call arguments, absolute-versus-relative cell indices, chunk
+constructor-coordinate semantics, vertical coverage, marker/cache behaviour,
+nor production traversal. The source-free packet declares
+`canonical_control_flow_source_reviewed:false`; all worldgen qualification
+and production gates remain **false**. The existing adjacent JVM probe is an
+**experimental hypothesis** until those semantics are verified and genuine
+new JVM values are captured. Do not silently promote it to a canonical oracle.
+
 ## One new original JVM run — only after source inspection
 
 ```bash

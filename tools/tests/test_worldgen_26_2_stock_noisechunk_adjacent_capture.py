@@ -110,7 +110,7 @@ class AdjacentStockNoiseChunkTests(unittest.TestCase):
             frames+[frames[-1]],
             frames[:i]+[row.replace("|3|","|30|",1)]+frames[i+1:],
             frames[:i]+[row.rsplit("|",1)[0]+"|7ff0000000000000"]+frames[i+1:],
-            frames[:i]+[row.replace("|0|","|100|",1)]+frames[i+1:],
+            frames[:i]+[row.replace("|79|","|89|",1)]+frames[i+1:],
             [f.replace("|96","|128") if f.startswith(adjacent.HEAD)
              else f for f in frames],
             [f.replace(adjacent.AP2,"java.lang.Object")

@@ -192,7 +192,7 @@ class StockWorldSeedDensityTests(unittest.TestCase):
                           tag + "stock-registry-createLookup|java.lang.Error|"
                                 "java.lang.Error|bad|extra",
                           tag + "stock-registry-createLookup|java.lang.Error|"
-                                "java.lang.Error|bad\\x00message"):
+                                "java.lang.Error|bad" + chr(0) + "message"):
             with self.subTest(corrupted=repr(corrupted)[:55]):
                 with self.assertRaises(target.WorldSeedNoiseError):
                     target.java_probe_failure(corrupted)
@@ -268,7 +268,7 @@ class StockWorldSeedDensityTests(unittest.TestCase):
                 target.oracle(Path("/tmp/official-runtime.jar"), target.input_rows())
         diagnostic = str(failed.exception)
         self.assertIn("VanillaRegistries.createLookup()", diagnostic.splitlines()[0])
-        self.assertTrue(diagnostic.startswith("real stock-registry 26.2 world-seed JVM path is NOT VERIFIED: JVM ROOT CAUSE:"))
+        self.assertTrue(diagnostic.startswith("real stock-registry 26.2 world-seed JVM path is NOT VERIFIED (no tagged Java error): JVM ROOT CAUSE:"))
         self.assertNotIn("terminally deprecated", diagnostic)
 
     @unittest.skipUnless(shutil.which("javac") and shutil.which("java"),

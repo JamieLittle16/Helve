@@ -406,3 +406,45 @@ and eventually match **computed** output against the frozen Java words.
 
 All canonical lifecycle/traversal, numerical router, VAR/SEM, and
 production worldgen gates remain **false**.
+
+## Completed private source structural receipt and Rust nontrilinearity guard
+
+After PR #471 merged, the user completed the **one** original private
+26.2 structural source review. The 27,255-byte source-free original JSON
+(SHA-256 `130070ea39c064d1de37fa0fa3b651b8799e650e066b176a2f419e3e5ff89fab`)
+confirms 11 exact method body hashes. `doFill` has six nested loops with
+direction hints ++, ++, --, --, ++, ++; the call ancestry strictly
+matches the relative nesting of our bounded candidate X/Z/Y/Y/X/Z
+probe. `swapSlices` is only inside the outer X-level loop and
+`stopInterpolation` is outside; `initializeForFirstCellX` is before.
+All 11 method observations have `unbraced_control_count=0`.
+
+The next evidence PR,
+`worldgen/262-noisechunk-structure-and-nonaffinity`, pins a compact
+source-free 6,567-byte structural summary with exact original byte
+hash/identities and regression tests. It also adds a **Rust negative
+control** against the existing 768 authentic stock observations:
+the full `finalDensity` output cannot be obtained simply by
+trilinearly interpolating eight sampled final-output corner values.
+This is **not** a compiled Rust density graph or Rust parity proof.
+
+Important distinction: the structural packet proves braces/call nesting,
+**not** source-semantically verified loop bounds and arguments, full
+48-cell Y extent, NoiseChunk cache/wrapper state or parity at any
+computed Rust finalDensity value. The earlier numerical captures
+(16/128/512/768) and the two source-free packets are already complete;
+do not ask the source owner to repeat them. All production/VAR/SEM,
+canonical traversal and full-router parity flags remain false.
+
+**Next work:** derive and independently verify the actual stock
+`doFill` variable and loop-bound semantics, interpolation
+`NoiseChunk` cache marker lifetimes, and the observed
+world-seeded `finalDensity` DAG. Then implement the compiled
+source-version-specific evaluator in the **existing**
+`helve-world-gen` density program, with immutable graph and
+caller-owned scratch; compare actual Rust-computed outputs against
+frozen official JVM bits, not merely oracle replay. No new world
+owner and no publication gate promotion.
+
+The updated runbook is
+`docs/execution/WORLDGEN_26_2_STOCK_NOISECHUNK_ADJACENT_FRONTIER_2026-10-20.md`.

@@ -159,7 +159,7 @@ class RandomStateBindingTests(unittest.TestCase):
                 self.assertFalse(result["world_seed_random_state_bound"])
                 target.validate(json.loads(output.read_text()), tomllib.loads(lock.read_text()))
                 self.assertTrue(db.return_value.close.called)
-                with self.assertRaises(FileExistsError):
+                with self.assertRaises(ValueError):
                     target.capture(source=home/"private.zip", db=home/"db",
                         lock=lock, server=home/"official.jar", output=output)
 

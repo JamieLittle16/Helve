@@ -152,6 +152,19 @@ jobs:
           python3 tools/worldgen_26_2_stock_worldseed_fixture.py
           python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_worldseed_fixture.py' -v
 
+      - name: Verify SHA-pinned complete stock registered observed-state replay fixture
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from hashlib import sha256
+          p = Path("crates/world/helve-world-gen/tests/data/stock_registered_observed_state_26_2.txt")
+          raw = p.read_bytes()
+          assert len(raw) == 91244
+          assert sha256(raw).hexdigest() == "e3481e2885cbe44ecb93c19ecc9c06e62200b26b47883399f053de46676fe3ce"
+          assert b"9a06ced3efbc005941ed3ffaf2e80039480bd180ac6a0054f5c87e98056bba12" in raw
+          print("complete stock registered observed state fixture PINNED; not a seed constructor")
+          PY
+
       - name: Validate stock 26.2 registered parameter/state receipt transport without private JVM
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_registered_state_capture.py' -v
 

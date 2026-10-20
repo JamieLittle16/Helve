@@ -97,18 +97,126 @@ public final class HelveStockNoiseRouterRoots262 {
     }
   }
 
+  // A strictly bounded, read-only shape probe. It follows ONLY immediate
+  // record components whose declared type implements DensityFunction.
+  // Holder, spline, settings, marker enums and cached values remain opaque.
+  // Object identity is used solely to describe sharing, never to evaluate.
+  static final int GRAPH_LIMIT = 384;
+  static final int GRAPH_DEPTH = 4;
+  static final String GRAPH_HEAD = "HELVE26_2_ROUTER_GRAPH_HEAD|";
+  static final String GRAPH_ROOT = "HELVE26_2_ROUTER_GRAPH_ROOT|";
+  static final String GRAPH_NODE = "HELVE26_2_ROUTER_GRAPH_NODE|";
+  static final String GRAPH_EDGE = "HELVE26_2_ROUTER_GRAPH_EDGE|";
+  static final String GRAPH_OPAQUE = "HELVE26_2_ROUTER_GRAPH_OPAQUE|";
+  static final String GRAPH_END = "HELVE26_2_ROUTER_GRAPH_END|";
+
+  static int registerGraph(Object node, int depth,
+                           IdentityHashMap<Object,Integer> identities,
+                           ArrayList<Object> nodes, ArrayList<Integer> depths)
+      throws Exception {
+    Integer existing=identities.get(node);
+    if (existing!=null) return existing;
+    if (nodes.size()>=GRAPH_LIMIT)
+      throw new IllegalStateException("stock graph object count exceeds 384");
+    int id=nodes.size();
+    identities.put(node,id);
+    nodes.add(node);
+    depths.add(depth);
+    return id;
+  }
+
+  static void inspectGraph(int seedIndex, Class<?> routerType, Class<?> density,
+                           Class<?> context, Object router) throws Exception {
+    if (!routerType.isRecord() || !routerType.isInstance(router))
+      throw new IllegalStateException("expected stock NoiseRouter record instance");
+    RecordComponent[] roots=routerType.getRecordComponents();
+    if (roots==null || roots.length!=FIELD_COUNT)
+      throw new IllegalStateException("expected 15 bound stock NoiseRouter roots");
+    IdentityHashMap<Object,Integer> identities=new IdentityHashMap<>();
+    ArrayList<Object> nodes=new ArrayList<>();
+    ArrayList<Integer> depths=new ArrayList<>();
+    OUT.println(GRAPH_HEAD+seedIndex+"|"+FIELD_COUNT+"|"+name(routerType));
+    for (int i=0;i<roots.length;i++) {
+      RecordComponent root=roots[i];
+      phase="graph-root-"+seedIndex+"-"+i;
+      if (root.getType()!=density ||
+          !root.getName().matches("[a-zA-Z_$][a-zA-Z0-9_$]{0,100}"))
+        throw new IllegalStateException("unexpected stock router root declaration");
+      Method accessor=root.getAccessor();
+      if (!accessor.canAccess(router) && !accessor.trySetAccessible())
+        throw new IllegalStateException("stock router root inaccessible");
+      Object value=accessor.invoke(router);
+      if (value==null || !density.isInstance(value))
+        throw new IllegalStateException("stock router root not a density function");
+      int node=registerGraph(value,0,identities,nodes,depths);
+      OUT.println(GRAPH_ROOT+seedIndex+"|"+i+"|"+root.getName()+"|"+node);
+    }
+    int edges=0,opaques=0;
+    for (int id=0;id<nodes.size();id++) {
+      phase="graph-node-"+seedIndex+"-"+id;
+      Object value=nodes.get(id);
+      int depth=depths.get(id);
+      Class<?> type=value.getClass();
+      if (!density.isInstance(value) ||
+          !name(type).startsWith(ROOT+"DensityFunctions$"))
+        throw new IllegalStateException("unknown stock router density implementation");
+      Method compute=type.getMethod("compute",context);
+      if (compute.getReturnType()!=double.class)
+        throw new IllegalStateException("stock router compute contract changed");
+      boolean expanded=depth<GRAPH_DEPTH;
+      ArrayList<String> childRows=new ArrayList<>(),opaqueRows=new ArrayList<>();
+      if (expanded && type.isRecord()) {
+        RecordComponent[] slots=type.getRecordComponents();
+        if (slots==null || slots.length>32)
+          throw new IllegalStateException("unbounded stock density record component count");
+        for (int slotIndex=0;slotIndex<slots.length;slotIndex++) {
+          RecordComponent slot=slots[slotIndex];
+          String field=slot.getName();
+          if (!field.matches("[a-zA-Z_$][a-zA-Z0-9_$]{0,100}"))
+            throw new IllegalStateException("invalid density record child name");
+          if (density.isAssignableFrom(slot.getType())) {
+            Method accessor=slot.getAccessor();
+            if (!accessor.canAccess(value) && !accessor.trySetAccessible())
+              throw new IllegalStateException("stock density child accessor inaccessible");
+            Object nested=accessor.invoke(value);
+            if (nested==null || !density.isInstance(nested))
+              throw new IllegalStateException("null typed density child");
+            int childId=registerGraph(nested,depth+1,identities,nodes,depths);
+            childRows.add(GRAPH_EDGE+seedIndex+"|"+id+"|"+slotIndex+"|"+field+"|"+childId);
+          } else {
+            // Do not even INVOKE non-density accessors: holders, spline
+            // instances, noise parameters, constants and enums are opaque.
+            opaqueRows.add(GRAPH_OPAQUE+seedIndex+"|"+id+"|"+slotIndex+"|"+
+                field+"|"+name(slot.getType()));
+          }
+        }
+      }
+      OUT.println(GRAPH_NODE+seedIndex+"|"+id+"|"+depth+"|"+
+          name(type)+"|"+name(compute.getDeclaringClass())+"|"+
+          (expanded?"1":"0")+"|"+childRows.size()+"|"+opaqueRows.size());
+      for (String row:childRows) OUT.println(row);
+      for (String row:opaqueRows) OUT.println(row);
+      edges+=childRows.size();
+      opaques+=opaqueRows.size();
+      if (edges>4096 || opaques>4096)
+        throw new IllegalStateException("unbounded graph edge/opaque declarations");
+    }
+    OUT.println(GRAPH_END+seedIndex+"|"+nodes.size()+"|"+edges+"|"+opaques);
+  }
+
   public static void main(String[] args) {
     try {
-      if (args.length!=1 || !args[0].equals("--router-roots-4"))
-        throw new IllegalArgumentException("expected --router-roots-4 only");
-      run();
+      if (args.length!=1 ||
+          (!args[0].equals("--router-roots-4") && !args[0].equals("--router-graph-4")))
+        throw new IllegalArgumentException("expected --router-roots-4 or --router-graph-4");
+      run(args[0].equals("--router-graph-4"));
     } catch (Throwable t) {
       fail(t);
       System.exit(2);
     }
   }
 
-  static void run() throws Exception {
+  static void run(boolean graph) throws Exception {
     phase="bootstrap";
     HelveWorldSeededDensity262.bootstrap();
     phase="stock-class-contracts";
@@ -146,7 +254,8 @@ public final class HelveStockNoiseRouterRoots262 {
       phase="stock-RandomState-router-" + i;
       Object router=routerMethod.invoke(state);
       phase="stock-record-components-" + i;
-      inspect(i,routerType,density,context,router);
+      if (graph) inspectGraph(i,routerType,density,context,router);
+      else inspect(i,routerType,density,context,router);
     }
     if (reader.readLine()!=null)
       throw new IllegalStateException("unexpected fifth world seed");

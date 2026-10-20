@@ -303,8 +303,7 @@ impl NormalNoise262 {
         z_axis: &[f64; 16],
         output: &mut [f64; 256],
     ) {
-        self.first
-            .sample_axis_grid_16x16(x_axis, y, z_axis, output);
+        self.first.sample_axis_grid_16x16(x_axis, y, z_axis, output);
         let mut second_x = *x_axis;
         let mut second_z = *z_axis;
         for value in &mut second_x {

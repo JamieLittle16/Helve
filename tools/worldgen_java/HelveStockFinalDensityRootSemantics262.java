@@ -17,7 +17,7 @@ public final class HelveStockFinalDensityRootSemantics262 {
   static String phase="bootstrap";
 
   static String safe(String raw) {
-    if(raw==null || raw.length()>180 || !raw.matches("[A-Za-z0-9_.$]+"))
+    if(raw==null || raw.length()>180 || !raw.matches("[A-Za-z0-9_.$-]+"))
       throw new IllegalStateException("unqualified original runtime name");
     return raw;
   }

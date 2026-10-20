@@ -226,6 +226,9 @@ class RouterRootsTests(unittest.TestCase):
                  "public record ResourceKey(String name) {}")
             java("net.minecraft.core", "HolderGetter",
                  "public interface HolderGetter { interface Provider {} }")
+            java("net.minecraft.core", "Holder",
+                 "public interface Holder<T> { T value();"
+                 "record Reference<T>(T value) implements Holder<T> {} }")
             java("net.minecraft.core", "HolderLookup",
                  "public interface HolderLookup { interface Provider "
                  "extends net.minecraft.core.HolderGetter.Provider {} }")
@@ -250,6 +253,11 @@ class RouterRootsTests(unittest.TestCase):
                  "implements DensityFunction {"
                  "public double compute(DensityFunction.FunctionContext c) {"
                  "return left.compute(c)*right.compute(c);}}"
+                 "record HolderHolder("
+                 "net.minecraft.core.Holder<DensityFunction> function)"
+                 "implements DensityFunction {"
+                 "public double compute(DensityFunction.FunctionContext c){"
+                 "return function.value().compute(c);}}"
                  # Deliberately package-private with a public generated accessor.
                  "record FindTopSurface(DensityFunction delegate)"
                  "implements DensityFunction {"
@@ -263,6 +271,10 @@ class RouterRootsTests(unittest.TestCase):
                 "new DensityFunctions.FindTopSurface("
                 "new DensityFunctions.Constant(42.0))"
                 if i==10 else
+                "new DensityFunctions.HolderHolder("
+                "new net.minecraft.core.Holder.Reference<DensityFunction>("
+                "new DensityFunctions.Constant(6.0)))"
+                if i==6 else
                 "new DensityFunctions.Constant("+str(i)+".0)")
                 for i in range(15))
             java(level, "NoiseRouter",f"public record NoiseRouter({fields}) {{}}")
@@ -309,6 +321,23 @@ class RouterRootsTests(unittest.TestCase):
                 self.assertTrue(group["opaque_record_slots"]>0)
                 self.assertFalse(any(n["depth"]>graph.GRAPH_DEPTH
                                      for n in group["nodes"]))
+            # Independently execute the *same* JVM with the new
+            # HolderHolder.function -> public Holder.value() transport.
+            import worldgen_26_2_stock_router_holder_capture as holder
+            with mock.patch.object(router.official, "extract_classpath",
+                                   return_value=[out]):
+                bindings=holder.observe(workspace/"toy.jar",
+                                        {"graphs":graphs},
+                                        {"bound_router_roots":records},
+                                        timeout=90)
+            self.assertEqual(len(bindings),4)
+            for result in bindings:
+                self.assertEqual(len(result["observed_bound_holders"]),1)
+                item=result["observed_bound_holders"][0]
+                self.assertEqual(item["node_id"],6)
+                self.assertEqual(item["bound_density_implementation_class"],
+                                 level+".DensityFunctions$Constant")
+                self.assertFalse(item["source_reviewed"])
             # Exact official failure analogue: field 10 contains a
             # package-private nested record whose typed child accessor must
             # be explicitly accessible to the standalone reflection probe.

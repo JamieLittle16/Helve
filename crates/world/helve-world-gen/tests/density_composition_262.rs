@@ -128,6 +128,21 @@ fn all_1280_exact_official_density_composition_bits_match() {
             fields[0],
             fields[1]
         );
+        if fields[0] == "mul_gradients" {
+            let first = primitive("gradient_world_height");
+            let second = primitive("gradient_reverse");
+            let ap2 = Program::new([
+                Node::Primitive(first),
+                Node::Primitive(second),
+                Node::ExplicitAp2Multiply { left: 0, right: 1 },
+            ])
+            .expect("stock 26.2 selected Ap2 for two dynamic gradients");
+            assert_eq!(
+                ap2.sample_block(x, y, z).to_bits(),
+                expected,
+                "compiled demand-evaluated Ap2 must match actual JVM mul_gradients row {row_count}"
+            );
+        }
         row_count += 1;
     }
     assert_eq!(row_count, 1280);

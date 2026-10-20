@@ -30,14 +30,21 @@ const PROFILES: [DirectNoiseScale262; 3] = [
     DirectNoiseScale262::QuarterHorizontalHalfVertical,
 ];
 const POINTS: [(i32, i32, i32); 16] = [
-    (0, 0, 0), (-1, -64, 1), (1, 319, -1),
-    (33_554_431, -63, -33_554_432), (-33_554_431, 320, 33_554_431),
+    (0, 0, 0),
+    (-1, -64, 1),
+    (1, 319, -1),
+    (33_554_431, -63, -33_554_432),
+    (-33_554_431, 320, 33_554_431),
     (2_147_483_600, 255, -2_147_483_600),
     (-2_147_483_600, -4096, 2_147_483_600),
-    (105, -65, -417), (-1_000_000, 2048, 1_000_000),
-    (123_456, -128, -654_321), (-16, 0, 16),
-    (15, 256, -15), (33_554_433, 321, -33_554_433),
-    (-33_554_433, -31, 33_554_433), (2048, 63, -2048),
+    (105, -65, -417),
+    (-1_000_000, 2048, 1_000_000),
+    (123_456, -128, -654_321),
+    (-16, 0, 16),
+    (15, 256, -15),
+    (33_554_433, 321, -33_554_433),
+    (-33_554_433, -31, 33_554_433),
+    (2048, 63, -2048),
     (-2049, 64, 2049),
 ];
 
@@ -78,7 +85,9 @@ fn all_576_independently_observed_jvm_bits_survive_single_noise_program() {
                     .expect("single registered leaf is valid");
                 for (point_index, &(x, y, z)) in POINTS.iter().enumerate() {
                     let index = (((profile_index * SEEDS.len() + seed_index) * KEYS.len()
-                        + key_index) * POINTS.len()) + point_index;
+                        + key_index)
+                        * POINTS.len())
+                        + point_index;
                     assert_eq!(index, count, "source-free JVM row order must stay fixed");
                     let expected = u64::from_str_radix(lines[index], 16).expect("JVM raw bits");
                     assert_eq!(
@@ -106,7 +115,8 @@ fn mixed_noise_y_gradient_specialized_planes_are_bit_exact_to_scalar() {
                     for noise_left in [true, false] {
                         let program = blended(noise, primitive, add, noise_left);
                         let mut output = [f64::NAN; 256];
-                        program.sample_plane_16x16(-33_554_431, -31, 14, &mut output)
+                        program
+                            .sample_plane_16x16(-33_554_431, -31, 14, &mut output)
                             .expect("checked horizontal 16x16 plane");
                         let invariant = primitive.sample_block_y(-31);
                         for dz in 0_i32..16 {
@@ -120,12 +130,15 @@ fn mixed_noise_y_gradient_specialized_planes_are_bit_exact_to_scalar() {
                                     (false, false) => invariant * sample,
                                 };
                                 assert_eq!(
-                                    output[index].to_bits(), reference.to_bits(),
+                                    output[index].to_bits(),
+                                    reference.to_bits(),
                                     "mixed candidate mismatch seed={seed:016x} key={key:?} scale={profile:?} add={add} noise_left={noise_left} local=({dx},{dz})"
                                 );
                                 assert_eq!(
                                     output[index].to_bits(),
-                                    program.sample_block(-33_554_431 + dx, -31, 14 + dz).to_bits()
+                                    program
+                                        .sample_block(-33_554_431 + dx, -31, 14 + dz)
+                                        .to_bits()
                                 );
                             }
                         }
@@ -149,15 +162,18 @@ fn specialized_mixed_3d_cell_preserves_ieee_bits_and_operand_order() {
         for noise_left in [true, false] {
             let program = blended(noise, invariant, add, noise_left);
             let mut cell = vec![f64::NAN; 4096].into_boxed_slice();
-            program.sample_cell_16x16x16(
-                origin.0, origin.1, origin.2,
-                cell.as_mut().try_into().expect("fixed 4096 test cells"),
-            ).expect("valid 16-high cell");
+            program
+                .sample_cell_16x16x16(
+                    origin.0,
+                    origin.1,
+                    origin.2,
+                    cell.as_mut().try_into().expect("fixed 4096 test cells"),
+                )
+                .expect("valid 16-high cell");
             for dy in 0_i32..16 {
                 for dz in 0_i32..16 {
                     for dx in 0_i32..16 {
-                        let index = usize::try_from((dy * 16 + dz) * 16 + dx)
-                            .expect("16^3 index");
+                        let index = usize::try_from((dy * 16 + dz) * 16 + dx).expect("16^3 index");
                         let point = (origin.0 + dx, origin.1 + dy, origin.2 + dz);
                         assert_eq!(
                             cell[index].to_bits(),
@@ -190,10 +206,11 @@ fn nested_multi_noise_graph_reuses_dependencies_and_matches_explicit_reference()
         Node::Multiply { left: 0, right: 1 },
         Node::RegisteredNoise(erosion),
         Node::Add { left: 2, right: 3 },
-    ]).expect("complete backward-indexed expression");
+    ])
+    .expect("complete backward-indexed expression");
     for &(x, y, z) in &POINTS {
-        let expected = (temperature.sample_block(x, y, z)
-            * gradient().sample_block_y(y)) + erosion.sample_block(x, y, z);
+        let expected = (temperature.sample_block(x, y, z) * gradient().sample_block_y(y))
+            + erosion.sample_block(x, y, z);
         let mut scratch = [f64::NAN; 5];
         assert_eq!(program.sample_block(x, y, z).to_bits(), expected.to_bits());
         assert_eq!(
@@ -202,7 +219,9 @@ fn nested_multi_noise_graph_reuses_dependencies_and_matches_explicit_reference()
         );
     }
     let mut plane = [f64::NAN; 256];
-    program.sample_plane_16x16(-16, -64, 16, &mut plane).expect("valid plane");
+    program
+        .sample_plane_16x16(-16, -64, 16, &mut plane)
+        .expect("valid plane");
     for dz in 0_i32..16 {
         for dx in 0_i32..16 {
             let index = usize::try_from(dz * 16 + dx).expect("plane index");
@@ -223,7 +242,10 @@ fn cold_validation_rejects_cycles_dead_nodes_oversized_and_empty_programs() {
         Node::Primitive(DensityPrimitive262::constant(1.0)),
         Node::Add { left: 0, right: 1 },
     ]);
-    assert!(matches!(invalid, Err(ProgramError::InvalidDependency { node: 1, child: 1 })));
+    assert!(matches!(
+        invalid,
+        Err(ProgramError::InvalidDependency { node: 1, child: 1 })
+    ));
 
     let unused = Program::new([
         Node::Primitive(DensityPrimitive262::constant(1.0)),
@@ -239,8 +261,13 @@ fn cold_validation_rejects_cycles_dead_nodes_oversized_and_empty_programs() {
 fn every_invalid_cell_coordinate_rejects_atomically_before_output_writes() {
     let set = StockWorldSeededNoiseSet262::new_candidate(SEEDS[0]);
     let program = blended(
-        set.density(StockRegisteredNoiseKey262::Temperature, DirectNoiseScale262::Unit),
-        gradient(), false, true,
+        set.density(
+            StockRegisteredNoiseKey262::Temperature,
+            DirectNoiseScale262::Unit,
+        ),
+        gradient(),
+        false,
+        true,
     );
     let sentinel = f64::from_bits(0x7ff8_00ab_cdef_1234);
     let mut plane = [sentinel; 256];
@@ -256,7 +283,9 @@ fn every_invalid_cell_coordinate_rejects_atomically_before_output_writes() {
     ] {
         assert_eq!(
             program.sample_cell_16x16x16(
-                x, y, z,
+                x,
+                y,
+                z,
                 cell.as_mut().try_into().expect("fixed test cell")
             ),
             Err(DirectNoiseCellError262::BlockCoordinateOverflow)
@@ -278,11 +307,16 @@ fn signed_zero_constant_multiplication_is_eager_and_not_claimed_as_stock_ap2() {
     let expected = noise.sample_block(x, y, z) * -0.0;
     assert_eq!(program.sample_block(x, y, z).to_bits(), expected.to_bits());
     let mut plane = [f64::NAN; 256];
-    program.sample_plane_16x16(0, 0, 0, &mut plane).expect("valid plane");
+    program
+        .sample_plane_16x16(0, 0, 0, &mut plane)
+        .expect("valid plane");
     for dz in 0_i32..16 {
         for dx in 0_i32..16 {
             let index = usize::try_from(dz * 16 + dx).expect("plane index");
-            assert_eq!(plane[index].to_bits(), program.sample_block(dx, y, dz).to_bits());
+            assert_eq!(
+                plane[index].to_bits(),
+                program.sample_block(dx, y, dz).to_bits()
+            );
         }
     }
 }

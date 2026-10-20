@@ -1,0 +1,415 @@
+{
+  "schema": 1,
+  "kind": "official_26_2_stock_noisechunk_source_free_brace_nesting_summary",
+  "minecraft": "26.2",
+  "source_archive_sha256": "1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750",
+  "original_structural_json_sha256": "130070ea39c064d1de37fa0fa3b651b8799e650e066b176a2f419e3e5ff89fab",
+  "original_structural_json_bytes": 27255,
+  "source_method_reviewed": false,
+  "canonical_control_flow_source_reviewed": false,
+  "stock_noisechunk_canonical_traversal_qualified": false,
+  "stock_noisechunk_full_lifecycle_qualified": false,
+  "independent_var_sem_admitted": false,
+  "production_worldgen_enabled": false,
+  "method_structures": {
+    "generator_do_fill": {
+      "controls": [
+        [
+          "for",
+          15,
+          [],
+          "increment_hint_only",
+          [
+            ";",
+            "<",
+            ";",
+            "++"
+          ]
+        ],
+        [
+          "for",
+          18,
+          [
+            0
+          ],
+          "increment_hint_only",
+          [
+            ";",
+            "<",
+            ";",
+            "++"
+          ]
+        ],
+        [
+          "for",
+          22,
+          [
+            0,
+            1
+          ],
+          "decrement_hint_only",
+          [
+            ";",
+            ">=",
+            ";",
+            "--"
+          ]
+        ],
+        [
+          "for",
+          25,
+          [
+            0,
+            1,
+            2
+          ],
+          "decrement_hint_only",
+          [
+            ";",
+            ">=",
+            ";",
+            "--"
+          ]
+        ],
+        [
+          "if",
+          29,
+          [
+            0,
+            1,
+            2,
+            3
+          ],
+          "not_a_for_loop",
+          [
+            "!="
+          ]
+        ],
+        [
+          "for",
+          37,
+          [
+            0,
+            1,
+            2,
+            3
+          ],
+          "increment_hint_only",
+          [
+            ";",
+            "<",
+            ";",
+            "++"
+          ]
+        ],
+        [
+          "for",
+          43,
+          [
+            0,
+            1,
+            2,
+            3,
+            5
+          ],
+          "increment_hint_only",
+          [
+            ";",
+            "<",
+            ";",
+            "++"
+          ]
+        ],
+        [
+          "if",
+          49,
+          [
+            0,
+            1,
+            2,
+            3,
+            5,
+            6
+          ],
+          "not_a_for_loop",
+          [
+            "=="
+          ]
+        ],
+        [
+          "if",
+          54,
+          [
+            0,
+            1,
+            2,
+            3,
+            5,
+            6
+          ],
+          "not_a_for_loop",
+          [
+            "!=",
+            "&&"
+          ]
+        ],
+        [
+          "if",
+          58,
+          [
+            0,
+            1,
+            2,
+            3,
+            5,
+            6,
+            8
+          ],
+          "not_a_for_loop",
+          [
+            "&&"
+          ]
+        ]
+      ],
+      "calls": [
+        [
+          "initializeForFirstCellX",
+          8,
+          []
+        ],
+        [
+          "advanceCellX",
+          16,
+          [
+            0
+          ]
+        ],
+        [
+          "selectCellYZ",
+          23,
+          [
+            0,
+            1,
+            2
+          ]
+        ],
+        [
+          "updateForY",
+          35,
+          [
+            0,
+            1,
+            2,
+            3
+          ]
+        ],
+        [
+          "updateForX",
+          41,
+          [
+            0,
+            1,
+            2,
+            3,
+            5
+          ]
+        ],
+        [
+          "updateForZ",
+          47,
+          [
+            0,
+            1,
+            2,
+            3,
+            5,
+            6
+          ]
+        ],
+        [
+          "swapSlices",
+          69,
+          [
+            0
+          ]
+        ],
+        [
+          "stopInterpolation",
+          72,
+          []
+        ]
+      ]
+    },
+    "generator_fill": {
+      "controls": [
+        [
+          "for",
+          10,
+          [],
+          "decrement_hint_only",
+          [
+            ";",
+            ">=",
+            ";",
+            "--"
+          ]
+        ],
+        [
+          "try",
+          16,
+          [],
+          "not_a_for_loop",
+          []
+        ],
+        [
+          "finally",
+          18,
+          [],
+          "not_a_for_loop",
+          []
+        ],
+        [
+          "for",
+          19,
+          [
+            2
+          ],
+          "unknown",
+          []
+        ]
+      ],
+      "calls": [
+        [
+          "doFill",
+          17,
+          [
+            1
+          ]
+        ]
+      ]
+    },
+    "chunk_initialize": {
+      "controls": [
+        [
+          "if",
+          1,
+          [],
+          "not_a_for_loop",
+          []
+        ]
+      ],
+      "calls": []
+    },
+    "chunk_advance": {
+      "controls": [],
+      "calls": []
+    },
+    "chunk_select": {
+      "controls": [
+        [
+          "for",
+          1,
+          [],
+          "unknown",
+          []
+        ],
+        [
+          "for",
+          10,
+          [],
+          "unknown",
+          []
+        ]
+      ],
+      "calls": [
+        [
+          "selectCellYZ",
+          2,
+          [
+            0
+          ]
+        ]
+      ]
+    },
+    "chunk_update_y": {
+      "controls": [
+        [
+          "for",
+          3,
+          [],
+          "unknown",
+          []
+        ]
+      ],
+      "calls": [
+        [
+          "updateForY",
+          4,
+          [
+            0
+          ]
+        ]
+      ]
+    },
+    "chunk_update_x": {
+      "controls": [
+        [
+          "for",
+          3,
+          [],
+          "unknown",
+          []
+        ]
+      ],
+      "calls": [
+        [
+          "updateForX",
+          4,
+          [
+            0
+          ]
+        ]
+      ]
+    },
+    "chunk_update_z": {
+      "controls": [
+        [
+          "for",
+          4,
+          [],
+          "unknown",
+          []
+        ]
+      ],
+      "calls": [
+        [
+          "updateForZ",
+          5,
+          [
+            0
+          ]
+        ]
+      ]
+    },
+    "chunk_swap": {
+      "controls": [],
+      "calls": []
+    },
+    "chunk_stop": {
+      "controls": [
+        [
+          "if",
+          1,
+          [],
+          "not_a_for_loop",
+          []
+        ]
+      ],
+      "calls": []
+    },
+    "chunk_wrap": {
+      "controls": [],
+      "calls": []
+    }
+  }
+}

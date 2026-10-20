@@ -305,3 +305,30 @@ different method or an error must be diagnosed at the exact original
 > slice-swap oracle, keeping Helve's efficiency/vanilla/source-law
 > disciplines and CI/PR workflow. All production worldgen and VAR/SEM
 > gates are still closed.
+
+## Follow-on adjacent-cell frontier PR #468 — experimental tooling
+
+The next branch `worldgen/262-noisechunk-adjacent-frontier`
+(PR #468) now contains the **separate** `--stock-noisechunk-adjacent-cells`
+stock JVM mode, `worldgen_26_2_stock_noisechunk_adjacent_capture.py`
+source-pinned collector, targeted synthetic negative tests, and the
+`worldgen_26_2_noisechunk_lifecycle_review_packet.py` source-free
+method-call inventory tool. The authoritative runbook is
+`docs/execution/WORLDGEN_26_2_STOCK_NOISECHUNK_ADJACENT_FRONTIER_2026-10-20.md`.
+
+No additional original Java samples have yet been obtained; **all 768
+potential inter-cell bitwords are only an unexecuted candidate plan**.
+The candidate runs two chunk origins (0 and -16), 2 X × 2 Z × 3 Y
+cells per origin, computes every visited block and emits 96 bounded
+boundary observations per origin, 192 per seed, for four frozen seeds.
+A genuine slice-swap call separates X columns. This is **not**
+source-admitted as Mojang's canonical 26.2 chunk traversal. The user's
+original source archive/Atlas must be reviewed on their machine; an
+Atlas callsite report is syntactic evidence only. Keep all production,
+VAR/SEM, Rust router parity and canonical-lifecycle gates false.
+
+Once PR #468 is green/merged, run the source-free lifecycle packet first,
+inspect the actual pinned 26.2 `fillFromNoise`/`doFill` and `NoiseChunk`
+loop/caching/slice bodies, adjust the candidate if necessary, and only
+then run the single new 768-point original-JVM adjacent oracle.
+**Never recapture the frozen 128/16/512 results.**

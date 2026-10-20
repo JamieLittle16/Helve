@@ -8,6 +8,9 @@ import java.util.*;
 
 public final class HelveWorldSeededDensity262 {
   private static final String PREFIX = "HELVE26_2_WORLD_SEED_DENSITY|";
+  private static final String FAILURE = "HELVE26_2_WORLD_SEED_FAILURE|";
+  // Original source-free debugging phases; no Minecraft source is serialized.
+  private static String phase = "bootstrap";
   private static final PrintStream RESULT = new PrintStream(
       new FileOutputStream(FileDescriptor.out), true, StandardCharsets.US_ASCII);
   private static final String ROOT = "net.minecraft.world.level.levelgen.";
@@ -59,8 +62,44 @@ public final class HelveWorldSeededDensity262 {
     checkedStatic(boot,"bootStrap",void.class).invoke(null);
   }
 
-  public static void main(String[] unused) throws Exception {
+  private static String clean(String value) {
+    if (value == null || value.isEmpty()) return "-";
+    StringBuilder text = new StringBuilder();
+    for (int i=0; i<value.length() && text.length()<700; i++) {
+      char c=value.charAt(i);
+      text.append(c>=32 && c<=126 && c!='|' ? c : '_');
+    }
+    return text.toString();
+  }
+
+  static void reportFailure(Throwable problem) {
+    Throwable deepest=problem;
+    for (int depth=0; depth<16; depth++) {
+      Throwable next=deepest.getCause();
+      if (next==null || next==deepest) break;
+      deepest=next;
+    }
+    // Direct FileDescriptor.out avoids both Minecraft's redirected System.out
+    // AND an uncaught exception handler which may intercept System.err.
+    RESULT.println(FAILURE + clean(phase) + "|" +
+        clean(deepest.getClass().getName()) + "|" +
+        clean(problem.getClass().getName()) + "|" + clean(deepest.getMessage()));
+    RESULT.flush();
+  }
+
+  public static void main(String[] unused) {
+    try {
+      run();
+    } catch (Throwable failure) {
+      reportFailure(failure);
+      System.exit(2);
+    }
+  }
+
+  private static void run() throws Exception {
+    phase="bootstrap";
     bootstrap();
+    phase="resolve-runtime-classes";
     Class<?> vanilla=Class.forName("net.minecraft.data.registries.VanillaRegistries");
     Class<?> lookup=Class.forName("net.minecraft.core.HolderLookup$Provider");
     Class<?> getterProvider=Class.forName("net.minecraft.core.HolderGetter$Provider");
@@ -79,17 +118,22 @@ public final class HelveWorldSeededDensity262 {
 
     // This is the actual stock registry builder. No synthetic HolderGetter,
     // manually invented parameters or Holder.direct(...) is used.
+    phase="stock-registry-createLookup";
     Object stock=checkedStatic(vanilla,"createLookup",lookup).invoke(null);
+    phase="stock-registry-asGetterLookup";
     Method asGetter=lookup.getMethod("asGetterLookup");
     if (!getterProvider.isAssignableFrom(asGetter.getReturnType()))
       throw new IllegalStateException("stock provider does not expose typed getter lookup");
     Object holders=asGetter.invoke(stock);
+    phase="noise-registry-resolve";
     Method noiseRegistry=getNoiseRegistry(getterProvider,resourceKey,getter);
+    phase="noise-registry-lookup";
     Object noiseGetter=noiseRegistry.invoke(holders,field(registries,"NOISE",resourceKey));
     Method getRef=getter.getMethod("getOrThrow",resourceKey);
     if (!holder.isAssignableFrom(getRef.getReturnType()))
       throw new IllegalStateException("real registry cannot produce a holder reference");
 
+    phase="world-settings-and-methods";
     Object settingsKey=field(settings,"OVERWORLD",resourceKey);
     Method makeState=checkedStatic(stateType,"create",stateType,
         getterProvider,resourceKey,long.class);
@@ -105,6 +149,7 @@ public final class HelveWorldSeededDensity262 {
     for (Constructor<?> c:new Constructor<?>[]{heldCtor,densityCtor,pointCtor})
       c.setAccessible(true);
 
+    phase="start-sampling";
     Map<String,Object> states=new HashMap<>();
     Map<String,Object> nodes=new HashMap<>();
     BufferedReader in=new BufferedReader(
@@ -122,6 +167,7 @@ public final class HelveWorldSeededDensity262 {
       long worldSeed=bits(seed);
       Object state=states.get(seed);
       if (state==null) {
+        phase="create-stock-worldseed-randomstate";
         state=makeState.invoke(null,holders,settingsKey,worldSeed);
         states.put(seed,state);
       }
@@ -129,18 +175,22 @@ public final class HelveWorldSeededDensity262 {
       Object density=nodes.get(cacheKey);
       if (density==null) {
         Object key=field(noises,keyName,resourceKey);
+        phase="resolve-registered-noise-holder";
         Object registered=getRef.invoke(noiseGetter,key);
         if (registered==null || !holder.isInstance(registered))
           throw new IllegalStateException("official key is missing from stock registry");
+        phase="randomstate-getOrCreateNoise";
         Object noise=getNoise.invoke(state,key);
         if (noise==null || !normal.isInstance(noise))
           throw new IllegalStateException("official RandomState returned no registered noise");
+        phase="construct-noise-density-node";
         Object held=heldCtor.newInstance(registered,noise);
         density=densityCtor.newInstance(held,xz,y);
         nodes.put(cacheKey,density);
       }
       Object at=pointCtor.newInstance(Integer.parseInt(v[3]),
           Integer.parseInt(v[4]),Integer.parseInt(v[5]));
+      phase="compute-noise-density-value";
       double value=(Double)compute.invoke(density,at);
       RESULT.println(PREFIX+index+"|"+
           String.format(Locale.ROOT,"%016x",Double.doubleToRawLongBits(value)));

@@ -482,3 +482,35 @@ open any production/canonical/VAR/SEM flags or instantiate another
 world owner. Next: expand the compiled graph only with separately
 source-reviewed/delegate-qualified node semantics, then compare actual
 Rust whole-`finalDensity` to the already frozen 768 JVM outputs.
+
+## Further compiled stock density progress — two-primitive observed leaf
+
+After PR #473 merged at
+`8838b89d38197085380eb80851b429c420df8fc4`, the same immutable
+`StockDensityProgram262` now also supports
+`StockDensityNode262::ObservedPrimitiveComposition`: a typed,
+preconstructed `DensityComposition262` node backed by **1,280 genuine
+26.2 JVM output vectors**. It is not a new evaluator and must never
+be converted into generic eager multiply.
+
+The new compiled regression runs **every one of those 1,280 source-free
+original JVM words through actual Rust program evaluation**, rather than
+just testing the standalone composition. It retains the `Ap2`
+first-operand positive-zero early return vs `MulOrAdd` signed-zero
+multiplication; in a one-node program it also uses exactly one
+composition evaluation per output Y-plane, caller-owned 16×16 plane and
+16³ cell buffers, and atomic coordinate-overflow rejection.
+
+Both qualified primitive-composition and noise/primitive-mixed leaves
+are compiled in the **existing** bounded immutable DAG. A generic
+`Add` or `Multiply` node remains *explicit eager arithmetic*, **not**
+automatic qualification of vanilla `DensityFunctions` or a router graph.
+This is meaningful COLD compiler-substrate progress but still not the
+full 26.2 `finalDensity`, cache/interpolation semantics, or R2D
+production terrain. No source-law/VAR/SEM gate may change.
+
+**Next:** resolve the exact 26.2 source laws of `RangeChoice` and
+marker/interpolator wrappers (including per-cell state), and the
+stock route to `finalDensity`; extend typed immutable graph nodes
+only after source-law review and independently captured numeric
+evidence. Keep all canonical/VAR/SEM/production gates **false**.

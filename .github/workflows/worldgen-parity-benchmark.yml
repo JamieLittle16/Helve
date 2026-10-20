@@ -46,6 +46,9 @@ on:
       - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_java/HelveStockFinalDensitySinglePoint262.java"
       - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_capture.py"
+      - "tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_fixture.py"
+      - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
@@ -103,6 +106,9 @@ on:
       - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_java/HelveStockFinalDensitySinglePoint262.java"
       - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_capture.py"
+      - "tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_fixture.py"
+      - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
@@ -230,6 +236,11 @@ jobs:
 
       - name: Verify real stock Overworld finalDensity SinglePointContext 128 raw-bits transport
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_final_density_singlepoint_capture.py' -v
+
+      - name: Verify exact 128 original stock finalDensity raw-bit reference and locked source identity
+        run: |
+          python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_final_density_singlepoint_fixture.py' -v
+          python3 tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py
 
       - name: Validate SHA-pinned independently captured 576-vector official stock JVM held-out evidence
         run: |

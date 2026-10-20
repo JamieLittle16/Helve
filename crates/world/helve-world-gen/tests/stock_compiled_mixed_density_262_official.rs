@@ -208,3 +208,115 @@ fn compiled_explicit_eager_outer_arithmetic_reuses_observed_mixed_subtree() {
     // This multi-node arithmetic is explicit/eager, not claimed as a
     // source-reviewed general Minecraft 26.2 DensityFunctions factory graph.
 }
+
+#[test]
+fn explicit_ap2_demand_graph_computes_all_384_jvm_dynamic_multiply_bits() {
+    let words: Vec<_> = OFFICIAL
+        .lines()
+        .map(|line| u64::from_str_radix(line, 16).expect("original 26.2 stock bitword"))
+        .collect();
+    assert_eq!(words.len(), 1920);
+    let mut checked = 0;
+    // Profiles 2 and 3 are actual JVM-selected Ap2 multiplies:
+    // dynamic Noise/Gradient and Gradient/Noise respectively.
+    for profile in [2_usize, 3] {
+        for (seed_idx, &seed) in SEEDS.iter().enumerate() {
+            let world = StockWorldSeededNoiseSet262::new_candidate(seed);
+            for (key_idx, &key) in KEYS.iter().enumerate() {
+                let noise = Node::RegisteredNoise(
+                    world.density(key, DirectNoiseScale262::QuarterHorizontalHalfVertical),
+                );
+                let gradient = Node::Primitive(primitive(profile));
+                let nodes = if profile == 2 {
+                    [noise, gradient, Node::ExplicitAp2Multiply { left: 0, right: 1 }]
+                } else {
+                    [gradient, noise, Node::ExplicitAp2Multiply { left: 0, right: 1 }]
+                };
+                let program = Program::new(nodes).expect("observed Ap2 child order");
+                for (point_idx, &(x, y, z)) in POINTS.iter().enumerate() {
+                    let row = (((profile * 4 + seed_idx) * 3 + key_idx) * 16) + point_idx;
+                    assert_eq!(
+                        program.sample_block(x, y, z).to_bits(),
+                        words[row],
+                        "computed Ap2 child DAG differs from independently captured stock JVM at row {row}"
+                    );
+                    checked += 1;
+                }
+            }
+        }
+    }
+    assert_eq!(checked, 384);
+}
+
+#[test]
+fn explicit_ap2_skips_right_dag_and_preserves_borrowed_scratch_on_positive_zero() {
+    let world = StockWorldSeededNoiseSet262::new_candidate(SEEDS[0]);
+    let noise = world.density(
+        StockRegisteredNoiseKey262::Temperature,
+        DirectNoiseScale262::QuarterHorizontalHalfVertical,
+    );
+    // This deliberately constructed graph exercises shared generic DAG logic.
+    // Only the Ap2 multiply itself has observed stock delegate semantics.
+    let program = Program::new([
+        Node::Primitive(primitive(3)),
+        Node::Primitive(DensityPrimitive262::constant(-0.0)),
+        Node::Add { left: 0, right: 1 },
+        Node::RegisteredNoise(noise),
+        Node::ExplicitAp2Multiply { left: 2, right: 3 },
+    ])
+    .expect("valid bounded root with explicit Ap2 multiply");
+    let sentinel = f64::from_bits(0x7ff8_0123_4567_89ab);
+    let mut scratch = [sentinel; 5];
+    assert_eq!(program.sample_with_scratch(0, 128, 0, &mut scratch).to_bits(), 0);
+    assert_eq!(scratch[4].to_bits(), 0);
+    assert_eq!(scratch[3].to_bits(), sentinel.to_bits(), "right subtree must not run");
+    assert_eq!(scratch[0].to_bits(), 0);
+    assert_eq!(scratch[1].to_bits(), (-0.0_f64).to_bits());
+
+    let y = 127;
+    let mut scratch = [sentinel; 5];
+    let result = program.sample_with_scratch(0, y, 0, &mut scratch);
+    assert_eq!(result.to_bits(), scratch[4].to_bits());
+    assert_eq!(scratch[3].to_bits(), noise.sample_block(0, y, 0).to_bits());
+}
+
+#[test]
+fn explicit_ap2_generic_plane_and_cell_match_scalar_bits() {
+    let world = StockWorldSeededNoiseSet262::new_candidate(SEEDS[1]);
+    let noise = world.density(
+        StockRegisteredNoiseKey262::Erosion,
+        DirectNoiseScale262::QuarterHorizontalHalfVertical,
+    );
+    let program = Program::new([
+        Node::Primitive(primitive(3)),
+        Node::RegisteredNoise(noise),
+        Node::ExplicitAp2Multiply { left: 0, right: 1 },
+    ])
+    .expect("stock-chosen gradient-first Ap2");
+    let mut plane = [f64::NAN; 256];
+    program
+        .sample_plane_16x16(-16, 128, -16, &mut plane)
+        .expect("bounded plane");
+    assert!(plane.iter().all(|v| v.to_bits() == 0));
+    let mut cell = vec![f64::NAN; 4096].into_boxed_slice();
+    program
+        .sample_cell_16x16x16(
+            -16,
+            120,
+            -16,
+            cell.as_mut().try_into().expect("fixed 4096 test cell"),
+        )
+        .expect("valid bounded cell");
+    for dy in 0_i32..16 {
+        for dz in 0_i32..16 {
+            for dx in 0_i32..16 {
+                let offset = usize::try_from((dy * 16 + dz) * 16 + dx).expect("bounded index");
+                assert_eq!(
+                    cell[offset].to_bits(),
+                    program.sample_block(-16 + dx, 120 + dy, -16 + dz).to_bits(),
+                    "demanded Ap2 cell parity at ({dx},{dy},{dz})"
+                );
+            }
+        }
+    }
+}

@@ -26,6 +26,9 @@ on:
       - "tools/tests/test_worldgen_26_2_noise_density_direct_capture.py"
       - "tools/worldgen_26_2_random_state_binding_frontier.py"
       - "tools/tests/test_worldgen_26_2_random_state_binding_frontier.py"
+      - "tools/worldgen_26_2_world_seed_density_capture.py"
+      - "tools/tests/test_worldgen_26_2_world_seed_density_capture.py"
+      - "tools/worldgen_java/HelveWorldSeededDensity262.java"
       - "tools/tests/test_worldgen_26_2_family_frozen_vectors.py"
       - "vanilla/reports/worldgen-26_2-family-raw-bit-oracle-01.json"
       - "docs/architecture/WORLDGEN_BIT_PARITY_BENCHMARK.md"
@@ -54,6 +57,9 @@ on:
       - "tools/tests/test_worldgen_26_2_noise_density_direct_capture.py"
       - "tools/worldgen_26_2_random_state_binding_frontier.py"
       - "tools/tests/test_worldgen_26_2_random_state_binding_frontier.py"
+      - "tools/worldgen_26_2_world_seed_density_capture.py"
+      - "tools/tests/test_worldgen_26_2_world_seed_density_capture.py"
+      - "tools/worldgen_java/HelveWorldSeededDensity262.java"
       - "tools/tests/test_worldgen_26_2_family_frozen_vectors.py"
       - "vanilla/reports/worldgen-26_2-family-raw-bit-oracle-01.json"
       - ".github/workflows/worldgen-parity-benchmark.yml"
@@ -125,6 +131,9 @@ jobs:
 
       - name: Validate 26.2 world-seed RandomState binding frontier against independent toy JVM
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_random_state_binding_frontier.py' -v
+
+      - name: Validate 26.2 stock registry worldseed density oracle against independent toy JVM
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_world_seed_density_capture.py' -v
 
       - name: Validate all 320 source-free official Perlin/Normal raw-bit reference values
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_family_frozen_vectors.py' -v

@@ -158,9 +158,16 @@ fn compiled_single_mixed_leaf_plane_and_cell_keep_exact_scalar_order() {
                 );
             }
         }
-        let mut cell = [f64::NAN; 4096];
+        // Test-owned heap storage avoids a 32 KiB stack array; the
+        // compiled evaluator still receives an ordinary borrowed buffer.
+        let mut cell = vec![f64::NAN; 4096].into_boxed_slice();
         program
-            .sample_cell_16x16x16(-16, 121, -16, &mut cell)
+            .sample_cell_16x16x16(
+                -16,
+                121,
+                -16,
+                cell.as_mut().try_into().expect("fixed 4096-value test cell"),
+            )
             .expect("bounded volume");
         for dy in 0_i32..16 {
             for dz in 0_i32..16 {

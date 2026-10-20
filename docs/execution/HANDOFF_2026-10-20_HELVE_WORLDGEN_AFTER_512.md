@@ -557,3 +557,45 @@ permission changes. Next: inspect the exact root's operation and
 `Mapped` transformation and resolve its bound holder before
 instantiating a stock full-router graph. Reuse already-frozen JVM
 numeric observations; never fabricate missing nodes or source laws.
+
+
+## Narrow finalDensity root semantics frontier after PR #475
+
+With the graph-level typed `ExplicitAp2Multiply` compiled in
+merged PR #475 at `32dadd70b95a661b5ba9c1dd5cc5534eb4b95c87`,
+**do not assume** the original stock finalDensity root is a multiply:
+only its Java **runtime class** `DensityFunctions$Ap2` has been
+observed. The original root has first-level `Mapped` and
+`HolderHolder` children, but neither the bound
+operator enum nor mapping enum nor concrete right-hand bound holder
+was included in the earlier source-free root fixture.
+
+In branch `worldgen/262-finaldensity-root-operator-review`,
+new **actual stock JVM introspection** is implemented in:
+
+- `tools/worldgen_java/HelveStockFinalDensityRootSemantics262.java`
+- `tools/worldgen_26_2_stock_final_density_root_semantics.py`
+- `tools/tests/test_worldgen_26_2_stock_final_density_root_semantics.py`
+
+It checks exact source/JAR/lock identities, the prior frozen 128
+original finalDensity outputs, and strict Java record accessors to
+extract the real Ap2 operator, Mapped transform and input class,
+HolderHolder public-bound concrete target, and 128 **new pairs**
+of independently computed first-level child numeric words. The
+tool always reports all source-law, VAR/SEM, canonical lifecycle,
+router numeric-parity, and production gates **false**. It does not
+capture more arbitrary points or rebuild the previous router graph.
+
+A human must run it once against their exact pinned local 26.2
+source/Atlas and JVM after its PR has merged, and upload its **source
+free** JSON. The command is written in
+`docs/execution/WORLDGEN_26_2_STOCK_NOISECHUNK_ADJACENT_FRONTIER_2026-10-20.md`.
+
+**Next code:** use actual observed op/transform/target plus
+source-owned review of their compute bodies to choose the
+**correct typed graph operators**. Compile the reachable Mapped /
+holder subgraphs on the same bounded Rust program only when their
+laws and inputs have independent JVM parity; preserve the
+NoiseChunk cell and marker lifecycle separately. Do not convert
+the existing Ap2 multiply implementation into an unsupported
+stock finalDensity root or open production generation yet.

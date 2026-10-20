@@ -323,6 +323,59 @@ the finalDensity evaluator, not source-reviewed `doFill` cache/marker
 semantics, and not approval for chunk publication. Keep all production,
 VAR/SEM, canonical traversal and full-router parity gates closed.
 
+## Actual `finalDensity` root operator/map/holder semantic diagnostic
+
+Stock bound 26.2 `finalDensity` is recorded as a Java
+`DensityFunctions$Ap2` with first-level
+`Mapped` and `HolderHolder` children. **That class identity does
+not determine whether the root applies ADD, MUL or another operator.**
+The earlier 128-value real SinglePointContext JVM oracle provides
+exact root **outputs**, not child values or mapping/holder types. The
+Rust `ExplicitAp2Multiply` work in PR #475 is therefore
+not authorization to compile the stock root as multiplication.
+
+The new **distinct** source-owned tool
+`tools/worldgen_26_2_stock_final_density_root_semantics.py` reuses
+the exact four seeds × 32 XYZ positions of the **already frozen**
+128-word actual stock final-density fixture. It rebuilds genuine
+VanillaRegistries → RandomState → Overworld NoiseRouter **once per
+seed**, reads (via typed record accessors) the runtime Ap2 operator
+enum, Mapped transform enum and immediate input class, and follows
+the HolderHolder **public Holder.value()** into its concrete bound
+density class. At those **same** points it computes both actual Java
+first-level children and the original final root, and it refuses to
+accept any final root word that differs from the existing immutable
+128-word fixture.
+
+It also checks the pinned original source ZIP and Atlas, stock server
+JAR, and exact existing Ap2/HolderHolder method identities while
+recording Mapped.compute's exact original fingerprint. It does NOT
+interpret those source bodies. No private Java source or original
+registry data is committed or exported. Output is a source-free,
+bounded, mode-0600 private JSON. **This is new operator/child evidence,
+not a redundant repeat of the earlier 128-value root capture.**
+
+Run exactly once on a merged checkout with the previously verified
+local source, Atlas and official JAR:
+
+```bash
+cd ~/Crucible
+git switch main && git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_root_semantics.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-final-root-semantics-128.json
+```
+
+Upload **only** the source-free result JSON or the precise fail-closed
+error. A failure involving an unknown record component is a legitimate
+unresolved source-law frontier: do not invent or auto-adjust the
+Java operator or the Mapped/Holder data. Full semantic review,
+mapped transform math, recursive holder graph, NoiseChunk markers,
+full-router numeric parity, VAR/SEM and production worldgen
+remain **OPEN**.
+
 ## Engineering boundary
 
 All seven gates stay **false**:

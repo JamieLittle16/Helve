@@ -103,7 +103,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             if let StockDensityNode262::Add { left, right }
             | StockDensityNode262::Multiply { left, right } = node
             {
-                for &child in [*left, *right].iter() {
+                for &child in &[*left, *right] {
                     if child >= index {
                         return Err(StockDensityProgramError262::InvalidDependency {
                             node: index,
@@ -241,6 +241,10 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
     ///
     /// # Errors
     /// All horizontal overflow is rejected before the first output write.
+    ///
+    /// # Panics
+    /// Only if a fixed 16×16 pixel index does not fit into `usize`, which
+    /// is impossible because both local axes are bounded by 0..16.
     pub fn sample_plane_16x16(
         &self,
         origin_x: i32,

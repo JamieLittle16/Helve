@@ -348,8 +348,19 @@ accept any final root word that differs from the existing immutable
 128-word fixture.
 
 It also checks the pinned original source ZIP and Atlas, stock server
-JAR, and exact existing Ap2/HolderHolder method identities while
-recording Mapped.compute's exact original fingerprint. It does NOT
+JAR, and exact existing Ap2/HolderHolder method identities. The first
+source-owner run after PR #476 exposed a reviewer mistake: **Mapped
+does not have a directly indexed compute(FunctionContext) body**.
+Instead, the already-pinned 26.2 `DensityFunctions$PureTransformer.compute`
+body (SHA-256
+`80087cd337e4ac54a98884a9c47579f4573740fc983f033ed2243e579515a6dd`)
+is the delegated candidate. The repaired review now requires **zero
+direct Mapped.compute declarations**, **exactly one** original indexed
+PureTransformer.compute with the existing known body fingerprint, and
+the **actual runtime** Mapped.compute declaring class to equal
+PureTransformer. This corrects the diagnostic; it is not a new
+independent source-law admission. No stock root operator/child output
+has been observed by this new run yet. It does NOT
 interpret those source bodies. No private Java source or original
 registry data is committed or exported. Output is a source-free,
 bounded, mode-0600 private JSON. **This is new operator/child evidence,

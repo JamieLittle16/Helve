@@ -30,6 +30,12 @@ import worldgen_26_2_stock_final_density_singlepoint_capture as final
 import worldgen_26_2_stock_final_density_singlepoint_fixture as frozen_final
 
 JAVA_SOURCE=Path(__file__).resolve().parent/"worldgen_java/HelveStockFinalDensityRootSemantics262.java"
+# The genuine pinned 26.2 delegate inventory already identified this inherited
+# compute body (used also by stock MulOrAdd). Mapped is a PureTransformer
+# record; it does not declare its own compute(FunctionContext) implementation.
+# Strictly require the source SHA AND its runtime declaring class below.
+PURE_TRANSFORMER=final.FINAL.rsplit("$",1)[0]+"$PureTransformer"
+PURE_COMPUTE_SHA256="80087cd337e4ac54a98884a9c47579f4573740fc983f033ed2243e579515a6dd"
 KIND="official_26_2_stock_final_density_root_child_semantics_unadmitted"
 HEAD="HELVE26_2_FINAL_ROOT_SHAPE"
 VALUE="HELVE26_2_FINAL_ROOT_VALUE"
@@ -138,7 +144,7 @@ def validate(report:dict)->None:
             for k,v in expected.items())):
         raise RootSemanticError("root semantic report identity / gates changed")
     methods=report["source_methods"]
-    if not isinstance(methods,dict) or set(methods)!={"ap2_compute","mapped_compute",
+    if not isinstance(methods,dict) or set(methods)!={"ap2_compute","mapped_delegate_compute",
                                                       "holder_holder_compute"}:
         raise RootSemanticError("bounded stock source method identity inventory missing")
     for name,method in methods.items():
@@ -156,8 +162,10 @@ def validate(report:dict)->None:
         if (method["owner"],method["signature"],method["body_sha256"],
             method["normalized_sha256"])!=pin:
             raise RootSemanticError("prior pinned source identity changed: "+name)
-    if methods["mapped_compute"]["owner"]!=final.MAPPED:
-        raise RootSemanticError("Mapped.compute owner identity changed")
+    delegate=methods["mapped_delegate_compute"]
+    if (delegate["owner"]!=PURE_TRANSFORMER or
+        delegate["body_sha256"]!=PURE_COMPUTE_SHA256):
+        raise RootSemanticError("Mapped inherited PureTransformer.compute source identity changed")
     shapes=report["shapes"]
     vectors=report["vectors"]
     if not isinstance(shapes,list) or not isinstance(vectors,list) or len(shapes)!=4 \
@@ -194,9 +202,18 @@ def validate(report:dict)->None:
 
 
 def source_methods(conn:sqlite3.Connection)->dict:
+    # Fail closed if the original Mapped record has acquired a declared
+    # compute method: the inherited-dispatch explanation would be invalid.
+    declared=conn.execute(
+        "SELECT m.id FROM methods m JOIN types t ON m.type_id=t.id "
+        "WHERE t.qualified_name=? AND m.name='compute'",
+        (final.MAPPED,),
+    ).fetchall()
+    if declared:
+        raise RootSemanticError("Mapped unexpectedly declares a direct compute method")
     methods={}
     for label,owner in (("ap2_compute",final.FINAL),
-                        ("mapped_compute",final.MAPPED),
+                        ("mapped_delegate_compute",PURE_TRANSFORMER),
                         ("holder_holder_compute",final.HOLDER)):
         found=conn.execute(
             "SELECT m.signature,m.body_sha256,m.normalized_sha256 "
@@ -207,6 +224,9 @@ def source_methods(conn:sqlite3.Connection)->dict:
         if len(found)!=1:
             raise RootSemanticError("missing or ambiguous pinned 26.2 compute: "+label)
         row=found[0]
+        if (label=="mapped_delegate_compute" and
+            row["body_sha256"]!=PURE_COMPUTE_SHA256):
+            raise RootSemanticError("pinned PureTransformer.compute body SHA changed")
         methods[label]={
             "owner":owner,"signature":row["signature"],
             "body_sha256":row["body_sha256"],

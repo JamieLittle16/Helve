@@ -577,6 +577,21 @@ new **actual stock JVM introspection** is implemented in:
 - `tools/worldgen_26_2_stock_final_density_root_semantics.py`
 - `tools/tests/test_worldgen_26_2_stock_final_density_root_semantics.py`
 
+**First local run failure and source-grounded repair:** the diagnostic
+originally looked for `Mapped.compute(FunctionContext)` declared
+directly under `DensityFunctions$Mapped` in Atlas, and failed
+`missing or ambiguous pinned 26.2 compute: mapped_compute` before
+running its real JVM observation. The earlier 26.2 delegate inventory
+already pins `DensityFunctions$PureTransformer.compute` SHA-256
+`80087cd337e4ac54a98884a9c47579f4573740fc983f033ed2243e579515a6dd`.
+The corrected diagnostic now requires absence of a direct Mapped
+compute declaration; exactly one pinned PureTransformer.compute; and
+a Java runtime getMethod(...).getDeclaringClass() check proving this is
+the actual inherited implementation for Mapped. Tests cover absent,
+duplicate, unexpected declared and fingerprint-changed methods.
+**The failed original attempt produced no root operator/child JSON**;
+do not infer stock semantics from it.
+
 It checks exact source/JAR/lock identities, the prior frozen 128
 original finalDensity outputs, and strict Java record accessors to
 extract the real Ap2 operator, Mapped transform and input class,

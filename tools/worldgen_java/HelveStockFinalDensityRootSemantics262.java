@@ -89,6 +89,14 @@ public final class HelveStockFinalDensityRootSemantics262 {
     if(!left.getClass().getName().equals(LEVEL+"DensityFunctions$Mapped") ||
        !right.getClass().getName().equals(LEVEL+"DensityFunctions$HolderHolder"))
       throw new IllegalStateException("actual finalDensity first-level children changed");
+    // Original 26.2 Mapped does not declare compute(FunctionContext).
+    // Verify actual JVM dispatch to the exact source-indexed PureTransformer
+    // default implementation instead of silently guessing inheritance.
+    Class<?> context=Class.forName(LEVEL+"DensityFunction$FunctionContext");
+    Class<?> pure=Class.forName(LEVEL+"DensityFunctions$PureTransformer");
+    if(!pure.isAssignableFrom(left.getClass()) ||
+       left.getClass().getMethod("compute",context).getDeclaringClass()!=pure)
+      throw new IllegalStateException("Mapped compute dispatch not pinned PureTransformer");
     Object mappedChild=mappedInput(left,density);
     Object holderChild=holderTarget(right,density);
     if(!left.getClass().isRecord() || !right.getClass().isRecord() ||

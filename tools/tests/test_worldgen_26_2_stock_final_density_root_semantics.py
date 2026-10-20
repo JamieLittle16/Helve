@@ -51,10 +51,12 @@ class RealRootSemanticsTests(unittest.TestCase):
                 ("owner","signature","body_sha256","normalized_sha256"),pin,
                 strict=True,
             ),reviewed=False)
-        identities["mapped_compute"]={
-            "owner":r.final.MAPPED,
+        identities["mapped_delegate_compute"]={
+            "owner":r.PURE_TRANSFORMER,
             "signature":"compute(final DensityFunction . FunctionContext context)",
-            "body_sha256":"a"*64,"normalized_sha256":"b"*64,"reviewed":False,
+            "body_sha256":r.PURE_COMPUTE_SHA256,
+            "normalized_sha256":"b"*64,
+            "reviewed":False,
         }
         return identities
 
@@ -119,8 +121,12 @@ class RealRootSemanticsTests(unittest.TestCase):
                 r.validate(altered)
         cases=(
             lambda x:x["source_methods"]["ap2_compute"].__setitem__("reviewed",True),
-            lambda x:x["source_methods"]["mapped_compute"].__setitem__(
+            lambda x:x["source_methods"]["mapped_delegate_compute"].__setitem__(
                 "normalized_sha256","invalid"),
+            lambda x:x["source_methods"]["mapped_delegate_compute"].__setitem__(
+                "body_sha256","a"*64),
+            lambda x:x["source_methods"]["mapped_delegate_compute"].__setitem__(
+                "owner",r.final.MAPPED),
             lambda x:x["source_methods"]["holder_holder_compute"].__setitem__(
                 "body_sha256","0"*64),
             lambda x:x["vectors"][0].__setitem__("block_y",2026),
@@ -135,7 +141,7 @@ class RealRootSemanticsTests(unittest.TestCase):
             with self.subTest(case=i),self.assertRaises(r.RootSemanticError):
                 r.validate(wrong)
 
-    def test_source_mapped_identity_requires_unique_exact_method(self):
+    def test_source_mapped_inherited_compute_requires_pinned_pure_transformer(self):
         conn=sqlite3.connect(":memory:")
         conn.row_factory=sqlite3.Row
         conn.executescript("""
@@ -143,20 +149,49 @@ class RealRootSemanticsTests(unittest.TestCase):
             CREATE TABLE methods(id INTEGER PRIMARY KEY,type_id INTEGER,name TEXT,
                 signature TEXT,param_count INTEGER,body_sha256 TEXT,normalized_sha256 TEXT);
         """)
-        for i,(_,owner) in enumerate(
-            (("ap2",r.final.FINAL),("mapped",r.final.MAPPED),
-             ("holder",r.final.HOLDER)),start=1
+        for i,owner in enumerate(
+            (r.final.FINAL,r.final.MAPPED,r.PURE_TRANSFORMER,r.final.HOLDER),start=1
         ):
             conn.execute("INSERT INTO types VALUES(?,?)",(i,owner))
+        # Original Mapped has no directly declared compute; its inherited
+        # PureTransformer implementation is checked by exact known source SHA.
+        for i,type_id,body in (
+            (1,1,"a"*64),(2,3,r.PURE_COMPUTE_SHA256),(3,4,"a"*64),
+        ):
             conn.execute(
                 "INSERT INTO methods VALUES(?,?,?,?,?,?,?)",
-                (i,i,"compute","compute(FunctionContext)",1,"a"*64,"b"*64),
+                (i,type_id,"compute","compute(FunctionContext)",1,body,"b"*64),
             )
         ids=r.source_methods(conn)
         self.assertEqual(set(ids),set(self.methods()))
-        self.assertFalse(ids["mapped_compute"]["reviewed"])
+        self.assertEqual(ids["mapped_delegate_compute"]["owner"],r.PURE_TRANSFORMER)
+        self.assertEqual(ids["mapped_delegate_compute"]["body_sha256"],
+                         r.PURE_COMPUTE_SHA256)
+        self.assertFalse(ids["mapped_delegate_compute"]["reviewed"])
+
+        # Fail closed on a missing, changed or ambiguous inherited method,
+        # and on any directly declared Mapped.compute.
+        conn.execute("UPDATE methods SET body_sha256=? WHERE id=2",("c"*64,))
+        with self.assertRaisesRegex(r.RootSemanticError,"body SHA"):
+            r.source_methods(conn)
+        conn.execute("UPDATE methods SET body_sha256=? WHERE id=2",
+                     (r.PURE_COMPUTE_SHA256,))
+        conn.execute(
+            "INSERT INTO methods VALUES(?,?,?,?,?,?,?)",
+            (4,2,"compute","compute(FunctionContext)",1,"a"*64,"b"*64),
+        )
+        with self.assertRaisesRegex(r.RootSemanticError,"direct compute"):
+            r.source_methods(conn)
+        conn.execute("DELETE FROM methods WHERE id=4")
+        conn.execute(
+            "INSERT INTO methods VALUES(?,?,?,?,?,?,?)",
+            (5,3,"compute","compute(OtherContext)",1,r.PURE_COMPUTE_SHA256,"b"*64),
+        )
+        with self.assertRaisesRegex(r.RootSemanticError,"ambiguous"):
+            r.source_methods(conn)
+        conn.execute("DELETE FROM methods WHERE id=5")
         conn.execute("DELETE FROM methods WHERE id=2")
-        with self.assertRaises(r.RootSemanticError):
+        with self.assertRaisesRegex(r.RootSemanticError,"missing"):
             r.source_methods(conn)
         conn.close()
 

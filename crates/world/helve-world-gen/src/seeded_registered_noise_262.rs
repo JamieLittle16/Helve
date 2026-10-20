@@ -253,7 +253,6 @@ fn from_positional_candidate(
         .expect("stock normal factor is finite")
 }
 
-
 /// Three independent stock-registered 26.2 numeric noise states owned once
 /// per world seed. No extra world, registry, chunk or cache owner is introduced.
 #[derive(Clone, Debug)]

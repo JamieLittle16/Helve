@@ -49,8 +49,9 @@ fn plane_first_pixel_matches_pinned_stock_jvm_and_entire_plane_matches_scalar() 
                     density
                         .sample_plane_16x16(x, y, z, &mut out)
                         .expect("bounded coherent grid");
-                    let row = (((scale_index * SEEDS.len() + seed_index) * KEYS.len()
-                        + key_index) * 32) + point;
+                    let row = (((scale_index * SEEDS.len() + seed_index) * KEYS.len() + key_index)
+                        * 32)
+                        + point;
                     assert_eq!(
                         out[0].to_bits(),
                         hex_bits(bits[row]),
@@ -95,11 +96,8 @@ fn full_3d_cells_are_bit_identical_to_scalar_under_signed_seed_and_scales() {
                         for dx in 0_i32..16 {
                             let i = usize::try_from((dy * 16 + dz) * 16 + dx)
                                 .expect("bounded Y/Z/X cell index");
-                            let expected = density.sample_block(
-                                origin_x + dx,
-                                origin_y + dy,
-                                origin_z + dz,
-                            );
+                            let expected =
+                                density.sample_block(origin_x + dx, origin_y + dy, origin_z + dz);
                             assert_eq!(
                                 cell[i].to_bits(),
                                 expected.to_bits(),
@@ -156,7 +154,10 @@ fn stock_world_seeded_noise_set_is_immutable_and_safe_across_worker_threads() {
     let expected = {
         let mut plane = [0.0_f64; 256];
         state
-            .density(StockRegisteredNoiseKey262::Erosion, DirectNoiseScale262::Unit)
+            .density(
+                StockRegisteredNoiseKey262::Erosion,
+                DirectNoiseScale262::Unit,
+            )
             .sample_plane_16x16(-16, 319, -16, &mut plane)
             .expect("valid plane");
         plane.map(f64::to_bits)
@@ -169,7 +170,10 @@ fn stock_world_seeded_noise_set_is_immutable_and_safe_across_worker_threads() {
                 let mut plane = [0.0_f64; 256];
                 for _ in 0..3 {
                     state
-                        .density(StockRegisteredNoiseKey262::Erosion, DirectNoiseScale262::Unit)
+                        .density(
+                            StockRegisteredNoiseKey262::Erosion,
+                            DirectNoiseScale262::Unit,
+                        )
                         .sample_plane_16x16(-16, 319, -16, &mut plane)
                         .expect("valid plane");
                     assert_eq!(plane.map(f64::to_bits), *expected);

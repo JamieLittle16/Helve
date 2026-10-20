@@ -24,7 +24,7 @@ pub enum DirectNoiseScale262 {
 
 impl DirectNoiseScale262 {
     #[inline]
-    const fn factors(self) -> (f64, f64) {
+    pub(crate) const fn factors(self) -> (f64, f64) {
         match self {
             Self::Unit => (1.0, 1.0),
             Self::QuarterHorizontal => (0.25, 1.0),

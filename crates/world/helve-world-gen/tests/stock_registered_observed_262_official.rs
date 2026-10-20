@@ -28,8 +28,8 @@ const SCALES: [DirectNoiseScale262; 3] = [
     DirectNoiseScale262::QuarterHorizontalHalfVertical,
 ];
 const Y: [i32; 32] = [
-    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64, 127,
-    128, 255, 256, 318, 319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
+    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64, 127, 128, 255, 256, 318,
+    319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
 ];
 
 fn hex_bits(s: &str) -> u64 {
@@ -38,7 +38,9 @@ fn hex_bits(s: &str) -> u64 {
 }
 
 fn next_record<'a>(lines: &mut impl Iterator<Item = &'a str>) -> &'a str {
-    lines.next().expect("complete official registered-state fixture")
+    lines
+        .next()
+        .expect("complete official registered-state fixture")
 }
 
 fn read_branch<'a>(lines: &mut impl Iterator<Item = &'a str>) -> RegisteredPerlinObserved262 {
@@ -82,7 +84,10 @@ fn read_branch<'a>(lines: &mut impl Iterator<Item = &'a str>) -> RegisteredPerli
         let x = f64::from_bits(hex_bits(slot.next().expect("x offset")));
         let y = f64::from_bits(hex_bits(slot.next().expect("y offset")));
         let z = f64::from_bits(hex_bits(slot.next().expect("z offset")));
-        assert!(slot.next().is_none(), "unrecognised improved-noise fixture data");
+        assert!(
+            slot.next().is_none(),
+            "unrecognised improved-noise fixture data"
+        );
         octaves.push(Some(
             ImprovedNoise262::from_observed_parts(permutation, x, y, z)
                 .expect("stock permutation is a complete bijection"),
@@ -99,7 +104,9 @@ fn read_branch<'a>(lines: &mut impl Iterator<Item = &'a str>) -> RegisteredPerli
 }
 
 fn load_stock_observed_states() -> Vec<RegisteredNormalObserved262> {
-    let mut lines = STATES.lines().filter(|line| !line.is_empty() && !line.starts_with('#'));
+    let mut lines = STATES
+        .lines()
+        .filter(|line| !line.is_empty() && !line.starts_with('#'));
     let mut states = Vec::with_capacity(15);
     for &seed in &SEEDS {
         for &key in &KEYS {
@@ -108,8 +115,11 @@ fn load_stock_observed_states() -> Vec<RegisteredNormalObserved262> {
             assert_eq!(fields.next(), Some("N"));
             assert_eq!(hex_bits(fields.next().expect("world-seed bits")), seed);
             assert_eq!(fields.next(), Some(key));
-            let first_octave = fields.next().expect("registered first octave")
-                .parse::<i32>().expect("signed octave");
+            let first_octave = fields
+                .next()
+                .expect("registered first octave")
+                .parse::<i32>()
+                .expect("signed octave");
             let factor = f64::from_bits(hex_bits(fields.next().expect("normal value factor")));
             assert!(fields.next().is_none(), "unexpected normal header fields");
             let first = read_branch(&mut lines);
@@ -117,12 +127,15 @@ fn load_stock_observed_states() -> Vec<RegisteredNormalObserved262> {
             assert_eq!(first.first_octave(), first_octave);
             assert_eq!(second.first_octave(), first_octave);
             assert_eq!(first.octave_count(), second.octave_count());
-            assert_eq!(first.octave_count(), match key {
-                "TEMPERATURE" => 6,
-                "CONTINENTALNESS" => 9,
-                "EROSION" => 5,
-                _ => unreachable!("three stock keys"),
-            });
+            assert_eq!(
+                first.octave_count(),
+                match key {
+                    "TEMPERATURE" => 6,
+                    "CONTINENTALNESS" => 9,
+                    "EROSION" => 5,
+                    _ => unreachable!("three stock keys"),
+                }
+            );
             assert_eq!(next_record(&mut lines), "E");
             states.push(
                 RegisteredNormalObserved262::from_observed_parts(first, second, factor)
@@ -130,7 +143,10 @@ fn load_stock_observed_states() -> Vec<RegisteredNormalObserved262> {
             );
         }
     }
-    assert!(lines.next().is_none(), "unrecognised trailing stock fixture records");
+    assert!(
+        lines.next().is_none(),
+        "unrecognised trailing stock fixture records"
+    );
     assert_eq!(states.len(), 15);
     states
 }
@@ -146,7 +162,11 @@ fn block_xyz(index: usize) -> (i32, i32, i32) {
 fn all_1440_stock_worldseed_bits_match_existing_rust_sampler_from_observed_state() {
     let observed = load_stock_observed_states();
     let oracle: Vec<&str> = ORACLE.lines().collect();
-    assert_eq!(oracle.len(), 1440, "existing independent JVM oracle is immutable");
+    assert_eq!(
+        oracle.len(),
+        1440,
+        "existing independent JVM oracle is immutable"
+    );
     assert_eq!(oracle[0], "3fe642a30a35f266");
     assert_eq!(oracle[480], "bfb1cb44d1eacac0");
     assert_eq!(oracle[1439], "3fc3cbbb372a1759");
@@ -158,8 +178,9 @@ fn all_1440_stock_worldseed_bits_match_existing_rust_sampler_from_observed_state
                 let density = RegisteredNoiseDensityObserved262::new(state, scale);
                 for index in 0..32 {
                     let (x, y, z) = block_xyz(index);
-                    let row = (((profile * SEEDS.len() + seed_index) * KEYS.len()
-                        + key_index) * 32) + index;
+                    let row = (((profile * SEEDS.len() + seed_index) * KEYS.len() + key_index)
+                        * 32)
+                        + index;
                     let expected = hex_bits(oracle[row]);
                     let actual = density.sample_block(x, y, z).to_bits();
                     assert_eq!(

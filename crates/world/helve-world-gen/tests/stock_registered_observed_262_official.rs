@@ -15,6 +15,10 @@ use helve_world_gen::registered_noise_state_262::{
     RegisteredNoiseDensityObserved262, RegisteredNormalObserved262, RegisteredPerlinObserved262,
 };
 
+use helve_world_gen::seeded_registered_noise_262::{
+    StockRegisteredNoiseKey262, from_stock_world_seed_candidate,
+};
+
 const STATES: &str = include_str!("data/stock_registered_observed_state_26_2.txt");
 const ORACLE: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
@@ -204,6 +208,66 @@ fn observed_stock_states_are_seed_dependent_and_nontruncated() {
                 !states[i].state_bits_equal(&states[next]),
                 "distinct signed stock worldseeds cannot alias observed state"
             );
+        }
+    }
+}
+
+#[test]
+fn all_15_seed_derived_stock_sampler_states_match_complete_official_snapshots() {
+    let actual = load_stock_observed_states();
+    let keys = [
+        StockRegisteredNoiseKey262::Temperature,
+        StockRegisteredNoiseKey262::Continentalness,
+        StockRegisteredNoiseKey262::Erosion,
+    ];
+    for (seed_index, seed) in SEEDS.iter().enumerate() {
+        for (key_index, key) in keys.iter().enumerate() {
+            let derived = from_stock_world_seed_candidate(*seed, *key);
+            let slot = seed_index * KEYS.len() + key_index;
+            assert!(
+                derived.state_bits_equal(&actual[slot]),
+                "full prepared-state mismatch at signed seed_bits={seed:016x}, stock key={}",
+                KEYS[key_index],
+            );
+        }
+    }
+}
+
+#[test]
+fn all_1440_stock_worldseed_bits_match_rust_seed_derived_constructor() {
+    let keys = [
+        StockRegisteredNoiseKey262::Temperature,
+        StockRegisteredNoiseKey262::Continentalness,
+        StockRegisteredNoiseKey262::Erosion,
+    ];
+    let generated: Vec<_> = SEEDS
+        .iter()
+        .flat_map(|seed| {
+            keys.iter()
+                .map(move |key| from_stock_world_seed_candidate(*seed, *key))
+        })
+        .collect();
+    let oracle: Vec<&str> = ORACLE.lines().collect();
+    assert_eq!(oracle.len(), 1440);
+
+    for (profile, &scale) in SCALES.iter().enumerate() {
+        for (seed_index, &seed) in SEEDS.iter().enumerate() {
+            for (key_index, &key) in KEYS.iter().enumerate() {
+                let state = &generated[seed_index * KEYS.len() + key_index];
+                let density = RegisteredNoiseDensityObserved262::new(state, scale);
+                for point in 0..32 {
+                    let (x, y, z) = block_xyz(point);
+                    let row = (((profile * SEEDS.len() + seed_index) * KEYS.len() + key_index)
+                        * 32)
+                        + point;
+                    let expected = hex_bits(oracle[row]);
+                    assert_eq!(
+                        density.sample_block(x, y, z).to_bits(),
+                        expected,
+                        "seed-derived 26.2 stock density mismatch profile={profile} seed={seed:016x} key={key} point={point} xyz=({x},{y},{z})",
+                    );
+                }
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-//! Negative control from the genuine 768-bit stock 26.2 NoiseChunk capture.
+//! Negative control from the genuine 768-bit stock 26.2 `NoiseChunk` capture.
 //!
 //! A `finalDensity` value is **not** generally the trilinear interpolation of
 //! its eight observed final-output corner values. The real density graph,
@@ -28,33 +28,15 @@ fn read_bits() -> Vec<u64> {
 // Stock candidate fixture ordering from the source-free adjacent tool:
 // seed -> chunk -> X cell -> Z cell -> Y cell descending (17,16,15) ->
 // local Y (7,0) -> local X (0,3) -> local Z (0,3).
-fn index(
-    seed: usize,
-    chunk: usize,
-    cx: usize,
-    cz: usize,
-    cy: usize,
-    ly: usize,
-    lx: usize,
-    lz: usize,
-) -> usize {
+fn index(seed: usize, chunk: usize, offsets: [usize; 6]) -> usize {
+    let [cx, cz, cy, ly, lx, lz] = offsets;
     assert!(seed < 4 && chunk < 2 && cx < 2 && cz < 2);
     assert!(cy < 3 && ly < 2 && lx < 2 && lz < 2);
     (seed * 2 + chunk) * 96 + (((((cx * 2 + cz) * 3 + cy) * 2 + ly) * 2 + lx) * 2 + lz)
 }
 
-fn value(
-    bits: &[u64],
-    seed: usize,
-    chunk: usize,
-    cx: usize,
-    cz: usize,
-    cy: usize,
-    ly: usize,
-    lx: usize,
-    lz: usize,
-) -> f64 {
-    f64::from_bits(bits[index(seed, chunk, cx, cz, cy, ly, lx, lz)])
+fn value(bits: &[u64], seed: usize, chunk: usize, offsets: [usize; 6]) -> f64 {
+    f64::from_bits(bits[index(seed, chunk, offsets)])
 }
 
 #[inline]
@@ -75,8 +57,8 @@ fn real_noisechunk_final_output_is_not_plain_trilinear_corners() {
             let mut y_lerped = [[0.0_f64; 2]; 2];
             for (ix, row) in y_lerped.iter_mut().enumerate() {
                 for (iz, out) in row.iter_mut().enumerate() {
-                    let bottom = value(&bits, seed, chunk, ix, iz, 1, 1, 0, 0);
-                    let top = value(&bits, seed, chunk, ix, iz, 0, 1, 0, 0);
+                    let bottom = value(&bits, seed, chunk, [ix, iz, 1, 1, 0, 0]);
+                    let top = value(&bits, seed, chunk, [ix, iz, 0, 1, 0, 0]);
                     *out = lerp(7.0 / 8.0, bottom, top);
                 }
             }
@@ -85,7 +67,7 @@ fn real_noisechunk_final_output_is_not_plain_trilinear_corners() {
             let naive = lerp(3.0 / 4.0, z0, z1);
             // Actual stock output at (origin+3,71,origin+3): cell
             // X0/Z0/Y16, upper local Y7, upper local X3 and Z3.
-            let actual = value(&bits, seed, chunk, 0, 0, 1, 0, 1, 1);
+            let actual = value(&bits, seed, chunk, [0, 0, 1, 0, 1, 1]);
             let difference = (actual - naive).abs();
             assert!(
                 difference > 1e-5,

@@ -24,7 +24,7 @@ FIXTURE_BYTES=768*17
 FIXTURE_SHA256="906ef4684d025d633e7d04f8c963b62b41c725b800739ce37e3256d8f484c95f"
 ORIGINAL_JSON_BYTES=150067
 ORIGINAL_JSON_SHA256="86f33de3a4fe19a6bcc202badaaeb23bdef83bab29405e01534bd12c226bbcc1"
-HEX16=re.compile(r"[0-9a-f]{16}\\Z")
+HEX16=re.compile(r"[0-9a-f]{16}\Z")
 # Only new method identities are added; the prior nine remain byte-locked
 # by the existing source-free frozen 16/512 method registry.
 NEW_METHODS={
@@ -75,7 +75,7 @@ def load_bits(path:Path=FIXTURE)->tuple[str,...]:
         raise FrozenAdjacentError("not exactly 768 adjacent bitwords")
     words=[]
     for i,line in enumerate(lines):
-        if (len(line)!=17 or not line.endswith("\\n") or
+        if (len(line)!=17 or not line.endswith("\n") or
             not HEX16.fullmatch(line[:-1]) or
             ((int(line[:-1],16)>>52)&0x7ff)==0x7ff):
             raise FrozenAdjacentError("invalid/nonfinite original adjacent bitword "+str(i))

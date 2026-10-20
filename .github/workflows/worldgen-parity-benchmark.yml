@@ -31,6 +31,8 @@ on:
       - "tools/worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/worldgen_26_2_stock_registered_state_capture.py"
+      - "tools/worldgen_26_2_stock_worldseed_heldout_capture.py"
+      - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_java/HelveWorldSeededState262.java"
       - "vanilla/reports/worldgen-26_2-stock-worldseed-noise-bits-01.txt"
@@ -68,6 +70,8 @@ on:
       - "tools/worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/worldgen_26_2_stock_registered_state_capture.py"
+      - "tools/worldgen_26_2_stock_worldseed_heldout_capture.py"
+      - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_java/HelveWorldSeededState262.java"
       - "vanilla/reports/worldgen-26_2-stock-worldseed-noise-bits-01.txt"
@@ -167,6 +171,9 @@ jobs:
 
       - name: Validate stock 26.2 registered parameter/state receipt transport without private JVM
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_registered_state_capture.py' -v
+
+      - name: Validate source-pinned 576-vector held-out stock JVM transport with synthetic registry
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_worldseed_heldout_capture.py' -v
 
       - name: Validate all 320 source-free official Perlin/Normal raw-bit reference values
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_family_frozen_vectors.py' -v

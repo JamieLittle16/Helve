@@ -13,6 +13,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import worldgen_26_2_world_seed_density_capture as target  # noqa: E402
+import worldgen_26_2_stock_worldseed_heldout_capture as heldout  # noqa: E402
 
 
 class StockWorldSeedDensityTests(unittest.TestCase):
@@ -365,6 +366,19 @@ class StockWorldSeedDensityTests(unittest.TestCase):
             self.assertNotEqual(observed[0],observed[32])
             self.assertNotEqual(observed[0],observed[96])
             self.assertNotEqual(observed[0],observed[288])
+
+            # The same ORIGINAL reflection bridge must also execute the
+            # independent bounded held-out mode in the synthetic stock JVM.
+            # No second bootstrap, holder adapter or fake runtime is allowed
+            # to bypass the original successful 1,440-vector pathway.
+            with mock.patch.object(target.official, "extract_classpath",
+                                   return_value=[output]):
+                heldout_bits = heldout.observe(
+                    work/"fake.jar", heldout.input_rows(), timeout=60)
+            self.assertEqual(len(heldout_bits), 576)
+            self.assertTrue(all(target.BITS.fullmatch(word)
+                                for word in heldout_bits))
+            self.assertNotEqual(heldout_bits[0], heldout_bits[16])
 
             # Negative experiment with a REAL compiled independent toy JVM.
             # Its Bootstrap replaces System.out, its registry method throws,

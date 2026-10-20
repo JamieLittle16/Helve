@@ -87,16 +87,20 @@ public final class HelveWorldSeededDensity262 {
     RESULT.flush();
   }
 
-  public static void main(String[] unused) {
+  public static void main(String[] args) {
     try {
-      run();
+      int expected;
+      if (args.length==0) expected=1440; // Original frozen full corpus, unchanged.
+      else if (args.length==1 && args[0].equals("--heldout-576")) expected=576;
+      else throw new IllegalArgumentException("unapproved bounded JVM capture mode");
+      run(expected);
     } catch (Throwable failure) {
       reportFailure(failure);
       System.exit(2);
     }
   }
 
-  private static void run() throws Exception {
+  private static void run(int expected) throws Exception {
     phase="bootstrap";
     bootstrap();
     phase="resolve-runtime-classes";
@@ -165,7 +169,7 @@ public final class HelveWorldSeededDensity262 {
     int index=0;
     while ((line=in.readLine())!=null) {
       String[] v=line.split("\\t",-1);
-      if (v.length!=6 || index>=1440)
+      if (v.length!=6 || index>=expected)
         throw new IllegalStateException("invalid world-seed noise request framing");
       String profile=v[0], seed=v[1], keyName=v[2];
       if (!Arrays.asList(KEYS).contains(keyName))
@@ -203,6 +207,6 @@ public final class HelveWorldSeededDensity262 {
           String.format(Locale.ROOT,"%016x",Double.doubleToRawLongBits(value)));
       index++;
     }
-    if (index!=1440) throw new IllegalStateException("incomplete 1440-vector worldseed oracle");
+    if (index!=expected) throw new IllegalStateException("incomplete bounded worldseed oracle");
   }
 }

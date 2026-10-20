@@ -101,9 +101,13 @@ def _validate_group(rows: list[dict]) -> None:
         slots = sorted({r["path"] for r in records if r["path"].startswith(branch+"/")})
         if len(slots) != lengths[0]:
             raise RegisteredStateError("missing Perlin octave slot")
-        expected_base = branch + "/" + next(
-            r["name"] for r in selected("L",branch) if
-            all(s.startswith(branch+"/"+r["name"]+"[") for s in slots))
+        parent_names = [
+            r["name"] for r in selected("L",branch)
+            if all(s.startswith(branch+"/"+r["name"]+"[") for s in slots)
+        ]
+        if len(parent_names) != 1:
+            raise RegisteredStateError("ambiguous or unbound octave-array field")
+        expected_base = branch + "/" + parent_names[0]
         if slots != sorted(expected_base + "[" + str(i) + "]" for i in range(lengths[0])):
             raise RegisteredStateError("noncontiguous or reordered octave slots")
         for slot in slots:
@@ -159,6 +163,16 @@ def parse(stdout: str) -> list[dict]:
             seen=set()
     if current or len(groups) != 15:
         raise RegisteredStateError("incomplete official five-seed/three-key state")
+    # Registry parameters are stock definitions, never seed-specific guesses.
+    # Reject drift in octave number, slot count, amplitude bits or field identity.
+    for key_index in range(len(stock.NOISE_KEYS)):
+        reference = [r for r in groups[key_index]["records"]
+                     if r["path"] == "parameters"]
+        for seed_index in range(1,len(stock.SEEDS)):
+            other = [r for r in groups[seed_index*len(stock.NOISE_KEYS)+key_index]["records"]
+                     if r["path"] == "parameters"]
+            if other != reference:
+                raise RegisteredStateError("registered key parameters drift by worldseed")
     return groups
 
 

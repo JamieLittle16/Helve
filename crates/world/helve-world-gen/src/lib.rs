@@ -30,6 +30,8 @@ pub mod explicit_noise_stack_262;
 pub mod improved_noise_262;
 /// Source-free JVM-state-backed Perlin and Normal noise candidates; not seed-authorised or production-admitted.
 pub mod perlin_normal_262;
+/// Bounded immutable, variable-octave observed stock-shaped state; NOT a registered world-seed constructor or production authority.
+pub mod registered_noise_state_262;
 
 use helve_types::{ChunkGeneration, ChunkPos};
 use helve_world_chunk::{

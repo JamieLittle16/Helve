@@ -205,7 +205,9 @@ class StockNoiseChunkCellTests(unittest.TestCase):
             java(level,"DensityFunctions",
                  "public class DensityFunctions{"
                  "public interface BeardifierOrMarker{}"
-                 "public enum BeardifierMarker implements BeardifierOrMarker{INSTANCE;}"
+                 // Match official stock 26.2: package-private nested enum,
+                 // although its generated INSTANCE field is public.
+                 "enum BeardifierMarker implements BeardifierOrMarker{INSTANCE;}"
                  "public record Ap2() implements DensityFunction{"
                  "public double compute(DensityFunction.FunctionContext c){"
                  "return c.blockX()+c.blockY()+c.blockZ();}}}")

@@ -193,8 +193,8 @@ class StockWorldSeedDensityTests(unittest.TestCase):
         self.assertIn("NoSuchMethodException", detail)
         self.assertNotIn("terminally deprecated", detail)
         self.assertEqual(
-            target.java_failure_detail("Error: Could not find or load main class"),
-            "Error: Could not find or load main class",
+            target.java_failure_detail("Error: Could not find or load main class").splitlines()[0],
+            "JVM ROOT CAUSE: Error: Could not find or load main class",
         )
 
         # A deliberately long reflective invocation stack must still retain

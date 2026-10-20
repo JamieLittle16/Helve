@@ -119,8 +119,8 @@ fn all_1280_exact_official_density_composition_bits_match() {
         );
         // Execute the real prepared Rust density program, not only the
         // standalone observed two-primitive evaluator or oracle replay.
-        let compiled =
-            Program::new([Node::ObservedPrimitiveComposition(source)]).expect("typed observed leaf");
+        let compiled = Program::new([Node::ObservedPrimitiveComposition(source)])
+            .expect("typed observed leaf");
         assert_eq!(
             compiled.sample_block(x, y, z).to_bits(),
             expected,
@@ -257,12 +257,15 @@ fn all_official_factory_runtime_delegate_classes_are_statically_selected() {
 fn compiled_observed_primitive_leaf_keeps_hot_path_coherent_and_signed_zero() {
     for profile in PROFILES {
         let composed = program(profile);
-        let compiled =
-            Program::new([Node::ObservedPrimitiveComposition(composed)]).expect("one observed Y leaf");
+        let compiled = Program::new([Node::ObservedPrimitiveComposition(composed)])
+            .expect("one observed Y leaf");
         for y in [128, -64, 320] {
             let expected = composed.sample_block_y(y).to_bits();
             let actual = compiled.sample_block(-16, y, 16).to_bits();
-            assert_eq!(actual, expected, "signed-zero/runtime profile={profile}, y={y}");
+            assert_eq!(
+                actual, expected,
+                "signed-zero/runtime profile={profile}, y={y}"
+            );
             let mut plane = [f64::NAN; 256];
             compiled
                 .sample_plane_16x16(-16, y, 16, &mut plane)
@@ -273,8 +276,7 @@ fn compiled_observed_primitive_leaf_keeps_hot_path_coherent_and_signed_zero() {
         // Explicit test-owned output allocation; generation itself borrows
         // the buffer and uses exactly one composition evaluation per Y.
         let mut values = vec![f64::NAN; 4096].into_boxed_slice();
-        let cell: &mut [f64; 4096] =
-            values.as_mut().try_into().expect("bounded 4096 test cell");
+        let cell: &mut [f64; 4096] = values.as_mut().try_into().expect("bounded 4096 test cell");
         compiled
             .sample_cell_16x16x16(-16, 120, 16, cell)
             .expect("valid observed 16-high cell");
@@ -301,8 +303,10 @@ fn compiled_observed_primitive_leaf_rejects_overflow_before_output_changes() {
     assert!(plane.iter().all(|v| v.to_bits() == sentinel.to_bits()));
 
     let mut values = vec![sentinel; 4096].into_boxed_slice();
-    let cell: &mut [f64; 4096] =
-        values.as_mut().try_into().expect("fixed borrowed test cell");
+    let cell: &mut [f64; 4096] = values
+        .as_mut()
+        .try_into()
+        .expect("fixed borrowed test cell");
     for point in [
         (i32::MAX - 14, 120, 0),
         (0, i32::MAX - 14, 0),

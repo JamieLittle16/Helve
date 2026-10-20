@@ -170,3 +170,34 @@ independently compiled toy JVM now exercises an exception thrown by
 `VanillaRegistries.createLookup()` *after* bootstrap's stdout redirect and
 confirms a phase and Java exception class survive end-to-end. This is
 diagnostics, not independent registry/source/VAR/SEM or numeric admission.
+
+
+### 20 October — qualified failure isolated to obsolete provider adapter
+
+The source-owning JVM now reports the exact failure (not an inferred one):
+
+```text
+JVM PHASE: stock-registry-asGetterLookup | ROOT CAUSE: java.lang.NoSuchMethodException: net.minecraft.core.HolderLookup$Provider.asGetterLookup() | OUTER: java.lang.NoSuchMethodException
+```
+
+The preceding official `VanillaRegistries.createLookup()` call returned
+successfully, but the bridge tried to use the **obsolete**
+`HolderLookup.Provider.asGetterLookup()` API. In the modern provider
+architecture `HolderLookup.Provider` extends `HolderGetter.Provider`
+directly. The bridge now **validates this superinterface relationship
+using `Class.isAssignableFrom` and verifies the real stock instance
+implements it**, then passes *that same stock object* to the actual
+`RandomState.create(HolderGetter.Provider, ResourceKey, long)` method.
+This does **not** construct a new getter, copy a registry or synthesize
+a holder; it eliminates only the legacy adapter. The official
+subinterface relationship is still independently checked at runtime
+and fails closed if the pinned 26.2 jar unexpectedly differs.
+
+The independent toy JVM test has been updated to use the modern
+superinterface rather than the wrong legacy `asGetterLookup()`
+method; a negative test uses an intentionally unrelated provider
+type and checks that the diagnostic rejects it. The rest of the
+official bound noise constructor/oracle stays unchanged. This
+corrects an **API shape failure**, but does not yet prove that
+the remaining registry calls, actual world-seed values, or all
+1,440 numeric results succeed in the source-owning official JVM.

@@ -120,11 +120,18 @@ public final class HelveWorldSeededDensity262 {
     // manually invented parameters or Holder.direct(...) is used.
     phase="stock-registry-createLookup";
     Object stock=checkedStatic(vanilla,"createLookup",lookup).invoke(null);
-    phase="stock-registry-asGetterLookup";
-    Method asGetter=lookup.getMethod("asGetterLookup");
-    if (!getterProvider.isAssignableFrom(asGetter.getReturnType()))
-      throw new IllegalStateException("stock provider does not expose typed getter lookup");
-    Object holders=asGetter.invoke(stock);
+    // In 26.2 HolderLookup.Provider already extends HolderGetter.Provider.
+    // The legacy asGetterLookup() adapter does not exist. Verify the real
+    // runtime subtype relation AND the actual stock instance before passing
+    // it to RandomState: no fake getter, wrapper or registry is introduced.
+    phase="stock-registry-provider-subtype";
+    if (!getterProvider.isAssignableFrom(lookup))
+      throw new IllegalStateException(
+          "official HolderLookup.Provider is not a HolderGetter.Provider");
+    if (stock==null || !getterProvider.isInstance(stock))
+      throw new IllegalStateException(
+          "official stock HolderLookup.Provider is not a HolderGetter.Provider instance");
+    Object holders=stock;
     phase="noise-registry-resolve";
     Method noiseRegistry=getNoiseRegistry(getterProvider,resourceKey,getter);
     phase="noise-registry-lookup";

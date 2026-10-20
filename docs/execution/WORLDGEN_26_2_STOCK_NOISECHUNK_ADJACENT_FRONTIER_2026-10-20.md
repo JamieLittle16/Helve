@@ -89,8 +89,8 @@ constructor-coordinate semantics, vertical coverage, marker/cache behaviour,
 nor production traversal. The source-free packet declares
 `canonical_control_flow_source_reviewed:false`; all worldgen qualification
 and production gates remain **false**. The existing adjacent JVM probe is an
-**experimental hypothesis** until those semantics are verified and genuine
-new JVM values are captured. Do not silently promote it to a canonical oracle.
+**experimental hypothesis** even though genuine adjacent-cell values have
+now been captured; its production-equivalent semantics remain unreviewed. Do not silently promote it to a canonical oracle.
 
 ## First real adjacent-cell invocation — negative-origin failure and correction
 
@@ -121,45 +121,68 @@ A regression test pins this separation.
 
 **Admission boundary:** The failure makes the original index misuse
 concrete; the repair's complete fidelity to vanilla's `doFill` loop
-still requires independent source-body review and a successful new JVM
-run. In particular, no conclusion is yet established about cache
+still requires independent source-body review. A later corrected JVM
+run did succeed; it does not independently certify the source control flow. In particular, no conclusion is yet established about cache
 freshness, later `swapSlices` calls, or canonical chunk traversal.
 All production/VAR/SEM and canonical gates remain **false**.
 
-## One new original JVM run — only after source inspection
+## Successful 768-value genuine stock capture — immutable experimental fixture
+
+The corrected PR #469 (`66590d26e91054d2289422dab1fcdf007b006de7`)
+ran successfully on the user's pinned 26.2 source archive and official
+server JAR. Its bounded original-JVM numeric observations were uploaded
+and independently checked on **20 October 2026**:
+
+- **768 exactly** finite binary64 words; four seeds, two chunk origins
+  `(0,0)` and `(-16,-16)`; each 96 sampled boundary positions.
+- **All 12 source method fingerprints** coincide with the previously
+  recorded exact source-free lifecycle review packet.
+- **32/32 exact raw IEEE-754 bitwise matches** at positions overlapping
+  the frozen original 512 same-cell values, covering all four seeds.
+  This is a genuine cross-capture consistency check, not a declaration
+  that either traversal is the stock production traversal.
+- **Original source-free JSON:** exactly **150,067 bytes**, SHA-256
+  `86f33de3a4fe19a6bcc202badaaeb23bdef83bab29405e01534bd12c226bbcc1`.
+- **Checked-in raw word fixture:** 768 lines of 16 lowercase hex
+  digits, **13,056 bytes**, SHA-256
+  `906ef4684d025d633e7d04f8c963b62b41c725b800739ce37e3256d8f484c95f`.
+  Path:
+  `vanilla/reports/worldgen-26_2-stock-noisechunk-adjacent-768-bits.txt`.
+
+The original 150,067-byte JSON stays **private/out of Git**. The fixture
+contains only source-free raw numeric observations, not source code or
+full captured provenance. The frozen
+`tools/worldgen_26_2_stock_noisechunk_adjacent_fixture.py`
+validates full original receipt byte-for-byte if supplied, verifies all
+768 numbers and their coordinates, rejects gate/source/bit tampering,
+and independently validates the 32 coordinate overlaps against the
+earlier immutable 512-bit fixture. CI needs neither the original source
+archive nor the official JVM to replay this source-free qualification.
+
+Run the cheap, source-free verification (do **not** recapture the already
+completed 16/128/512/768 sample sets):
 
 ```bash
 cd ~/Crucible
 git switch main && git pull --ff-only
-# Or check out this branch's merged revision.
-python3 tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py
-python3 -m unittest tools.tests.test_worldgen_26_2_stock_noisechunk_adjacent_capture
-python3 -m unittest tools.tests.test_worldgen_26_2_noisechunk_lifecycle_review_packet
+python3 tools/worldgen_26_2_stock_noisechunk_adjacent_fixture.py
+python3 -m unittest tools.tests.test_worldgen_26_2_stock_noisechunk_adjacent_fixture
 
-# Source-free syntactic call-order aid; does NOT certify production control flow.
-python3 tools/worldgen_26_2_noisechunk_lifecycle_review_packet.py \
-  --source "$HOME/Documents/mc-source/mc-src.zip" \
-  --db .crucible/vanilla/atlas.sqlite \
-  --lock vanilla/vanilla.lock.toml \
-  --output /tmp/helve-26_2-noisechunk-lifecycle-review.json
-
-# Inspect exact original source traversal against this packet BEFORE labelling
-# the next experiment canonical. The mode remains explicitly experimental.
-python3 tools/worldgen_26_2_stock_noisechunk_adjacent_capture.py \
-  --source "$HOME/Documents/mc-source/mc-src.zip" \
-  --db .crucible/vanilla/atlas.sqlite \
-  --lock vanilla/vanilla.lock.toml \
-  --output /tmp/helve-26_2-stock-noisechunk-adjacent-768.json
+# Only if the exact original JSON still exists locally:
+python3 tools/worldgen_26_2_stock_noisechunk_adjacent_fixture.py \
+  --capture /tmp/helve-26_2-stock-noisechunk-adjacent-768.json
 ```
 
-Output is exclusive-created (no overwrites), `0600`, source-free
-and capped. Share only that JSON or the exact failure phase and
-source-free review findings. **Do not commit** source, Atlas, original
-JAR, or full original capture. Do **not** freeze these 768 values as
-canonical until verifying the real 26.2 production traversal and
-investigating any JVM state failure. The existing source-free 512
-fixture is the only complete-cell baseline, not a canonical generated
-chunk.
+**Precise limit:** This certifies an **observed experimental candidate**
+across a real adjacent-cell and slice-swap lifecycle, *not* original
+`NoiseBasedChunkGenerator.doFill` control-flow equivalence, full
+vertical extent, source-reviewed cache/marker semantics, or a compiled
+Rust world-seeded finalDensity evaluator. No canonical, VAR/SEM,
+numerical-router, or production worldgen gate may open. Next real work
+is a bounded source-owned **semantic** review of the exact stock
+`doFill` loop nesting, coordinate arguments, and `NoiseChunk`
+buffer state, followed by Rust numeric parity against these immutable
+test vectors, not another blind Java capture.
 
 ## Engineering boundary
 
@@ -171,8 +194,8 @@ All seven gates stay **false**:
 `independent_var_sem_admitted`, and
 `production_worldgen_enabled`.
 
-Next: source-review the exact control flow and adjust this candidate
-until it matches production; establish immutable source-owned
-inter-cell bitwords, then implement a compiled, seed-initialized Rust
-finalDensity evaluator leveraging the existing optimized kernels.
+Next: complete the original 26.2 control-flow and cache/marker source
+review, then reuse the **already frozen 768 inter-cell reference words**
+for exact Rust numeric parity; build a compiled seed-initialized
+finalDensity evaluator using the existing optimized kernels.
 Do not create a second world owner or publish procedural chunks yet.

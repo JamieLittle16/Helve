@@ -189,7 +189,7 @@ class StockWorldSeedDensityTests(unittest.TestCase):
             "    at java.base/java.lang.Class.getMethod(Class.java:2417)\n"
         )
         detail = target.java_failure_detail(warnings + exception)
-        self.assertTrue(detail.startswith('Exception in thread "main"'))
+        self.assertTrue(detail.startswith("JVM ROOT CAUSE: java.lang.NoSuchMethodException: example.StockLookup()"))
         self.assertIn("NoSuchMethodException", detail)
         self.assertNotIn("terminally deprecated", detail)
         self.assertEqual(
@@ -207,7 +207,8 @@ class StockWorldSeedDensityTests(unittest.TestCase):
         short = target.java_failure_detail(warnings + deep)
         self.assertLessEqual(len(short), 6000)
         self.assertIn("InvocationTargetException", short)
-        self.assertIn("stock registry unavailable", short)
+        self.assertIn("stock registry unavailable", short.splitlines()[0])
+        self.assertIn("InvocationTargetException", short.splitlines()[0])
         self.assertIn("intermediate JVM frames omitted", short)
         self.assertNotIn("sun.misc.Unsafe", short)
 
@@ -226,7 +227,8 @@ class StockWorldSeedDensityTests(unittest.TestCase):
             with self.assertRaises(target.WorldSeedNoiseError) as failed:
                 target.oracle(Path("/tmp/official-runtime.jar"), target.input_rows())
         diagnostic = str(failed.exception)
-        self.assertIn("VanillaRegistries.createLookup()", diagnostic)
+        self.assertIn("VanillaRegistries.createLookup()", diagnostic.splitlines()[0])
+        self.assertTrue(diagnostic.startswith("real stock-registry 26.2 world-seed JVM path is NOT VERIFIED: JVM ROOT CAUSE:"))
         self.assertNotIn("terminally deprecated", diagnostic)
 
     @unittest.skipUnless(shutil.which("javac") and shutil.which("java"),

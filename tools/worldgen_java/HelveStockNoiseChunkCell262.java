@@ -124,7 +124,25 @@ public final class HelveStockNoiseChunkCell262 {
         updateY.getReturnType()!=void.class||updateZ.getReturnType()!=void.class||
         stop.getReturnType()!=void.class)
       throw new IllegalStateException("wrong 26.2 density-cell evaluation signatures");
-    Object noBeard=HelveWorldSeededDensity262.field(markerEnum,"INSTANCE",markerEnum);
+    // Stock DensityFunctions$BeardifierMarker is a package-private nested
+    // enum. A public INSTANCE field on a nonpublic declaring class is NOT
+    // reflectively readable without opening that exact Field, even though
+    // getField("INSTANCE") succeeds. Do not change the shared stock bridge,
+    // widen access globally, or substitute a synthetic Beardifier marker.
+    phase="stock-BeardifierMarker-INSTANCE";
+    Field beardifierInstance=markerEnum.getField("INSTANCE");
+    if (!markerEnum.isEnum() ||
+        !Modifier.isStatic(beardifierInstance.getModifiers()) ||
+        !Modifier.isPublic(beardifierInstance.getModifiers()) ||
+        beardifierInstance.getDeclaringClass()!=markerEnum ||
+        beardifierInstance.getType()!=markerEnum)
+      throw new IllegalStateException("original stock BeardifierMarker.INSTANCE contract changed");
+    if (!beardifierInstance.canAccess(null) &&
+        !beardifierInstance.trySetAccessible())
+      throw new IllegalAccessException("stock BeardifierMarker.INSTANCE inaccessible");
+    Object noBeard=beardifierInstance.get(null);
+    if (noBeard==null || !markerInterface.isInstance(noBeard))
+      throw new IllegalStateException("stock BeardifierMarker.INSTANCE is not the typed marker");
     Object noBlending=empty.invoke(null);
     if(!blender.isInstance(noBlending))
       throw new IllegalStateException("no official no-blending instance");

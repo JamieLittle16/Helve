@@ -29,7 +29,7 @@ const WRAP_PERIOD: f64 = 33_554_432.0;
 /// `NormalNoise`'s second Perlin family samples a slightly expanded position.
 /// The number is an evaluated output-matching candidate, not an independent
 /// declaration that every target-version constructor has this scaling.
-const NORMAL_SECOND_INPUT_MULTIPLIER: f64 = 1.018_126_888_217_522_7;
+pub(crate) const NORMAL_SECOND_INPUT_MULTIPLIER: f64 = 1.018_126_888_217_522_7;
 
 /// Implements the Java-style rounded-floor rule used by the candidate wrap.
 /// Nonfinite / far-out-of-range arguments are **not** admitted by this stage:
@@ -40,7 +40,7 @@ const NORMAL_SECOND_INPUT_MULTIPLIER: f64 = 1.018_126_888_217_522_7;
     clippy::cast_precision_loss,
     reason = "the candidate Java long floor deliberately truncates the f64"
 )]
-fn wrap_coordinate(x: f64) -> f64 {
+pub(crate) fn wrap_coordinate(x: f64) -> f64 {
     let scaled = x / WRAP_PERIOD + 0.5;
     let integer = scaled as i64;
     let rounded = if scaled < integer as f64 {
@@ -49,6 +49,37 @@ fn wrap_coordinate(x: f64) -> f64 {
         integer
     };
     x - (rounded as f64) * WRAP_PERIOD
+}
+
+/// Shared strict-order scalar evaluator for the original four-slot family and
+/// bounded, immutable stock-registered observed-state families. Caller verifies
+/// matching octave/weight lengths in COLD construction. No allocation, RNG,
+/// indirect registry access, reassociation or fused arithmetic in this loop.
+#[inline]
+pub(crate) fn sample_perlin_parts(
+    amplitudes: &[f64],
+    octaves: &[Option<ImprovedNoise262>],
+    mut input_factor: f64,
+    mut value_factor: f64,
+    x: f64,
+    y: f64,
+    z: f64,
+) -> f64 {
+    debug_assert_eq!(amplitudes.len(), octaves.len());
+    let mut total = 0.0_f64;
+    for (index, octave) in octaves.iter().enumerate() {
+        if let Some(noise) = octave {
+            let value = noise.sample(
+                wrap_coordinate(x * input_factor),
+                wrap_coordinate(y * input_factor),
+                wrap_coordinate(z * input_factor),
+            );
+            total += amplitudes[index] * value * value_factor;
+        }
+        input_factor *= 2.0;
+        value_factor /= 2.0;
+    }
+    total
 }
 
 /// A frozen Perlin family instance from its full **observed** JVM state.
@@ -160,22 +191,13 @@ impl PerlinNoise262 {
     /// multipliers. No reassociation, fast math, or FMA is permitted.
     #[must_use]
     pub fn sample(&self, x: f64, y: f64, z: f64) -> f64 {
-        let mut total = 0.0_f64;
-        let mut input_factor = self.lowest_freq_input_factor;
-        let mut value_factor = self.lowest_freq_value_factor;
-        for (index, octave) in self.octaves.iter().enumerate() {
-            if let Some(noise) = octave {
-                let value = noise.sample(
-                    wrap_coordinate(x * input_factor),
-                    wrap_coordinate(y * input_factor),
-                    wrap_coordinate(z * input_factor),
-                );
-                total += self.amplitudes[index] * value * value_factor;
-            }
-            input_factor *= 2.0;
-            value_factor /= 2.0;
-        }
-        total
+        sample_perlin_parts(
+            &self.amplitudes,
+            &self.octaves,
+            self.lowest_freq_input_factor,
+            self.lowest_freq_value_factor,
+            x, y, z,
+        )
     }
 
     /// Sample every product of 16 caller-provided X and Z coordinates,

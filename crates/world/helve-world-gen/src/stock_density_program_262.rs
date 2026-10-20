@@ -191,18 +191,12 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
     ) -> f64 {
         for (index, node) in self.nodes.iter().enumerate() {
             scratch[index] = match *node {
-                StockDensityNode262::Primitive(primitive) => {
-                    primitive.sample_block_y(block_y)
-                }
+                StockDensityNode262::Primitive(primitive) => primitive.sample_block_y(block_y),
                 StockDensityNode262::RegisteredNoise(noise) => {
                     noise.sample_block(block_x, block_y, block_z)
                 }
-                StockDensityNode262::Add { left, right } => {
-                    scratch[left] + scratch[right]
-                }
-                StockDensityNode262::Multiply { left, right } => {
-                    scratch[left] * scratch[right]
-                }
+                StockDensityNode262::Add { left, right } => scratch[left] + scratch[right],
+                StockDensityNode262::Multiply { left, right } => scratch[left] * scratch[right],
             };
         }
         scratch[N - 1]
@@ -226,12 +220,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
     }
 
     #[inline]
-    fn combine(
-        output: &mut [f64],
-        invariant: f64,
-        operation: Arithmetic262,
-        noise_is_left: bool,
-    ) {
+    fn combine(output: &mut [f64], invariant: f64, operation: Arithmetic262, noise_is_left: bool) {
         if noise_is_left {
             for value in output {
                 *value = operation.apply(*value, invariant);
@@ -285,14 +274,10 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 let mut scratch = [0.0_f64; N];
                 for dz in 0_i32..16 {
                     for dx in 0_i32..16 {
-                        let index = usize::try_from(dz * 16 + dx)
-                            .expect("16x16 pixel index is bounded");
-                        output[index] = self.sample_with_scratch(
-                            origin_x + dx,
-                            y,
-                            origin_z + dz,
-                            &mut scratch,
-                        );
+                        let index =
+                            usize::try_from(dz * 16 + dx).expect("16x16 pixel index is bounded");
+                        output[index] =
+                            self.sample_with_scratch(origin_x + dx, y, origin_z + dz, &mut scratch);
                     }
                 }
             }

@@ -1,5 +1,5 @@
 //! Exactly 480 official Java 26.2 DensityFunctions$Noise.compute raw-bit vectors.
-//! The oracle directly seeded NormalNoise via RandomSource.create(long), NOT
+//! The oracle directly seeded `NormalNoise` via `RandomSource.create(long)`, NOT
 //! RandomState/NoiseRouter. Production and source VAR/SEM admission remain closed.
 
 use helve_world_gen::density_noise_direct_262::{
@@ -94,9 +94,10 @@ fn planes_and_cells_reuse_borrowed_noise_and_match_scalar_exact_bits() {
             }
         }
 
-        let mut cell = [f64::NAN; 4096];
+        let mut storage = vec![f64::NAN; 4096];
+        let cell: &mut [f64; 4096] = storage.as_mut_slice().try_into().unwrap();
         density
-            .sample_cell_16x16x16(-33_554_432, -64, 33_554_432, &mut cell)
+            .sample_cell_16x16x16(-33_554_432, -64, 33_554_432, cell)
             .unwrap();
         for (local_y, y_plane) in cell.chunks_exact(256).enumerate() {
             for (local_z, row) in y_plane.chunks_exact(16).enumerate() {
@@ -128,14 +129,15 @@ fn overflow_in_any_axis_rejected_before_mutating_outputs() {
         Err(DirectNoiseCellError262::BlockCoordinateOverflow)
     );
     assert!(plane.iter().all(|v| v.is_nan()));
-    let mut cell = [f64::NAN; 4096];
+    let mut storage = vec![f64::NAN; 4096];
+    let cell: &mut [f64; 4096] = storage.as_mut_slice().try_into().unwrap();
     for (x, y, z) in [
         (i32::MAX - 14, 0, 0),
         (0, i32::MAX - 14, 0),
         (0, 0, i32::MAX - 14),
     ] {
         assert_eq!(
-            density.sample_cell_16x16x16(x, y, z, &mut cell),
+            density.sample_cell_16x16x16(x, y, z, cell),
             Err(DirectNoiseCellError262::BlockCoordinateOverflow)
         );
         assert!(cell.iter().all(|v| v.is_nan()));

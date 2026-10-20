@@ -228,9 +228,17 @@ fn explicit_ap2_demand_graph_computes_all_384_jvm_dynamic_multiply_bits() {
                 );
                 let gradient = Node::Primitive(primitive(profile));
                 let nodes = if profile == 2 {
-                    [noise, gradient, Node::ExplicitAp2Multiply { left: 0, right: 1 }]
+                    [
+                        noise,
+                        gradient,
+                        Node::ExplicitAp2Multiply { left: 0, right: 1 },
+                    ]
                 } else {
-                    [gradient, noise, Node::ExplicitAp2Multiply { left: 0, right: 1 }]
+                    [
+                        gradient,
+                        noise,
+                        Node::ExplicitAp2Multiply { left: 0, right: 1 },
+                    ]
                 };
                 let program = Program::new(nodes).expect("observed Ap2 child order");
                 for (point_idx, &(x, y, z)) in POINTS.iter().enumerate() {
@@ -267,9 +275,18 @@ fn explicit_ap2_skips_right_dag_and_preserves_borrowed_scratch_on_positive_zero(
     .expect("valid bounded root with explicit Ap2 multiply");
     let sentinel = f64::from_bits(0x7ff8_0123_4567_89ab);
     let mut scratch = [sentinel; 5];
-    assert_eq!(program.sample_with_scratch(0, 128, 0, &mut scratch).to_bits(), 0);
+    assert_eq!(
+        program
+            .sample_with_scratch(0, 128, 0, &mut scratch)
+            .to_bits(),
+        0
+    );
     assert_eq!(scratch[4].to_bits(), 0);
-    assert_eq!(scratch[3].to_bits(), sentinel.to_bits(), "right subtree must not run");
+    assert_eq!(
+        scratch[3].to_bits(),
+        sentinel.to_bits(),
+        "right subtree must not run"
+    );
     assert_eq!(scratch[0].to_bits(), 0);
     assert_eq!(scratch[1].to_bits(), (-0.0_f64).to_bits());
 

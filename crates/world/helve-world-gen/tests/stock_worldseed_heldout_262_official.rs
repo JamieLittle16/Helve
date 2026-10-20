@@ -57,7 +57,11 @@ fn pinned_bits() -> Vec<u64> {
         "576-row source-free official fixture must be newline-terminated ASCII"
     );
     let lines: Vec<&str> = OFFICIAL.lines().collect();
-    assert_eq!(lines.len(), 576, "official held-out oracle must have 576 rows");
+    assert_eq!(
+        lines.len(),
+        576,
+        "official held-out oracle must have 576 rows"
+    );
     assert_eq!(lines[0], "bfded41016e4261a");
     assert_eq!(lines[287], "bfa078eb58200b97");
     assert_eq!(lines[575], "3fbe82b27db6a527");
@@ -66,11 +70,16 @@ fn pinned_bits() -> Vec<u64> {
     for (index, line) in lines.iter().enumerate() {
         assert_eq!(line.len(), 16, "bad held-out raw-bit width at {index}");
         assert!(
-            line.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            line.bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
             "noncanonical held-out hex at row {index}"
         );
         let word = u64::from_str_radix(line, 16).expect("finite raw IEEE-754 word");
-        assert_ne!((word >> 52) & 0x7ff, 0x7ff, "nonfinite held-out word {index}");
+        assert_ne!(
+            (word >> 52) & 0x7ff,
+            0x7ff,
+            "nonfinite held-out word {index}"
+        );
         checksum = checksum.rotate_left(7) ^ word;
         words.push(word);
     }
@@ -92,12 +101,13 @@ fn all_576_unseen_stock_worldseed_density_bits_match_immutable_rust_seed_constru
                 let density = state.density(key, profile);
                 for (point_index, &(x, y, z)) in POINTS.iter().enumerate() {
                     let row = (((profile_index * SEEDS.len() + seed_index) * KEYS.len()
-                        + key_index) * POINTS.len()) + point_index;
+                        + key_index)
+                        * POINTS.len())
+                        + point_index;
                     assert_eq!(row, compared, "JVM row framing/order mismatch");
                     let actual = density.sample_block(x, y, z).to_bits();
                     assert_eq!(
-                        actual,
-                        expected[row],
+                        actual, expected[row],
                         "NEW independent stock JVM held-out bit mismatch row={row} scale={profile:?} signed_seed_bits={seed:016x} key={key:?} point={point_index} xyz=({x},{y},{z}) expected={:016x} actual={actual:016x}",
                         expected[row],
                     );

@@ -48,6 +48,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_fixture.py"
+      - "tools/worldgen_java/HelveStockNoiseChunkCell262.java"
+      - "tools/worldgen_26_2_stock_noisechunk_cell_capture.py"
+      - "tools/tests/test_worldgen_26_2_stock_noisechunk_cell_capture.py"
       - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
@@ -108,6 +111,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_fixture.py"
+      - "tools/worldgen_java/HelveStockNoiseChunkCell262.java"
+      - "tools/worldgen_26_2_stock_noisechunk_cell_capture.py"
+      - "tools/tests/test_worldgen_26_2_stock_noisechunk_cell_capture.py"
       - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
@@ -241,6 +247,9 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_final_density_singlepoint_fixture.py' -v
           python3 tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py
+
+      - name: Verify actual stock NoiseChunk cell-scoped finalDensity reflection, interpolation and fail-closed contract
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_noisechunk_cell_capture.py' -v
 
       - name: Validate SHA-pinned independently captured 576-vector official stock JVM held-out evidence
         run: |

@@ -145,7 +145,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             match nodes[0] {
                 StockDensityNode262::Primitive(p) => SamplingPlan262::OnlyPrimitive(p),
                 StockDensityNode262::RegisteredNoise(n) => SamplingPlan262::OnlyNoise(n),
-                StockDensityNode262::ObservedMixed(mixed) => SamplingPlan262::OnlyObservedMixed(mixed),
+                StockDensityNode262::ObservedMixed(mixed) => {
+                    SamplingPlan262::OnlyObservedMixed(mixed)
+                }
                 _ => SamplingPlan262::Generic,
             }
         } else if N == 3 {

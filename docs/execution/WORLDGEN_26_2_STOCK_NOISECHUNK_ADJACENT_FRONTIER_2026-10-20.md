@@ -224,13 +224,80 @@ python3 tools/worldgen_26_2_noisechunk_structural_review.py \
   --output /tmp/helve-26_2-noisechunk-structural-review.json
 ```
 
-The output is exclusive-created, private, 0600, bounded and
-**source-free**; upload that JSON, or supply the precise failure.
+The output was successfully captured and validated: use the frozen
+27,255-byte receipt above; do not rerun or re-upload it.
 We can then compare the stock `doFill` call nesting against the
 experimental X/Z/Y and `swapSlices` traversal, inspect only
 the remaining exact private method obligations, and decide whether to
 adapt the Rust workspace/caches. Do not promote any review flag based
 only on hashes or brace nesting.
+
+
+## Real 26.2 source-owned structural review — complete receipt (20 October)
+
+The user completed the source-owning loop ancestry run after PR #471
+merged at `bd4065acf393573fc57ccf1b7e13a2d51f1f9b24`.
+The genuine source-free private JSON has **27,255 bytes**, SHA-256
+`130070ea39c064d1de37fa0fa3b651b8799e650e066b176a2f419e3e5ff89fab`,
+and matches the existing exact source archive and **11/11** original
+method body identities. Every method reports `unbraced_control_count=0`
+and `source_method_reviewed=false`. No source text is included.
+
+**New genuine structural evidence:**
+- `doFill` has six nested `for` loops with increment, increment,
+  decrement, decrement, increment, increment lexical direction hints.
+- `initializeForFirstCellX` is before the outer loop.
+- `advanceCellX` is inside only the outer loop.
+- `selectCellYZ` is inside three enclosing loops; `updateForY` in
+  four, `updateForX` in five, and `updateForZ` in six.
+- `swapSlices` occurs **inside only the outer loop**, after the
+  nested block traversals; `stopInterpolation` after that loop.
+- `fillFromNoise` calls `doFill` under a `try` block and has
+  separate cleanup structure.
+
+That hierarchy is **consistent with the experimental** X/Z/Y/Y/X/Z
+sampling order, but lexical structure does not establish exact loop
+bounds, variable bindings, relative/absolute argument expressions,
+dynamic cache behaviour, or full-height traversal. No genuine
+canonical semantics or VAR/SEM gates have opened.
+
+The checked-in **6,567-byte source-free condensed fixture** is
+`vanilla/reports/worldgen-26_2-noisechunk-source-free-brace-ancestry.json`
+(SHA-256 `7a62758cabb02e7370d7708955c58bdf2010d67551b12059543ae9dd790621a7`).
+The validator
+`tools/worldgen_26_2_noisechunk_structural_fixture.py` pins the
+original JSON bytes/SHA if supplied, checks all source identities and
+call/loop ancestries, and refuses to promote any qualification flags.
+
+A second important **real-stock numerical counterexample** from the
+existing 768 words: naive trilinear interpolation of the *final output*
+from eight independently observed corner values fails to reproduce
+the interior `finalDensity` values. For seed
+`0x0123456789abcdef`, chunk origin `(0,0)`, world point
+`(3,71,3)`, the absolute difference is approximately `0.02416587807`.
+A new Rust negative-control regression checks all eight seed/chunk
+contexts directly from the immutable stock bits. This is **not** Rust
+`finalDensity` parity. It prevents treating the final node as a
+plain trilinearly interpolated scalar field.
+
+**Do not repeat any source/JVM capture.** To verify the already
+collected structural receipt and compact source-free evidence:
+
+```bash
+cd ~/Crucible
+git switch main && git pull --ff-only
+python3 tools/worldgen_26_2_noisechunk_structural_fixture.py
+# Optional: only when the original exact JSON still exists locally
+python3 tools/worldgen_26_2_noisechunk_structural_fixture.py \
+  --capture /tmp/helve-26_2-noisechunk-structural-review.json
+```
+
+**Next actual source-semantic obligation:** identify the exact original
+loop variable/bound/argument laws, full vertical sweep, start/stop and
+cache/interpolator state transitions; then compile the entire observed
+world-seeded finalDensity graph in the existing borrowed Rust density
+program without a second world owner. Numeric parity must compare
+computed Rust outputs to original Java bits.
 
 ## Engineering boundary
 

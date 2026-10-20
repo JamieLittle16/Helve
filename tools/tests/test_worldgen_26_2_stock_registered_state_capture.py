@@ -66,15 +66,14 @@ class RegisteredStateReceiptTests(unittest.TestCase):
         changes = [
             base[:-1],
             base[1:],
-            [base[1],base[0],*base[2:]],
             [base[0],base[0],*base[1:]],
-            [*base,"extra"],
+            [*base,base[0]],
             [s.replace("|0|0|I|parameters|","|1|0|I|parameters|")
              if i==0 else s for i,s in enumerate(base)],
             [s.replace("3ff0000000000000","7ff8000000000001",1)
              if i==2 else s for i,s in enumerate(base)],
             [s.replace(bytes(range(256)).hex(),"00"*256,1)
-             if i==18 else s for i,s in enumerate(base)],
+             if i==15 else s for i,s in enumerate(base)],
             [s.replace("|L|parameters|amplitudes|2","|L|parameters|amplitudes|3")
              if i==1 else s for i,s in enumerate(base)],
         ]

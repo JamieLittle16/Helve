@@ -123,3 +123,25 @@ Rerun with an output filename that does not already exist, then report the
 complete `OFFICIAL ... NOT QUALIFIED` exception. The next change should
 address only the **actual observed method/registry failure**, not guess at
 the error from the warning preface.
+
+
+### Second source-owning diagnostic — clipped terminal stack
+
+The immediate rerun of the original official JVM probe again exited nonzero.
+The warning preface had been correctly removed, but the copied terminal
+diagnostic contained only `Exception in thread "main"`; it did **not**
+provide the Java exception type or a `Caused by` line. Consequently the
+actual failing JVM method is **still unknown**. Do not guess, bypass,
+or mark `RandomState` admitted.
+
+The error formatter now places `JVM ROOT CAUSE: ...` on the **first terminal
+line** and retains a bounded stack below it. If the Java stack includes a
+nested `Caused by:`, the last/deepest one is promoted to that first line,
+along with the top-level exception class. This is deliberately display-only:
+the strict official registry, source SHA, vector and publication gates remain
+unchanged.
+
+A fallback diagnostic independent of terminal copy/paste is to redirect the
+collector stderr into a temporary file outside the repo and inspect its
+`JVM ROOT CAUSE`, `Exception in thread` and `Caused by` lines. No
+private source, Minecraft jar or Atlas database should be uploaded.

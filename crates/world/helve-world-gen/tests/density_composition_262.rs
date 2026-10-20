@@ -6,6 +6,7 @@ use helve_world_gen::density_composition_262::DensityComposition262;
 use helve_world_gen::density_primitives_262::{DensityPrimitive262, DensityPrimitiveError262};
 
 const OFFICIAL: &str = include_str!("data/density_composed_26_2_rawbits.tsv");
+const DELEGATES: &str = include_str!("data/density_delegate_26_2_observed.tsv");
 const SEEDS: [&str; 5] = [
     "0x0000000000000000",
     "0x0000000000000001",
@@ -188,4 +189,52 @@ fn overflow_rejected_before_mutating_cell() {
     );
     assert!(cell.iter().all(|v| v.is_nan()));
     assert_eq!(program.sample_cell_16x16x16(i32::MAX - 15, cell), Ok(()));
+}
+
+#[test]
+fn all_official_factory_runtime_delegate_classes_are_statically_selected() {
+    // Independent official-JVM reflection plus private Atlas fingerprints.
+    // This asserts the source-free *shape* identity; it does not source-admit
+    // the reached implementation's exact branch predicates.
+    assert!(DELEGATES.contains(
+        "frontier JSON bytes: 104689; SHA-256: 2b97fea7676ba68d563a1ef97b350ded934998f3359588b22884e9ecf992d578"
+    ));
+    let implementation_root = "net.minecraft.world.level.levelgen.DensityFunctions$";
+    let ap2_body = "54d44e99cae188665438eda580ab0a76204c0c486b80edb603f32fa4375b3e48";
+    let pure_body = "80087cd337e4ac54a98884a9c47579f4573740fc983f033ed2243e579515a6dd";
+    let mut count = 0;
+    for line in DELEGATES
+        .lines()
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+    {
+        let fields: Vec<_> = line.split_whitespace().collect();
+        assert_eq!(fields.len(), 4);
+        assert_eq!(fields[0], PROFILES[count]);
+        let instance = program(fields[0]);
+        let (expected_type, expected_compute, expected_hash) = match instance {
+            DensityComposition262::AddFunctions { left, right } => {
+                assert!(!matches!(left, DensityPrimitive262::Constant(_)));
+                assert!(!matches!(right, DensityPrimitive262::Constant(_)));
+                ("Ap2", "Ap2", ap2_body)
+            }
+            DensityComposition262::MultiplyFunctions { left, right } => {
+                assert!(!matches!(left, DensityPrimitive262::Constant(_)));
+                assert!(!matches!(right, DensityPrimitive262::Constant(_)));
+                ("Ap2", "Ap2", ap2_body)
+            }
+            DensityComposition262::AddWithConstant { left, right }
+            | DensityComposition262::MultiplyWithConstant { left, right } => {
+                assert!(
+                    matches!(left, DensityPrimitive262::Constant(_))
+                        || matches!(right, DensityPrimitive262::Constant(_))
+                );
+                ("MulOrAdd", "PureTransformer", pure_body)
+            }
+        };
+        assert_eq!(fields[1], format!("{implementation_root}{expected_type}"));
+        assert_eq!(fields[2], format!("{implementation_root}{expected_compute}"));
+        assert_eq!(fields[3], expected_hash);
+        count += 1;
+    }
+    assert_eq!(count, PROFILES.len());
 }

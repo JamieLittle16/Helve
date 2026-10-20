@@ -32,6 +32,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_capture.py"
+      - "tools/worldgen_26_2_stock_mixed_density_capture.py"
+      - "tools/worldgen_java/HelveStockMixedDensity262.java"
+      - "tools/tests/test_worldgen_26_2_stock_mixed_density_capture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_capture.py"
@@ -73,6 +76,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_capture.py"
+      - "tools/worldgen_26_2_stock_mixed_density_capture.py"
+      - "tools/worldgen_java/HelveStockMixedDensity262.java"
+      - "tools/tests/test_worldgen_26_2_stock_mixed_density_capture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_capture.py"
@@ -178,6 +184,9 @@ jobs:
 
       - name: Validate source-pinned 576-vector held-out stock JVM transport with synthetic registry
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_worldseed_heldout_capture.py' -v
+
+      - name: Verify true stock-mixed DensityFunctions add/mul 1920-vector reflection transport
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_mixed_density_capture.py' -v
 
       - name: Validate SHA-pinned independently captured 576-vector official stock JVM held-out evidence
         run: |

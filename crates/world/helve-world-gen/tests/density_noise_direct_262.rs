@@ -8,21 +8,15 @@ use helve_world_gen::density_noise_direct_262::{
 use helve_world_gen::perlin_normal_262::NormalNoise262;
 
 const GOLDEN: &str = include_str!("data/density_noise_direct_26_2_rawbits.txt");
-const SEEDS: [u64; 5] = [
-    0,
-    1,
-    u64::MAX,
-    0x8000_0000_0000_0000,
-    0x9e37_79b9_7f4a_7c15,
-];
+const SEEDS: [u64; 5] = [0, 1, u64::MAX, 0x8000_0000_0000_0000, 0x9e37_79b9_7f4a_7c15];
 const SCALES: [DirectNoiseScale262; 3] = [
     DirectNoiseScale262::Unit,
     DirectNoiseScale262::QuarterHorizontal,
     DirectNoiseScale262::QuarterHorizontalHalfVertical,
 ];
 const Y: [i32; 32] = [
-    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64,
-    127, 128, 255, 256, 318, 319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
+    -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64, 127, 128, 255, 256, 318,
+    319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
 ];
 
 fn position(index: usize) -> (i32, i32, i32) {
@@ -34,13 +28,12 @@ fn position(index: usize) -> (i32, i32, i32) {
 
 #[test]
 fn all_480_direct_seeded_official_noise_density_bits_match_exactly() {
-    assert!(GOLDEN.contains(
-        "e2107c7b874aacda195cab980c55cba2e0110f0974b4efebdf2a34fd480c3bd5"
-    ));
-    assert!(GOLDEN.contains(
-        "bbef25d12896f0895c6fbec4523095fe3c1f42a3ece3229dfebdad793adbe9fe"
-    ));
-    let lines: Vec<_> = GOLDEN.lines().filter(|line| !line.starts_with('#')).collect();
+    assert!(GOLDEN.contains("e2107c7b874aacda195cab980c55cba2e0110f0974b4efebdf2a34fd480c3bd5"));
+    assert!(GOLDEN.contains("bbef25d12896f0895c6fbec4523095fe3c1f42a3ece3229dfebdad793adbe9fe"));
+    let lines: Vec<_> = GOLDEN
+        .lines()
+        .filter(|line| !line.starts_with('#'))
+        .collect();
     assert_eq!(lines.len(), SCALES.len() * SEEDS.len());
     for (scale_index, scale) in SCALES.iter().enumerate() {
         for (seed_index, seed) in SEEDS.iter().enumerate() {
@@ -51,13 +44,12 @@ fn all_480_direct_seeded_official_noise_density_bits_match_exactly() {
             let density = DirectNoiseDensity262::new(&noise, *scale);
             for j in 0..32 {
                 let start = j * 16;
-                let expected =
-                    u64::from_str_radix(&source_line[start..start + 16], 16).expect("frozen 64-bit hex");
+                let expected = u64::from_str_radix(&source_line[start..start + 16], 16)
+                    .expect("frozen 64-bit hex");
                 let (x, y, z) = position(j);
                 let actual = density.sample_block(x, y, z).to_bits();
                 assert_eq!(
-                    actual,
-                    expected,
+                    actual, expected,
                     "official density profile {scale_index}, seed {seed_index}, index {j}, xyz ({x},{y},{z})"
                 );
             }
@@ -137,7 +129,11 @@ fn overflow_in_any_axis_rejected_before_mutating_outputs() {
     );
     assert!(plane.iter().all(|v| v.is_nan()));
     let mut cell = [f64::NAN; 4096];
-    for (x, y, z) in [(i32::MAX - 14, 0, 0), (0, i32::MAX - 14, 0), (0, 0, i32::MAX - 14)] {
+    for (x, y, z) in [
+        (i32::MAX - 14, 0, 0),
+        (0, i32::MAX - 14, 0),
+        (0, 0, i32::MAX - 14),
+    ] {
         assert_eq!(
             density.sample_cell_16x16x16(x, y, z, &mut cell),
             Err(DirectNoiseCellError262::BlockCoordinateOverflow)

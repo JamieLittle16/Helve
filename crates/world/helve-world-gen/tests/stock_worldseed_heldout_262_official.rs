@@ -2,13 +2,13 @@
 //!
 //! This is **not** the original 1,440-vector corpus: four different signed
 //! seeds and sixteen fresh coordinates per key/profile were acquired through
-//! stock VanillaRegistries -> RandomState -> DensityFunctions.Noise.compute.
+//! stock `VanillaRegistries` -> `RandomState` -> `DensityFunctions.Noise.compute`.
 //! The source-free raw IEEE-754 bits are frozen independently of this Rust
 //! seed-derived constructor. No observed permutation/offset data is loaded.
 //!
 //! Scope is exactly three built-in registered noise keys and three scale pairs.
 //! This alone does NOT independently admit RNG source laws, arbitrary registries,
-//! a complete NoiseRouter, production worldgen or chunk publication.
+//! a complete `NoiseRouter`, production worldgen or chunk publication.
 
 use helve_world_gen::density_noise_direct_262::DirectNoiseScale262;
 use helve_world_gen::seeded_registered_noise_262::{

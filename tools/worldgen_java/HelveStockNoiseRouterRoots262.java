@@ -1,6 +1,6 @@
 // Stock Minecraft 26.2 NoiseRouter ROOTS only. The original JVM owns
 // all registry, RandomState, density graph and binding objects. This tool
-// reads public record components and first-level density-child class names;
+// reads typed record components and first-level density-child class names;
 // it never computes a guessed router value or interprets an original method.
 import java.io.*;
 import java.lang.reflect.*;
@@ -54,7 +54,10 @@ public final class HelveStockNoiseRouterRoots262 {
       if (component.getType()!=density
           || !component.getName().matches("[a-zA-Z_$][a-zA-Z0-9_$]{0,100}"))
         throw new IllegalStateException("unqualified stock router field type or name");
-      Object node=component.getAccessor().invoke(router);
+      Method rootAccessor=component.getAccessor();
+      if (!rootAccessor.canAccess(router) && !rootAccessor.trySetAccessible())
+        throw new IllegalStateException("stock router record accessor not accessible");
+      Object node=rootAccessor.invoke(router);
       if (node==null || !density.isInstance(node))
         throw new IllegalStateException("stock router field is not a density node");
       Class<?> actual=node.getClass();
@@ -68,7 +71,15 @@ public final class HelveStockNoiseRouterRoots262 {
           // Depth ONE only. This is a partial, non-semantic field inventory.
           // Do not traverse or unbox spline/holder/cache internals.
           if (!density.isAssignableFrom(slot.getType())) continue;
-          Object nested=slot.getAccessor().invoke(node);
+          // A public generated accessor can belong to a package-private
+          // Minecraft nested record (e.g. DensityFunctions$FindTopSurface).
+          // Reflection from this standalone, unnamed-package probe cannot
+          // invoke it until access is enabled on this exact typed accessor.
+          // Never change global module openness or walk opaque child fields.
+          Method childAccessor=slot.getAccessor();
+          if (!childAccessor.canAccess(node) && !childAccessor.trySetAccessible())
+            throw new IllegalStateException("stock density record child accessor not accessible");
+          Object nested=childAccessor.invoke(node);
           if (nested==null || !density.isInstance(nested))
             throw new IllegalStateException("record's typed density child is null");
           children.add(new String[]{slot.getName(),name(nested.getClass())});

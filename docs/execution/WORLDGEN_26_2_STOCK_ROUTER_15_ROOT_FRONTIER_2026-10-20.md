@@ -109,3 +109,31 @@ transport contract, **not** Mojang's actual router classes.
 `production_worldgen_enabled=false`.
 This patch does **not** connect generation to R2C publication or
 create an extra world/dimension owner.
+
+## Actual source-owning probe failure and strict repair — 20 October
+
+The first official stock runtime capture genuinely reached
+`router-field-0-10` before failing with a
+`java.lang.IllegalAccessException`: the standalone Java probe could
+not invoke a public generated record accessor whose declaring
+implementation class was the package-private
+`DensityFunctions$FindTopSurface`.
+
+**This is an access-control / reflection transport problem, not a
+finding about the correct shape or numeric meaning of the router.**
+No complete four-seed inventory was produced or admitted by that run.
+
+The fixed probe checks `canAccess(target)` and, only for already
+type-checked `NoiseRouter` components and immediate typed
+`DensityFunction` record children, invokes
+`trySetAccessible()` on that exact `Method`. A denied request
+still fails closed with a tagged JVM phase; it does **not** set
+global module openness, use JVM `--add-opens` flags, recurse into
+opaque objects, or bypass expected record types.
+
+The synthetic JVM CI now includes a **package-private record at
+router field 10 with a typed density child** to reproduce the
+previously missing access case. Re-run the same pinned capture
+command above after the fix merges, with the same output path if
+the failed run did not create it. The capture only writes output
+after fully validating all four seeds.

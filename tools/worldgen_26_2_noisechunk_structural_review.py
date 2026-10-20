@@ -141,11 +141,15 @@ def structural_profile(tokens,method,braces,parens)->dict:
             "_start":body,
             "_end":body_close,
         })
+    # Compute every ancestry relation BEFORE deleting transient token offsets.
+    # Deleting one control's offsets inside the first pass corrupts the next
+    # control's lookup and must never escape the source-free result.
     for control in controls:
         ancestors=[other["id"] for other in controls
                    if other["_start"]<control["_start"] and
                       control["_end"]<=other["_end"]]
         control["enclosing_controls"]=ancestors
+    for control in controls:
         del control["_start"],control["_end"]
     # Regenerate lexical intervals in exactly the same discovery order for call ancestry.
     # This is based only on the braces in the tokenized private method.

@@ -16,6 +16,19 @@ public final class HelveStockNoiseChunkCell262 {
   static final PrintStream OUT=new PrintStream(
       new FileOutputStream(FileDescriptor.out),true,StandardCharsets.US_ASCII);
   static final int[][] POINTS={{0,64,0},{1,65,1},{2,66,2},{3,67,3}};
+  // Separate, explicitly row-major Y/X/Z traversal of all positions in the
+  // SAME bounded original 4x8x4 cell. No neighbouring-cell or slice claim.
+  static final int[][] CELL_GRID=completeCellGrid();
+  static int[][] completeCellGrid() {
+    int[][] grid=new int[128][3];
+    int i=0;
+    for(int y=64;y<72;y++)
+      for(int x=0;x<4;x++)
+        for(int z=0;z<4;z++)
+          grid[i++]=new int[]{x,y,z};
+    if(i!=128)throw new IllegalStateException("wrong bounded cell sampling grid");
+    return grid;
+  }
   static String phase="bootstrap";
 
   static String clean(String s) {
@@ -54,12 +67,14 @@ public final class HelveStockNoiseChunkCell262 {
   }
   public static void main(String[] args) {
     try {
-      if(args.length!=1||!args[0].equals("--stock-noisechunk-cell-16"))
-        throw new IllegalArgumentException("only --stock-noisechunk-cell-16");
-      run();
+      if(args.length!=1)throw new IllegalArgumentException("expected exactly one mode");
+      if(args[0].equals("--stock-noisechunk-cell-16"))run(false);
+      else if(args[0].equals("--stock-noisechunk-complete-cell-512"))run(true);
+      else throw new IllegalArgumentException("unapproved 26.2 NoiseChunk cell probe mode");
     } catch(Throwable t){fail(t);System.exit(2);}
   }
-  static void run() throws Exception {
+  static void run(boolean complete) throws Exception {
+    final int[][] samples=complete?CELL_GRID:POINTS;
     phase="bootstrap";HelveWorldSeededDensity262.bootstrap();
     phase="stock-version-class-contract";
     Class<?> vanilla=Class.forName("net.minecraft.data.registries.VanillaRegistries");
@@ -190,13 +205,13 @@ public final class HelveStockNoiseChunkCell262 {
       if(!density.isInstance(wrapped))
         throw new IllegalStateException("stock NoiseChunk.wrap is not DensityFunction");
       OUT.println(HEAD+si+"|"+seed+"|"+cellW+"|"+cellH+"|"+yStart+"|"+worldH+"|"+
-          wrapped.getClass().getName()+"|4");
+          wrapped.getClass().getName()+"|"+samples.length);
       phase="original-NoiseChunk-initialize-"+si;
       initialize.invoke(chunk);
       advance.invoke(chunk,0);
       select.invoke(chunk,(64-yStart)/cellH,0);
-      for(int pi=0;pi<POINTS.length;pi++){
-        int x=POINTS[pi][0],y=POINTS[pi][1],z=POINTS[pi][2];
+      for(int pi=0;pi<samples.length;pi++){
+        int x=samples[pi][0],y=samples[pi][1],z=samples[pi][2];
         phase="original-NoiseChunk-interpolate-"+si+"-"+pi;
         updateY.invoke(chunk,y,(double)Math.floorMod(y-yStart,cellH)/cellH);
         updateX.invoke(chunk,x,(double)Math.floorMod(x,cellW)/cellW);
@@ -204,11 +219,11 @@ public final class HelveStockNoiseChunkCell262 {
         double value=(Double)compute.invoke(wrapped,chunk);
         if(!Double.isFinite(value))
           throw new IllegalStateException("nonfinite original NoiseChunk density");
-        OUT.println(BIT+(si*POINTS.length+pi)+"|"+
+        OUT.println(BIT+(si*samples.length+pi)+"|"+
           String.format(Locale.ROOT,"%016x",Double.doubleToRawLongBits(value)));
       }
       stop.invoke(chunk);
-      OUT.println(END+si+"|4");
+      OUT.println(END+si+"|"+samples.length);
     }
     if(reader.readLine()!=null)
       throw new IllegalStateException("unexpected extra stock world-seed input");

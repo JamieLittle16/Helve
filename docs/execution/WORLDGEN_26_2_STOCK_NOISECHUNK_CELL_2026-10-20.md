@@ -156,3 +156,52 @@ fail this exact test.
 fluid picker, interpolation state or 16 values are admitted.**
 All require a successful separate original 26.2 run. Repeat the
 source-owning command above after the green merged repair.
+
+
+## Authentic original 26.2 NoiseChunk numerical success — 20 October
+
+The source-owning follow-up **completed successfully** after the
+package-private enum reflection repair in merged PR #464.
+
+The real `/tmp/helve-26_2-stock-noisechunk-cell-16.json` is exactly
+**8,485 bytes**, SHA-256
+`3ea20f5ed1b1236f5e166a847e5405ca54169d39f98810e0c8bf7029e3e74169`.
+
+- All **16/16** original finite raw IEEE-754 density values are present,
+  original order, four 64-bit signed seeds × four positions.
+- All four actual `NoiseChunk.wrap(finalDensity)` return the
+  `DensityFunctions$Ap2` concrete root, without a substitute function.
+- The observed 26.2 Overworld noise cell geometry is 4×8×4, minimum
+  block Y -64, world height 384; fixed tested cell is
+  `cell_x=0, cell_y=16, cell_z=0`.
+- The four `(0,64,0)` values agree **bit-for-bit**, respectively, with
+  the genuine previously pinned `SinglePointContext` raw-bit words
+  at indices 3, 35, 67 and 99. The other 12 samples have no shared
+  XYZ coordinate with the 128-point scalar fixture. Do **not** infer
+  global context equivalence from those four matches.
+- Original 26.2 source hash inventory contains nine indexed
+  `NoiseChunk` and fluid-picker methods with `reviewed:false`.
+  No broader source law is promoted.
+
+The source-free immutable **272-byte** fixture now lives at
+`vanilla/reports/worldgen-26_2-stock-noisechunk-cell-16-bits.txt`,
+SHA-256
+`aa65bf127ecbf17864f35fbef177afbd4c6c0d90331566017427a0a053409289`.
+The original JSON, proprietary source, Atlas and JAR remain outside the
+repository. CI runs the source SHA-locked rawbit verifier and rejects
+changed geometry, ordered vectors, method fingerprints, wrapped node,
+or any change to the false source/VAR/SEM/full-lifecycle/production gates.
+
+```bash
+cd ~/Crucible
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_noisechunk_cell_fixture.py \
+  --capture /tmp/helve-26_2-stock-noisechunk-cell-16.json
+```
+
+This is **real single-cell execution success**, not proof of a correct
+full 16×16×384 chunk. The next work should test contiguous within-cell
+lattice traversal and neighbouring X/Z/Y cell transitions using the
+actual 26.2 state lifecycle; only then should the Rust compiled router
+claim correct `NoiseChunk` interpolation. Keep all source-law and
+production generation gates closed until independently admitted.

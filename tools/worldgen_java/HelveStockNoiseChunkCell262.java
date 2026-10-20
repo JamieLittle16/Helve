@@ -33,18 +33,6 @@ public final class HelveStockNoiseChunkCell262 {
     OUT.println(FAIL+clean(phase)+"|"+clean(inner.getClass().getName())+
        "|"+clean(t.getClass().getName())+"|"+clean(inner.getMessage()));
   }
-  static Method typed(Class<?> owner,String name,Class<?> returns,Class<?>... params)
-      throws Exception {
-    Method m=owner.getDeclaredMethod(name,params);
-    if(m.getReturnType()!=returns)
-      throw new IllegalStateException("original signature differs: "+owner.getName()+"."+name);
-    if(!m.canAccess(Modifier.isStatic(m.getModifiers())?null:
-          // Only call this helper on static or public methods; private
-          // instance method is separately checked with its receiver.
-          null) && Modifier.isStatic(m.getModifiers()) && !m.trySetAccessible())
-      throw new IllegalAccessException("stock static method cannot be made accessible");
-    return m;
-  }
   static Method openMethod(Class<?> owner,String name,Class<?> returns,Class<?>...params)
       throws Exception {
     Method m=owner.getDeclaredMethod(name,params);

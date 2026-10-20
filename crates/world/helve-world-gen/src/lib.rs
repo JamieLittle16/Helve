@@ -36,6 +36,8 @@ pub mod registered_noise_state_262;
 pub mod seeded_registered_noise_262;
 /// Bounded mixed registered-noise and integer-Y density expression substrate; not vanilla router admission.
 pub mod stock_density_program_262;
+/// Typed, JVM-observed 26.2 Ap2 and MulOrAdd stock noise/primitive evaluator; never production-admitted.
+pub mod stock_vanilla_mixed_density_262;
 
 use helve_types::{ChunkGeneration, ChunkPos};
 use helve_world_chunk::{

@@ -23,7 +23,7 @@ Existing `--stock-noisechunk-cell-16` and
 For each of the same four original seeds, construct a `NoiseChunk`
 at (0,0) and one at (-16,-16). For each origin, execute a candidate
 bounded traversal of two consecutive X cells and two Z cells, at Y
-cell indices 17, 16 and 15 (descending); the per-cell voxel loop
+cell indices 17, 16 and 15 (descending, world Y=72..79, 64..71,\n56..63 respectively, using world minY=-64); the per-cell voxel loop
 visits every X/Z value 0..3 and Y 7..0. Sampling `compute` at *every*
 visited block helps reveal marker/cache lifetime effects. Emit only
 each selected boundary offset (X=0 or 3; Y=0 or 7; Z=0 or 3):

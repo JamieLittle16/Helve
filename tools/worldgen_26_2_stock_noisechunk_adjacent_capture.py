@@ -32,7 +32,6 @@ BIT="HELVE26_2_NOISECHUNK_ADJACENT_BITS"
 END="HELVE26_2_NOISECHUNK_ADJACENT_END"
 HEX=re.compile(r"[0-9a-f]{16}\Z")
 SHA=re.compile(r"[0-9a-f]{64}\Z")
-WRAPPED=cell.ROOT if hasattr(cell,"ROOT") else None
 # Stock finalDensity is the observed Ap2 root, NOT a compiled Rust router.
 AP2="net.minecraft.world.level.levelgen.DensityFunctions$Ap2"
 SEEDS=cell.SEEDS

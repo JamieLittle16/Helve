@@ -184,6 +184,54 @@ is a bounded source-owned **semantic** review of the exact stock
 buffer state, followed by Rust numeric parity against these immutable
 test vectors, not another blind Java capture.
 
+## Next private source-owned semantic-review frontier: nested control structure
+
+All frozen stock JVM values are already captured; do NOT recapture any
+16/128/512/768 numerical samples. The remaining gap is determining what
+the genuine stock generator *does* with cells, buffers and cache wrappers.
+
+The next distinct tool,
+`tools/worldgen_26_2_noisechunk_structural_review.py`,
+reopens the **same exact private** 26.2 source archive and pinned
+Atlas; validates the actual source bytes against the existing 11
+method-body hashes; and emits only:
+
+- brace-delimited `for` / `if` / `while` / `switch` / exception and block
+  nesting (relative lines, sanitized header hash and operator shapes);
+- selected lifecycle call names, opaque argument expression fingerprints,
+  number of arguments and enclosing-control IDs;
+- explicit counts for unbraced controls that were **not** structurally
+  resolved, and all qualification gates forced **false**.
+
+It covers the real `doFill` / `fillFromNoise` plus nine relevant
+`NoiseChunk` methods. The earlier flat lifecycle packet cannot
+answer even loop ancestry; this tool adds that missing structural layer.
+Neither packet by itself verifies semantics: without evaluating branch
+conditions, loop-variable meanings, cache marker state or dynamic calls
+we still cannot declare a canonical Mojang production traversal.
+
+**One private, original-source run** from the first merged revision
+containing this new script:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_noisechunk_structural_review.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-noisechunk-structural-review.json
+```
+
+The output is exclusive-created, private, 0600, bounded and
+**source-free**; upload that JSON, or supply the precise failure.
+We can then compare the stock `doFill` call nesting against the
+experimental X/Z/Y and `swapSlices` traversal, inspect only
+the remaining exact private method obligations, and decide whether to
+adapt the Rust workspace/caches. Do not promote any review flag based
+only on hashes or brace nesting.
+
 ## Engineering boundary
 
 All seven gates stay **false**:

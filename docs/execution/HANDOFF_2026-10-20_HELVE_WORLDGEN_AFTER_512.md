@@ -372,3 +372,37 @@ from a syntactic Atlas inventory alone.
 
 The detailed runbook with exact provenance and parser CLI is
 `docs/execution/WORLDGEN_26_2_STOCK_NOISECHUNK_ADJACENT_FRONTIER_2026-10-20.md`.
+
+
+## Source-owned 26.2 structural control-review follow-on
+
+After frozen 768 source-free adjacent raw bits were merged in PR #470
+(main at `e94e08fd119be6ea10277a7e42c38de57e6b4a9c`),
+the next work begins **actual source-backed structural review**,
+not another numerical recapture. The existing 8,827-byte flat Atlas
+receipt cannot determine which loops enclose `advanceCellX`,
+`selectCellYZ`, `updateForY/X/Z` or `swapSlices`.
+
+A distinct new source-owning script is being added in branch
+`worldgen/262-noisechunk-structural-control-review`:
+`tools/worldgen_26_2_noisechunk_structural_review.py`.
+It checks original method **byte and token hashes**, then returns
+bounded, source-free brace-based control ancestry, opaque argument
+shapes and explicit unbraced-control counts for `doFill`,
+`fillFromNoise` and 9 `NoiseChunk` methods.
+The script has synthetic Java regression tests and fails closed; no
+private source is committed. The detailed command and usage appear in
+`WORLDGEN_26_2_STOCK_NOISECHUNK_ADJACENT_FRONTIER_2026-10-20.md`.
+Once its PR merges, run it **once** against the pinned local source
+archive and upload the resulting sanitized JSON. No 768/512/128/16
+recaptures are required.
+
+This structural packet is **not** independent semantic review,
+canonical stock `doFill` verification, or evidence that Rust computes
+stock `finalDensity` values. For actual Rust parity the compiled
+world-seed/router DAG must use the existing no-allocation density
+kernels, preserve 26.2 `Ap2` signed-zero/early-return behavior,
+and eventually match **computed** output against the frozen Java words.
+
+All canonical lifecycle/traversal, numerical router, VAR/SEM, and
+production worldgen gates remain **false**.

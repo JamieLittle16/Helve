@@ -64,6 +64,8 @@ on:
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-adjacent-768-bits.txt"
       - "tools/worldgen_26_2_noisechunk_lifecycle_review_packet.py"
       - "tools/tests/test_worldgen_26_2_noisechunk_lifecycle_review_packet.py"
+      - "tools/worldgen_26_2_noisechunk_structural_review.py"
+      - "tools/tests/test_worldgen_26_2_noisechunk_structural_review.py"
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-complete-cell-512-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-cell-16-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
@@ -142,6 +144,8 @@ on:
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-adjacent-768-bits.txt"
       - "tools/worldgen_26_2_noisechunk_lifecycle_review_packet.py"
       - "tools/tests/test_worldgen_26_2_noisechunk_lifecycle_review_packet.py"
+      - "tools/worldgen_26_2_noisechunk_structural_review.py"
+      - "tools/tests/test_worldgen_26_2_noisechunk_structural_review.py"
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-complete-cell-512-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-cell-16-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
@@ -301,6 +305,8 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_noisechunk_adjacent_fixture.py' -v
           python3 tools/worldgen_26_2_stock_noisechunk_adjacent_fixture.py
+      - name: Validate pinned-private-source lexical nesting reviewer on synthetic Java
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_noisechunk_structural_review.py' -v
       - name: Verify source-free 26.2 lifecycle callsite review packet boundaries
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_noisechunk_lifecycle_review_packet.py' -v
 

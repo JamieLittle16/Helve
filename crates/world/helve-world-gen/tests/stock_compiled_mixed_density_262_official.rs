@@ -166,7 +166,9 @@ fn compiled_single_mixed_leaf_plane_and_cell_keep_exact_scalar_order() {
                 -16,
                 121,
                 -16,
-                cell.as_mut().try_into().expect("fixed 4096-value test cell"),
+                cell.as_mut()
+                    .try_into()
+                    .expect("fixed 4096-value test cell"),
             )
             .expect("bounded volume");
         for dy in 0_i32..16 {

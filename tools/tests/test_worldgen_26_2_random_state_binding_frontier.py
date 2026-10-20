@@ -89,6 +89,39 @@ class RandomStateBindingTests(unittest.TestCase):
                          {"state_create", "state_get_noise", "router_map"})
         target.validate(self.manifest(), self.lock())
 
+    def test_atlas_callsite_counts_are_integers_not_lists(self):
+        def fake_methods(_conn, owner, _limit):
+            matches = [
+                {"id": n, "name": name, "owner": owner,
+                 "signature": name + "(" + ", ".join(
+                     "final " + kind + " x" for kind in kinds) + ")",
+                 "body": digest}
+                for n, (_, name, kinds, digest) in
+                enumerate(target.BODY_PINS.values(), start=1)
+                if target.BODY_PINS[list(target.BODY_PINS)[n - 1]][0] == owner
+            ]
+            if not matches and owner in target.REQUIRED:
+                matches.append({"id": 99, "name": "value", "owner": owner,
+                                "signature": "value()", "body": "d" * 64})
+            return matches
+
+        def template(_conn, row, _candidate):
+            return {"source": {
+                "type": row["owner"], "signature": row["signature"],
+                "body_sha256": row["body"], "normalized_sha256": "e" * 64,
+            }}
+
+        with mock.patch.object(target.projection, "_exact_type_methods",
+                               side_effect=fake_methods), \
+             mock.patch.object(target.source_probe, "record_template",
+                               side_effect=template), \
+             mock.patch.object(target.projection, "_call_inventory",
+                               return_value={"call_sites": 3,
+                                             "unresolved_call_sites": 1}):
+            result = target.atlas_binding(object())
+        self.assertEqual(result[target.TYPES[0]]["methods"][0]["call_sites"], 3)
+        self.assertEqual(result[target.TYPES[0]]["methods"][0]["unresolved_call_sites"], 1)
+
     def test_fail_closed_source_runtime_gate_and_method_mutations(self):
         changes = [
             lambda v: v.__setitem__("source_text_included", True),

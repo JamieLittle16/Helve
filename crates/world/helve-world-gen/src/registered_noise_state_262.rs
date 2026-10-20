@@ -24,7 +24,7 @@ pub const MAX_REGISTERED_OCTAVES_262: usize = 64;
 pub enum RegisteredNoiseStateError262 {
     /// No octaves or more than the deliberately bounded maximum.
     InvalidOctaveCount,
-    /// Amplitudes and ImprovedNoise slots disagree.
+    /// Amplitudes and `ImprovedNoise` slots disagree.
     OctaveLengthMismatch,
     /// The signed first octave and final octave cannot both fit Java i32.
     OctaveIndexOverflow,
@@ -67,9 +67,9 @@ impl RegisteredPerlinObserved262 {
         if count != octaves.len() {
             return Err(RegisteredNoiseStateError262::OctaveLengthMismatch);
         }
-        let maximum_index = i32::try_from(count - 1)
-            .expect("bounded octave span fits signed i32");
-        first_octave.checked_add(maximum_index)
+        let maximum_index = i32::try_from(count - 1).map_err(|_| RegisteredNoiseStateError262::InvalidOctaveCount)?;
+        first_octave
+            .checked_add(maximum_index)
             .ok_or(RegisteredNoiseStateError262::OctaveIndexOverflow)?;
         if !lowest_freq_input_factor.is_finite()
             || !lowest_freq_value_factor.is_finite()
@@ -78,8 +78,11 @@ impl RegisteredPerlinObserved262 {
             return Err(RegisteredNoiseStateError262::NonFiniteNumericState);
         }
         Ok(Self {
-            first_octave, amplitudes, octaves,
-            lowest_freq_input_factor, lowest_freq_value_factor,
+            first_octave,
+            amplitudes,
+            octaves,
+            lowest_freq_input_factor,
+            lowest_freq_value_factor,
         })
     }
 
@@ -100,19 +103,22 @@ impl RegisteredPerlinObserved262 {
     pub fn state_bits_equal(&self, other: &Self) -> bool {
         self.first_octave == other.first_octave
             && self.amplitudes.len() == other.amplitudes.len()
-            && self.amplitudes.iter().zip(other.amplitudes.iter())
-                .all(|(a,b)| a.to_bits() == b.to_bits())
-            && self.octaves.iter().zip(other.octaves.iter()).all(|(a,b)| {
-                match (a,b) {
-                    (None,None) => true,
-                    (Some(a),Some(b)) => a.state_bits_equal(b),
+            && self
+                .amplitudes
+                .iter()
+                .zip(other.amplitudes.iter())
+                .all(|(a, b)| a.to_bits() == b.to_bits())
+            && self
+                .octaves
+                .iter()
+                .zip(other.octaves.iter())
+                .all(|(a, b)| match (a, b) {
+                    (None, None) => true,
+                    (Some(a), Some(b)) => a.state_bits_equal(b),
                     _ => false,
-                }
-            })
-            && self.lowest_freq_input_factor.to_bits()
-                == other.lowest_freq_input_factor.to_bits()
-            && self.lowest_freq_value_factor.to_bits()
-                == other.lowest_freq_value_factor.to_bits()
+                })
+            && self.lowest_freq_input_factor.to_bits() == other.lowest_freq_input_factor.to_bits()
+            && self.lowest_freq_value_factor.to_bits() == other.lowest_freq_value_factor.to_bits()
     }
 
     /// Numeric sampling shares the previously bit-qualified Perlin loop.
@@ -125,12 +131,12 @@ impl RegisteredPerlinObserved262 {
             &self.octaves,
             self.lowest_freq_input_factor,
             self.lowest_freq_value_factor,
-            [x,y,z],
+            [x, y, z],
         )
     }
 }
 
-/// The two *distinct* immutable Perlin branches of an observed NormalNoise.
+/// The two *distinct* immutable Perlin branches of an observed `NormalNoise`.
 #[derive(Clone, Debug)]
 pub struct RegisteredNormalObserved262 {
     first: RegisteredPerlinObserved262,
@@ -151,7 +157,11 @@ impl RegisteredNormalObserved262 {
         if !value_factor.is_finite() {
             return Err(RegisteredNoiseStateError262::NonFiniteNumericState);
         }
-        Ok(Self {first, second, value_factor})
+        Ok(Self {
+            first,
+            second,
+            value_factor,
+        })
     }
 
     /// Verify all retained sampler state, including signed floating-point zeros.
@@ -166,7 +176,7 @@ impl RegisteredNormalObserved262 {
     #[must_use]
     #[inline]
     pub fn sample(&self, x: f64, y: f64, z: f64) -> f64 {
-        let first_value = self.first.sample(x,y,z);
+        let first_value = self.first.sample(x, y, z);
         let second_value = self.second.sample(
             x * NORMAL_SECOND_INPUT_MULTIPLIER,
             y * NORMAL_SECOND_INPUT_MULTIPLIER,
@@ -190,7 +200,11 @@ impl<'a> RegisteredNoiseDensityObserved262<'a> {
     #[must_use]
     pub const fn new(noise: &'a RegisteredNormalObserved262, scale: DirectNoiseScale262) -> Self {
         let (xz_scale, y_scale) = scale.factors();
-        Self {noise, xz_scale, y_scale}
+        Self {
+            noise,
+            xz_scale,
+            y_scale,
+        }
     }
 
     /// Integer block coordinate -> double -> scale -> normal sampler.
@@ -211,32 +225,40 @@ mod tests {
     use crate::improved_noise_262::LegacyBits;
 
     const GOLDEN: &str = include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"), "/tests/data/density_noise_direct_26_2_rawbits.txt"
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/data/density_noise_direct_26_2_rawbits.txt"
     ));
-    const SEEDS: [u64; 5] = [0,1,u64::MAX,0x8000_0000_0000_0000,0x9e37_79b9_7f4a_7c15];
+    const SEEDS: [u64; 5] = [0, 1, u64::MAX, 0x8000_0000_0000_0000, 0x9e37_79b9_7f4a_7c15];
     const SCALES: [DirectNoiseScale262; 3] = [
         DirectNoiseScale262::Unit,
         DirectNoiseScale262::QuarterHorizontal,
         DirectNoiseScale262::QuarterHorizontalHalfVertical,
     ];
     const Y: [i32; 32] = [
-        -4096,-65,-64,-63,-31,-30,-29,-1,0,1,15,16,17,18,63,64,
-        127,128,255,256,318,319,320,321,1024,-1024,-384,-320,319,-64,17,320,
+        -4096, -65, -64, -63, -31, -30, -29, -1, 0, 1, 15, 16, 17, 18, 63, 64, 127, 128, 255, 256,
+        318, 319, 320, 321, 1024, -1024, -384, -320, 319, -64, 17, 320,
     ];
 
     fn perlin(factory: u64) -> RegisteredPerlinObserved262 {
         let mut slots = Vec::with_capacity(4);
         for i in 0_i32..4 {
-            slots.push(if i == 1 {None} else {
-                Some(ImprovedNoise262::from_legacy_positional_octave(factory,-3+i))
+            slots.push(if i == 1 {
+                None
+            } else {
+                Some(ImprovedNoise262::from_legacy_positional_octave(
+                    factory,
+                    -3 + i,
+                ))
             });
         }
         RegisteredPerlinObserved262::from_observed_parts(
-            -3, vec![1.0,0.0,0.5,1.0].into_boxed_slice(),
+            -3,
+            vec![1.0, 0.0, 0.5, 1.0].into_boxed_slice(),
             slots.into_boxed_slice(),
             f64::from_bits(0x3fc0_0000_0000_0000),
             f64::from_bits(0x3fe1_1111_1111_1111),
-        ).expect("independently observed direct seed layout")
+        )
+        .expect("independently observed direct seed layout")
     }
 
     fn normal(seed: u64) -> RegisteredNormalObserved262 {
@@ -244,33 +266,42 @@ mod tests {
         let first = perlin(rng.next_long());
         let second = perlin(rng.next_long());
         RegisteredNormalObserved262::from_observed_parts(
-            first,second,f64::from_bits(0x3ff5_5555_5555_5555)
-        ).expect("finite direct observed NormalNoise factor")
+            first,
+            second,
+            f64::from_bits(0x3ff5_5555_5555_5555),
+        )
+        .expect("finite direct observed NormalNoise factor")
     }
 
-    fn position(j: usize) -> (i32,i32,i32) {
-        let i=i32::try_from(j).expect("32 samples");
-        let x=(if i%2==0 {33_554_432} else {-33_554_432})+13*i;
-        let z=(if i%3==0 {17*i} else {-17*i})-16;
-        (x,Y[j],z)
+    fn position(j: usize) -> (i32, i32, i32) {
+        let i = i32::try_from(j).expect("32 samples");
+        let x = (if i % 2 == 0 { 33_554_432 } else { -33_554_432 }) + 13 * i;
+        let z = (if i % 3 == 0 { 17 * i } else { -17 * i }) - 16;
+        (x, Y[j], z)
     }
 
     #[test]
     fn all_480_independent_direct_seed_bits_match_through_bounded_observed_state() {
-        let lines: Vec<_> = GOLDEN.lines().filter(|line| !line.starts_with('#')).collect();
-        assert_eq!(lines.len(),15);
-        for (scale_index,scale) in SCALES.iter().enumerate() {
-            for (seed_index,seed) in SEEDS.iter().enumerate() {
-                let noise=normal(*seed);
-                let density=RegisteredNoiseDensityObserved262::new(&noise,*scale);
-                let source=lines[scale_index*5+seed_index];
-                assert_eq!(source.len(),512);
+        let lines: Vec<_> = GOLDEN
+            .lines()
+            .filter(|line| !line.starts_with('#'))
+            .collect();
+        assert_eq!(lines.len(), 15);
+        for (scale_index, scale) in SCALES.iter().enumerate() {
+            for (seed_index, seed) in SEEDS.iter().enumerate() {
+                let noise = normal(*seed);
+                let density = RegisteredNoiseDensityObserved262::new(&noise, *scale);
+                let source = lines[scale_index * 5 + seed_index];
+                assert_eq!(source.len(), 512);
                 for j in 0..32 {
-                    let expected=u64::from_str_radix(&source[j*16..(j+1)*16],16)
+                    let expected = u64::from_str_radix(&source[j * 16..(j + 1) * 16], 16)
                         .expect("frozen 64-bit hex");
-                    let (x,y,z)=position(j);
-                    assert_eq!(density.sample_block(x,y,z).to_bits(),expected,
-                        "observed dynamic state scale={scale_index} seed={seed_index} point={j}");
+                    let (x, y, z) = position(j);
+                    assert_eq!(
+                        density.sample_block(x, y, z).to_bits(),
+                        expected,
+                        "observed dynamic state scale={scale_index} seed={seed_index} point={j}"
+                    );
                 }
             }
         }
@@ -278,59 +309,89 @@ mod tests {
 
     #[test]
     fn bound_validation_is_lossless_and_never_pads_or_truncates() {
-        let none=||Vec::<Option<ImprovedNoise262>>::new().into_boxed_slice();
+        let none = || Vec::<Option<ImprovedNoise262>>::new().into_boxed_slice();
         assert!(matches!(
             RegisteredPerlinObserved262::from_observed_parts(
-                0,Vec::new().into_boxed_slice(),none(),1.0,1.0),
+                0,
+                Vec::new().into_boxed_slice(),
+                none(),
+                1.0,
+                1.0
+            ),
             Err(RegisteredNoiseStateError262::InvalidOctaveCount)
         ));
         assert!(matches!(
             RegisteredPerlinObserved262::from_observed_parts(
-                0,vec![0.0;65].into_boxed_slice(),
-                vec![None;65].into_boxed_slice(),1.0,1.0),
+                0,
+                vec![0.0; 65].into_boxed_slice(),
+                vec![None; 65].into_boxed_slice(),
+                1.0,
+                1.0
+            ),
             Err(RegisteredNoiseStateError262::InvalidOctaveCount)
         ));
         assert!(matches!(
             RegisteredPerlinObserved262::from_observed_parts(
-                0,vec![0.0;2].into_boxed_slice(),
-                vec![None;1].into_boxed_slice(),1.0,1.0),
+                0,
+                vec![0.0; 2].into_boxed_slice(),
+                vec![None; 1].into_boxed_slice(),
+                1.0,
+                1.0
+            ),
             Err(RegisteredNoiseStateError262::OctaveLengthMismatch)
         ));
         assert!(matches!(
             RegisteredPerlinObserved262::from_observed_parts(
-                i32::MAX,vec![0.0;2].into_boxed_slice(),
-                vec![None;2].into_boxed_slice(),1.0,1.0),
+                i32::MAX,
+                vec![0.0; 2].into_boxed_slice(),
+                vec![None; 2].into_boxed_slice(),
+                1.0,
+                1.0
+            ),
             Err(RegisteredNoiseStateError262::OctaveIndexOverflow)
         ));
         assert!(matches!(
             RegisteredPerlinObserved262::from_observed_parts(
-                0,vec![f64::NAN].into_boxed_slice(),
-                vec![None].into_boxed_slice(),1.0,1.0),
+                0,
+                vec![f64::NAN].into_boxed_slice(),
+                vec![None].into_boxed_slice(),
+                1.0,
+                1.0
+            ),
             Err(RegisteredNoiseStateError262::NonFiniteNumericState)
         ));
         assert!(matches!(
-            RegisteredNormalObserved262::from_observed_parts(
-                perlin(1),perlin(2),f64::INFINITY),
+            RegisteredNormalObserved262::from_observed_parts(perlin(1), perlin(2), f64::INFINITY),
             Err(RegisteredNoiseStateError262::NonFiniteNumericState)
         ));
-        let a=normal(1);
+        let a = normal(1);
         assert!(a.state_bits_equal(&normal(1)));
         assert!(!a.state_bits_equal(&normal(2)));
     }
 
     #[test]
     fn wide_sparse_observed_state_is_retained_without_four_slot_truncation() {
-        let noise=RegisteredPerlinObserved262::from_observed_parts(
-            -8,vec![1.0,0.0,0.0,0.0,0.5,0.0,1.0,0.0].into_boxed_slice(),
+        let noise = RegisteredPerlinObserved262::from_observed_parts(
+            -8,
+            vec![1.0, 0.0, 0.0, 0.0, 0.5, 0.0, 1.0, 0.0].into_boxed_slice(),
             vec![
-                Some(ImprovedNoise262::new(1)),None,None,None,
-                Some(ImprovedNoise262::new(2)),None,
-                Some(ImprovedNoise262::new(3)),None,
-            ].into_boxed_slice(),0.00390625,0.5
-        ).expect("valid eight-slot observation");
-        assert_eq!(noise.first_octave(),-8);
-        assert_eq!(noise.octave_count(),8);
-        assert!(noise.sample(1.0,2.0,3.0).is_finite());
+                Some(ImprovedNoise262::new(1)),
+                None,
+                None,
+                None,
+                Some(ImprovedNoise262::new(2)),
+                None,
+                Some(ImprovedNoise262::new(3)),
+                None,
+            ]
+            .into_boxed_slice(),
+            0.00390625,
+            0.5,
+        )
+        .expect("valid eight-slot observation");
+        assert_eq!(noise.first_octave(), -8);
+        assert_eq!(noise.octave_count(), 8);
+        assert!(noise.sample(1.0, 2.0, 3.0).is_finite());
         assert!(noise.state_bits_equal(&noise.clone()));
     }
 }

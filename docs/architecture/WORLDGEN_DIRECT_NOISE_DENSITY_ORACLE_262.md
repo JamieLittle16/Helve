@@ -40,3 +40,24 @@ Upload only the generated source-free JSON (or the exact fail-closed diagnostic)
 Verify all 480 values and register immutable evidence. Compare candidate Rust computation against the genuine official function, including scaling and signed-zero/arithmetic order; only then implement a typed noise-backed leaf borrowing an immutable retained `NormalNoise262` without new per-sample allocations. Afterwards investigate `RandomState.create`, `RandomState.getOrCreateNoise`, `Noises.instantiate` and `NoiseHolder` visitor substitution using locally source-reviewed laws and another official oracle. Until those bindings pass, the Rust node must remain a **direct-seeded candidate**, not a production router.
 
 The 26.2 source-locked parser and toy Java tests guard the mechanism. Source/VAR/SEM production qualification and `helve-target-26-2` worldgen chunk publication remain closed.
+
+
+## Official source-owning result — 20 October 2026
+
+The original 26.2 JVM oracle **succeeded**, producing a 97,991-byte source-free JSON with SHA-256
+`e2107c7b874aacda195cab980c55cba2e0110f0974b4efebdf2a34fd480c3bd5`.
+
+Independent manifest validation confirms **480/480** requested raw IEEE records in exact order: three scale profiles (1/1, 0.25/1, 0.25/0.5), five direct seeds (`0`, `1`, `u64::MAX`, `i64::MIN`, `0x9e3779b97f4a7c15`), and 32 pinned XYZ contexts. The observed `Noise.compute` body SHA-256 is `bbef25d12896f0895c6fbec4523095fe3c1f42a3ece3229dfebdad793adbe9fe`. The previously pinned source archive, server runtime, NormalNoise constructor and `getValue` hashes match unchanged. Seed 0 and the seed with only bit 63 set happen to produce identical 32-value sequences under each profile, consistent with direct legacy RNG seed truncation.
+
+All 480 genuine output raw bits are frozen, without the private source or jar, in
+`crates/world/helve-world-gen/tests/data/density_noise_direct_26_2_rawbits.txt`. Each of 15 data lines contains 32 concatenated exact 64-bit hex values; profile and seed order is locked in a Rust regression test. Its source-free header pins the original JSON SHA-256. The Rust type `DirectNoiseDensity262` borrows a retained `NormalNoise262` and selects only those three proven scale profiles. It evaluates integer context to f64, applies horizontal/vertical scale separately and delegates to the existing zero-allocation normal noise kernel. Optimized plane and cell paths precompute per-axis scaled coordinates and use caller-owned output buffers. Overflow in any of the 16-block axes is rejected before output writes.
+
+The Rust golden test will establish the parity of this *direct-seeded* node with all 480 official outputs **only once CI reports success**. No result here proves the full world seed mapping, registry binding, real NoiseRouter or final terrain parity. All source/VAR/SEM, live publication and production gates remain closed.
+
+### Actual next frontier
+
+Source-review the pinned `RandomState.create(NoiseGeneratorSettings, HolderGetter, long)`,
+`RandomState.getOrCreateNoise(ResourceKey)`, `Noises.instantiate`, and the relevant
+`DensityFunction.NoiseHolder` visitor substitution path. Bind the *correct
+registry key and noise parameters* to a genuine world seed, capture another
+official raw-bit corpus, and only then enable a qualified `NoiseRouter` path.

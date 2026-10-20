@@ -184,6 +184,22 @@ class AdjacentStockNoiseChunkTests(unittest.TestCase):
                 adjacent.source_methods(db)
         db.close()
 
+    def test_negative_origin_uses_local_cell_indices(self):
+        # The 26.2 stock NoiseChunk constructor takes block-space origins.
+        # Its interpolation grid has local X/Z indices, independently of
+        # which (positive or negative) chunk origin was supplied.
+        java=cell.JAVA_SOURCE.read_text()
+        self.assertIn("ctor.newInstance(4,state,origin,origin,shape,",java)
+        self.assertIn("advance.invoke(chunk,cellXOffset);",java)
+        self.assertIn("select.invoke(chunk,cellY,cellZOffset);",java)
+        self.assertNotIn("firstCell+cellXOffset",java)
+        self.assertNotIn("firstCell+cellZOffset",java)
+        # updateForX/Z still see absolute world block positions.
+        self.assertIn("int x=origin+cellXOffset*4+localX;",java)
+        self.assertIn("int z=origin+cellZOffset*4+localZ;",java)
+        self.assertIn("updateX.invoke(chunk,x,(double)localX/4.0);",java)
+        self.assertIn("updateZ.invoke(chunk,z,(double)localZ/4.0);",java)
+
     def test_isolated_new_mode_and_legacy_dispatch_are_present(self):
         java=cell.JAVA_SOURCE.read_text()
         self.assertIn("--stock-noisechunk-cell-16",java)

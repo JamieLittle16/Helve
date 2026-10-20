@@ -1,0 +1,307 @@
+# Helve — Worldgen handoff after the successful 512-value stock NoiseChunk cell
+
+**Handoff date:** 20 October 2026 (Europe/London).  
+**Repo:** https://github.com/JamieLittle16/Helve  
+**Starting branch:** `main`. Before this handoff's fixture/docs PR, verified
+`main` was `ce523a3dcda7328f66393fcdf5344c52c4142717`,
+which already **included merged PR #466**. Refresh HEAD, open PRs and
+CI on entry; this SHA is not a promise that main has stopped moving.  
+**Target:** Minecraft Java **26.2**, protocol **776**, DataVersion **4903**.
+**User checkout:** `~/Crucible`, branch `main`.  
+**Purpose:** seamless next-context worldgen work. **No redoing successful
+JVM captures, source inventories, R2C import or numeric noise kernels.**
+
+## Immediate executive state
+
+**The official stock Java 26.2 runtime has now successfully evaluated
+`NoiseRouter.finalDensity` through an authentic wrapped
+`NoiseChunk` at every one of the 128 voxels of one 4×8×4 cell, for
+four world seeds: 512 finite raw IEEE-754 `f64` results.**
+
+The actual 512-source-free JSON was uploaded in the conversation as
+`helve-26_2-stock-noisechunk-complete-cell-512.json`.
+Size **122,792 bytes**, exact SHA-256:
+
+`1ce45d95a09eae9d5f95754e4ef582244fa707ca08598223eeb52930d7c65fb9`.
+
+Every output is finite. 512/512 bitwords are distinct. All **16**
+original independently captured measurements (four positions × four
+seeds) **match the corresponding values exactly, bit for bit** within
+the new 512 results. Their two authentic receipts did not require
+replacing the vanilla registry or copying source math.
+
+**This handoff PR freezes the newly received 512 result words**, without
+checking in the original private JSON:
+`vanilla/reports/worldgen-26_2-stock-noisechunk-complete-cell-512-bits.txt`,
+size **8,704 bytes**, SHA-256
+`71da8201d571fbd2856848066a18b5f844a83533742937e2b0dcefcae55049eb`.
+New verifier
+`tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py`
+checks the 512 bits, previous 16 overlaps and closed gates, with
+optional exact-byte validation of the original stock JSON. CI
+regression tests enforce this.
+
+**The next action is NOT another 4×8×4 single-cell capture or shallow
+NoiseRouter inventory.** It is to inspect **the original 26.2
+NoiseBasedChunkGenerator and NoiseChunk cache/interpolation lifecycle**
+and then observe **canonically ordered adjacent cell transitions**,
+before building or qualifying a complete Rust Overworld density
+evaluation.
+
+## Verified merged PR progression (20 October 2026)
+
+| PR | Completed work |
+|---|---|
+| #457–#458 | Four-seed actual stock NoiseRouter 15 named roots and package-private record-access fix |
+| #459 | Bounded depth-four density DAG inventory; **structure only**, all gate flags false |
+| #460 | All 32 four-seed `HolderHolder` bindings; eight per seed; actual `Holder$Direct` delegates |
+| #461 | Original-JVM `finalDensity.compute(SinglePointContext)` capture bridge |
+| #462 | Freeze **128** official stock single-point raw-bit reference values |
+| #463 | First actual `NoiseChunk`-context 4×8×4-cell **16-point** JVM bridge |
+| #464 | Exact `BeardifierMarker.INSTANCE` reflection fix for package-private nested enum; toy regression |
+| #465 | Freeze **16** authentic source-owned `NoiseChunk` values, including four exact matching original SinglePointContext intersections |
+| #466 | Complete 4×8×4-cell JVM capture mode, **512 points**; existing 16-point JVM mode preserved; new source-pinned collector and synthetic tests |
+
+**No need to reopen any of these.** This handoff adds the 512-result
+numerical fixture and updates the current execution guide rather than
+reimplementing the complete-cell bridge. Check this handoff PR's merged
+status and the latest main HEAD before making new branches.
+
+## Exact authoritative evidence and private environment
+
+Pinned source/target:
+- Original source archive:
+  `$HOME/Documents/mc-source/mc-src.zip`;
+  SHA-256 `1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750`.
+- Official server JAR:
+  SHA-256 `cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5`.
+- Atlas: `.crucible/vanilla/atlas.sqlite`.
+- Lock: `vanilla/vanilla.lock.toml`.
+- Original real-worldseed frontier:
+  `/tmp/helve-26_2-random-state-binding-frontier-01.json`.
+
+Previous bounded shape/raw numerical receipts:
+
+| Evidence | Private/source-free file on user machine | Exact original receipt SHA-256 | Git status |
+|---|---|---|---|
+| Fifteen stock router roots × 4 seeds | `/tmp/helve-26_2-stock-router-roots-4.json` | `81cc1fb15388998f9b812803ee96a30c792ef68df8120490b05f38acd3338736` | Source-free root evidence; not a full graph |
+| Depth-4 density DAG × 4 seeds | `/tmp/helve-26_2-stock-router-graph-depth4.json` | `5911470e36725da99e7b82b5b8b4eef03a1d150662aa44c71b6c64340e4a46fb` | Source-free structural evidence |
+| 8 `HolderHolder` bindings × 4 seeds | `/tmp/helve-26_2-stock-router-bound-holders-4.json` | `1b7e991f619094c4219138393edad0b5abdb22595dc1d4390a0617ab8de1ac64` | Original typed binding observation |
+| 128 real `SinglePointContext` finalDensity bits | `/tmp/helve-26_2-stock-final-density-singlepoint-128.json` | `0c294020fb2ad882f6ed88e5759e032c6955d48be3cfef1a19a089f561bb059d` | Frozen PR #462 |
+| 16 real `NoiseChunk` first-contact cell bits | `/tmp/helve-26_2-stock-noisechunk-cell-16.json` | `3ea20f5ed1b1236f5e166a847e5405ca54169d39f98810e0c8bf7029e3e74169` | Frozen PR #465 |
+| **512** real complete cell bits | `/tmp/helve-26_2-stock-noisechunk-complete-cell-512.json` | **`1ce45d95a09eae9d5f95754e4ef582244fa707ca08598223eeb52930d7c65fb9`** | **New 512 rawbit fixture in handoff PR** |
+
+The 128 rawbits fixture is
+`vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt`
+(2,176 bytes, SHA
+`058846dd4c755802ffe43f829b109884331962712ac7556f4d5cb4320a597e4f`).
+The original 16 rawbits fixture is
+`vanilla/reports/worldgen-26_2-stock-noisechunk-cell-16-bits.txt`
+(272 bytes, SHA
+`aa65bf127ecbf17864f35fbef177afbd4c6c0d90331566017427a0a053409289`).
+
+**Privacy:** All raw original source, actual server JARs, Atlas indexes
+and complete original JSON receipts remain on the user's machine or
+as conversation upload. Only source-free rawbit fixtures, verifiers,
+bounded numeric status and docs may be published. Never print or
+commit original Minecraft source bodies. `reviewed:false` source
+method hashes are identity receipts, NOT independently proven source
+laws.
+
+## Exactly what the new 512 proof establishes
+
+Four seeds:
+`0x0123456789abcdef`,
+`0x7fffffffffffffff`,
+`0x8000000000000001`,
+`0xf0e1d2c3b4a59687`.
+
+The original bound stock Overworld
+`RandomState.router().finalDensity` is wrapped into a real
+`NoiseChunk`, using the stock provider, registered generator
+settings, actual fluid-picker, genuine marker, empty blender, and
+26.2 constructor (no synthetic registry or rebuilt graph). The
+single cell is `cell_x=0, cell_y=16, cell_z=0`:
+`x=0..3`, `y=64..71`, `z=0..3` (cell width 4, cell height
+8, world minY -64, height 384). Observed root wrapper class
+`DensityFunctions$Ap2`. Exactly **128** positions per seed,
+traversed **Y-ascending, then X-ascending, then Z-ascending**,
+with actual original `NoiseChunk.updateForY/X/Z` and compute
+calls, and the bounding `initializeForFirstCellX,
+advanceCellX(0), selectCellYZ(16,0), stopInterpolation` calls.
+The existing 16-point single-cell mode remains unchanged and
+its four specified positions match the full 512 independently
+for every seed.
+
+**Critical limitation:** The 512-order is a deliberately chosen
+**experimental** traversal. Its correspondence to the *actual*
+`NoiseBasedChunkGenerator.fillFromNoise` **production order is not
+source-reviewed or admitted**. It neither proves all cache/interpolator
+states are valid nor samples neighbouring Y/Z/X cells, slice swaps,
+full chunk, aquifers, block determination, surface rules, biomes,
+features or live generation. Numerical values can be order/caching
+sensitive. For example actual seed
+`0x0123456789abcdef` recorded at `(0,70,3)` the real bitword
+`0x3fd56bd4106a5f4d` (~0.335), much higher than some
+neighbouring samples around 0.08. Do **not** assume this is a true
+terrain discontinuity; it motivates explicit controlled traversal
+order and cache investigations. Never silently 'correct' observed
+bits to a smoother model.
+
+### Current gates (ALL STILL FALSE)
+
+`stock_noisechunk_canonical_traversal_qualified`  
+`stock_noisechunk_full_lifecycle_qualified`  
+`world_seed_random_state_bound` (production-grade Rust router bound)  
+`full_router_graph_qualified`  
+`router_numeric_parity_qualified`  
+`independent_var_sem_admitted`  
+`production_worldgen_enabled`
+
+These flags are semantic promises. Do not flip them based on a
+successful original JVM capture or synthetic Java harness.
+
+## Existing Rust substrate — reuse, do not rewrite
+
+The original seeded noise and arithmetic substrate has already
+advanced well beyond basic noise experimentation. Relevant real paths:
+
+- `crates/world/helve-world-gen/src/registered_noise_state_262.rs`
+- `crates/world/helve-world-gen/src/seeded_registered_noise_262.rs`
+- `crates/world/helve-world-gen/src/improved_noise_262.rs`
+- `crates/world/helve-world-gen/src/explicit_noise_stack_262.rs`
+- `crates/world/helve-world-gen/src/density_noise_direct_262.rs`
+- `crates/world/helve-world-gen/tests/explicit_noise_stack_262.rs`
+- `crates/world/helve-world-gen/tests/density_noise_direct_262.rs`
+- `crates/world/helve-world-gen/benches/improved_noise_262.rs`
+- `crates/world/helve-world-gen/benches/worldgen_cold.rs`
+
+Earlier PRs #447–#456 already obtained independently pinned stock
+noise registrations and world-seed replay plus the 576 held-out vectors,
+1,920 mixed-density output vectors, and qualified lower-level Rust
+implementations. Those do NOT automatically confer all actual
+Overworld `finalDensity` DAG laws and `NoiseChunk` cache semantics.
+Read the qualified portions, use a single Rust world-seed owner
+with prebuilt immutable state, caller-owned contiguous scratch and
+allocation-free interior loops. Avoid copies, virtual dispatch,
+per-block hash lookups and repeated noise initialization in the
+hot path. Do not fork an independent sampler or world owner.
+
+R2C remains a **real visually verified pregenerated/imported world
+in a stock client**; it is distinct from procedural world generation.
+R2D's persistence/liveness readiness work is also a distinct track:
+see `docs/execution/R2C_TO_R2D_READINESS_HANDOFF_2026-10-19.md`.
+Do not conflate R2C rendered import, R2D durable world state and
+procedural Overworld generation; preserve the server-lifetime semantic
+world owner and reuse its publication boundary when new terrain is
+eventually admitted.
+
+## Immediate fresh-context start — no user requests for repeated data
+
+1. `git switch main && git pull --ff-only`; verify actual GitHub main
+   SHA, latest merged PRs and three CI checks (CI, CLA, Worldgen
+   Qualification). Confirm this 512-fixture/handoff PR merged.
+2. Read **this document** and
+   `docs/execution/WORLDGEN_26_2_STOCK_NOISECHUNK_COMPLETE_CELL_2026-10-20.md`.
+   Do NOT rerun `--stock-noisechunk-cell-16`,
+   `--stock-noisechunk-complete-cell-512`, root/holder inventories,
+   or original scalar capture; all data are frozen.
+3. Run the source-free regression fixture **without private source**
+   as a smoke test:
+   ```bash
+   python3 tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py
+   ```
+   Optional, only if reauthenticating the original uploaded file:
+   ```bash
+   python3 tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py \
+     --capture /tmp/helve-26_2-stock-noisechunk-complete-cell-512.json
+   ```
+4. Start a **new separate PR** for the *26.2 production block sampling
+   traversal and cell/slice lifecycle source review*, not for
+   another single-cell number-capture transport.
+
+## Precise forward engineering plan
+
+**Stage A — pin the true canonical stock chunk algorithm.**
+On the user's original 26.2 source archive and Atlas, inspect the
+specific current `NoiseBasedChunkGenerator.fillFromNoise` /
+`doFill` or actual equivalent production path, `NoiseChunk`'s
+actual visitor/wrapping, interp cell configuration, `swapSlices`,
+`initializeForFirstCellX`, `advanceCellX`, `selectCellYZ`,
+`updateForY/X/Z`, `stopInterpolation` and cache marker /
+interpolator callbacks. Determine exact (X/Y/Z) outer/inner loop order,
+positive/negative coordinates, off-by-one extent, fluid/block
+interactions, cell-to-cell continuity, and source constructor signatures
+for **26.2** only. Store method-owner/body hashes and the conclusions
+in **source-free** documentation. Source method hashes currently say
+`reviewed:false` and must not be promoted without real review.
+If unavailable in remote GitHub, add a bounded source-owning-only
+review packet; do NOT infer laws from 26.3 or a wiki.
+
+**Stage B — canonical stock numeric oracles crossing real boundaries.**
+Extend existing `tools/worldgen_java/HelveStockNoiseChunkCell262.java`
+with a distinct new optional mode; keep prior 16 and 512 modes
+bitwise unchanged. Under the verified real loop order and
+noise/noisechunk state, sample at least:
+- consecutive cells in X and Z and adjacent vertical Y cell,
+- an X slice flip through `swapSlices` and a second X column,
+- previously sampled overlapping edge/corner positions in controlled
+  conditions, where lawful,
+- multiple independent seeds and at least one negative X/Z coordinate.
+
+Pin exact finite raw IEEE `f64` values from the original stock JVM
+and freeze a compact bit fixture and fail-closed schema. Explicitly
+distinguish **canonical** production traversal from the former 512
+**experimental** traversal. Look for reproducible differences/order
+effects; compare only positions under matching state and traversal,
+not blindly assert context equality. Resist creating new unrelated
+capture scripts when one targeted extension to the proven bridge
+suffices.
+
+**Stage C — source-review and compile actual finalDensity DAG.**
+Close the exact stock `DensityFunctions` evaluation and
+`NoiseChunk` delegate laws on **this observed graph** before
+implementing them: `Ap2`, `Mapped`, `Marker` (including caches),
+`RangeChoice`, holders, splines and keyed noises. Use the existing
+source-free roots/graph/holder evidence, the frozen real scalar-128,
+cell-16 and complete-cell-512 outputs to build bitwise Rust tests
+that really execute Rust code. Prefer an immutable compact
+instruction/program representation, cold keyed holder resolution
+and reusable thread/caller-owned workspaces; respect signed-zero,
+interpolation and floating-point evaluation order. Compare across
+held-out coordinates and seeds; do NOT claim Rust parity by merely
+re-reading a fixture.
+
+**Stage D — actual terrain semantics and whole-cost benchmarking.**
+After canonical NoiseChunk and compiled Rust `finalDensity` parity,
+add verified block decision, aquifers, sea-level fluids, biome/surface
+rules and chunk publication under the existing server-world owner.
+Run differential pregenerated-world and live stock-client tests and
+representative whole-chunk performance benchmarks; never quote
+Steel speedups before a matched comparable end-to-end test. Keep
+all production authority gates closed until each independent law
+and parity evidence is admitted.
+
+### Acceptance criteria for next milestone
+
+Source-free review names true 26.2 canonical loop, slice swap and
+cache lifecycle with provenance; independently runnable stock JVM
+cross-cell/slice oracle; at least one bounded contiguous neighbouring
+cell example with exact finite bits and immutable schema; existing
+`128`/`16`/`512` fixtures unchanged and all CI green; no source
+leak, Rust hot-path regression or unsupported gate promotion. A
+different method or an error must be diagnosed at the exact original
+26.2 source point, not patched by inventing semantics.
+
+## Final new-chat instruction (paste alongside this handoff)
+
+> Continue Helve worldgen from the latest verified GitHub `main`,
+> using `docs/execution/HANDOFF_2026-10-20_HELVE_WORLDGEN_AFTER_512.md`.
+> The authentic 512-value stock `NoiseChunk` complete-cell capture is
+> **already successful and frozen**; do not repeat the 16/128/512
+> captures or the router/holder inventories. Start the original
+> Minecraft Java 26.2 canonical `NoiseChunk` generation-order and
+> cell/slice lifecycle review, then build the first adjacent-cell and
+> slice-swap oracle, keeping Helve's efficiency/vanilla/source-law
+> disciplines and CI/PR workflow. All production worldgen and VAR/SEM
+> gates are still closed.

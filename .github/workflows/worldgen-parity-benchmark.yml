@@ -55,6 +55,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_noisechunk_cell_fixture.py"
       - "tools/worldgen_26_2_stock_noisechunk_complete_cell_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_noisechunk_complete_cell_capture.py"
+      - "tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_noisechunk_complete_cell_fixture.py"
+      - "vanilla/reports/worldgen-26_2-stock-noisechunk-complete-cell-512-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-cell-16-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
@@ -123,6 +126,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_noisechunk_cell_fixture.py"
       - "tools/worldgen_26_2_stock_noisechunk_complete_cell_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_noisechunk_complete_cell_capture.py"
+      - "tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_noisechunk_complete_cell_fixture.py"
+      - "vanilla/reports/worldgen-26_2-stock-noisechunk-complete-cell-512-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-noisechunk-cell-16-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
@@ -268,6 +274,11 @@ jobs:
 
       - name: Verify bounded 512-value original NoiseChunk complete-cell Java mode and exact coordinate frames
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_noisechunk_complete_cell_capture.py' -v
+
+      - name: Freeze 512 authentic stock NoiseChunk bits and verify all 16 first-pass overlaps
+        run: |
+          python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_noisechunk_complete_cell_fixture.py' -v
+          python3 tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py
 
       - name: Validate SHA-pinned independently captured 576-vector official stock JVM held-out evidence
         run: |

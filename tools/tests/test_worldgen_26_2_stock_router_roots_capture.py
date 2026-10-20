@@ -191,7 +191,7 @@ class RouterRootsTests(unittest.TestCase):
             self.assertFalse(result["production_worldgen_enabled"])
             observed = json.loads(output.read_text())
             router.validate(observed, methods=self.methods())
-            with self.assertRaises(FileExistsError):
+            with self.assertRaises(router.improved.CaptureError):
                 # Only the existing destination rejection is exercised.
                 with mock.patch.object(router.stock, "reference_frontier"), \
                      mock.patch.object(router.vanilla_atlas, "connect_db"), \

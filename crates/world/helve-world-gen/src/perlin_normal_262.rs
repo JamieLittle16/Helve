@@ -61,9 +61,7 @@ pub(crate) fn sample_perlin_parts(
     octaves: &[Option<ImprovedNoise262>],
     mut input_factor: f64,
     mut value_factor: f64,
-    x: f64,
-    y: f64,
-    z: f64,
+    [x, y, z]: [f64; 3],
 ) -> f64 {
     debug_assert_eq!(amplitudes.len(), octaves.len());
     let mut total = 0.0_f64;
@@ -196,7 +194,7 @@ impl PerlinNoise262 {
             &self.octaves,
             self.lowest_freq_input_factor,
             self.lowest_freq_value_factor,
-            x, y, z,
+            [x, y, z],
         )
     }
 

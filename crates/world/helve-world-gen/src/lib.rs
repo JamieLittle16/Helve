@@ -32,6 +32,8 @@ pub mod improved_noise_262;
 pub mod perlin_normal_262;
 /// Bounded immutable, variable-octave observed stock-shaped state; NOT a registered world-seed constructor or production authority.
 pub mod registered_noise_state_262;
+/// Exact stock-key world-seed Xoroshiro constructor candidate; COLD only, with separate source/VAR/SEM and production gates.
+pub mod seeded_registered_noise_262;
 
 use helve_types::{ChunkGeneration, ChunkPos};
 use helve_world_chunk::{

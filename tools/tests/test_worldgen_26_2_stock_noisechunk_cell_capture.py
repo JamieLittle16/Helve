@@ -15,6 +15,7 @@ from unittest import mock
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import worldgen_26_2_stock_noisechunk_cell_capture as cell  # noqa: E402
+import worldgen_26_2_stock_noisechunk_complete_cell_capture as grid  # noqa: E402
 
 
 class StockNoiseChunkCellTests(unittest.TestCase):
@@ -262,8 +263,14 @@ class StockNoiseChunkCellTests(unittest.TestCase):
             with mock.patch.object(cell.official,"extract_classpath",
                                    return_value=[output]):
                 values,wrappers=cell.observe(work/"toy.jar",timeout=90)
+                complete=grid.observe(work/"toy.jar",timeout=90)
             self.assertEqual(values,cell.parse_output("\n".join(self.frame()))[0])
             self.assertEqual(wrappers,[level+".DensityFunctions$Ap2"]*4)
+            self.assertEqual(len(complete),512)
+            self.assertEqual(complete[0],"0x"+struct.pack(">d",64.0).hex())
+            self.assertEqual(complete[127],"0x"+struct.pack(">d",77.0).hex())
+            self.assertEqual(complete[128],complete[0])
+            self.assertEqual(complete[511],complete[127])
 
 
 if __name__=="__main__":

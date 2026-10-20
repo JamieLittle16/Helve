@@ -299,6 +299,30 @@ world-seeded finalDensity graph in the existing borrowed Rust density
 program without a second world owner. Numeric parity must compare
 computed Rust outputs to original Java bits.
 
+## First compiled source-observed Rust mixed delegate under existing density program
+
+The existing `StockVanillaMixedDensity262` is already checked against
+**1,920 actual stock Minecraft 26.2 JVM** mixed Noise/Y-primitive
+`add/mul` results, including the positive-zero `Ap2` shortcut
+and signed-zero `MulOrAdd` distinction. A new
+`StockDensityNode262::ObservedMixed` puts this **existing**
+source-observed evaluator inside the immutable, bounded Rust density
+program rather than creating another evaluator/world owner.
+
+Its one-node compiled path reuses the specialized scalar/coherent-plane/
+caller-owned-cell routines. A separate executable Rust regression
+recomputes **all 1,920** independent official Java words through that
+compiled leaf, checks signed-zero delegate distinction, and tests
+full plane/cell scalar-bit coherence. Arbitrary eager expression DAG
+combination is explicitly **not** a newly qualified Java 26.2 factory
+law: composing observed components does not admit the full Overworld
+`finalDensity` router.
+
+This is the first narrow compiled observed mixed subgraph; it is **not**
+the finalDensity evaluator, not source-reviewed `doFill` cache/marker
+semantics, and not approval for chunk publication. Keep all production,
+VAR/SEM, canonical traversal and full-router parity gates closed.
+
 ## Engineering boundary
 
 All seven gates stay **false**:

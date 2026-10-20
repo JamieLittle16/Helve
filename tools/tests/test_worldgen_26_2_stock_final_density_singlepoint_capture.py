@@ -237,7 +237,11 @@ class OriginalStockFinalDensityTests(unittest.TestCase):
                        "implements DensityFunction {"
                        "public double compute(DensityFunction.FunctionContext c){"
                        "return argument1.compute(c)+argument2.compute(c);}}}")
-            fields=", ".join("DensityFunction root%02d"%i for i in range(15))
+            fields=", ".join(
+                "DensityFunction finalDensity" if i==11
+                else "DensityFunction root%02d"%i
+                for i in range(15)
+            )
             constructors=", ".join(
                 "new DensityFunctions.Ap2(\"ADD\","
                 "new DensityFunctions.Mapped(new DensityFunctions.SampleXY()),"

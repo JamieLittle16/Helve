@@ -44,9 +44,9 @@ FRONTIER = Path("/tmp/helve-26_2-random-state-binding-frontier-01.json")
 VANILLA_REGISTRIES = "net.minecraft.data.registries.VanillaRegistries"
 NOISE_KEYS = ("TEMPERATURE", "CONTINENTALNESS", "EROSION")
 PROFILES = {
-    "unit": ("0x3ff0000000000000", "0x3ff0000000000000"),
-    "quarter_xz": ("0x3fd0000000000000", "0x3ff0000000000000"),
-    "quarter_xz_half_y": ("0x3fd0000000000000", "0x3fe0000000000000"),
+    "unit": ["0x3ff0000000000000", "0x3ff0000000000000"],
+    "quarter_xz": ["0x3fd0000000000000", "0x3ff0000000000000"],
+    "quarter_xz_half_y": ["0x3fd0000000000000", "0x3fe0000000000000"],
 }
 SEEDS = tuple(primitive.SEEDS)
 N_COORDS = 32
@@ -164,7 +164,7 @@ def source_methods(reference: dict, conn: sqlite3.Connection) -> dict:
 
 
 def parse_bits(stdout: str, expected: int = N_RECORDS) -> list[str]:
-    if len(stdout.encode("utf-8")) > 256_000 or len(stdout.splitlines()) > 2400:
+    if len(stdout.encode("utf-8")) > 256_000 or len(stdout.splitlines()) > 4096:
         raise WorldSeedNoiseError("unbounded official world-seed JVM output")
     lines = [line for line in stdout.splitlines() if line.startswith(PREFIX)]
     if len(lines) != expected:

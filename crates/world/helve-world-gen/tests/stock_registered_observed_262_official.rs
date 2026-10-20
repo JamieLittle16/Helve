@@ -2,12 +2,12 @@
 //!
 //! Unlike the direct-seeded four-slot profile, these 15 complete numerical
 //! states were independently prepared by the pinned official stock JVM via
-//! RandomState and three registered noise keys. The Rust implementation loads
+//! `RandomState` and three registered noise keys. The Rust implementation loads
 //! those states into the EXISTING immutable Improved/Perlin/Normal evaluators.
 //!
 //! The test must not be described as a Rust world-seed RNG constructor. It
 //! qualifies the stock-shaped *sampling* path, not seed -> prepared state,
-//! independent VAR/SEM review, NoiseRouter, or production world generation.
+//! independent VAR/SEM review, `NoiseRouter`, or production world generation.
 
 use helve_world_gen::density_noise_direct_262::DirectNoiseScale262;
 use helve_world_gen::improved_noise_262::ImprovedNoise262;

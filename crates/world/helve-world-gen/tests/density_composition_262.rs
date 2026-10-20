@@ -4,6 +4,9 @@
 
 use helve_world_gen::density_composition_262::DensityComposition262;
 use helve_world_gen::density_primitives_262::{DensityPrimitive262, DensityPrimitiveError262};
+use helve_world_gen::stock_density_program_262::{
+    StockDensityNode262 as Node, StockDensityProgram262 as Program,
+};
 
 const OFFICIAL: &str = include_str!("data/density_composed_26_2_rawbits.tsv");
 const DELEGATES: &str = include_str!("data/density_delegate_26_2_observed.tsv");
@@ -106,12 +109,24 @@ fn all_1280_exact_official_density_composition_bits_match() {
             (x, y, z),
             (expected_x, Y_LEVELS[coordinate_idx], expected_z)
         );
-        let actual = program(fields[0]).sample_block_y(y).to_bits();
+        let source = program(fields[0]);
+        let actual = source.sample_block_y(y).to_bits();
         let expected = bits(fields[5]);
         assert_eq!(
             actual, expected,
             "official row {row_count} profile {} at ({x},{y},{z}) seed {}",
             fields[0], fields[1]
+        );
+        // Execute the real prepared Rust density program, not only the
+        // standalone observed two-primitive evaluator or oracle replay.
+        let compiled = Program::new([Node::ObservedPrimitiveComposition(source)])
+            .expect("typed observed leaf");
+        assert_eq!(
+            compiled.sample_block(x, y, z).to_bits(),
+            expected,
+            "compiled 26.2 original JVM row {row_count} profile {} seed {}",
+            fields[0],
+            fields[1]
         );
         row_count += 1;
     }
@@ -236,4 +251,72 @@ fn all_official_factory_runtime_delegate_classes_are_statically_selected() {
         count += 1;
     }
     assert_eq!(count, PROFILES.len());
+}
+
+#[test]
+fn compiled_observed_primitive_leaf_keeps_hot_path_coherent_and_signed_zero() {
+    for profile in PROFILES {
+        let composed = program(profile);
+        let compiled = Program::new([Node::ObservedPrimitiveComposition(composed)])
+            .expect("one observed Y leaf");
+        for y in [128, -64, 320] {
+            let expected = composed.sample_block_y(y).to_bits();
+            let actual = compiled.sample_block(-16, y, 16).to_bits();
+            assert_eq!(
+                actual, expected,
+                "signed-zero/runtime profile={profile}, y={y}"
+            );
+            let mut plane = [f64::NAN; 256];
+            compiled
+                .sample_plane_16x16(-16, y, 16, &mut plane)
+                .expect("valid XZ plane");
+            assert!(plane.iter().all(|v| v.to_bits() == expected));
+        }
+
+        // Explicit test-owned output allocation; generation itself borrows
+        // the buffer and uses exactly one composition evaluation per Y.
+        let mut values = vec![f64::NAN; 4096].into_boxed_slice();
+        let cell: &mut [f64; 4096] = values.as_mut().try_into().expect("bounded 4096 test cell");
+        compiled
+            .sample_cell_16x16x16(-16, 120, 16, cell)
+            .expect("valid observed 16-high cell");
+        for (dy, plane) in values.chunks_exact(256).enumerate() {
+            let y = 120 + i32::try_from(dy).expect("16-high offset");
+            let original = composed.sample_block_y(y).to_bits();
+            assert!(plane.iter().all(|v| v.to_bits() == original));
+        }
+    }
+}
+
+#[test]
+fn compiled_observed_primitive_leaf_rejects_overflow_before_output_changes() {
+    use helve_world_gen::density_noise_direct_262::DirectNoiseCellError262;
+
+    let compiled = Program::new([Node::ObservedPrimitiveComposition(program("mul_gradients"))])
+        .expect("observed two-function multiply");
+    let sentinel = f64::from_bits(0x7ff8_0123_4567_89ab);
+    let mut plane = [sentinel; 256];
+    assert_eq!(
+        compiled.sample_plane_16x16(i32::MAX - 14, 128, 0, &mut plane),
+        Err(DirectNoiseCellError262::BlockCoordinateOverflow)
+    );
+    assert!(plane.iter().all(|v| v.to_bits() == sentinel.to_bits()));
+
+    let mut values = vec![sentinel; 4096].into_boxed_slice();
+    let cell: &mut [f64; 4096] = values
+        .as_mut()
+        .try_into()
+        .expect("fixed borrowed test cell");
+    for point in [
+        (i32::MAX - 14, 120, 0),
+        (0, i32::MAX - 14, 0),
+        (0, 120, i32::MAX - 14),
+    ] {
+        let (x, y, z) = point;
+        assert_eq!(
+            compiled.sample_cell_16x16x16(x, y, z, &mut *cell),
+            Err(DirectNoiseCellError262::BlockCoordinateOverflow)
+        );
+        assert!(cell.iter().all(|v| v.to_bits() == sentinel.to_bits()));
+    }
 }

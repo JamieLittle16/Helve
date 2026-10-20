@@ -2,11 +2,12 @@
 //!
 //! Its leaves are the existing independently bit-qualified stock registered
 //! world-seed noise and integer-block-Y constant/clamped-gradient primitives.
-//! Its arithmetic nodes are deliberately *explicit eager IEEE operations*:
-//! mixing stock noise with primitives or composing arbitrary graph shapes is
-//! NOT independently qualified as vanilla DensityFunctions / NoiseRouter.
-//! In particular, the official 26.2 Ap2 multiply early-positive-zero rule
-//! may differ from generic eager multiplication. No production authority.
+//! Its explicit arithmetic nodes are *eager IEEE operations*, NOT independently
+//! qualified vanilla DensityFunctions / NoiseRouter. A separate typed leaf
+//! delegates to the existing 1,920-JVM-vector-qualified stock mixed evaluator:
+//! that leaf preserves the 26.2 Ap2 positive-zero short-circuit and the
+//! MulOrAdd signed-zero behaviour. Arbitrary compositions remain unqualified.
+//! No production authority.
 //!
 //! A maximum of 32 immutable nodes and fixed per-worker scratch bound hot-path
 //! work. A single noise leaf or noise with one Y-only primitive gets an exact
@@ -15,6 +16,7 @@
 use crate::density_noise_direct_262::DirectNoiseCellError262;
 use crate::density_primitives_262::DensityPrimitive262;
 use crate::registered_noise_state_262::RegisteredNoiseDensityObserved262;
+use crate::stock_vanilla_mixed_density_262::StockVanillaMixedDensity262;
 
 /// One entry in a caller-constructed, index-validated COLD expression graph.
 ///
@@ -26,6 +28,11 @@ pub enum StockDensityNode262<'a> {
     Primitive(DensityPrimitive262),
     /// Borrow one immutable, seed-derived, already bit-qualified normal noise.
     RegisteredNoise(RegisteredNoiseDensityObserved262<'a>),
+    /// One exact 26.2 observed stock Noise/primitive delegate.
+    ///
+    /// This node calls the existing qualified mixed evaluator. It is NOT an
+    /// authorization to compile arbitrary vanilla factory/marker graph nodes.
+    ObservedMixed(StockVanillaMixedDensity262<'a>),
     /// Explicit eager IEEE-754 addition in operand order.
     Add { left: usize, right: usize },
     /// Explicit eager IEEE-754 multiplication; **not** vanilla Ap2 short-circuit.
@@ -67,6 +74,7 @@ enum SamplingPlan262<'a> {
     Generic,
     OnlyPrimitive(DensityPrimitive262),
     OnlyNoise(RegisteredNoiseDensityObserved262<'a>),
+    OnlyObservedMixed(StockVanillaMixedDensity262<'a>),
     NoiseAndPrimitive {
         noise: RegisteredNoiseDensityObserved262<'a>,
         primitive: DensityPrimitive262,
@@ -137,6 +145,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             match nodes[0] {
                 StockDensityNode262::Primitive(p) => SamplingPlan262::OnlyPrimitive(p),
                 StockDensityNode262::RegisteredNoise(n) => SamplingPlan262::OnlyNoise(n),
+                StockDensityNode262::ObservedMixed(mixed) => SamplingPlan262::OnlyObservedMixed(mixed),
                 _ => SamplingPlan262::Generic,
             }
         } else if N == 3 {
@@ -194,6 +203,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::Primitive(primitive) => primitive.sample_block_y(block_y),
                 StockDensityNode262::RegisteredNoise(noise) => {
                     noise.sample_block(block_x, block_y, block_z)
+                }
+                StockDensityNode262::ObservedMixed(mixed) => {
+                    mixed.sample_block(block_x, block_y, block_z)
                 }
                 StockDensityNode262::Add { left, right } => scratch[left] + scratch[right],
                 StockDensityNode262::Multiply { left, right } => scratch[left] * scratch[right],
@@ -260,6 +272,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             SamplingPlan262::OnlyNoise(noise) => {
                 noise.sample_plane_16x16(origin_x, y, origin_z, output)?;
             }
+            SamplingPlan262::OnlyObservedMixed(mixed) => {
+                mixed.sample_plane_16x16(origin_x, y, origin_z, output)?;
+            }
             SamplingPlan262::NoiseAndPrimitive {
                 noise,
                 primitive,
@@ -316,6 +331,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         match self.plan {
             SamplingPlan262::OnlyNoise(noise) => {
                 noise.sample_cell_16x16x16(x, y, z, output)?;
+            }
+            SamplingPlan262::OnlyObservedMixed(mixed) => {
+                mixed.sample_cell_16x16x16(x, y, z, output)?;
             }
             SamplingPlan262::NoiseAndPrimitive {
                 noise,

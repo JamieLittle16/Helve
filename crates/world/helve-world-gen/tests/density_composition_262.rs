@@ -212,12 +212,8 @@ fn all_official_factory_runtime_delegate_classes_are_statically_selected() {
         assert_eq!(fields[0], PROFILES[count]);
         let instance = program(fields[0]);
         let (expected_type, expected_compute, expected_hash) = match instance {
-            DensityComposition262::AddFunctions { left, right } => {
-                assert!(!matches!(left, DensityPrimitive262::Constant(_)));
-                assert!(!matches!(right, DensityPrimitive262::Constant(_)));
-                ("Ap2", "Ap2", ap2_body)
-            }
-            DensityComposition262::MultiplyFunctions { left, right } => {
+            DensityComposition262::AddFunctions { left, right }
+            | DensityComposition262::MultiplyFunctions { left, right } => {
                 assert!(!matches!(left, DensityPrimitive262::Constant(_)));
                 assert!(!matches!(right, DensityPrimitive262::Constant(_)));
                 ("Ap2", "Ap2", ap2_body)

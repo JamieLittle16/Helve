@@ -139,7 +139,12 @@ fn rejecting_block_overflow_does_not_partially_write_plane_or_cell() {
         (0, -64, i32::MAX - 14),
     ] {
         assert_eq!(
-            density.sample_cell_16x16x16(x, y, z, cell.as_mut().try_into().expect("exactly 4096 cells")),
+            density.sample_cell_16x16x16(
+                x,
+                y,
+                z,
+                cell.as_mut().try_into().expect("exactly 4096 cells")
+            ),
             Err(DirectNoiseCellError262::BlockCoordinateOverflow)
         );
     }

@@ -249,12 +249,21 @@ class RouterRootsTests(unittest.TestCase):
                  "public record Mul(DensityFunction left,DensityFunction right)"
                  "implements DensityFunction {"
                  "public double compute(DensityFunction.FunctionContext c) {"
-                 "return left.compute(c)*right.compute(c);}}}")
+                 "return left.compute(c)*right.compute(c);}}"
+                 # Deliberately package-private with a public generated accessor.
+                 "record FindTopSurface(DensityFunction delegate)"
+                 "implements DensityFunction {"
+                 "public double compute(DensityFunction.FunctionContext c){"
+                 "return delegate.compute(c);}}}")
             fields=", ".join("DensityFunction root%02d"%i for i in range(15))
             ctor=", ".join((
                 "new DensityFunctions.Mul(new DensityFunctions.Constant(1.0),"
                 "new DensityFunctions.Constant(2.0))"
-                if i==0 else "new DensityFunctions.Constant("+str(i)+".0)")
+                if i==0 else
+                "new DensityFunctions.FindTopSurface("
+                "new DensityFunctions.Constant(42.0))"
+                if i==10 else
+                "new DensityFunctions.Constant("+str(i)+".0)")
                 for i in range(15))
             java(level, "NoiseRouter",f"public record NoiseRouter({fields}) {{}}")
             java(level,"RandomState",
@@ -281,6 +290,19 @@ class RouterRootsTests(unittest.TestCase):
                  records[0]["fields"][0]["first_level_density_children"]],
                 ["left", "right"])
             self.assertEqual(records[0]["fields"][0]["field"],"root00")
+            # Exact official failure analogue: field 10 contains a
+            # package-private nested record whose typed child accessor must
+            # be explicitly accessible to the standalone reflection probe.
+            self.assertEqual(
+                records[0]["fields"][10]["implementation_class"],
+                level+".DensityFunctions$FindTopSurface",
+            )
+            for seed in records:
+                self.assertEqual(
+                    seed["fields"][10]["first_level_density_children"],
+                    [{"slot": "delegate",
+                      "implementation_class": level+".DensityFunctions$Constant"}],
+                )
 
 
 if __name__ == "__main__":

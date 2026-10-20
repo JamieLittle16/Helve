@@ -11,8 +11,7 @@ use helve_world_gen::seeded_registered_noise_262::{
     StockRegisteredNoiseKey262, StockWorldSeededNoiseSet262,
 };
 use helve_world_gen::stock_vanilla_mixed_density_262::{
-    StockVanillaMixedDensity262, StockVanillaMixedOp262 as Op,
-    StockVanillaMixedOrder262 as Order,
+    StockVanillaMixedDensity262, StockVanillaMixedOp262 as Op, StockVanillaMixedOrder262 as Order,
 };
 
 const JVM: &str = include_str!("data/stock_mixed_density_1920_rawbits.txt");
@@ -81,11 +80,16 @@ fn bits() -> Vec<u64> {
     for (index, line) in lines.iter().enumerate() {
         assert_eq!(line.len(), 16, "noncanonical JVM f64 width {index}");
         assert!(
-            line.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            line.bytes()
+                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
             "wrong original hex formatting at row {index}"
         );
         let value = u64::from_str_radix(line, 16).expect("IEEE word");
-        assert_ne!((value >> 52) & 0x7ff, 0x7ff, "nonfinite official JVM row {index}");
+        assert_ne!(
+            (value >> 52) & 0x7ff,
+            0x7ff,
+            "nonfinite official JVM row {index}"
+        );
         checksum = checksum.rotate_left(7) ^ value;
         result.push(value);
     }
@@ -102,15 +106,17 @@ fn every_official_stock_mixed_noise_add_mul_output_matches_jvm_bit_for_bit() {
             let source = StockWorldSeededNoiseSet262::new_candidate(seed);
             for (key_index, &key) in KEYS.iter().enumerate() {
                 let noise = source.density(key, DirectNoiseScale262::QuarterHorizontalHalfVertical);
-                let program = StockVanillaMixedDensity262::new(
-                    noise, primitive(profile_index), op, order,
-                );
+                let program =
+                    StockVanillaMixedDensity262::new(noise, primitive(profile_index), op, order);
                 for (point_index, &(x, y, z)) in POINTS.iter().enumerate() {
                     let index = (((profile_index * SEEDS.len() + seed_index) * KEYS.len()
-                        + key_index) * POINTS.len()) + point_index;
+                        + key_index)
+                        * POINTS.len())
+                        + point_index;
                     assert_eq!(index, compared, "stock JVM row order");
                     assert_eq!(
-                        program.sample_block(x, y, z).to_bits(), oracle[index],
+                        program.sample_block(x, y, z).to_bits(),
+                        oracle[index],
                         "OFFICIAL mixed JVM disagreement row={index} profile={profile_index} seed={seed:016x} key={key:?} point={point_index} xyz=({x},{y},{z}) expected={:016x}",
                         oracle[index],
                     );
@@ -145,7 +151,9 @@ fn seven_observed_dynamic_positive_zero_exceptions_are_not_eager_ieee() {
                         Op::Multiply => left * right,
                     };
                     let index = (((profile_index * SEEDS.len() + seed_index) * KEYS.len()
-                        + key_index) * POINTS.len()) + point_index;
+                        + key_index)
+                        * POINTS.len())
+                        + point_index;
                     if eager.to_bits() != oracle[index] {
                         disagreements[profile_index] += 1;
                         assert_eq!(profile_index, 3, "only gradient-first dynamic Ap2 differs");
@@ -174,7 +182,9 @@ fn coherent_mixed_planes_and_cells_match_strict_scalar_ieee_bits() {
     for (index, &(op, order)) in PROFILES.iter().enumerate() {
         let mixed = StockVanillaMixedDensity262::new(noise, primitive(index), op, order);
         let mut plane = [f64::NAN; 256];
-        mixed.sample_plane_16x16(-16, 128, 16, &mut plane).expect("valid plane");
+        mixed
+            .sample_plane_16x16(-16, 128, 16, &mut plane)
+            .expect("valid plane");
         for dz in 0_i32..16 {
             for dx in 0_i32..16 {
                 let offset = usize::try_from(dz * 16 + dx).expect("bounded plane");
@@ -190,15 +200,19 @@ fn coherent_mixed_planes_and_cells_match_strict_scalar_ieee_bits() {
         let (op, order) = PROFILES[profile];
         let mixed = StockVanillaMixedDensity262::new(noise, primitive(profile), op, order);
         let mut cell = vec![f64::NAN; 4096].into_boxed_slice();
-        mixed.sample_cell_16x16x16(
-            -16, 121, 16,
-            cell.as_mut().try_into().expect("fixed 4096 cell"),
-        ).expect("valid 16 high cell");
+        mixed
+            .sample_cell_16x16x16(
+                -16,
+                121,
+                16,
+                cell.as_mut().try_into().expect("fixed 4096 cell"),
+            )
+            .expect("valid 16 high cell");
         for dy in 0_i32..16 {
             for dz in 0_i32..16 {
                 for dx in 0_i32..16 {
-                    let offset = usize::try_from((dy * 16 + dz) * 16 + dx)
-                        .expect("bounded 4096 index");
+                    let offset =
+                        usize::try_from((dy * 16 + dz) * 16 + dx).expect("bounded 4096 index");
                     assert_eq!(
                         cell[offset].to_bits(),
                         mixed.sample_block(-16 + dx, 121 + dy, 16 + dz).to_bits(),
@@ -217,9 +231,8 @@ fn overflow_fails_before_output_mutation_even_on_zero_shortcut_plane() {
         StockRegisteredNoiseKey262::Temperature,
         DirectNoiseScale262::QuarterHorizontalHalfVertical,
     );
-    let mixed = StockVanillaMixedDensity262::new(
-        noise, primitive(3), Op::Multiply, Order::PrimitiveFirst,
-    );
+    let mixed =
+        StockVanillaMixedDensity262::new(noise, primitive(3), Op::Multiply, Order::PrimitiveFirst);
     let sentinel = f64::from_bits(0x7ff8_12ab_0000_cdef);
     let mut plane = [sentinel; 256];
     assert_eq!(
@@ -233,9 +246,7 @@ fn overflow_fails_before_output_mutation_even_on_zero_shortcut_plane() {
         (0, 121, i32::MAX - 14),
     ] {
         assert_eq!(
-            mixed.sample_cell_16x16x16(
-                x, y, z, cell.as_mut().try_into().expect("fixed test cell")
-            ),
+            mixed.sample_cell_16x16x16(x, y, z, cell.as_mut().try_into().expect("fixed test cell")),
             Err(DirectNoiseCellError262::BlockCoordinateOverflow)
         );
     }

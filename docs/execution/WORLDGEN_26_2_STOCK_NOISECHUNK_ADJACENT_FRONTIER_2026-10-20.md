@@ -74,7 +74,17 @@ git switch main && git pull --ff-only
 # Or check out this branch's merged revision.
 python3 tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py
 python3 -m unittest tools.tests.test_worldgen_26_2_stock_noisechunk_adjacent_capture
+python3 -m unittest tools.tests.test_worldgen_26_2_noisechunk_lifecycle_review_packet
 
+# Source-free syntactic call-order aid; does NOT certify production control flow.
+python3 tools/worldgen_26_2_noisechunk_lifecycle_review_packet.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-noisechunk-lifecycle-review.json
+
+# Inspect exact original source traversal against this packet BEFORE labelling
+# the next experiment canonical. The mode remains explicitly experimental.
 python3 tools/worldgen_26_2_stock_noisechunk_adjacent_capture.py \
   --source "$HOME/Documents/mc-source/mc-src.zip" \
   --db .crucible/vanilla/atlas.sqlite \

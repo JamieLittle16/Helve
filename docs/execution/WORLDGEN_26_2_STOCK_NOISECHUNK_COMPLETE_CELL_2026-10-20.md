@@ -94,3 +94,77 @@ existing server-lifetime world owner, seeded noise kernels, typed
 density operations, and caller-owned contiguous scratch. No duplicate
 ownership, per-voxel virtual registry access, source math copying,
 or false performance/production qualification.
+\n## 20 October 2026 update — actual complete-cell capture SUCCEEDED; do not repeat
+
+The source-owning Minecraft 26.2 JVM successfully emitted all **512**
+real `NoiseChunk`-context raw-bit values. The original JSON is
+**122,792 bytes**, exact SHA-256
+`1ce45d95a09eae9d5f95754e4ef582244fa707ca08598223eeb52930d7c65fb9`.
+One 4×8×4 interpolation cell, four world seeds, 128 ordered coordinates
+per seed, 512/512 finite distinct raw IEEE-754 words. The stock
+`NoiseRouter.finalDensity` wrapper is the observed
+`DensityFunctions$Ap2` in every seed.
+
+**All 16 earlier original stock values** (four coordinates × four seeds)
+are reproduced **bit-for-bit** at the matching cell coordinates in the
+512-observation JSON, independent of their ordering in the full-cell
+file. This corroborates the earlier original 16-vector receipt
+(SHA `3ea20f5ed1b1236f5e166a847e5405ca54169d39f98810e0c8bf7029e3e74169`),
+which is already frozen by PR #465.
+
+New immutable compact numeric reference:
+`vanilla/reports/worldgen-26_2-stock-noisechunk-complete-cell-512-bits.txt`
+(8,704 bytes, 512 source-free hex bitwords), SHA
+`71da8201d571fbd2856848066a18b5f844a83533742937e2b0dcefcae55049eb`.
+Use `tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py`
+to verify the fixture and all 16 overlaps; pass `--capture` to
+additionally authenticate the exact private original 122,792-byte
+receipt. CI exercises the same fail-closed verifier and refuses
+altered source identities, positions, values, or production gates.
+No private original full JSON, source archive or JVM binaries are
+checked into GitHub.
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py
+
+# Optional exact source-owning original JSON proof:
+python3 tools/worldgen_26_2_stock_noisechunk_complete_cell_fixture.py \
+  --capture /tmp/helve-26_2-stock-noisechunk-complete-cell-512.json
+```
+
+**Important: the capture's traversal is experimentally
+Y-ascending / X-ascending / Z-ascending** and is NOT yet source-reviewed
+as Mojang's production block emplacement order. A notable outlier
+for seed `0x0123456789abcdef` at (0,70,3) is about 0.335 whereas
+nearby values are about 0.08; it is an actual captured raw bit
+(`0x3fd56bd4106a5f4d`), *not proof* of a Minecraft
+terrain discontinuity. Exact caching/interpolation lifecycle and
+order-dependence require separate review and differential experiments.
+Do not smooth the outlier or silently pass these 512 values off as
+canonical generated terrain.
+
+**Next action is no new capture of the same cell.** Source-review
+`NoiseBasedChunkGenerator.fillFromNoise` and
+`doFill`/helpers in the exact original 26.2 archive,
+the `NoiseChunk` slice/column interpolation and cache transitions
+(`initializeForFirstCellX`, `advanceCellX`,
+`selectCellYZ`, `updateForY/X/Z`, `swapSlices`,
+`stopInterpolation`). After identifying the exact canonical ordering,
+capture adjacent cells across X, Z, and Y plus slice transitions with
+new original JVM bounded oracles. Reuse the existing registry and
+`NoiseChunk` bridge and the Rust worldgen primitives; do not
+invent another owner or duplicate the noise kernel.
+
+**Gates still CLOSED:** `stock_noisechunk_canonical_traversal_qualified`,
+`stock_noisechunk_full_lifecycle_qualified`,
+`router_numeric_parity_qualified`,
+`world_seed_random_state_bound`,
+`full_router_graph_qualified`,
+`independent_var_sem_admitted`,
+`production_worldgen_enabled`.
+
+For complete instructions continue from
+`docs/execution/HANDOFF_2026-10-20_HELVE_WORLDGEN_AFTER_512.md`.

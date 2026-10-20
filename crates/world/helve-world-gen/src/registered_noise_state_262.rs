@@ -67,7 +67,8 @@ impl RegisteredPerlinObserved262 {
         if count != octaves.len() {
             return Err(RegisteredNoiseStateError262::OctaveLengthMismatch);
         }
-        let maximum_index = i32::try_from(count - 1).map_err(|_| RegisteredNoiseStateError262::InvalidOctaveCount)?;
+        let maximum_index = i32::try_from(count - 1)
+            .map_err(|_| RegisteredNoiseStateError262::InvalidOctaveCount)?;
         first_octave
             .checked_add(maximum_index)
             .ok_or(RegisteredNoiseStateError262::OctaveIndexOverflow)?;

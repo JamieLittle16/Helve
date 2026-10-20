@@ -16,7 +16,7 @@ use helve_world_gen::registered_noise_state_262::{
 };
 
 use helve_world_gen::seeded_registered_noise_262::{
-    StockRegisteredNoiseKey262, from_stock_world_seed_candidate,
+    StockRegisteredNoiseKey262, StockWorldSeededNoiseSet262, from_stock_world_seed_candidate,
 };
 
 const STATES: &str = include_str!("data/stock_registered_observed_state_26_2.txt");
@@ -268,6 +268,32 @@ fn all_1440_stock_worldseed_bits_match_rust_seed_derived_constructor() {
                     );
                 }
             }
+        }
+    }
+}
+
+#[test]
+fn shared_root_stock_set_matches_all_15_independent_official_prepared_states() {
+    let official = load_stock_observed_states();
+    let keys = [
+        StockRegisteredNoiseKey262::Temperature,
+        StockRegisteredNoiseKey262::Continentalness,
+        StockRegisteredNoiseKey262::Erosion,
+    ];
+    for (seed_index, &seed) in SEEDS.iter().enumerate() {
+        let prepared = StockWorldSeededNoiseSet262::new_candidate(seed);
+        for (key_index, &key) in keys.iter().enumerate() {
+            let independent = from_stock_world_seed_candidate(seed, key);
+            let oracle = &official[seed_index * KEYS.len() + key_index];
+            assert!(
+                prepared.get(key).state_bits_equal(oracle),
+                "shared root state differs from the independent JVM receipt at seed={seed:016x} key={}",
+                KEYS[key_index]
+            );
+            assert!(
+                prepared.get(key).state_bits_equal(&independent),
+                "cold shared root must equal separate key constructor"
+            );
         }
     }
 }

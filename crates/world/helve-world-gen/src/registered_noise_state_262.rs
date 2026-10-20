@@ -11,9 +11,11 @@
 //! copied or mutated during scalar sampling. The same qualified scalar
 //! arithmetic is used by the existing four-slot direct family.
 
-use crate::density_noise_direct_262::DirectNoiseScale262;
+use crate::density_noise_direct_262::{DirectNoiseCellError262, DirectNoiseScale262};
 use crate::improved_noise_262::ImprovedNoise262;
-use crate::perlin_normal_262::{NORMAL_SECOND_INPUT_MULTIPLIER, sample_perlin_parts};
+use crate::perlin_normal_262::{
+    NORMAL_SECOND_INPUT_MULTIPLIER, sample_perlin_parts, wrap_coordinate,
+};
 
 /// Upper bound for one prepared stock 26.2 Perlin amplitude/octave span.
 /// A future reviewed source binding may narrow this limit, never bypass it.
@@ -122,6 +124,47 @@ impl RegisteredPerlinObserved262 {
             && self.lowest_freq_value_factor.to_bits() == other.lowest_freq_value_factor.to_bits()
     }
 
+    /// Exact coherent X/Z axis grid using the existing bit-qualified improved
+    /// noise sampler. Every octave retains scalar wrap, weight and accumulation
+    /// order; absent octaves still advance both frequency/value factors.
+    ///
+    /// Coordinates are already scaled by the caller. No allocation, dynamic
+    /// registry work or state mutation occurs on the sampling path.
+    pub fn sample_axis_grid_16x16(
+        &self,
+        x_axis: &[f64; 16],
+        y: f64,
+        z_axis: &[f64; 16],
+        output: &mut [f64; 256],
+    ) {
+        output.fill(0.0);
+        let mut input_factor = self.lowest_freq_input_factor;
+        let mut value_factor = self.lowest_freq_value_factor;
+        let mut scaled_x = [0.0_f64; 16];
+        let mut scaled_z = [0.0_f64; 16];
+        let mut contributions = [0.0_f64; 256];
+
+        for (index, octave) in self.octaves.iter().enumerate() {
+            if let Some(noise) = octave {
+                for axis in 0..16 {
+                    scaled_x[axis] = wrap_coordinate(x_axis[axis] * input_factor);
+                    scaled_z[axis] = wrap_coordinate(z_axis[axis] * input_factor);
+                }
+                noise.sample_axis_grid_16x16(
+                    &scaled_x,
+                    wrap_coordinate(y * input_factor),
+                    &scaled_z,
+                    &mut contributions,
+                );
+                for (out, sample) in output.iter_mut().zip(contributions.iter().copied()) {
+                    *out += self.amplitudes[index] * sample * value_factor;
+                }
+            }
+            input_factor *= 2.0;
+            value_factor /= 2.0;
+        }
+    }
+
     /// Numeric sampling shares the previously bit-qualified Perlin loop.
     /// This does not itself establish the registered seed constructor.
     #[must_use]
@@ -173,6 +216,38 @@ impl RegisteredNormalObserved262 {
             && self.value_factor.to_bits() == other.value_factor.to_bits()
     }
 
+    /// Exact normal-noise grid, combining two independent Perlin branches.
+    /// The second branch receives its own scaled axes and Y before any octave
+    /// frequency multiplication, preserving scalar floating-point ordering.
+    pub fn sample_axis_grid_16x16(
+        &self,
+        x_axis: &[f64; 16],
+        y: f64,
+        z_axis: &[f64; 16],
+        output: &mut [f64; 256],
+    ) {
+        self.first.sample_axis_grid_16x16(x_axis, y, z_axis, output);
+
+        let mut second_x = *x_axis;
+        let mut second_z = *z_axis;
+        for value in &mut second_x {
+            *value *= NORMAL_SECOND_INPUT_MULTIPLIER;
+        }
+        for value in &mut second_z {
+            *value *= NORMAL_SECOND_INPUT_MULTIPLIER;
+        }
+        let mut secondary = [0.0_f64; 256];
+        self.second.sample_axis_grid_16x16(
+            &second_x,
+            y * NORMAL_SECOND_INPUT_MULTIPLIER,
+            &second_z,
+            &mut secondary,
+        );
+        for (primary, followup) in output.iter_mut().zip(secondary.iter().copied()) {
+            *primary = (*primary + followup) * self.value_factor;
+        }
+    }
+
     /// Exact ordered normal sampling from two separately retained Perlin states.
     #[must_use]
     #[inline]
@@ -206,6 +281,84 @@ impl<'a> RegisteredNoiseDensityObserved262<'a> {
             xz_scale,
             y_scale,
         }
+    }
+
+    /// Sample 256 integer block positions in Z-major order with coherent
+    /// octave-axis reuse. The output is unchanged if X/Z exceeds Java i32.
+    ///
+    /// # Errors
+    /// Rejects coordinate overflow before writing any output element.
+    pub fn sample_plane_16x16(
+        &self,
+        origin_x: i32,
+        block_y: i32,
+        origin_z: i32,
+        output: &mut [f64; 256],
+    ) -> Result<(), DirectNoiseCellError262> {
+        let (x_axis, z_axis) = self.axes_16(origin_x, origin_z)?;
+        self.noise.sample_axis_grid_16x16(
+            &x_axis,
+            f64::from(block_y) * self.y_scale,
+            &z_axis,
+            output,
+        );
+        Ok(())
+    }
+
+    /// Produce one 16×16×16 block cell in Y/Z/X order. The horizontal
+    /// coordinate axes are prepared exactly once for all 16 planes.
+    /// This only computes noise numbers; no chunk, biome or packet ownership.
+    ///
+    /// # Errors
+    /// Validates all X/Y/Z integer coordinates before writing any output.
+    ///
+    /// # Panics
+    /// Only if a fixed 4096-element output unexpectedly does not divide into
+    /// exactly sixteen 256-element slices.
+    pub fn sample_cell_16x16x16(
+        &self,
+        origin_x: i32,
+        origin_y: i32,
+        origin_z: i32,
+        output: &mut [f64; 4096],
+    ) -> Result<(), DirectNoiseCellError262> {
+        origin_y
+            .checked_add(15)
+            .ok_or(DirectNoiseCellError262::BlockCoordinateOverflow)?;
+        let (x_axis, z_axis) = self.axes_16(origin_x, origin_z)?;
+
+        for (dy, plane) in (0_i32..16).zip(output.chunks_exact_mut(256)) {
+            self.noise.sample_axis_grid_16x16(
+                &x_axis,
+                f64::from(origin_y + dy) * self.y_scale,
+                &z_axis,
+                plane.try_into().expect("fixed 4096 / 256 slice length"),
+            );
+        }
+        Ok(())
+    }
+
+    #[inline]
+    fn axes_16(
+        &self,
+        origin_x: i32,
+        origin_z: i32,
+    ) -> Result<([f64; 16], [f64; 16]), DirectNoiseCellError262> {
+        origin_x
+            .checked_add(15)
+            .ok_or(DirectNoiseCellError262::BlockCoordinateOverflow)?;
+        origin_z
+            .checked_add(15)
+            .ok_or(DirectNoiseCellError262::BlockCoordinateOverflow)?;
+
+        let mut x_axis = [0.0_f64; 16];
+        let mut z_axis = [0.0_f64; 16];
+        for local in 0_u8..16 {
+            let index = usize::from(local);
+            x_axis[index] = f64::from(origin_x + i32::from(local)) * self.xz_scale;
+            z_axis[index] = f64::from(origin_z + i32::from(local)) * self.xz_scale;
+        }
+        Ok((x_axis, z_axis))
     }
 
     /// Integer block coordinate -> double -> scale -> normal sampler.

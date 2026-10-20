@@ -96,9 +96,9 @@ class RandomStateBindingTests(unittest.TestCase):
                  "signature": name + "(" + ", ".join(
                      "final " + kind + " x" for kind in kinds) + ")",
                  "body": digest}
-                for n, (_, name, kinds, digest) in
+                for n, (bound_owner, name, kinds, digest) in
                 enumerate(target.BODY_PINS.values(), start=1)
-                if target.BODY_PINS[list(target.BODY_PINS)[n - 1]][0] == owner
+                if bound_owner == owner
             ]
             if not matches and owner in target.REQUIRED:
                 matches.append({"id": 99, "name": "value", "owner": owner,

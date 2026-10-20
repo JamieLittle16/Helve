@@ -87,9 +87,14 @@ fn full_3d_cells_are_bit_identical_to_scalar_under_signed_seed_and_scales() {
         for &key in &KEYS {
             for &scale in &scales {
                 let density = set.density(key, scale);
-                let mut cell = [f64::NAN; 4096];
+                let mut cell = vec![f64::NAN; 4096].into_boxed_slice();
                 density
-                    .sample_cell_16x16x16(origin_x, origin_y, origin_z, &mut cell)
+                    .sample_cell_16x16x16(
+                        origin_x,
+                        origin_y,
+                        origin_z,
+                        cell.as_mut().try_into().expect("exactly 4096 cells"),
+                    )
                     .expect("signed valid block cell");
                 for dy in 0_i32..16 {
                     for dz in 0_i32..16 {
@@ -120,7 +125,7 @@ fn rejecting_block_overflow_does_not_partially_write_plane_or_cell() {
     );
     let sentinel = f64::from_bits(0x7ff8_0bad_cafe_0001);
     let mut plane = [sentinel; 256];
-    let mut cell = [sentinel; 4096];
+    let mut cell = vec![sentinel; 4096].into_boxed_slice();
 
     for (x, z) in [(i32::MAX - 14, 0), (0, i32::MAX - 14)] {
         assert_eq!(
@@ -134,7 +139,7 @@ fn rejecting_block_overflow_does_not_partially_write_plane_or_cell() {
         (0, -64, i32::MAX - 14),
     ] {
         assert_eq!(
-            density.sample_cell_16x16x16(x, y, z, &mut cell),
+            density.sample_cell_16x16x16(x, y, z, cell.as_mut().try_into().expect("exactly 4096 cells")),
             Err(DirectNoiseCellError262::BlockCoordinateOverflow)
         );
     }

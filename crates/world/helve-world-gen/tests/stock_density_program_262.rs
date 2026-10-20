@@ -1,5 +1,5 @@
 //! Mixed noise/gradient construction is an internal eager arithmetic
-//! *candidate*, not an independently qualified stock DensityFunctions router.
+//! *candidate*, not an independently qualified stock `DensityFunctions` router.
 //! Only the raw registered-noise leaf is independently stock-JVM qualified.
 
 use helve_world_gen::density_noise_direct_262::{DirectNoiseCellError262, DirectNoiseScale262};
@@ -53,12 +53,12 @@ fn gradient() -> DensityPrimitive262 {
         .expect("pinned official 26.2 primitive profile")
 }
 
-fn blended<'a>(
-    noise: helve_world_gen::registered_noise_state_262::RegisteredNoiseDensityObserved262<'a>,
+fn blended(
+    noise: helve_world_gen::registered_noise_state_262::RegisteredNoiseDensityObserved262<'_>,
     gradient: DensityPrimitive262,
     add: bool,
     noise_left: bool,
-) -> Program<'a, 3> {
+) -> Program<'_, 3> {
     let (first, second) = if noise_left {
         (Node::RegisteredNoise(noise), Node::Primitive(gradient))
     } else {
@@ -123,12 +123,12 @@ fn mixed_noise_y_gradient_specialized_planes_are_bit_exact_to_scalar() {
                             for dx in 0_i32..16 {
                                 let index = usize::try_from(dz * 16 + dx).expect("plane index");
                                 let sample = noise.sample_block(-33_554_431 + dx, -31, 14 + dz);
-                                let reference = match (add, noise_left) {
-                                    (true, true) => sample + invariant,
-                                    (true, false) => invariant + sample,
-                                    (false, true) => sample * invariant,
-                                    (false, false) => invariant * sample,
+                                let (left, right) = if noise_left {
+                                    (sample, invariant)
+                                } else {
+                                    (invariant, sample)
                                 };
+                                let reference = if add { left + right } else { left * right };
                                 assert_eq!(
                                     output[index].to_bits(),
                                     reference.to_bits(),

@@ -115,3 +115,44 @@ before claiming a real 16×16×384-chunk generator. The eventual Rust
 path reuses Helve's existing world owner, qualified density primitives,
 seeded noise implementation and scratch buffers; there is no new
 owner or per-block dynamic registry/reflection.
+
+
+## First original 26.2 runtime feedback — Beardifier marker access repair
+
+The user's initial actual 26.2 `NoiseChunk` run reached the
+`stock-version-class-contract` phase and stopped before any samples:
+
+```text
+JVM PHASE: stock-version-class-contract
+ROOT: java.lang.IllegalAccessException
+CAUSE: class HelveWorldSeededDensity262 cannot access a member of class
+net.minecraft.world.level.levelgen.DensityFunctions$BeardifierMarker with public access
+```
+
+This is a **Java visibility/reflection boundary**, not evidence of
+wrong Minecraft density arithmetic or a complete chunk context.
+`BeardifierMarker` is a nonpublic nested enum with a public
+`INSTANCE` field. The shared original stock world-seed field helper
+does not open public fields on inaccessible declaring classes; changing
+it would broaden all existing source-owning probes unnecessarily.
+
+The targeted fix affects only
+`HelveStockNoiseChunkCell262.java`: require the exact stock
+`BeardifierMarker` enum `INSTANCE` field with the original declaring
+class, static/public modifiers and expected typed enum return; call
+`Field.trySetAccessible()` **only on that one field** if access is
+otherwise denied, then validate the returned
+`BeardifierOrMarker` type. Distinct failure phase:
+`stock-BeardifierMarker-INSTANCE`. No global opens, unsafe access,
+fake marker construction, source/math modification, or worldgen gate
+promotion.
+
+The independent synthetic JVM test now deliberately uses a
+package-private `BeardifierMarker` nested enum with its public
+`INSTANCE`, reproducing the original access problem; old code would
+fail this exact test.
+
+**The repair itself does not assert that the nine-parameter constructor,
+fluid picker, interpolation state or 16 values are admitted.**
+All require a successful separate original 26.2 run. Repeat the
+source-owning command above after the green merged repair.

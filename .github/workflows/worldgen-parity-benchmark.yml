@@ -43,6 +43,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_router_graph_capture.py"
       - "tools/worldgen_26_2_stock_router_holder_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_router_holder_capture.py"
+      - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
+      - "tools/worldgen_java/HelveStockFinalDensitySinglePoint262.java"
+      - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
@@ -97,6 +100,9 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_router_graph_capture.py"
       - "tools/worldgen_26_2_stock_router_holder_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_router_holder_capture.py"
+      - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
+      - "tools/worldgen_java/HelveStockFinalDensitySinglePoint262.java"
+      - "tools/tests/test_worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "vanilla/reports/worldgen-26_2-stock-router-roots-15-observed.tsv"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
@@ -221,6 +227,9 @@ jobs:
 
       - name: Verify stock HolderHolder binding source and JVM reflection transport
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_router_holder_capture.py' -v
+
+      - name: Verify real stock Overworld finalDensity SinglePointContext 128 raw-bits transport
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_final_density_singlepoint_capture.py' -v
 
       - name: Validate SHA-pinned independently captured 576-vector official stock JVM held-out evidence
         run: |

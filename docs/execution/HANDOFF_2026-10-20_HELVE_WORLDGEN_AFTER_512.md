@@ -306,29 +306,69 @@ different method or an error must be diagnosed at the exact original
 > disciplines and CI/PR workflow. All production worldgen and VAR/SEM
 > gates are still closed.
 
-## Follow-on adjacent-cell frontier PR #468 — experimental tooling
+## October 20 additive handoff — PRs #468/#469 and successful stock 768
 
-The next branch `worldgen/262-noisechunk-adjacent-frontier`
-(PR #468) now contains the **separate** `--stock-noisechunk-adjacent-cells`
-stock JVM mode, `worldgen_26_2_stock_noisechunk_adjacent_capture.py`
-source-pinned collector, targeted synthetic negative tests, and the
-`worldgen_26_2_noisechunk_lifecycle_review_packet.py` source-free
-method-call inventory tool. The authoritative runbook is
+**This section supersedes the earlier unexecuted adjacent-cell to-do and
+old “start the adjacent-cell oracle” instruction, but does not change the
+historical original 512 baseline or any source-review/production gates.**
+
+- **PR #468** merged at
+  `a6462d1904a011c8a7a40c5b0be78e45756c7352`: the experimental
+  2-chunk/2×2×3-cell/4-seed stock JVM collector and source-free method
+  callsite review packet.
+- **PR #469** merged at
+  `66590d26e91054d2289422dab1fcdf007b006de7`: correct 0-based
+  local X/Z cell indices for `advanceCellX` and `selectCellYZ`.
+  Previous negative chunk (-16,-16) had genuinely failed at
+  `adjacent-select-0-1-0-0-17`: `Index -4 out of bounds for length 5`.
+  The fixed collector retains absolute world-block coordinates for
+  its construction and `updateForX/Z`.
+- **Source-free lifecycle receipt** collected from the user's pinned
+  archive/Atlas: 8,827 bytes, SHA-256
+  `ff46d300be0e7a683e8f301c6bc476b7babc892207540074f167b698ce4fa1b2`.
+  Twelve method identities and syntactic callsites only; `reviewed:false`.
+  Original Java bodies are not copied or reviewed semantically.
+- **Genuine stock 768 numerical JSON** captured successfully *after*
+  PR #469, uploaded to this conversation:
+  `helve-26_2-stock-noisechunk-adjacent-768.json`.
+  150,067 bytes, SHA-256
+  `86f33de3a4fe19a6bcc202badaaeb23bdef83bab29405e01534bd12c226bbcc1`.
+  Four world-seeds × two chunk origins (0,0),(-16,-16) × 96
+  selected boundary observations = 768, all unique and finite f64 bits,
+  exact source/JAR fingerprints and **32/32** exact-bit coordinate matches
+  with the already frozen 512-voxel same-cell original values.
+- **Next fixture PR** `worldgen/262-noisechunk-adjacent-768-fixture`:
+  freeze 13,056 bytes/768 source-free hex words with SHA-256
+  `906ef4684d025d633e7d04f8c963b62b41c725b800739ce37e3256d8f484c95f`,
+  add original JSON byte/SHA validation, 32 frozen 512 overlaps,
+  negative mutation and all-false gate tests, CI and runbook changes.
+  Only describe it as merged once GitHub actually reports that.
+- Reuse without recapture:
+  `python3 tools/worldgen_26_2_stock_noisechunk_adjacent_fixture.py`
+  and optional `--capture /tmp/helve-26_2-stock-noisechunk-adjacent-768.json`.
+  Do **not** rerun old 16/128/512 or new 768 JVM sampling just to
+  reproduce completed observations.
+
+**What is solved:** a successful, source-owned **EXPERIMENTAL**
+neighbour-cell + slice-swap numeric run, immutable reference bitwords,
+cross-capture overlap consistency, negative-index repair. Earlier
+512/128/16 samples and R2C import demo are unaffected.
+
+**What is still open:** independent semantic/source-body review of exact
+`NoiseBasedChunkGenerator.doFill` real 26.2 loop nesting, Y extent,
+cache/wrapper marker and interpolation lifetime; establishing that an
+adjacent candidate is **canonical** production traversal; building and
+testing a seed-initialized **Rust** compiled `finalDensity` evaluation
+against these stock words, plus full router/parity/VAR/SEM/production
+admission. **Every canonical and production worldgen gate stays false.**
+
+**Next concrete engineering action:** finish the source-owned semantic
+loop review using the private 26.2 archive and pinned body hashes,
+without publishing original code. Then implement a Rust hot-path-friendly
+finalDensity evaluation against frozen real Java numerical vectors;
+compare **actual Rust calculations**, not only fixture playback.
+Never manufacture a source law or enable chunk publication on evidence
+from a syntactic Atlas inventory alone.
+
+The detailed runbook with exact provenance and parser CLI is
 `docs/execution/WORLDGEN_26_2_STOCK_NOISECHUNK_ADJACENT_FRONTIER_2026-10-20.md`.
-
-No additional original Java samples have yet been obtained; **all 768
-potential inter-cell bitwords are only an unexecuted candidate plan**.
-The candidate runs two chunk origins (0 and -16), 2 X × 2 Z × 3 Y
-cells per origin, computes every visited block and emits 96 bounded
-boundary observations per origin, 192 per seed, for four frozen seeds.
-A genuine slice-swap call separates X columns. This is **not**
-source-admitted as Mojang's canonical 26.2 chunk traversal. The user's
-original source archive/Atlas must be reviewed on their machine; an
-Atlas callsite report is syntactic evidence only. Keep all production,
-VAR/SEM, Rust router parity and canonical-lifecycle gates false.
-
-Once PR #468 is green/merged, run the source-free lifecycle packet first,
-inspect the actual pinned 26.2 `fillFromNoise`/`doFill` and `NoiseChunk`
-loop/caching/slice bodies, adjust the candidate if necessary, and only
-then run the single new 768-point original-JVM adjacent oracle.
-**Never recapture the frozen 128/16/512 results.**

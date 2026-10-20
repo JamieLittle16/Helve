@@ -31,6 +31,7 @@ import worldgen_26_2_density_primitive_capture as primitive
 import worldgen_26_2_improved_noise_capture as improved
 import worldgen_26_2_stock_worldseed_fixture as frozen
 import worldgen_26_2_stock_worldseed_heldout_capture as heldout
+import worldgen_26_2_stock_worldseed_heldout_fixture as heldout_fixture
 import worldgen_26_2_world_seed_density_capture as stock
 
 KIND = "official_26_2_stock_worldseed_mixed_density_1920"
@@ -68,8 +69,8 @@ FAILURE_PREFIX = "HELVE26_2_STOCK_MIXED_FAILURE|"
 JAVA_CLASS = re.compile(r"(?:net\.minecraft|java\.lang)(?:\.[A-Za-z_$][\w$]*)+\Z")
 BIT_WORD = re.compile(r"[0-9a-f]{16}\Z")
 METHOD_BODY_PINS = {
-    "add_factory": composed.COMPOSITION_BODY_PINS["add_factory"],
-    "mul_factory": composed.COMPOSITION_BODY_PINS["mul_factory"],
+    "add_factory": "aff60df9dc11f0e52d061660cf39684dfd671e214ab185174a293ce96ddebe58",
+    "mul_factory": "c5d5aaa53f8650d9068362c193487625eeeb057633eaafb0142651a4cc29d7f1",
 }
 
 
@@ -195,7 +196,7 @@ def validate(manifest: dict, *, source_sha: str, server_sha: str, methods: dict,
         "official_server_sha256": server_sha,
         "frontier_sha256": stock.FRONTIER_SHA256,
         "original_stock_fixture_sha256": frozen.FIXTURE_SHA256,
-        "heldout_stock_fixture_sha256": heldout.frozen.FIXTURE_SHA256,
+        "heldout_stock_fixture_sha256": heldout_fixture.FIXTURE_SHA256,
         "source_methods": methods,
         "delegates": delegates,
         "profiles": list(PROFILES),
@@ -253,7 +254,7 @@ def capture(*, source: Path, db: Path, lock: Path, server: Path,
         "source_archive_sha256": source_sha, "official_server_sha256": server_sha,
         "frontier_sha256": stock.FRONTIER_SHA256,
         "original_stock_fixture_sha256": frozen.FIXTURE_SHA256,
-        "heldout_stock_fixture_sha256": heldout.frozen.FIXTURE_SHA256,
+        "heldout_stock_fixture_sha256": heldout_fixture.FIXTURE_SHA256,
         "source_methods": methods, "delegates": delegates,
         "profiles": list(PROFILES), "world_seeds": list(SEEDS),
         "noise_keys": list(KEYS), "points": [list(point) for point in POINTS],

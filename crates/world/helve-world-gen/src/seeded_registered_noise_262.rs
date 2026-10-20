@@ -115,6 +115,10 @@ impl XoroshiroBits262 {
     /// Java's unsigned low-32 multiply-high bounded draw with rejection.
     /// The 256-entry Fisher-Yates shuffle uses bounds 256 down through 1.
     #[inline]
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "the official RNG intentionally discards the high 32 bits of the u64 draw and product"
+    )]
     fn next_bounded(&mut self, bound: u32) -> u32 {
         debug_assert!(bound > 0);
         let mut product = u64::from(self.next_u64() as u32) * u64::from(bound);
@@ -202,6 +206,12 @@ fn construct_perlin(
 /// Constructed tables are independent per seed/key and immutable thereafter.
 /// Exact admission scope: the three built-in keys only. This is a
 /// 15-state/1,440-vector-qualified candidate, not general worldgen permission.
+///
+/// # Panics
+/// Only if the compile-time-bounded built-in parameter tables are internally
+/// inconsistent, a generated permutation is invalid or a fixed octave index
+/// violates its declared -10..=-1 range. No caller-provided seed can cause
+/// those conditions.
 #[must_use]
 pub fn from_stock_world_seed_candidate(
     seed_bits: u64,

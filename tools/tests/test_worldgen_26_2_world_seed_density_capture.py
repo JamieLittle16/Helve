@@ -1,0 +1,276 @@
+"""Fail-closed 26.2 stock-registry RandomState/Noise.compute collector tests."""
+from __future__ import annotations
+
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+import tomllib
+import unittest
+from pathlib import Path
+from unittest import mock
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import worldgen_26_2_world_seed_density_capture as target  # noqa: E402
+
+
+class StockWorldSeedDensityTests(unittest.TestCase):
+    @staticmethod
+    def lock():
+        return {
+            "minecraft": "26.2", "protocol": 776, "data_version": 4903,
+            "source": {"archive_sha256": "a" * 64},
+            "runtime": {"server_sha256": "b" * 64},
+        }
+
+    @staticmethod
+    def reference():
+        data = {"source_atlas": {}, "runtime_reflection": {}}
+        for _, (owner, method, args, digest) in target.SOURCE_PINS.items():
+            data["source_atlas"].setdefault(owner, {"methods": []})["methods"].append({
+                "signature": method + "(" + ", ".join(
+                    "final " + x + " arg" for x in args) + ")",
+                "body_sha256": digest,
+                "normalized_sha256": "c" * 64,
+            })
+        return data
+
+    def methods(self):
+        result = {}
+        for label, (owner, name, types, digest) in target.SOURCE_PINS.items():
+            matches = [
+                row for row in self.reference()["source_atlas"][owner]["methods"]
+                if target.binding.match_args(row["signature"], name, types)
+            ]
+            self.assertEqual(len(matches), 1)
+            result[label] = {
+                "owner": owner, "signature": matches[0]["signature"],
+                "body_sha256": digest, "normalized_sha256": "c" * 64,
+            }
+        result["stock_vanilla_lookup"] = {
+            "owner": target.VANILLA_REGISTRIES, "signature": "createLookup()",
+            "body_sha256": "d" * 64, "normalized_sha256": "e" * 64,
+        }
+        return result
+
+    def report(self):
+        return {
+            "schema": 1, "kind": target.KIND, "stage": target.STAGE,
+            "minecraft": "26.2", "protocol": 776, "data_version": 4903,
+            "source_archive_sha256": "a" * 64,
+            "official_server_sha256": "b" * 64,
+            "frontier_sha256": target.FRONTIER_SHA256,
+            "source_methods": self.methods(),
+            "profiles": target.PROFILES.copy(),
+            "world_seeds": list(target.SEEDS), "noise_keys": list(target.NOISE_KEYS),
+            "world_seed_random_state_observed": True, "stock_registry_used": True,
+            "world_seed_random_state_bound": False,
+            "source_text_included": False, "independent_var_sem_admitted": False,
+            "production_worldgen_enabled": False,
+            "vectors": [
+                dict(row, value_bits="0x8000000000000000")
+                for row in target.input_rows()
+            ],
+        }
+
+    def test_exact_stock_noise_seeds_keys_coordinates_and_schema(self):
+        points = target.input_rows()
+        self.assertEqual(len(points), 1440)
+        self.assertEqual(len({tuple(sorted(v.items())) for v in points}), 1440)
+        self.assertEqual({row["noise_key"] for row in points}, set(target.NOISE_KEYS))
+        target.validate(self.report(), self.lock(), self.reference())
+
+    def test_no_bypass_of_stock_registry_or_worldseed_admission(self):
+        edits = [
+            lambda x: x.__setitem__("source_text_included", True),
+            lambda x: x.__setitem__("world_seed_random_state_bound", True),
+            lambda x: x.__setitem__("independent_var_sem_admitted", True),
+            lambda x: x.__setitem__("production_worldgen_enabled", True),
+            lambda x: x.__setitem__("stock_registry_used", False),
+            lambda x: x.__setitem__("world_seed_random_state_observed", False),
+            lambda x: x.__setitem__("frontier_sha256", "f" * 64),
+            lambda x: x.__setitem__("source_java", "private"),
+            lambda x: x["source_methods"]["noises_instantiate"].__setitem__(
+                "body_sha256", "a" * 64),
+            lambda x: x["source_methods"]["stock_vanilla_lookup"].__setitem__(
+                "signature", "createFakeLookup()"),
+            lambda x: x["world_seeds"].reverse(),
+            lambda x: x["noise_keys"].reverse(),
+            lambda x: x["profiles"].pop("unit"),
+            lambda x: x["vectors"].pop(),
+            lambda x: x["vectors"][0].__setitem__("block_x", 17),
+            lambda x: x["vectors"][1].__setitem__("noise_key", "FAKE"),
+            lambda x: x["vectors"][2].__setitem__("value_bits", "NaN"),
+            lambda x: x["vectors"][3].__setitem__("world_seed_bits", "0x1"),
+        ]
+        for change in edits:
+            with self.subTest(change=str(change)):
+                data = self.report()
+                change(data)
+                with self.assertRaises(target.WorldSeedNoiseError):
+                    target.validate(data, self.lock(), self.reference())
+
+    def test_tagged_transport_count_order_and_ieee_sign_preservation(self):
+        lines = [f"{target.PREFIX}{i}|{i:016x}" for i in range(1440)]
+        observed = target.parse_bits("[INFO] boot\n" + "\n[INFO] step\n".join(lines))
+        self.assertEqual(observed, [f"0x{i:016x}" for i in range(1440)])
+        for altered in (
+            lines[:-1], lines + lines[:1], [lines[1], lines[0]] + lines[2:],
+            [lines[0], lines[0]] + lines[2:],
+            [line.replace(target.PREFIX, "FAKE|") for line in lines],
+            [lines[0].replace("|0000000000000000", "|not-hex")] + lines[1:],
+        ):
+            with self.assertRaises(target.WorldSeedNoiseError):
+                target.parse_bits("\n".join(altered))
+
+    def test_invalid_or_substituted_frontier_sha_fails_before_probe(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "altered-frontier.json"
+            path.write_text(json.dumps({"stage": target.STAGE}))
+            with self.assertRaisesRegex(target.WorldSeedNoiseError, "SHA changed"):
+                target.reference_frontier(path, self.lock())
+
+    def test_vanilla_lookup_and_five_real_pinned_source_method_identities(self):
+        ref = self.reference()
+        with mock.patch.object(target.projection, "_exact_type_methods",
+                               return_value=[{
+                                   "name": "createLookup", "signature": "createLookup()",
+                                   "id": 2}]), \
+             mock.patch.object(target.source_probe, "record_template",
+                               return_value={"source": {
+                                   "type": target.VANILLA_REGISTRIES,
+                                   "signature": "createLookup()",
+                                   "body_sha256": "d" * 64,
+                                   "normalized_sha256": "e" * 64}}):
+            self.assertEqual(target.source_methods(ref, object()), self.methods())
+
+    def test_mocked_capture_is_exclusive_and_refuses_promoting_captured_seed_law(self):
+        with tempfile.TemporaryDirectory() as temp:
+            home = Path(temp)
+            lock = home / "vanilla.toml"
+            lock.write_text(
+                'minecraft="26.2"\nprotocol=776\ndata_version=4903\n'
+                '[source]\narchive_sha256="' + "a" * 64 + '"\n'
+                '[runtime]\nserver_sha256="' + "b" * 64 + '"\n')
+            output = home / "source-free.json"
+            with mock.patch.object(target, "reference_frontier",
+                                   return_value=self.reference()), \
+                 mock.patch.object(target.vanilla_atlas, "connect_db") as db, \
+                 mock.patch.object(target.source_probe, "require_pinned_source",
+                                   return_value="a" * 64), \
+                 mock.patch.object(target, "source_methods",
+                                   return_value=self.methods()), \
+                 mock.patch.object(target.official, "sha256_file",
+                                   return_value="b" * 64), \
+                 mock.patch.object(target, "oracle",
+                                   return_value=["0x8000000000000000"] * 1440):
+                observed = target.capture(source=home/"src.zip",db=home/"atlas",
+                    lock=lock,server=home/"jar",frontier=home/"frontier",output=output)
+                self.assertEqual(observed["vectors"],1440)
+                data = json.loads(output.read_text())
+                target.validate(data,tomllib.loads(lock.read_text()),self.reference())
+                self.assertFalse(data["world_seed_random_state_bound"])
+                self.assertTrue(db.return_value.close.called)
+                with self.assertRaises(ValueError):
+                    target.capture(source=home/"src.zip",db=home/"atlas",
+                        lock=lock,server=home/"jar",frontier=home/"frontier",output=output)
+
+    @unittest.skipUnless(shutil.which("javac") and shutil.which("java"),
+                         "Java toolchain required to check full original synthetic bridge")
+    def test_original_jvm_bridge_uses_real_stock_lookup_not_manual_holder(self):
+        with tempfile.TemporaryDirectory() as temp:
+            work = Path(temp)
+            src = work / "src"
+            def file(package, name, body):
+                dst = src / package.replace(".","/") / (name + ".java")
+                dst.parent.mkdir(parents=True,exist_ok=True)
+                dst.write_text("package " + package + ";\n" + body + "\n")
+
+            file("net.minecraft","SharedConstants",
+                 "public class SharedConstants { static boolean ready;"
+                 " public static void tryDetectVersion(){ready=true;} }")
+            file("net.minecraft.server","Bootstrap",
+                 "public class Bootstrap {public static void bootStrap(){"
+                 "net.minecraft.SharedConstants.tryDetectVersion();"
+                 "System.setOut(new java.io.PrintStream(new java.io.ByteArrayOutputStream()));}}")
+            file("net.minecraft.resources","ResourceKey",
+                 "public record ResourceKey(String name) {}")
+            file("net.minecraft.core","Holder",
+                 "public interface Holder { public static class Reference implements Holder {} }")
+            file("net.minecraft.core","HolderGetter",
+                 "public interface HolderGetter {"
+                 "Holder.Reference getOrThrow(net.minecraft.resources.ResourceKey k);"
+                 "interface Provider {HolderGetter lookupOrThrow(net.minecraft.resources.ResourceKey key);}}")
+            file("net.minecraft.core","HolderLookup",
+                 "public interface HolderLookup {interface Provider {"
+                 "HolderGetter.Provider asGetterLookup();}}")
+            file("net.minecraft.core.registries","Registries",
+                 "public class Registries {public static final net.minecraft.resources.ResourceKey"
+                 " NOISE=new net.minecraft.resources.ResourceKey(\"NOISE\");}")
+            file("net.minecraft.data.registries","VanillaRegistries",
+                 "public class VanillaRegistries {"
+                 "public static net.minecraft.core.HolderLookup.Provider createLookup(){"
+                 "return () -> registry -> {"
+                 "if (!registry.equals(net.minecraft.core.registries.Registries.NOISE))"
+                 " throw new IllegalArgumentException(\"not real noise registry\");"
+                 "return key -> {if(!java.util.Set.of(\"TEMPERATURE\",\"EROSION\","
+                 "\"CONTINENTALNESS\").contains(key.name()))"
+                 " throw new IllegalArgumentException(\"unknown registered key\");"
+                 "return new net.minecraft.core.Holder.Reference();};};}}")
+            root="net.minecraft.world.level.levelgen"
+            file(root,"NoiseGeneratorSettings","public class NoiseGeneratorSettings {"
+                 "public static final net.minecraft.resources.ResourceKey OVERWORLD="
+                 "new net.minecraft.resources.ResourceKey(\"OVERWORLD\");}")
+            file(root,"Noises","public class Noises {"
+                 "public static final net.minecraft.resources.ResourceKey TEMPERATURE="
+                 "new net.minecraft.resources.ResourceKey(\"TEMPERATURE\");"
+                 "public static final net.minecraft.resources.ResourceKey CONTINENTALNESS="
+                 "new net.minecraft.resources.ResourceKey(\"CONTINENTALNESS\");"
+                 "public static final net.minecraft.resources.ResourceKey EROSION="
+                 "new net.minecraft.resources.ResourceKey(\"EROSION\");}")
+            file(root+".synth","NormalNoise","public record NormalNoise(double bias) {"
+                 "public double getValue(double x,double y,double z){"
+                 "return bias+x*0.125+y*0.25+z*0.5;}}")
+            file(root,"RandomState",
+                 "public record RandomState(long seed) {"
+                 "public static RandomState create(net.minecraft.core.HolderGetter.Provider lookup,"
+                 "net.minecraft.resources.ResourceKey settings,long seed){"
+                 "if(!settings.equals(NoiseGeneratorSettings.OVERWORLD))"
+                 "throw new IllegalArgumentException(\"not overworld\");"
+                 "return new RandomState(seed);}"
+                 "public net.minecraft.world.level.levelgen.synth.NormalNoise getOrCreateNoise("
+                 "net.minecraft.resources.ResourceKey key){"
+                 "return new net.minecraft.world.level.levelgen.synth.NormalNoise("
+                 "(seed % 1009) + key.name().length());}}")
+            file(root,"DensityFunction","public interface DensityFunction {"
+                 "interface FunctionContext {int blockX();int blockY();int blockZ();}"
+                 "record SinglePointContext(int blockX,int blockY,int blockZ)"
+                 " implements FunctionContext {}"
+                 "record NoiseHolder(net.minecraft.core.Holder holder,"
+                 "net.minecraft.world.level.levelgen.synth.NormalNoise noise) {} }")
+            file(root,"DensityFunctions","public class DensityFunctions {"
+                 "public record Noise(DensityFunction.NoiseHolder held,"
+                 "double xz,double y) {"
+                 "public double compute(DensityFunction.FunctionContext pos){"
+                 "return held.noise().getValue(pos.blockX()*xz,"
+                 "pos.blockY()*y,pos.blockZ()*xz);}}}")
+
+            output = work / "out"
+            compiled=subprocess.run(
+                ["javac","-encoding","UTF-8","-d",str(output),
+                 *[str(p) for p in src.rglob("*.java")]],
+                capture_output=True,text=True,timeout=30)
+            self.assertEqual(compiled.returncode,0,compiled.stderr)
+            with mock.patch.object(target.official,"extract_classpath",
+                                   return_value=[output]):
+                observed=target.oracle(work/"fake.jar",target.input_rows(),timeout=60)
+            self.assertEqual(len(observed),1440)
+            self.assertTrue(all(target.BITS.fullmatch(word) for word in observed))
+            self.assertNotEqual(observed[0],observed[32])
+            self.assertNotEqual(observed[0],observed[96])
+            self.assertNotEqual(observed[0],observed[288])
+
+
+if __name__=="__main__":
+    unittest.main()

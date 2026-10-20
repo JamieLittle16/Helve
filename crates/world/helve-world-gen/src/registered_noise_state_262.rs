@@ -386,7 +386,7 @@ mod tests {
                 None,
             ]
             .into_boxed_slice(),
-            0.00390625,
+            0.003_906_25,
             0.5,
         )
         .expect("valid eight-slot observation");

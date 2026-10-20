@@ -176,6 +176,59 @@ class StockWorldSeedDensityTests(unittest.TestCase):
                     target.capture(source=home/"src.zip",db=home/"atlas",
                         lock=lock,server=home/"jar",frontier=home/"frontier",output=output)
 
+    def test_java_exception_is_not_hidden_by_terminally_deprecated_joml_warnings(self):
+        warnings = (
+            "WARNING: A terminally deprecated method in sun.misc.Unsafe has been called\\n"
+            "WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.joml.MemUtil\\n"
+            + "WARNING: Please consider reporting this to the maintainers\\n" * 20
+        )
+        exception = (
+            'Exception in thread "main" java.lang.reflect.InvocationTargetException\\n'
+            "    at java.base/java.lang.reflect.Method.invoke(Method.java:578)\\n"
+            "Caused by: java.lang.NoSuchMethodException: example.StockLookup()\\n"
+            "    at java.base/java.lang.Class.getMethod(Class.java:2417)\\n"
+        )
+        detail = target.java_failure_detail(warnings + exception)
+        self.assertTrue(detail.startswith('Exception in thread "main"'))
+        self.assertIn("NoSuchMethodException", detail)
+        self.assertNotIn("terminally deprecated", detail)
+        self.assertEqual(
+            target.java_failure_detail("Error: Could not find or load main class"),
+            "Error: Could not find or load main class",
+        )
+
+        # A deliberately long reflective invocation stack must still retain
+        # both the initial JVM exception AND the deepest root cause.
+        deep = (
+            'Exception in thread "main" java.lang.reflect.InvocationTargetException\\n'
+            + "    at example.Stack.method(Stack.java:10)\\n" * 600
+            + "Caused by: java.lang.IllegalStateException: stock registry unavailable\\n"
+        )
+        short = target.java_failure_detail(warnings + deep)
+        self.assertLessEqual(len(short), 6000)
+        self.assertIn("InvocationTargetException", short)
+        self.assertIn("stock registry unavailable", short)
+        self.assertIn("intermediate JVM frames omitted", short)
+        self.assertNotIn("sun.misc.Unsafe", short)
+
+    def test_oracle_failure_reports_actual_exception_not_jvm_warning_preface(self):
+        warnings = "WARNING: sun.misc.Unsafe is terminally deprecated\\n" * 60
+        error = (
+            'Exception in thread "main" java.lang.NoSuchMethodException: '
+            'net.minecraft.data.registries.VanillaRegistries.createLookup()\\n'
+            "    at java.base/java.lang.Class.getMethod(Class.java:2417)\\n"
+        )
+        with mock.patch.object(target.official, "extract_classpath", return_value=[]), \\
+             mock.patch.object(target.subprocess, "run", side_effect=[
+                 subprocess.CompletedProcess(["javac"], 0, "", ""),
+                 subprocess.CompletedProcess(["java"], 1, "", warnings + error),
+             ]):
+            with self.assertRaises(target.WorldSeedNoiseError) as failed:
+                target.oracle(Path("/tmp/official-runtime.jar"), target.input_rows())
+        diagnostic = str(failed.exception)
+        self.assertIn("VanillaRegistries.createLookup()", diagnostic)
+        self.assertNotIn("terminally deprecated", diagnostic)
+
     @unittest.skipUnless(shutil.which("javac") and shutil.which("java"),
                          "Java toolchain required to check full original synthetic bridge")
     def test_original_jvm_bridge_uses_real_stock_lookup_not_manual_holder(self):

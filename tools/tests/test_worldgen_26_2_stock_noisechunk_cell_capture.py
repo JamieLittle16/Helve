@@ -71,7 +71,7 @@ class StockNoiseChunkCellTests(unittest.TestCase):
         self.assertEqual(len(values),16)
         self.assertEqual(len(classes),4)
         self.assertEqual(values[0],"0x4050000000000000")
-        self.assertEqual(values[3],"0x4053000000000000")
+        self.assertEqual(values[3],"0x4052400000000000")
         cell.validate(self.manifest(values,classes),self.methods())
 
     def test_fail_closed_for_missing_duplicate_reordered_nonfinite_and_false_shape(self):

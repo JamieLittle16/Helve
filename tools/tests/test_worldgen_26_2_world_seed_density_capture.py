@@ -298,8 +298,8 @@ class StockWorldSeedDensityTests(unittest.TestCase):
                  "Holder.Reference getOrThrow(net.minecraft.resources.ResourceKey k);"
                  "interface Provider {HolderGetter lookupOrThrow(net.minecraft.resources.ResourceKey key);}}")
             file("net.minecraft.core","HolderLookup",
-                 "public interface HolderLookup {interface Provider {"
-                 "HolderGetter.Provider asGetterLookup();}}")
+                 "public interface HolderLookup {"
+                 "interface Provider extends HolderGetter.Provider {}}")
             file("net.minecraft.core.registries","Registries",
                  "public class Registries {public static final net.minecraft.resources.ResourceKey"
                  " NOISE=new net.minecraft.resources.ResourceKey(\"NOISE\");}")
@@ -387,6 +387,31 @@ class StockWorldSeedDensityTests(unittest.TestCase):
             self.assertIn("JVM PHASE: stock-registry-createLookup", detail)
             self.assertIn("ROOT CAUSE: java.lang.IllegalStateException", detail)
             self.assertIn("missing authentic noise registry", detail)
+
+            # Negative: a provider with the OLD unrelated interface shape
+            # must be rejected, not wrapped or treated as a valid getter.
+            file("net.minecraft.core", "HolderLookup",
+                 "public interface HolderLookup {"
+                 "interface Provider {String marker();}}")
+            file("net.minecraft.data.registries", "VanillaRegistries",
+                 "public class VanillaRegistries {"
+                 "public static net.minecraft.core.HolderLookup.Provider createLookup(){"
+                 "return () -> \"wrong interface relationship\";}}")
+            bad_provider=subprocess.run(
+                ["javac", "-encoding", "UTF-8", "-d", str(output),
+                 *[str(p) for p in src.rglob("*.java")]],
+                capture_output=True,text=True,timeout=30)
+            self.assertEqual(bad_provider.returncode,0,bad_provider.stderr)
+            with mock.patch.object(target.official, "extract_classpath",
+                                   return_value=[output]):
+                with self.assertRaises(target.WorldSeedNoiseError) as failed_provider:
+                    target.oracle(work/"fake.jar",target.input_rows(),timeout=60)
+            self.assertIn("JVM PHASE: stock-registry-provider-subtype",
+                          str(failed_provider.exception))
+            self.assertIn("ROOT CAUSE: java.lang.IllegalStateException",
+                          str(failed_provider.exception))
+            self.assertIn("not a HolderGetter.Provider",
+                          str(failed_provider.exception))
 
 
 if __name__=="__main__":

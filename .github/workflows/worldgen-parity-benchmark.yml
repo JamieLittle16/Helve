@@ -32,6 +32,8 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_capture.py"
+      - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_java/HelveWorldSeededState262.java"
@@ -71,6 +73,8 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
       - "tools/worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_capture.py"
+      - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_registered_state_capture.py"
       - "tools/worldgen_java/HelveWorldSeededState262.java"
@@ -174,6 +178,11 @@ jobs:
 
       - name: Validate source-pinned 576-vector held-out stock JVM transport with synthetic registry
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_worldseed_heldout_capture.py' -v
+
+      - name: Validate SHA-pinned independently captured 576-vector official stock JVM held-out evidence
+        run: |
+          python3 tools/worldgen_26_2_stock_worldseed_heldout_fixture.py
+          python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_worldseed_heldout_fixture.py' -v
 
       - name: Validate all 320 source-free official Perlin/Normal raw-bit reference values
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_family_frozen_vectors.py' -v

@@ -81,3 +81,44 @@ JAR, Atlas DB, or any decompiled body.
 
 **Always closed until independently admitted:** `world_seed_random_state_bound=false`,
 `independent_var_sem_admitted=false`, `production_worldgen_enabled=false`.
+
+## Actual independent JVM receipt received — 20 October 2026
+
+The originally requested **source-free** 576-record JSON was received from the
+source-owning machine. It had the exact 26.2 official runtime SHA, original
+source and method-fingerprint chain, original 1,440-vector reference identity,
+and closed source/production gates. Every record had the expected
+profile → seed → key → point position and a finite raw `f64` word.
+
+**Pinned original capture SHA-256**:
+`59c510f78edd2f70351c377ea8d13017f52370cfa20bc480a73cddcfb59b19f5`.
+
+**Small derived source-free oracle**:
+`crates/world/helve-world-gen/tests/data/stock_worldseed_heldout_576_rawbits.txt`,
+exactly 576 lines of 16 lowercase hexadecimal digits and newline
+(9,792 bytes), SHA-256
+`0a0ae74712c31ea735f293c54264b80ecdc00e667b82d84eded003bf0660dab4`.
+
+**Verification tools**:
+
+- `tools/worldgen_26_2_stock_worldseed_heldout_fixture.py` verifies fixture
+  size, SHA-256 and finite IEEE words. With
+  `--original-json /path/to/helve-26_2-stock-worldseed-heldout-576.json`
+  it also verifies the original upload SHA, all method/source keys and
+  record-by-record correspondence with the small fixture. The original
+  141-kB JSON itself remains uncommitted.
+- `tests/stock_worldseed_heldout_262_official.rs` executes all 576
+  independent outputs against the unchanged
+  `StockWorldSeededNoiseSet262::new_candidate` and
+  `RegisteredNoiseDensityObserved262::sample_block`. It constructs its
+  permutations and octave states from the *unseen seeds*, not the JVM
+  output or captured tables. On a mismatch it reports the exact raw bit
+  pair, scale, signed seed bits, noise key and XYZ tuple.
+- CI runs Rust integration tests in **both debug and optimised release** and
+  adds strict frozen-fixture mutation/format tests. Only successful CI proves
+  576/576 Rust held-out parity.
+
+This increases stock JVM coverage to **2,016 verified output cases only if the
+new Rust assertions pass**: the original 1,440 and these *independent* 576.
+No claim of complete 26.2 biome registry, arbitrary datapack noise,
+final density routing, chunk generation or source VAR/SEM admission follows.

@@ -36,7 +36,7 @@ impl DirectNoiseScale262 {
 /// Rejected block-coordinate lattice; output remains unchanged on error.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DirectNoiseCellError262 {
-    /// One of the 16 sampled integer coordinates would exceed i32::MAX.
+    /// One of the 16 sampled integer coordinates would exceed `i32::MAX`.
     BlockCoordinateOverflow,
 }
 
@@ -61,7 +61,7 @@ impl<'a> DirectNoiseDensity262<'a> {
     }
 
     /// Evaluate the real 26.2 single-point density **candidate**, in the
-    /// measured integer block -> f64 -> scale -> NormalNoise operation order.
+    /// measured integer block -> f64 -> scale -> `NormalNoise` operation order.
     /// No unchecked i32 coordinate arithmetic, heap access or double rounding.
     #[must_use]
     #[inline]
@@ -101,6 +101,10 @@ impl<'a> DirectNoiseDensity262<'a> {
     ///
     /// # Errors
     /// All axis bounds are validated before the first output write.
+    ///
+    /// # Panics
+    /// Only if a chunk of a fixed 4096-value array divided into sixteen
+    /// 256-value planes is not exactly 256 values, which is impossible.
     pub fn sample_cell_16x16x16(
         &self,
         origin_x: i32,

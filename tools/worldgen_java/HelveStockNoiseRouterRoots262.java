@@ -109,6 +109,9 @@ public final class HelveStockNoiseRouterRoots262 {
   static final String GRAPH_EDGE = "HELVE26_2_ROUTER_GRAPH_EDGE|";
   static final String GRAPH_OPAQUE = "HELVE26_2_ROUTER_GRAPH_OPAQUE|";
   static final String GRAPH_END = "HELVE26_2_ROUTER_GRAPH_END|";
+  static final String HOLDER = "HELVE26_2_ROUTER_HOLDER|";
+  static final String HOLDER_END = "HELVE26_2_ROUTER_HOLDER_END|";
+  static final String HOLDER_HOLDER = ROOT+"DensityFunctions$HolderHolder";
 
   static int registerGraph(Object node, int depth,
                            IdentityHashMap<Object,Integer> identities,
@@ -126,7 +129,7 @@ public final class HelveStockNoiseRouterRoots262 {
   }
 
   static void inspectGraph(int seedIndex, Class<?> routerType, Class<?> density,
-                           Class<?> context, Object router) throws Exception {
+                           Class<?> context, Object router, boolean holders) throws Exception {
     if (!routerType.isRecord() || !routerType.isInstance(router))
       throw new IllegalStateException("expected stock NoiseRouter record instance");
     RecordComponent[] roots=routerType.getRecordComponents();
@@ -151,7 +154,7 @@ public final class HelveStockNoiseRouterRoots262 {
       int node=registerGraph(value,0,identities,nodes,depths);
       OUT.println(GRAPH_ROOT+seedIndex+"|"+i+"|"+root.getName()+"|"+node);
     }
-    int edges=0,opaques=0;
+    int edges=0,opaques=0,holderRows=0;
     for (int id=0;id<nodes.size();id++) {
       phase="graph-node-"+seedIndex+"-"+id;
       Object value=nodes.get(id);
@@ -164,6 +167,39 @@ public final class HelveStockNoiseRouterRoots262 {
       if (compute.getReturnType()!=double.class)
         throw new IllegalStateException("stock router compute contract changed");
       boolean expanded=depth<GRAPH_DEPTH;
+      // This optional probe resolves only the *public Holder.value() binding*
+      // of the exact, already observed HolderHolder implementation. It does
+      // not follow that function recursively or infer how it is evaluated.
+      if (holders && name(type).equals(HOLDER_HOLDER)) {
+        phase="holder-bound-"+seedIndex+"-"+id;
+        RecordComponent[] components=type.getRecordComponents();
+        Class<?> holderInterface=Class.forName("net.minecraft.core.Holder");
+        if (components==null || components.length!=1 ||
+            !components[0].getName().equals("function") ||
+            components[0].getType()!=holderInterface)
+          throw new IllegalStateException("unexpected stock HolderHolder component contract");
+        Method accessor=components[0].getAccessor();
+        if (!accessor.canAccess(value) && !accessor.trySetAccessible())
+          throw new IllegalStateException("HolderHolder.function accessor inaccessible");
+        Object holder=accessor.invoke(value);
+        if (holder==null || !holderInterface.isInstance(holder))
+          throw new IllegalStateException("missing real stock Holder object");
+        Method holderValue=holderInterface.getMethod("value");
+        if (holderValue.getParameterCount()!=0 || holderValue.getReturnType().isPrimitive() ||
+            !holderValue.canAccess(holder) && !holderValue.trySetAccessible())
+          throw new IllegalStateException("unqualified public Holder.value contract");
+        Object bound=holderValue.invoke(holder);
+        if (bound==null || !density.isInstance(bound))
+          throw new IllegalStateException("stock holder does not resolve to DensityFunction");
+        Class<?> boundType=bound.getClass();
+        Method boundCompute=boundType.getMethod("compute",context);
+        if (boundCompute.getReturnType()!=double.class)
+          throw new IllegalStateException("bound stock holder's compute signature changed");
+        OUT.println(HOLDER+seedIndex+"|"+id+"|"+depth+"|"+
+            name(holder.getClass())+"|"+name(boundType)+"|"+
+            name(boundCompute.getDeclaringClass()));
+        if (++holderRows>64) throw new IllegalStateException("too many held density bindings");
+      }
       ArrayList<String> childRows=new ArrayList<>(),opaqueRows=new ArrayList<>();
       if (expanded && type.isRecord()) {
         RecordComponent[] slots=type.getRecordComponents();
@@ -202,21 +238,24 @@ public final class HelveStockNoiseRouterRoots262 {
         throw new IllegalStateException("unbounded graph edge/opaque declarations");
     }
     OUT.println(GRAPH_END+seedIndex+"|"+nodes.size()+"|"+edges+"|"+opaques);
+    if (holders) OUT.println(HOLDER_END+seedIndex+"|"+holderRows+"|"+nodes.size());
   }
 
   public static void main(String[] args) {
     try {
       if (args.length!=1 ||
-          (!args[0].equals("--router-roots-4") && !args[0].equals("--router-graph-4")))
-        throw new IllegalArgumentException("expected --router-roots-4 or --router-graph-4");
-      run(args[0].equals("--router-graph-4"));
+          (!args[0].equals("--router-roots-4") &&
+           !args[0].equals("--router-graph-4") &&
+           !args[0].equals("--router-holder-4")))
+        throw new IllegalArgumentException("expected --router-roots-4, --router-graph-4 or --router-holder-4");
+      run(args[0]);
     } catch (Throwable t) {
       fail(t);
       System.exit(2);
     }
   }
 
-  static void run(boolean graph) throws Exception {
+  static void run(String mode) throws Exception {
     phase="bootstrap";
     HelveWorldSeededDensity262.bootstrap();
     phase="stock-class-contracts";
@@ -254,8 +293,9 @@ public final class HelveStockNoiseRouterRoots262 {
       phase="stock-RandomState-router-" + i;
       Object router=routerMethod.invoke(state);
       phase="stock-record-components-" + i;
-      if (graph) inspectGraph(i,routerType,density,context,router);
-      else inspect(i,routerType,density,context,router);
+      if (mode.equals("--router-roots-4")) inspect(i,routerType,density,context,router);
+      else inspectGraph(i,routerType,density,context,router,
+                        mode.equals("--router-holder-4"));
     }
     if (reader.readLine()!=null)
       throw new IllegalStateException("unexpected fifth world seed");

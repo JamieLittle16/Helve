@@ -292,8 +292,42 @@ impl NormalNoise262 {
         (first_value + second_value) * self.value_factor
     }
 
-    /// Return 256 coherent normal-noise samples, using each branch's exact
-    /// prepared-axis Perlin implementation and a caller-owned output buffer.
+    /// Sample any prepared 16×16 X/Z axis lattice. Unlike a fresh scalar
+    /// loop this reuses each octave's two-dimensional axis transforms and
+    /// retains exact Java operation order independently at every sample.
+    /// The caller owns the output; no allocation, cache or world state.
+    pub fn sample_axis_grid_16x16(
+        &self,
+        x_axis: &[f64; 16],
+        y: f64,
+        z_axis: &[f64; 16],
+        output: &mut [f64; 256],
+    ) {
+        self.first
+            .sample_axis_grid_16x16(x_axis, y, z_axis, output);
+        let mut second_x = *x_axis;
+        let mut second_z = *z_axis;
+        for value in &mut second_x {
+            *value *= NORMAL_SECOND_INPUT_MULTIPLIER;
+        }
+        for value in &mut second_z {
+            *value *= NORMAL_SECOND_INPUT_MULTIPLIER;
+        }
+        let mut secondary = [0.0_f64; 256];
+        self.second.sample_axis_grid_16x16(
+            &second_x,
+            y * NORMAL_SECOND_INPUT_MULTIPLIER,
+            &second_z,
+            &mut secondary,
+        );
+        for (primary, followup) in output.iter_mut().zip(secondary.iter().copied()) {
+            *primary = (*primary + followup) * self.value_factor;
+        }
+    }
+
+    /// Return 256 coherent normal-noise samples using prepared block axes.
+    /// This delegates to the same bitwise-preserving axis sampler that the
+    /// direct noise density leaf uses for pre-scaled integer blocks.
     pub fn sample_plane_16x16(
         &self,
         origin_x: f64,
@@ -307,24 +341,7 @@ impl NormalNoise262 {
             x_axis[usize::from(local)] = origin_x + f64::from(local);
             z_axis[usize::from(local)] = origin_z + f64::from(local);
         }
-        self.first
-            .sample_axis_grid_16x16(&x_axis, y, &z_axis, output);
-        for value in &mut x_axis {
-            *value *= NORMAL_SECOND_INPUT_MULTIPLIER;
-        }
-        for value in &mut z_axis {
-            *value *= NORMAL_SECOND_INPUT_MULTIPLIER;
-        }
-        let mut secondary = [0.0_f64; 256];
-        self.second.sample_axis_grid_16x16(
-            &x_axis,
-            y * NORMAL_SECOND_INPUT_MULTIPLIER,
-            &z_axis,
-            &mut secondary,
-        );
-        for (primary, followup) in output.iter_mut().zip(secondary.iter().copied()) {
-            *primary = (*primary + followup) * self.value_factor;
-        }
+        self.sample_axis_grid_16x16(&x_axis, y, &z_axis, output);
     }
 }
 

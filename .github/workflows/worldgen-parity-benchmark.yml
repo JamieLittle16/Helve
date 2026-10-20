@@ -28,6 +28,9 @@ on:
       - "tools/tests/test_worldgen_26_2_random_state_binding_frontier.py"
       - "tools/worldgen_26_2_world_seed_density_capture.py"
       - "tools/tests/test_worldgen_26_2_world_seed_density_capture.py"
+      - "tools/worldgen_26_2_stock_worldseed_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
+      - "vanilla/reports/worldgen-26_2-stock-worldseed-noise-bits-01.txt"
       - "tools/worldgen_java/HelveWorldSeededDensity262.java"
       - "tools/tests/test_worldgen_26_2_family_frozen_vectors.py"
       - "vanilla/reports/worldgen-26_2-family-raw-bit-oracle-01.json"
@@ -59,6 +62,9 @@ on:
       - "tools/tests/test_worldgen_26_2_random_state_binding_frontier.py"
       - "tools/worldgen_26_2_world_seed_density_capture.py"
       - "tools/tests/test_worldgen_26_2_world_seed_density_capture.py"
+      - "tools/worldgen_26_2_stock_worldseed_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_worldseed_fixture.py"
+      - "vanilla/reports/worldgen-26_2-stock-worldseed-noise-bits-01.txt"
       - "tools/worldgen_java/HelveWorldSeededDensity262.java"
       - "tools/tests/test_worldgen_26_2_family_frozen_vectors.py"
       - "vanilla/reports/worldgen-26_2-family-raw-bit-oracle-01.json"
@@ -134,6 +140,11 @@ jobs:
 
       - name: Validate 26.2 stock registry worldseed density oracle against independent toy JVM
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_world_seed_density_capture.py' -v
+
+      - name: Verify SHA-pinned 1,440 official stock world-seed reference vectors (not Rust parity)
+        run: |
+          python3 tools/worldgen_26_2_stock_worldseed_fixture.py
+          python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_worldseed_fixture.py' -v
 
       - name: Validate all 320 source-free official Perlin/Normal raw-bit reference values
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_family_frozen_vectors.py' -v

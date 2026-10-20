@@ -448,3 +448,37 @@ owner and no publication gate promotion.
 
 The updated runbook is
 `docs/execution/WORLDGEN_26_2_STOCK_NOISECHUNK_ADJACENT_FRONTIER_2026-10-20.md`.
+
+## Compiled observed stock mixed-density leaf — next implemented Rust step
+
+The first direct Rust compiler-path extension beyond the
+source-evidence packets is `StockDensityNode262::ObservedMixed` in
+`crates/world/helve-world-gen/src/stock_density_program_262.rs`.
+This **reuses**, rather than forks or rewrites, the existing
+`StockVanillaMixedDensity262` interpreter backed by genuine Minecraft
+26.2 `DensityFunctions.add/mul` factory/delegate evidence.
+
+- An immutable, bounded program can hold one observed stock
+  noise/Y-primitive mixed delegate as a **prepared typed leaf**. Its
+  scalar path directly computes seeded Rust noise and primitive math.
+- If the mixed leaf is the whole program, the existing coherent
+  16×16 plane and 16³ cell fast path is retained, with caller-owned
+  outputs and no per-sample heap allocations or new world/registry.
+- General explicit eager graph operations can also combine observed
+  leaves; that *outer* arbitrary graph is NOT thereby qualified as a
+  vanilla factory composition.
+- The new Rust test computes every one of the **1,920 authentic frozen
+  stock JVM** mixed-density words through this *compiled program*
+  (four seeds × three registered keys × ten delegate profiles × sixteen
+  coordinates), separately exercises original Ap2 positive-zero vs
+  MulOrAdd signed-zero, and checks plane/volume/scalar consistency.
+
+**Important scope:** This is a **true compiled Rust numerical path on
+the observed mixed subgraph**, not the full source-owned `finalDensity`
+NoiseRouter graph. Marker/cache, splines, range-choice, full Y-loop
+semantics, and the source-owned bind of all router roots still need
+exact original 26.2 review and independent numeric parity. It must not
+open any production/canonical/VAR/SEM flags or instantiate another
+world owner. Next: expand the compiled graph only with separately
+source-reviewed/delegate-qualified node semantics, then compare actual
+Rust whole-`finalDensity` to the already frozen 768 JVM outputs.

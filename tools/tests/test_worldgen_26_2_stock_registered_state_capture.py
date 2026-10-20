@@ -89,8 +89,8 @@ class RegisteredStateReceiptTests(unittest.TestCase):
         source=fixture()
         for needle,replacement in (
             ("|normal/first|", "|normal/second|"),
-            ("|normal/first/noiseLevels[0]|P|",
-             "|normal/first/noiseLevels[0]|Z|"),
+            ("|P|normal/first/noiseLevels[0]|permutation|",
+             "|Z|normal/first/noiseLevels[0]|permutation|"),
         ):
             modified=[s.replace(needle,replacement) if i<40 else s
                       for i,s in enumerate(source)]

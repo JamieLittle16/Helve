@@ -280,7 +280,7 @@ public final class HelveStockNoiseChunkCell262 {
                 "-"+cellZOffset+"-"+cellY;
             select.invoke(chunk,cellY,firstCell+cellZOffset);
             for(int localY=7;localY>=0;localY--){
-              int y=cellY*8+localY;
+              int y=-64+cellY*8+localY;
               updateY.invoke(chunk,y,(double)localY/8.0);
               for(int localX=0;localX<4;localX++){
                 int x=origin+cellXOffset*4+localX;

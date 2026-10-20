@@ -306,7 +306,7 @@ class StockWorldSeedDensityTests(unittest.TestCase):
             file("net.minecraft.data.registries","VanillaRegistries",
                  "public class VanillaRegistries {"
                  "public static net.minecraft.core.HolderLookup.Provider createLookup(){"
-                 "return () -> registry -> {"
+                 "return registry -> {"
                  "if (!registry.equals(net.minecraft.core.registries.Registries.NOISE))"
                  " throw new IllegalArgumentException(\"not real noise registry\");"
                  "return key -> {if(!java.util.Set.of(\"TEMPERATURE\",\"EROSION\","

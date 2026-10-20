@@ -99,3 +99,27 @@ sampling loop; reuse existing exact-bit noise kernels and caller-owned
 buffers. Extend later to `NoiseRouter.mapAll` caching and broad vanilla
 surface/cave/biome/chunk parity. Keep the normal executable's worldgen
 publication gate closed until separately qualified.
+
+
+## First source-owning runtime failure and diagnostic correction
+
+The first official local run on 20 October 2026 passed the source/frontier/server
+preflight and reached the JVM, but exited nonzero before the 1,440-vector
+manifest was written. The error printed several JOML `sun.misc.Unsafe`
+terminal-deprecation **warnings** and only the beginning of
+`Exception in thread "main"`: the Python collector incorrectly used
+`run.stderr[:1600]`, hiding the actual exception and any deepest
+`Caused by:` root. **Do not interpret the JOML warnings as the cause**, and
+do not treat this as evidence for or against any world-seed math.
+
+The collector now removes only the *pre-exception warning preface* in
+fail-closed error reporting and preserves the Java exception and, for
+oversized stacks, both its first frames and deepest cause. It still exits
+with failure; it does not skip stock-registry checks or substitute manually
+constructed holders. A toy subprocess regression test simulates JOML
+warnings before `NoSuchMethodException` and nested reflection causes.
+
+Rerun with an output filename that does not already exist, then report the
+complete `OFFICIAL ... NOT QUALIFIED` exception. The next change should
+address only the **actual observed method/registry failure**, not guess at
+the error from the warning preface.

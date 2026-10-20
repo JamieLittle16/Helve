@@ -180,6 +180,35 @@ def parse_bits(stdout: str, expected: int = N_RECORDS) -> list[str]:
     return values
 
 
+def java_failure_detail(stderr: str, *, limit: int = 6000) -> str:
+    """Retain the JVM *exception and root cause*, not leading JDK warnings.
+
+    Modern JVMs emit sun.misc.Unsafe / terminal-deprecation warnings before
+    any actual exception. Taking stderr[:1600] hides both the cause and the
+    useful failing reflection phase. For long nested InvocationTargetException
+    stacks retain the first JVM exception plus the end containing the deepest
+    "Caused by". This is an error diagnostic only; it cannot qualify an oracle.
+    """
+    if not isinstance(stderr, str):
+        raise WorldSeedNoiseError("non-text JVM failure output")
+    # Restrict the failure detail to bounded original exception information.
+    # The known noisy JOML warnings occur BEFORE the JVM's exception marker.
+    marker = stderr.find('Exception in thread ')
+    if marker >= 0:
+        detail = stderr[marker:].strip()
+    else:
+        # Other Java exits (VM startup, linkage, OutOfMemory) have no marker.
+        # Keep the end, which is more likely to contain the actual error.
+        detail = stderr.strip()[-limit:]
+    if not detail:
+        return "non-zero JVM exit without a stderr exception"
+    if len(detail) <= limit:
+        return detail
+    first = detail[:2000]
+    last = detail[-(limit - 2100):]
+    return first + "\n... [intermediate JVM frames omitted] ...\n" + last
+
+
 def oracle(server: Path, points: list[dict], *, timeout: int = 180) -> list[str]:
     if len(points) != N_RECORDS or points != input_rows():
         raise WorldSeedNoiseError("actual world-seed probe request changed shape or order")
@@ -206,7 +235,7 @@ def oracle(server: Path, points: list[dict], *, timeout: int = 180) -> list[str]
             input=rows, text=True, capture_output=True, check=False, timeout=timeout)
         if run.returncode:
             raise WorldSeedNoiseError("real stock-registry 26.2 world-seed JVM path "
-                                      "is NOT VERIFIED: " + run.stderr[:1600])
+                                      "is NOT VERIFIED: " + java_failure_detail(run.stderr))
         return parse_bits(run.stdout)
 
 

@@ -70,7 +70,7 @@ class CompleteStockNoiseChunkCellTests(unittest.TestCase):
         bits=grid.parse_output("\n".join(self.valid_output()))
         self.assertEqual(len(bits),512)
         self.assertEqual(bits[0],"0x4050000000000000")
-        self.assertEqual(bits[127],struct.pack(">d",77.0).hex().join(["0x",""]))
+        self.assertEqual(bits[127],"0x"+struct.pack(">d",77.0).hex())
         grid.validate(self.manifest(bits),frozen.source_methods())
 
     def test_corrupted_missing_reordered_or_nonfinite_outputs_fail_closed(self):

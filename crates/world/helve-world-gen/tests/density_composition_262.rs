@@ -314,7 +314,7 @@ fn compiled_observed_primitive_leaf_rejects_overflow_before_output_changes() {
     ] {
         let (x, y, z) = point;
         assert_eq!(
-            compiled.sample_cell_16x16x16(x, y, z, cell),
+            compiled.sample_cell_16x16x16(x, y, z, &mut *cell),
             Err(DirectNoiseCellError262::BlockCoordinateOverflow)
         );
         assert!(cell.iter().all(|v| v.to_bits() == sentinel.to_bits()));

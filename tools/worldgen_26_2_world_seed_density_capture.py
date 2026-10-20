@@ -181,32 +181,45 @@ def parse_bits(stdout: str, expected: int = N_RECORDS) -> list[str]:
 
 
 def java_failure_detail(stderr: str, *, limit: int = 6000) -> str:
-    """Retain the JVM *exception and root cause*, not leading JDK warnings.
+    """Put the deepest JVM cause on ONE line; retain bounded stack frames.
 
-    Modern JVMs emit sun.misc.Unsafe / terminal-deprecation warnings before
-    any actual exception. Taking stderr[:1600] hides both the cause and the
-    useful failing reflection phase. For long nested InvocationTargetException
-    stacks retain the first JVM exception plus the end containing the deepest
-    "Caused by". This is an error diagnostic only; it cannot qualify an oracle.
+    The previous fix removed the JOML Unsafe warning preface, but terminal
+    copying may still stop at the first newline after "Exception in thread".
+    A stable first-line root cause must survive both JVM warnings and clipped
+    multi-line terminal output. This is diagnostics only; it cannot authorise
+    the world-seed registry path.
     """
     if not isinstance(stderr, str):
         raise WorldSeedNoiseError("non-text JVM failure output")
-    # Restrict the failure detail to bounded original exception information.
-    # The known noisy JOML warnings occur BEFORE the JVM's exception marker.
     marker = stderr.find('Exception in thread ')
     if marker >= 0:
         detail = stderr[marker:].strip()
     else:
-        # Other Java exits (VM startup, linkage, OutOfMemory) have no marker.
-        # Keep the end, which is more likely to contain the actual error.
         detail = stderr.strip()[-limit:]
     if not detail:
-        return "non-zero JVM exit without a stderr exception"
-    if len(detail) <= limit:
-        return detail
-    first = detail[:2000]
-    last = detail[-(limit - 2100):]
-    return first + "\n... [intermediate JVM frames omitted] ...\n" + last
+        return "JVM ROOT CAUSE: non-zero JVM exit without a stderr exception"
+
+    lines = detail.splitlines()
+    initial = lines[0].strip()
+    causes = [line.strip()[len("Caused by: "):].strip()
+              for line in lines if line.strip().startswith("Caused by: ")]
+    root = causes[-1] if causes else initial
+    # Compact single-line root cause is intentionally emitted FIRST, before
+    # any frames. Always reject control characters and unbounded diagnostics.
+    short_root = " ".join(root.split())[:700]
+    short_initial = " ".join(initial.split())[:700]
+    summary = "JVM ROOT CAUSE: " + short_root
+    if causes and short_initial != short_root:
+        summary += " | TOP EXCEPTION: " + short_initial
+    if len(summary) >= limit:
+        return summary[:limit]
+    available = limit - len(summary) - 1
+    if len(detail) > available:
+        omitted = "\n... [intermediate JVM frames omitted] ...\n"
+        first_size = min(1600, (available - len(omitted)) // 2)
+        last_size = available - len(omitted) - first_size
+        detail = detail[:first_size] + omitted + detail[-last_size:]
+    return summary + "\n" + detail
 
 
 def oracle(server: Path, points: list[dict], *, timeout: int = 180) -> list[str]:

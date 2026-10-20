@@ -13,6 +13,9 @@ public final class HelveStockNoiseChunkCell262 {
   static final String BIT="HELVE26_2_NOISECHUNK_CELL_BITS|";
   static final String END="HELVE26_2_NOISECHUNK_CELL_END|";
   static final String FAIL="HELVE26_2_NOISECHUNK_CELL_FAILURE|";
+  static final String ADJ_HEAD="HELVE26_2_NOISECHUNK_ADJACENT_HEAD|";
+  static final String ADJ_BIT="HELVE26_2_NOISECHUNK_ADJACENT_BITS|";
+  static final String ADJ_END="HELVE26_2_NOISECHUNK_ADJACENT_END|";
   static final PrintStream OUT=new PrintStream(
       new FileOutputStream(FileDescriptor.out),true,StandardCharsets.US_ASCII);
   static final int[][] POINTS={{0,64,0},{1,65,1},{2,66,2},{3,67,3}};
@@ -70,10 +73,12 @@ public final class HelveStockNoiseChunkCell262 {
       if(args.length!=1)throw new IllegalArgumentException("expected exactly one mode");
       if(args[0].equals("--stock-noisechunk-cell-16"))run(false);
       else if(args[0].equals("--stock-noisechunk-complete-cell-512"))run(true);
+      else if(args[0].equals("--stock-noisechunk-adjacent-cells"))run(false,true);
       else throw new IllegalArgumentException("unapproved 26.2 NoiseChunk cell probe mode");
     } catch(Throwable t){fail(t);System.exit(2);}
   }
-  static void run(boolean complete) throws Exception {
+  static void run(boolean complete) throws Exception {run(complete,false);}
+  static void run(boolean complete,boolean adjacent) throws Exception {
     final int[][] samples=complete?CELL_GRID:POINTS;
     phase="bootstrap";HelveWorldSeededDensity262.bootstrap();
     phase="stock-version-class-contract";
@@ -133,6 +138,11 @@ public final class HelveStockNoiseChunkCell262 {
     Method updateX=noiseChunk.getMethod("updateForX",int.class,double.class);
     Method updateZ=noiseChunk.getMethod("updateForZ",int.class,double.class);
     Method stop=noiseChunk.getMethod("stopInterpolation");
+    // Only the NEW cross-cell mode needs this exact original lifecycle method.
+    // The existing 16 and 512 modes must remain byte-for-byte identical.
+    Method swap=adjacent?noiseChunk.getMethod("swapSlices"):null;
+    if(adjacent && (swap.getReturnType()!=void.class || swap.getParameterCount()!=0))
+      throw new IllegalStateException("original 26.2 swapSlices contract changed");
     if(compute.getReturnType()!=double.class||
         initialize.getReturnType()!=void.class||advance.getReturnType()!=void.class||
         select.getReturnType()!=void.class||updateX.getReturnType()!=void.class||
@@ -198,6 +208,12 @@ public final class HelveStockNoiseChunkCell262 {
       if(finalNode==null||!finalNode.getClass().getName().equals(
          ROOT+"DensityFunctions$Ap2"))
         throw new IllegalStateException("stock finalDensity bound root changed");
+      if(adjacent){
+        runAdjacentForSeed(si,seed,state,finalNode,ctor,wrap,compute,
+            initialize,advance,select,updateY,updateX,updateZ,swap,stop,
+            shape,noBeard,settings,stockPicker,noBlending);
+        continue;
+      }
       phase="construct-original-NoiseChunk-"+si;
       Object chunk=ctor.newInstance(16/cellW,state,0,0,shape,
            noBeard,settings,stockPicker,noBlending);
@@ -227,5 +243,75 @@ public final class HelveStockNoiseChunkCell262 {
     }
     if(reader.readLine()!=null)
       throw new IllegalStateException("unexpected extra stock world-seed input");
+  }
+
+  // EXPERIMENTAL cross-cell traversal. Full production order, marker cache
+  // semantics and slice reuse remain UNREVIEWED until original 26.2 source
+  // inspection; this MUST NOT grant any production/worldgen qualification.
+  // Each chunk visits two X cells, two Z cells and three descending Y cells.
+  // Every voxel update/compute is executed; only bounded corner positions
+  // are emitted. The second X column explicitly follows a slice swap.
+  // Two independent chunk origins test both positive and negative coordinates.
+  static void runAdjacentForSeed(int si,String seed,Object state,Object finalNode,
+      Constructor<?> ctor,Method wrap,Method compute,Method initialize,
+      Method advance,Method select,Method updateY,Method updateX,Method updateZ,
+      Method swap,Method stop,Object shape,Object noBeard,Object settings,
+      Object stockPicker,Object noBlending) throws Exception {
+    for(int chunkIndex=0;chunkIndex<2;chunkIndex++){
+      int origin=chunkIndex==0?0:-16;
+      int firstCell=Math.floorDiv(origin,4);
+      phase="adjacent-construct-"+si+"-"+chunkIndex;
+      Object chunk=ctor.newInstance(4,state,origin,origin,shape,
+          noBeard,settings,stockPicker,noBlending);
+      Object wrapped=wrap.invoke(chunk,finalNode);
+      if(wrapped==null || !wrapped.getClass().getName().equals(
+          ROOT+"DensityFunctions$Ap2"))
+        throw new IllegalStateException("different stock adjacent finalDensity wrapper");
+      OUT.println(ADJ_HEAD+si+"|"+seed+"|"+chunkIndex+"|"+origin+"|"+origin+
+          "|4|8|-64|384|"+wrapped.getClass().getName()+"|96");
+      initialize.invoke(chunk);
+      int emitted=0;
+      for(int cellXOffset=0;cellXOffset<2;cellXOffset++){
+        phase="adjacent-advance-"+si+"-"+chunkIndex+"-"+cellXOffset;
+        advance.invoke(chunk,firstCell+cellXOffset);
+        for(int cellZOffset=0;cellZOffset<2;cellZOffset++){
+          for(int cellY=17;cellY>=15;cellY--){
+            phase="adjacent-select-"+si+"-"+chunkIndex+"-"+cellXOffset+
+                "-"+cellZOffset+"-"+cellY;
+            select.invoke(chunk,cellY,firstCell+cellZOffset);
+            for(int localY=7;localY>=0;localY--){
+              int y=-64+cellY*8+localY;
+              updateY.invoke(chunk,y,(double)localY/8.0);
+              for(int localX=0;localX<4;localX++){
+                int x=origin+cellXOffset*4+localX;
+                updateX.invoke(chunk,x,(double)localX/4.0);
+                for(int localZ=0;localZ<4;localZ++){
+                  int z=origin+cellZOffset*4+localZ;
+                  phase="adjacent-compute-"+si+"-"+chunkIndex+"-"+cellXOffset+
+                      "-"+cellZOffset+"-"+cellY+"-"+localY+"-"+localX+"-"+localZ;
+                  updateZ.invoke(chunk,z,(double)localZ/4.0);
+                  double value=(Double)compute.invoke(wrapped,chunk);
+                  if(!Double.isFinite(value))
+                    throw new IllegalStateException("nonfinite stock adjacent density");
+                  if((localY==0 || localY==7) && (localX==0 || localX==3) &&
+                      (localZ==0 || localZ==3)){
+                    int absoluteIndex=si*192+chunkIndex*96+emitted++;
+                    OUT.println(ADJ_BIT+absoluteIndex+"|"+x+"|"+y+"|"+z+"|"+
+                        String.format(Locale.ROOT,"%016x",
+                            Double.doubleToRawLongBits(value)));
+                  }
+                }
+              }
+            }
+          }
+        }
+        phase="adjacent-swapSlices-"+si+"-"+chunkIndex+"-"+cellXOffset;
+        swap.invoke(chunk);
+      }
+      phase="adjacent-stop-"+si+"-"+chunkIndex;
+      stop.invoke(chunk);
+      if(emitted!=96)throw new IllegalStateException("adjacent output count drift");
+      OUT.println(ADJ_END+si+"|"+chunkIndex+"|"+emitted);
+    }
   }
 }

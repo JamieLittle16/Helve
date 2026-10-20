@@ -307,3 +307,47 @@ the source/registry parameter and RandomState RNG law gaps, implement the
 next genuine Rust constructor/parity slice with precise fail-closed tests
 and PRs, while preserving Helve's hyper-efficient modular, vanilla-faithful
 architecture and separate R2C/R2D production gates."
+
+
+## 20 October follow-up — bounded stock registered-state inspection branch
+
+Branch `worldgen/262-stock-registered-state-receipt` builds the **first P1
+numeric provenance step**. Its independent original reflection-only Java helper
+`tools/worldgen_java/HelveWorldSeededState262.java` and source-pinned Python
+collector `tools/worldgen_26_2_stock_registered_state_capture.py` inspect
+**the same actual VanillaRegistries.createLookup provider**, official keyed
+noise holders and `RandomState.getOrCreateNoise` object as the successful
+stock oracle. It records the numeric **registered NoiseParameters** and
+complete observed Normal/Perlin/Improved numeric state for exactly **five
+world seeds × three official registered keys = 15 bounded states**. It does
+**not** recapture the 1,440 density values or modify the frozen fixture.
+
+On the private source-owning machine, after merging/pulling the branch or
+running a checked-out PR branch, run **once**:
+
+```bash
+python3 tools/worldgen_26_2_stock_registered_state_capture.py \
+  --frontier /tmp/helve-26_2-random-state-binding-frontier-01.json \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-stock-registered-state-01.json
+```
+
+Use a fresh output path. The output contains only original bounded numeric
+state, official registered parameter values, runtime/source fingerprints,
+frozen fixture identity and explicitly closed gates. It must be inspected,
+SHA-pinned and checked for source-free provenance before publication. Do not
+upload source text, the Atlas DB, JAR or large unsanitised environment traces.
+Hosted GitHub CI compiles the new helper without game classes and checks the
+parser against mutation-bearing synthetic records; **this is not an official
+numeric JVM run**.
+
+**Next after source-free receipt:** establish exact constructor and
+positional RNG/fork laws in the pinned 26.2 sources, with precise method
+fingerprints and delegate closure. Cross-check the 15 whole numeric sampler
+states in Rust, then add the exact 1,440-line fixture comparison and fresh,
+independently captured held-outs. Do not assume legacy
+`from_direct_seed_observed_profile` describes these registered keys.
+Independent VAR/SEM/production gates remain false. No parity status changes
+until actual Rust bit matches run in CI.

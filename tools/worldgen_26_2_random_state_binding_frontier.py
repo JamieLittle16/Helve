@@ -133,8 +133,8 @@ def atlas_binding(conn: sqlite3.Connection) -> dict:
                 "signature": signature,
                 "body_sha256": body,
                 "normalized_sha256": normalized,
-                "call_sites": len(calls["call_sites"]),
-                "unresolved_call_sites": len(calls["unresolved_call_sites"]),
+                "call_sites": calls["call_sites"],
+                "unresolved_call_sites": calls["unresolved_call_sites"],
                 "reviewed": False,
             })
         items[owner] = {"status": "indexed_not_reviewed", "methods": records}

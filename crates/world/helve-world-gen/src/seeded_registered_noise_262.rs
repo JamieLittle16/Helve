@@ -12,9 +12,7 @@
 //! in subsequent sampling calls.
 
 use crate::improved_noise_262::ImprovedNoise262;
-use crate::registered_noise_state_262::{
-    RegisteredNormalObserved262, RegisteredPerlinObserved262,
-};
+use crate::registered_noise_state_262::{RegisteredNormalObserved262, RegisteredPerlinObserved262};
 
 /// Exact three built-in overworld noise keys examined on stock Java 26.2.
 /// This enum is deliberately not an arbitrary datapack registry abstraction.
@@ -98,10 +96,7 @@ impl XoroshiroBits262 {
     fn next_u64(&mut self) -> u64 {
         let lo = self.lo;
         let hi = self.hi;
-        let value = lo
-            .wrapping_add(hi)
-            .rotate_left(17)
-            .wrapping_add(lo);
+        let value = lo.wrapping_add(hi).rotate_left(17).wrapping_add(lo);
         let delta = hi ^ lo;
         self.lo = lo.rotate_left(49) ^ delta ^ (delta << 21);
         self.hi = delta.rotate_left(28);
@@ -161,8 +156,8 @@ fn improved_from_stream(mut random: XoroshiroBits262) -> ImprovedNoise262 {
     }
     for i in 0..256 {
         let remaining = u32::try_from(256 - i).expect("bounded remaining permutation entries");
-        let jump = usize::try_from(random.next_bounded(remaining))
-            .expect("bounded permutation jump");
+        let jump =
+            usize::try_from(random.next_bounded(remaining)).expect("bounded permutation jump");
         permutation.swap(i, i + jump);
     }
     ImprovedNoise262::from_observed_parts(permutation, x, y, z)
@@ -221,9 +216,13 @@ pub fn from_stock_world_seed_candidate(
     let second = construct_perlin(&mut named_random, first_octave, amplitudes);
 
     // The normal output correction uses first/last *nonzero* octave positions.
-    let first_active = amplitudes.iter().position(|a| *a != 0.0)
+    let first_active = amplitudes
+        .iter()
+        .position(|a| *a != 0.0)
         .expect("all three stock keys have at least one nonzero octave");
-    let last_active = amplitudes.iter().rposition(|a| *a != 0.0)
+    let last_active = amplitudes
+        .iter()
+        .rposition(|a| *a != 0.0)
         .expect("all three stock keys have a last nonzero octave");
     let active_range = u32::try_from(last_active - first_active + 1)
         .expect("the stock octave span is bounded by nine");
@@ -252,8 +251,14 @@ mod tests {
     fn named_forks_do_not_advance_or_mutate_cold_parents() {
         let mut parent = XoroshiroBits262::from_world_seed(0);
         let frozen = parent.fork_positional();
-        let a = named_fork(frozen, StockRegisteredNoiseKey262::Temperature.parameters().2);
-        let b = named_fork(frozen, StockRegisteredNoiseKey262::Temperature.parameters().2);
+        let a = named_fork(
+            frozen,
+            StockRegisteredNoiseKey262::Temperature.parameters().2,
+        );
+        let b = named_fork(
+            frozen,
+            StockRegisteredNoiseKey262::Temperature.parameters().2,
+        );
         assert_eq!(a.lo, b.lo);
         assert_eq!(a.hi, b.hi);
         assert_eq!(parent.next_u64(), 4_633_751_808_701_151_732);

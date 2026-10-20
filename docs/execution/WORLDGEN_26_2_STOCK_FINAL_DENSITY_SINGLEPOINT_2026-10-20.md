@@ -137,3 +137,88 @@ CLOSED: `world_seed_random_state_bound`,
 `router_numeric_parity_qualified`, `full_router_graph_qualified`,
 `stock_noisechunk_interpolation_observed`,
 `independent_var_sem_admitted`, `production_worldgen_enabled`.
+
+
+## Update: original 128 numeric values received and frozen (20 October 2026)
+
+The source-owning-machine command above now **succeeded**; the first
+`finalDensity.compute(SinglePointContext)` reference is no longer
+prospective or synthetic:
+
+- Official original `/tmp/helve-26_2-stock-final-density-singlepoint-128.json`:
+  **25,704 bytes**; SHA-256
+  `0c294020fb2ad882f6ed88e5759e032c6955d48be3cfef1a19a089f561bb059d`.
+- **128/128** ordered genuine numeric results, four distinct world-seed bitwords
+  × 32 prescribed signed-coordinate locations.
+- Every returned value is a finite raw IEEE-754 `f64`, including the
+  full value/significant bits rather than a formatted/rounded decimal.
+- 97 distinct raw bitwords across all 128 results; 18 equal
+  `bfdd555555555555` (the observed value -0.4583333333333333).
+  The four Y=-64 samples all have `3fa330e560418937`; the four
+  Y=320 samples all have `bf99983c131d5acc`. **Only these tested
+  coordinates are claimed**; these coincidences do not establish a
+  global clamping or interpolation formula.
+- Source-free, original-order 128-word fixture:
+  `vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt`,
+  **2,176 bytes**; SHA-256
+  `058846dd4c755802ffe43f829b109884331962712ac7556f4d5cb4320a597e4f`.
+  The private full original JSON is **not committed**.
+- Exact method body hashes (all `reviewed: false`): official
+  `DensityFunctions$Ap2.compute` SHA
+  `54d44e99cae188665438eda580ab0a76204c0c486b80edb603f32fa4375b3e48`;
+  `DensityFunctions$HolderHolder.compute` SHA
+  `766c33ffa1e2b33e38704aff1091b8abcf90e88365d12fbd274edfb70f1082aa`;
+  previous `RandomState.router` and `NoiseRouter.mapAll` pins unchanged.
+
+`tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py` independently
+requires the exact 2,176-byte fixture SHA and finite/raw-bit records.
+If asked to validate the source-owning receipt, it demands the exact
+original 25,704-byte JSON SHA, exact 26.2 archive/JAR/three-prior-receipt
+hashes, exact coordinate/seed order and all four indexed source-method
+signatures, their original body + normalized hashes and their
+`reviewed:false` status. No earlier admission gate can be set true.
+Standalone fixture verification needs no private JVM, archive or Atlas.
+
+```bash
+cd ~/Crucible
+python3 tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py
+
+# Additional source-owning receipt authentication (optional):
+python3 tools/worldgen_26_2_stock_final_density_singlepoint_fixture.py \
+  --capture /tmp/helve-26_2-stock-final-density-singlepoint-128.json
+```
+
+### Stop repeated shape discovery; move to chunk-accurate numeric parity
+
+The central next milestone is **a real `NoiseChunk`-scoped
+`finalDensity` value sample on the actual chunk interpolation lattice**,
+not a speculative port and not a new shallow graph-fingerprint capture.
+
+Before emitting any stock `NoiseChunk` numeric vectors, source-review
+the exact 26.2 `NoiseChunk` factory/constructor, settings/grid dimensions,
+random-state router wrapping/visitor, interpolator fill/start/swap/update
+order, cache and vertical slice lifetime, and the precise sampling
+callback. Record source method body hashes and reviewed conclusions;
+only call stock numerical APIs with these verified contracts.
+
+The comparison basis is now permanent: this immutable
+`SinglePointContext` oracle **cannot be silently relabelled as**
+`NoiseChunk` values. A new oracle must declare its actual context
+and explicitly state when the stock function is cache-sensitive and
+the two sampling paths legitimately differ.
+
+For any subsequent Rust compiled graph, use one owned, typed
+`NoiseRouter`-data programme attached to Helve's existing server
+world owner; no allocations in the per-block hot path and no
+per-coordinate registry lookups. Combine stage-level density arrays
+with qualified 16×16 planes and 16³ scratch where legal, deduplicate
+seeded NoiseHolder resolution once per state and benchmark whole-cost
+chunks, not only scalar microbenchmarks.
+
+**All gates remain closed**:
+`world_seed_random_state_bound=false`,
+`full_router_graph_qualified=false`,
+`router_numeric_parity_qualified=false`,
+`stock_noisechunk_interpolation_observed=false`,
+`independent_var_sem_admitted=false`,
+`production_worldgen_enabled=false`.

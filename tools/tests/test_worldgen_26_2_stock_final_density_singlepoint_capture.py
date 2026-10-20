@@ -106,7 +106,7 @@ class OriginalStockFinalDensityTests(unittest.TestCase):
              for i,line in enumerate(rows)],
             [line.replace("DensityFunctions$Ap2","DensityFunctions$Noise")
              if line.startswith(final.HEAD+"|0|") else line for line in rows],
-            [line.replace("|0x","|") if i==bit_index else line
+            [line.rsplit("|",1)[0]+"|bad" if i==bit_index else line
              for i,line in enumerate(rows)],
             [final.BITS+"|1|7ff8000000000000" if i==bit_index else line
              for i,line in enumerate(rows)],

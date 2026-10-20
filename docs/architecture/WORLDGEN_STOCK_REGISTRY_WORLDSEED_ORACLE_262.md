@@ -258,3 +258,18 @@ remain separate open obligations.
 The source file itself correctly records world_seed_random_state_observed=true,
 world_seed_random_state_bound=false, independent_var_sem_admitted=false,
 and production_worldgen_enabled=false.
+
+
+## Next implementation handoff (20 October 2026)
+
+The official 1,440-vector source-free capture and fixture validator are merged
+in PR #445, with all PR and post-merge main checks green. The next context
+should **not** rebuild the oracle; proceed to source-grounded stock
+registered-noise parameters, RandomState keyed seed/RNG construction and
+exact Rust replay.
+
+Canonical, detailed next-context work plan:
+[World-seed to Rust parity handoff](../execution/WORLDGEN_26_2_STOCK_WORLDSEED_TO_RUST_PARITY_HANDOFF_2026-10-20.md).
+
+Do not conflate observed official output with Rust worldseed parity, or
+R2C/R2D pre-generated-world milestones with production terrain generation.

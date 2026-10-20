@@ -117,6 +117,12 @@ fn load_stock_observed_states() -> Vec<RegisteredNormalObserved262> {
             assert_eq!(first.first_octave(), first_octave);
             assert_eq!(second.first_octave(), first_octave);
             assert_eq!(first.octave_count(), second.octave_count());
+            assert_eq!(first.octave_count(), match key {
+                "TEMPERATURE" => 6,
+                "CONTINENTALNESS" => 9,
+                "EROSION" => 5,
+                _ => unreachable!("three stock keys"),
+            });
             assert_eq!(next_record(&mut lines), "E");
             states.push(
                 RegisteredNormalObserved262::from_observed_parts(first, second, factor)
@@ -131,7 +137,7 @@ fn load_stock_observed_states() -> Vec<RegisteredNormalObserved262> {
 
 fn block_xyz(index: usize) -> (i32, i32, i32) {
     let i = i32::try_from(index).expect("exactly 32 reference positions");
-    let x = if i % 2 == 0 { 33_554_432 } else { -33_554_432 } + 13 * i;
+    let x = (if i % 2 == 0 { 33_554_432 } else { -33_554_432 }) + 13 * i;
     let z = (if i % 3 == 0 { 17 * i } else { -17 * i }) - 16;
     (x, Y[index], z)
 }
@@ -169,23 +175,14 @@ fn all_1440_stock_worldseed_bits_match_existing_rust_sampler_from_observed_state
 #[test]
 fn observed_stock_states_are_seed_dependent_and_nontruncated() {
     let states = load_stock_observed_states();
-    for (key_index, key) in KEYS.iter().enumerate() {
-        let octave_count = match *key {
-            "TEMPERATURE" => 6,
-            "CONTINENTALNESS" => 9,
-            "EROSION" => 5,
-            _ => unreachable!("exact three keys"),
-        };
+    for key_index in 0..KEYS.len() {
         for seed_index in 0..SEEDS.len() {
             let i = seed_index * KEYS.len() + key_index;
-            assert!(!states[i].state_bits_equal(&states[((seed_index + 1) % 5)
-                * KEYS.len() + key_index]), "distinct stock seeds must not alias");
-            assert_eq!(octave_count, match *key {
-                "TEMPERATURE" => 6,
-                "CONTINENTALNESS" => 9,
-                "EROSION" => 5,
-                _ => unreachable!(),
-            });
+            let next = ((seed_index + 1) % SEEDS.len()) * KEYS.len() + key_index;
+            assert!(
+                !states[i].state_bits_equal(&states[next]),
+                "distinct signed stock worldseeds cannot alias observed state"
+            );
         }
     }
 }

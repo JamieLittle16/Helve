@@ -257,8 +257,9 @@ fn all_1440_stock_worldseed_bits_match_rust_seed_derived_constructor() {
                 let density = RegisteredNoiseDensityObserved262::new(state, scale);
                 for point in 0..32 {
                     let (x, y, z) = block_xyz(point);
-                    let row = (((profile * SEEDS.len() + seed_index) * KEYS.len()
-                        + key_index) * 32) + point;
+                    let row = (((profile * SEEDS.len() + seed_index) * KEYS.len() + key_index)
+                        * 32)
+                        + point;
                     let expected = hex_bits(oracle[row]);
                     assert_eq!(
                         density.sample_block(x, y, z).to_bits(),

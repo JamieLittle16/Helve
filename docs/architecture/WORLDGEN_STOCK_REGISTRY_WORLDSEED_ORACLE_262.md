@@ -201,3 +201,60 @@ official bound noise constructor/oracle stays unchanged. This
 corrects an **API shape failure**, but does not yet prove that
 the remaining registry calls, actual world-seed values, or all
 1,440 numeric results succeed in the source-owning official JVM.
+
+
+## 20 October 2026 — first successful 1,440-vector official worldseed capture
+
+The source-owning, pinned Minecraft Java 26.2 runtime successfully evaluated
+stock-registry world-seeded RandomState.create(HolderGetter.Provider,
+ResourceKey, long), getOrCreateNoise, and DensityFunctions$Noise.compute
+over 32 signed XYZ contexts. The acquisition is not a predicted API shape.
+
+Source-free original capture file SHA-256:
+ee2135a89e196e482ea13eb374423cf14fb73a2c7f3e1e175dda1fbf785dced4
+
+Additional pinned identities:
+- Official server: cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5
+- Source archive: 1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750
+- Runtime binding frontier: 1ce8eec830e497ccae7cb814705fd820fa466fb7824c7c220b54313aabe5c2c7
+- Stock lookup method body: 63167b8b8e1f8ffd687a6577e61ab06c9e87ecb16457b9a65c67a8d8f07bf16d
+
+The compact, checked-in source-free reference is
+vanilla/reports/worldgen-26_2-stock-worldseed-noise-bits-01.txt.
+It stores exactly 1,440 newline-separated lowercase raw double bit strings,
+16 hex digits each; SHA-256:
+79bf0251f2cf8bb7f4bfb226be0ba7912a7a574c6aaf8e8f5a9560dd2edfe414.
+There are no Minecraft sources, jar contents, manually invented noise holders,
+or hidden original registry parameters in the fixture.
+
+The line index is fixed by the original input_rows() generator and iterates:
+1. Profiles: unit, quarter_xz, quarter_xz_half_y, in this explicit order;
+2. World seed patterns: zero, one, minus one, signed 64-bit minimum,
+   and 0x9e3779b97f4a7c15;
+3. Registered noise keys: TEMPERATURE, CONTINENTALNESS, EROSION;
+4. The 32 original signed XYZ contexts, including large/wrapped coordinates.
+
+CAUTION: JSON profile object keys are alphabetically sorted on serialization,
+but the sample iteration order above follows the original Python insertion
+order. Do not reorder the captured bit stream by JSON property order.
+
+The new tools/worldgen_26_2_stock_worldseed_fixture.py validates:
+- Frozen fixture byte length, SHA, bit encoding and finite values;
+- Exact original capture SHA if passed --capture /path/to/original.json;
+- Locked source and server identities, five pinned noise/seed method body
+  hashes, stock lookup identity, exact row content/ordering, and closed gates.
+Its regression and mutation tests run in the worldgen GitHub workflow.
+No private source is needed in CI.
+
+WHAT IS PROVEN: Authentic official stock-registry world-seeded noise outputs
+were captured, immutable raw bits were retained, and provenance is pinned.
+
+WHAT IS NOT YET PROVEN: A Rust world-seed/registered-noise derivation exists
+and produces 1,440/1,440 matching bits. These are reference values, not Rust
+parity results. Independent VAR/SEM source admission, NoiseRouter/terrain,
+biome and surface rules, and production chunk/worldgen publication also
+remain separate open obligations.
+
+The source file itself correctly records world_seed_random_state_observed=true,
+world_seed_random_state_bound=false, independent_var_sem_admitted=false,
+and production_worldgen_enabled=false.

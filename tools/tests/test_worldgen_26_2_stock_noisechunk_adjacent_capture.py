@@ -82,12 +82,12 @@ class AdjacentStockNoiseChunkTests(unittest.TestCase):
     def test_two_chunk_origins_have_proper_adjacent_cells(self):
         self.assertEqual(len(adjacent.points(0)),96)
         self.assertEqual(len(adjacent.points(1)),96)
-        self.assertEqual(adjacent.points(0)[0],(0,143,0))
-        self.assertEqual(adjacent.points(0)[-1],(7,120,7))
-        self.assertEqual(adjacent.points(1)[0],(-16,143,-16))
-        self.assertEqual(adjacent.points(1)[-1],(-9,120,-9))
+        self.assertEqual(adjacent.points(0)[0],(0,79,0))
+        self.assertEqual(adjacent.points(0)[-1],(7,56,7))
+        self.assertEqual(adjacent.points(1)[0],(-16,79,-16))
+        self.assertEqual(adjacent.points(1)[-1],(-9,56,-9))
         self.assertEqual(len(adjacent.input_rows()),768)
-        self.assertEqual(set(y//8 for _,y,_ in adjacent.points(0)),{15,16,17})
+        self.assertEqual(set((y+64)//8 for _,y,_ in adjacent.points(0)),{15,16,17})
         self.assertEqual(set(x//4 for x,_,_ in adjacent.points(1)),{-4,-3})
         self.assertEqual(set(z//4 for _,_,z in adjacent.points(1)),{-4,-3})
 
@@ -95,7 +95,7 @@ class AdjacentStockNoiseChunkTests(unittest.TestCase):
         output="\n".join(self.frames())
         bits=adjacent.parse_output(output)
         self.assertEqual(len(bits),768)
-        self.assertEqual(bits[0],"0x"+struct.pack(">d",143.0).hex())
+        self.assertEqual(bits[0],"0x"+struct.pack(">d",79.0).hex())
         adjacent.validate(self.manifest(bits),self.methods())
 
     def test_missing_duplicate_reordered_nonfinite_and_wrong_frame_fail(self):

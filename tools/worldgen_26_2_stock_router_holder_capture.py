@@ -126,7 +126,9 @@ def parse_output(stdout: str, previous: dict, original_roots: dict) -> list[dict
             line=rows[cursor];cursor+=1
             if len(line)!=7 or line[0]!=TAG or line[1]!=str(i) \
                or line[2]!=str(node["node_id"]) or line[3]!=str(node["depth"]) \
-               or not all(CLASS.fullmatch(v) for v in line[4:]):
+               or not CLASS.fullmatch(line[4]) \
+               or not graph.DENSITY_CLASS.fullmatch(line[5]) \
+               or not graph.DENSITY_CLASS.fullmatch(line[6]):
                 raise HolderEvidenceError("wrong order, context or class in bound holder")
             bound.append({
                 "node_id":node["node_id"],"depth":node["depth"],
@@ -220,10 +222,12 @@ def validate(manifest:dict, previous:dict, source_methods:dict) -> None:
                or actual["node_id"]!=node["node_id"] \
                or type(actual["depth"]) is not int or actual["depth"]!=node["depth"] \
                or actual["source_reviewed"] is not False \
-               or any(not isinstance(actual[k],str) or not CLASS.fullmatch(actual[k])
-                      for k in ("holder_implementation_class",
-                                "bound_density_implementation_class",
-                                "bound_compute_declaring_class")):
+               or not isinstance(actual["holder_implementation_class"],str) \
+               or not CLASS.fullmatch(actual["holder_implementation_class"]) \
+               or not isinstance(actual["bound_density_implementation_class"],str) \
+               or not graph.DENSITY_CLASS.fullmatch(actual["bound_density_implementation_class"]) \
+               or not isinstance(actual["bound_compute_declaring_class"],str) \
+               or not graph.DENSITY_CLASS.fullmatch(actual["bound_compute_declaring_class"]):
                 raise HolderEvidenceError("invalid real HolderHolder.function.value identity")
 
 

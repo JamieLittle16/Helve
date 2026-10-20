@@ -514,3 +514,46 @@ marker/interpolator wrappers (including per-cell state), and the
 stock route to `finalDensity`; extend typed immutable graph nodes
 only after source-law review and independently captured numeric
 evidence. Keep all canonical/VAR/SEM/production gates **false**.
+
+
+## Explicit demand-evaluated 26.2 Ap2 multiply in bounded Rust density DAG
+
+After PR #474, the next source-observed graph-control step is
+`StockDensityNode262::ExplicitAp2Multiply { left, right }` in the
+**same** immutable 32-node `StockDensityProgram262`. This does not
+introduce a second world or a new independently assumed router.
+
+Unlike the older generic eager `Multiply` node, an explicitly selected
+`Ap2` multiply first evaluates its left dependency and returns
+**positive zero immediately** when the left result has exact `+0`
+IEEE bits. Only when the left is not positive zero does it demand its
+right subtree and multiply in the original operand order. COLD-validated
+backward dependencies cap nesting at 32; one per-sample stack-backed
+`[bool; N]` mask memoizes shared nodes and avoids heap allocation.
+Skipped subtree scratch slots are deliberately left unchanged. Programs
+without any explicit `Ap2` continue on the previous eager hot path.
+
+The implementation is qualified only on **genuine, independently
+observed JVM-selected `Ap2` examples**:
+
+- **384** original stock mixed dynamic Noise/Y-gradient multiply words
+  (profiles 2 and 3 of the frozen 1,920), across four world seeds and
+  three registered noise keys;
+- **160** original two-gradient multiply words (one frozen
+  1,280-composition profile, across five seeds and 32 positions);
+- explicit nested left-expression `+0` short-circuit, no right-subtree
+  demand, reinitialised per-sample scratch and full 16×16/16³ scalar
+  coherence including y=128.
+
+**Critical:** `ExplicitAp2Multiply` is a *caller-chosen node type*.
+The compiler must NOT infer Mojang's factory choice for arbitrary
+children, map a stock `finalDensity` root to multiplication merely
+because its Java class is `Ap2`, or treat pure memoization as the
+stock `NoiseChunk` cache/interpolator lifetime. The observed
+`finalDensity` root is `Ap2(Mapped, HolderHolder)`, but the operation,
+mapped transform, holder target and their source laws require a
+separate grounded review. No production/canonical/VAR/SEM/worldgen
+permission changes. Next: inspect the exact root's operation and
+`Mapped` transformation and resolve its bound holder before
+instantiating a stock full-router graph. Reuse already-frozen JVM
+numeric observations; never fabricate missing nodes or source laws.

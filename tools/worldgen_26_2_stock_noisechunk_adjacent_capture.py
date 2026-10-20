@@ -52,7 +52,7 @@ def points(chunk_index:int)->tuple[tuple[int,int,int],...]:
         raise AdjacentError("wrong bounded chunk index")
     origin=CHUNK_ORIGINS[chunk_index]
     return tuple(
-        (origin+cx*4+lx,cy*8+ly,origin+cz*4+lz)
+        (origin+cx*4+lx,-64+cy*8+ly,origin+cz*4+lz)
         for cx in range(2)
         for cz in range(2)
         for cy in range(17,14,-1)

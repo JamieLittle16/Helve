@@ -36,6 +36,9 @@ on:
       - "tools/worldgen_java/HelveStockMixedDensity262.java"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_capture.py"
       - "tools/worldgen_26_2_stock_mixed_density_fixture.py"
+      - "tools/worldgen_26_2_stock_router_roots_capture.py"
+      - "tools/worldgen_java/HelveStockNoiseRouterRoots262.java"
+      - "tools/tests/test_worldgen_26_2_stock_router_roots_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_fixture.py"
@@ -82,6 +85,9 @@ on:
       - "tools/worldgen_java/HelveStockMixedDensity262.java"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_capture.py"
       - "tools/worldgen_26_2_stock_mixed_density_fixture.py"
+      - "tools/worldgen_26_2_stock_router_roots_capture.py"
+      - "tools/worldgen_java/HelveStockNoiseRouterRoots262.java"
+      - "tools/tests/test_worldgen_26_2_stock_router_roots_capture.py"
       - "tools/tests/test_worldgen_26_2_stock_mixed_density_fixture.py"
       - "tools/worldgen_26_2_stock_worldseed_heldout_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_worldseed_heldout_fixture.py"
@@ -196,6 +202,9 @@ jobs:
         run: |
           python3 tools/worldgen_26_2_stock_mixed_density_fixture.py
           python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_mixed_density_fixture.py' -v
+      
+      - name: Verify stock 26.2 NoiseRouter 15-root source-pinned JVM reflection contract
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_router_roots_capture.py' -v
 
       - name: Validate SHA-pinned independently captured 576-vector official stock JVM held-out evidence
         run: |

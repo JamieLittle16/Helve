@@ -130,8 +130,11 @@ class StockHolderEvidenceTests(unittest.TestCase):
             [x.replace("DensityFunctions$Noise|","java.lang.Object|")
              if x.startswith(holder.TAG+"|0|") else x for x in lines],
         )
-        for changed in failures:
-            with self.subTest(lines=len(changed)):
+        for case,changed in enumerate(failures):
+            with self.subTest(case=case,lines=len(changed)):
+                # Every corruption vector MUST actually change the fixture,
+                # otherwise passing the original transcript is not a test.
+                self.assertNotEqual(changed,lines,"inert corruption case")
                 with self.assertRaises((holder.HolderEvidenceError,
                                         holder.graph.RouterGraphError)):
                     holder.parse_output("\n".join(changed),previous,original)

@@ -1,0 +1,15 @@
+barrierNoise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	
+fluidLevelFloodednessNoise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	
+fluidLevelSpreadNoise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	
+lavaNoise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	
+temperature	net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise	net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise	shiftX:net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder;shiftY:net.minecraft.world.level.levelgen.DensityFunctions$Constant;shiftZ:net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder
+vegetation	net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise	net.minecraft.world.level.levelgen.DensityFunctions$ShiftedNoise	shiftX:net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder;shiftY:net.minecraft.world.level.levelgen.DensityFunctions$Constant;shiftZ:net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder
+continents	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	
+erosion	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	
+depth	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	
+ridges	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder	
+preliminarySurfaceLevel	net.minecraft.world.level.levelgen.DensityFunctions$FindTopSurface	net.minecraft.world.level.levelgen.DensityFunctions$FindTopSurface	density:net.minecraft.world.level.levelgen.DensityFunctions$MulOrAdd;upperBound:net.minecraft.world.level.levelgen.DensityFunctions$Clamp
+finalDensity	net.minecraft.world.level.levelgen.DensityFunctions$Ap2	net.minecraft.world.level.levelgen.DensityFunctions$Ap2	argument1:net.minecraft.world.level.levelgen.DensityFunctions$Mapped;argument2:net.minecraft.world.level.levelgen.DensityFunctions$HolderHolder
+veinToggle	net.minecraft.world.level.levelgen.DensityFunctions$Marker	net.minecraft.world.level.levelgen.DensityFunctions$Marker	wrapped:net.minecraft.world.level.levelgen.DensityFunctions$RangeChoice
+veinRidged	net.minecraft.world.level.levelgen.DensityFunctions$MulOrAdd	net.minecraft.world.level.levelgen.DensityFunctions$PureTransformer	input:net.minecraft.world.level.levelgen.DensityFunctions$Ap2
+veinGap	net.minecraft.world.level.levelgen.DensityFunctions$Noise	net.minecraft.world.level.levelgen.DensityFunctions$Noise	

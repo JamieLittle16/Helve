@@ -33,8 +33,16 @@ fn compiled_explicit_ap2_min_matches_all_128_original_java_root_words() {
         let b = f64::from_bits(word(fields[1]));
         let java = word(fields[2]);
         assert!(a.is_finite() && b.is_finite());
-        assert_ne!(a.to_bits() & 0x7fff_ffff_ffff_ffff, 0, "observed nonzero left");
-        assert_ne!(b.to_bits() & 0x7fff_ffff_ffff_ffff, 0, "observed nonzero right");
+        assert_ne!(
+            a.to_bits() & 0x7fff_ffff_ffff_ffff,
+            0,
+            "observed nonzero left"
+        );
+        assert_ne!(
+            b.to_bits() & 0x7fff_ffff_ffff_ffff,
+            0,
+            "observed nonzero right"
+        );
         assert_eq!(
             java, expected[index],
             "must preserve independent 128-word fixture"

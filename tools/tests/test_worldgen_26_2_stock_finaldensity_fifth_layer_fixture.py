@@ -33,7 +33,7 @@ class OriginalFifthLayerFixtureTests(unittest.TestCase):
             raw[:-1],
             raw.replace(b"\t",b" ",1),
             raw.replace(b"0000000000000000",b"7ff0000000000000",1),
-            raw.replace(b"3fc7d9a6a0c05db0",b"3fc7d9a6a0c05db1",1),
+            raw.replace(b"3fd01a874a693da1",b"3fd01a874a693da2",1),
             raw.replace(b"3f764afa7f9edb4d",b"3f764afa7f9edb4e",1),
             b"\n".join(reversed(raw.splitlines()))+b"\n",
         ]

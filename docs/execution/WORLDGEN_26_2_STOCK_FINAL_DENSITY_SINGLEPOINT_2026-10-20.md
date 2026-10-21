@@ -371,3 +371,29 @@ Then expand recursively to the actual underlying noise and spline
 graph, followed by separate NoiseChunk/interpolator and 768/512
 original-cell parity. Do not instantiate a production terrain
 publisher until the documented gates are satisfied.
+
+
+### First private inner-review run: marker enum transport correction
+
+The first source-owning local run following PR #479 reached the Java
+diagnostic and then failed inside the Python *parser* with
+`unqualified original marker/range classes`. Its Python enum grammar
+incorrectly required uppercase underscore-separated names, although
+the original Java `Marker$Type` enum may use conventional
+UpperCamelCase identifiers (such as `CacheAllInCell`).
+
+The repaired parser now accepts only short ASCII Java-style identifiers
+while requiring the **exact** declaring class
+`net.minecraft.world.level.levelgen.DensityFunctions$Marker$Type`,
+safe bounded qualified names for wrapped/selector/branch classes,
+and finite IEEE-754 threshold words. Errors now distinguish an altered
+enum declaring class, malformed enum name, invalid runtime class or
+invalid numeric threshold. CI tests simulate CamelCase constants and
+reject malformed names and class substitutions.
+
+This is **a reviewer transport correction**, not a source-law
+admission. The first run produced **no** source-free inner JSON; no new
+Marker/RangeChoice numerical evidence has yet been committed or
+validated. Rerun only this same **new** inner review after its fix is
+merged. The prior 128 first-level, 512 cell and 768 NoiseChunk oracle
+records remain frozen and require no recapture.

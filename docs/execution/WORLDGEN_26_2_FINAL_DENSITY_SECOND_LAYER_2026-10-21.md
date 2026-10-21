@@ -161,3 +161,23 @@ The new typed Rust ExplicitAp2Max node is bounded and source-unadmitted. crates/
 ### Next fifth-layer source-owning frontier
 
 Only descend newly unresolved actual branches: (1) left ADD's child Ap2 enum and two real child types; (2) the YClampedGradient actual gradient endpoints (bounds and densities) and whether the two HolderHolder targets are source-identical, without assuming so from equal single-point samples; (3) outside RangeChoice's HolderHolder target class and exact delegation; (4) outside in-range MulOrAdd operation, finite argument and child type; (5) both MAX Mapped nodes' mapping enum and wrapped child classes. Separately source-review the existing nested Noise registry key/scales for coherent native qualification. Keep captures bounded and use **only new leaf words** with fourth-layer old anchors; no previous capture reruns. Independently qualify source-law, NoiseChunk cache/interpolation and production admission before ever connecting generated terrain to live publication. All previously false admission flags stay false.
+
+
+## Fifth-layer bounded source-owning observer prepared after fourth-layer #489
+
+PR #489 merged completely green; verified main immediately after its merge: 13186f2aa5491562f9f4abdd3f0037d76cebdb3e. Fourth-layer private owner report is already completed; **never repeat it**. Its six old outputs are not reproduced as new permanent fixtures. The fifth-layer code is tools/worldgen_java/HelveStockFinalDensityFifthLayer262.java and tools/worldgen_26_2_stock_final_density_fifth_layer.py, with strict mock transport, false-admission, source-pin, no-owner and Java compilation tests in tools/tests/test_worldgen_26_2_stock_final_density_fifth_layer.py.
+
+The original JVM must identify the actual left Ap2 enum, two child classes and per-sample operands; the YClampedGradient record's real from/to heights and density endpoints; the outside HolderHolder target; the outside in-range MulOrAdd operation, argument and child; and both MAX Mapped enum kinds, child classes and input values. Precisely **six new source-owning scalar child values per original XYZ**; five fourth-layer values are checked bit-for-bit against the independently frozen fourth-layer seven-word fixture SHA 149ebe4d87dbbf2ebc1d40bc5149656b5e50ae16db16bf9d9210f3510b37543c, and are not exported again as permanent fixtures. This is a fixed-size original-26.2-SinglePointContext graph exploration, not a NoiseChunk lifecyle or source-law admission.
+
+When the fifth observer's own PR passes CI and has merged, run **only** the next bounded diagnostic locally on the private source owner (no root/inner/second/third/fourth/512-cell/768-NoiseChunk recapture):
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_fifth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-fifth-layer-128.json
+
+Upload only the source-free bounded fifth-layer JSON or exact source-free `HELVE26_2_FIFTH_FAILURE` phase and exception class. YClampedGradient field reflection is guarded: a shape or record-component change must fail closed, never trigger a guess or alternate semantics. All source-law, registered noise binding, marker interpolation, VAR/SEM and production publishing gates stay false.

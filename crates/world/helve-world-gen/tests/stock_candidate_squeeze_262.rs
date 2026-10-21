@@ -23,7 +23,9 @@ fn candidate(value: f64) -> f64 {
 
 #[test]
 fn candidate_squeeze_is_clamped_and_respects_operation_order() {
-    for input in [-9.0, -2.0, -1.0, -0.5, -0.125, 0.0, 0.125, 0.5, 1.0, 2.0, 9.0] {
+    for input in [
+        -9.0, -2.0, -1.0, -0.5, -0.125, 0.0, 0.125, 0.5, 1.0, 2.0, 9.0,
+    ] {
         let program = Program::new([
             Node::Primitive(DensityPrimitive262::constant(input)),
             Node::CandidateSqueeze { input: 0 },
@@ -45,8 +47,14 @@ fn candidate_squeeze_is_clamped_and_respects_operation_order() {
         Node::CandidateSqueeze { input: 0 },
     ])
     .expect("negative bound");
-    assert_eq!(positive.sample_block(0, 0, 0).to_bits(), (11.0_f64 / 24.0).to_bits());
-    assert_eq!(negative.sample_block(0, 0, 0).to_bits(), (-11.0_f64 / 24.0).to_bits());
+    assert_eq!(
+        positive.sample_block(0, 0, 0).to_bits(),
+        (11.0_f64 / 24.0).to_bits()
+    );
+    assert_eq!(
+        negative.sample_block(0, 0, 0).to_bits(),
+        (-11.0_f64 / 24.0).to_bits()
+    );
 }
 
 #[test]
@@ -80,8 +88,17 @@ fn candidate_squeeze_can_be_shared_under_min_and_lazy_ap2_multiply() {
     .expect("bounded and shared candidate stage");
     let sentinel = f64::from_bits(0x7ff8_1234_4567_89ab);
     let mut scratch = [sentinel; 5];
-    assert_eq!(program.sample_with_scratch(0, 128, 0, &mut scratch).to_bits(), 0);
-    assert!(scratch[1..4].iter().all(|v| v.to_bits() == sentinel.to_bits()));
+    assert_eq!(
+        program
+            .sample_with_scratch(0, 128, 0, &mut scratch)
+            .to_bits(),
+        0
+    );
+    assert!(
+        scratch[1..4]
+            .iter()
+            .all(|v| v.to_bits() == sentinel.to_bits())
+    );
     for y in [64, 127, 129, 192, 320] {
         let g = gradient.sample_block_y(y);
         let expected = g * candidate(g).min(0.4);
@@ -122,7 +139,9 @@ fn candidate_squeeze_seeded_graph_plane_and_cell_are_scalar_coherent() {
             -16,
             120,
             -16,
-            cell.as_mut().try_into().expect("fixed borrowed 4096 output"),
+            cell.as_mut()
+                .try_into()
+                .expect("fixed borrowed 4096 output"),
         )
         .expect("bounded candidate cell");
     for dy in 0_i32..16 {

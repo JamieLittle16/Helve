@@ -181,3 +181,28 @@ When the fifth observer's own PR passes CI and has merged, run **only** the next
       --output /tmp/helve-26_2-final-fifth-layer-128.json
 
 Upload only the source-free bounded fifth-layer JSON or exact source-free `HELVE26_2_FIFTH_FAILURE` phase and exception class. YClampedGradient field reflection is guarded: a shape or record-component change must fail closed, never trigger a guess or alternate semantics. All source-law, registered noise binding, marker interpolation, VAR/SEM and production publishing gates stay false.
+
+
+## Actual fifth-layer original-JVM receipt and Rust parity (22 October 2026)
+
+**The fifth-layer owner execution succeeded; it must not be rerun.** Uploaded original stock Java 26.2 source-free JSON is exactly **103,398 bytes** with SHA-256 **0116b9cc0d7ed21edc19a93b37a99207f37726fa781affbd7901dc814b390bbd**. It records four seed-invariant runtime shapes and 128 finite `DensityFunction$SinglePointContext` observations. The parent fourth-layer fixture remains 15,232 bytes, SHA-256 149ebe4d87dbbf2ebc1d40bc5149656b5e50ae16db16bf9d9210f3510b37543c. Five independent original-fourth output words per point remain frozen equality anchors (**640 comparisons**); no previous root, inner, second, third, fourth, cell or NoiseChunk captures are repeated.
+
+Actual new graph nodes, *not* historical guesses:
+
+- The left `Ap2` is real `MUL(YClampedGradient, MulOrAdd)`; 128/128 exact finite binary64 products. Its left gradient's **own source record parameters have not been collected**, so that operand remains an original-JVM leaf.
+- The nested selector's `HolderHolder` target is a real `YClampedGradient` with record `fromY=-4064, toY=4062, fromValue=-4064, toValue=4062`. The already-existing Rust gradient primitive matches the original nested selector at all 128 fixed Y positions (including the four Y=-4096 clamps), but all-input source law is NOT admitted.
+- The *outside* selector's `HolderHolder` target class is also `YClampedGradient`; its **own record bounds are NOT exposed**. Its observed outputs match the same clamp for 128 points, but **DO NOT alias** this target to the nested gradient or assert identical source parameters.
+- The outside in-range `MulOrAdd` is `ADD` of exact IEEE coefficient `0xbfb3333333333334` (approximately −0.075) and another `MulOrAdd` child. 128/128 finite word matches.
+- Both MAX children are `Mapped ABS(Marker)`, each 128/128 original input-to-output word matches (**256/256**). The two Markers still have genuine NoiseChunk cache/interpolation obligations.
+- The original first/second/.../fifth `finalDensity` partial graph is now assembled as one **25-node** cold-validated backwards-only bounded Rust candidate; only genuinely unknown child operands are injected, and the existing gradient primitive is used at real fixed block Y. Existing production hot paths are unchanged.
+
+**New evidence fixture only:** `crates/world/helve-world-gen/tests/data/stock_finaldensity_fifth_layer_new_128_rawbits.tsv` contains 128 × 6 *new* IEEE-754 child inputs, exactly **13,056 bytes**, SHA-256 **1f0c3cf5e9c7fda8a8c348d68d431a99f4c3871611dacd48a97a442ed95a9433**. `tools/worldgen_26_2_stock_finaldensity_fifth_layer_fixture.py` verifies exact private owner report bytes/SHA (optional), stock source/JAR/Atlas/registry/method pin transport, seed-invariant exact runtime shape and all previous parent output bit anchors; mutation tests are in `tools/tests/test_worldgen_26_2_stock_finaldensity_fifth_layer_fixture.py`. The new `CandidateAbs` finite operator is implemented in both standard and demand Rust paths; `crates/world/helve-world-gen/tests/stock_finaldensity_fifth_layer_262.rs` separately checks every newly observed operator even when lazy parents mask it, and the original older MIN root across 128 sample points.
+
+Read-only original JSON authentication (if needed, no recapture):
+
+    python3 tools/worldgen_26_2_stock_finaldensity_fifth_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-fifth-layer-128.json
+
+### Next sixth-layer frontier: advance genuine source leaves, not old oracles
+
+The real graph is now narrower. A new bounded original-JVM source-owner descent, if needed, must inspect only: (1) *left* `Ap2` Y-gradient **own** record bounds and its right `MulOrAdd` actual operation/argument/child; (2) the **outside** `YClampedGradient` own record bounds, permitting an independent exact structural equality test against the nested one; (3) outside in-range `MulOrAdd` child's operation/argument/child; and (4) the actual child types beneath the **two ABS Markers** (with distinct marker kinds). Separately review the existing nested `Noise` registry key, scales and noise-seeding binding, and qualify the full canonical `NoiseChunk` lifecycle before production. Preserve the existing performance, reusable seeded-noise stack, bounded allocation-free scratch and true source-gated publication architecture. All source-law, NoiseChunk, full-router, VAR/SEM and production gates remain FALSE.

@@ -80,7 +80,7 @@ def parse_output(stdout:str)->tuple[list[dict],list[dict]]:
             raise SecondLayerError("missing original second-layer shape")
         row=frames[cursor]
         cursor+=1
-        if len(row)!=13 or row[:3]!=[HEAD,str(seed_index),seed]:
+        if len(row)!=14 or row[:3]!=[HEAD,str(seed_index),seed]:
             raise SecondLayerError("original second-layer shape frame changed")
         (mul_enum,mul_op,mul_arg,mul_input,
          selector_enum,selector_kind,selector_input,

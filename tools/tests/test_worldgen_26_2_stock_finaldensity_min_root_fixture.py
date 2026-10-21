@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import contextlib
 import io
-import shutil
 import sys
 import tempfile
 import unittest
@@ -43,9 +42,13 @@ class StockMinRootFixtureTests(unittest.TestCase):
                 dest.write_bytes(changed)
                 with self.subTest(case=i),self.assertRaises(rootmin.MinRootFixtureError):
                     rootmin.read_words(dest)
-                if len(changed)==len(raw):
+                if len(changed)==len(raw) and i!=6:
                     with self.subTest(case=i),self.assertRaises(rootmin.MinRootFixtureError):
                         rootmin.read_words(dest,enforce_sha=False)
+                elif i==6:
+                    # A non-winning Holder value may change without changing
+                    # MIN output. Exact byte SHA is therefore indispensable.
+                    self.assertEqual(len(rootmin.read_words(dest,enforce_sha=False)),128)
 
     def test_unverified_original_capture_does_not_pass(self):
         with tempfile.TemporaryDirectory() as folder:

@@ -45,6 +45,10 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_router_holder_capture.py"
       - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_26_2_stock_final_density_root_semantics.py"
+      - "tools/worldgen_26_2_stock_final_density_inner_semantics.py"
+      - "tools/worldgen_java/HelveStockFinalDensityInnerSemantics262.java"
+      - "tools/tests/test_worldgen_26_2_stock_final_density_inner_semantics.py"
+      - "crates/world/helve-world-gen/tests/stock_candidate_squeeze_262.rs"
       - "tools/worldgen_26_2_stock_finaldensity_min_root_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_finaldensity_min_root_fixture.py"
       - "crates/world/helve-world-gen/tests/data/stock_finaldensity_min_root_128_rawbits.tsv"
@@ -135,6 +139,10 @@ on:
       - "tools/tests/test_worldgen_26_2_stock_router_holder_capture.py"
       - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_26_2_stock_final_density_root_semantics.py"
+      - "tools/worldgen_26_2_stock_final_density_inner_semantics.py"
+      - "tools/worldgen_java/HelveStockFinalDensityInnerSemantics262.java"
+      - "tools/tests/test_worldgen_26_2_stock_final_density_inner_semantics.py"
+      - "crates/world/helve-world-gen/tests/stock_candidate_squeeze_262.rs"
       - "tools/worldgen_26_2_stock_finaldensity_min_root_fixture.py"
       - "tools/tests/test_worldgen_26_2_stock_finaldensity_min_root_fixture.py"
       - "crates/world/helve-world-gen/tests/data/stock_finaldensity_min_root_128_rawbits.tsv"
@@ -298,6 +306,9 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_finaldensity_min_root_fixture.py' -v
           python3 tools/worldgen_26_2_stock_finaldensity_min_root_fixture.py
+
+      - name: Verify genuine inner Marker and RangeChoice branch reviewer transport
+        run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_final_density_inner_semantics.py' -v
 
       - name: Verify pinned stock 26.2 root operation and child-bits diagnostic transport
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_final_density_root_semantics.py' -v

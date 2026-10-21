@@ -69,7 +69,7 @@ pub enum StockDensityNode262<'a> {
     /// Its formula is a **candidate** until separately matched against
     /// genuine original JVM Marker-input/Mapped-output pairs and reviewed
     /// against the pinned 26.2 mapping source body. This does not admit the
-    /// marker's NoiseChunk cache, interpolation, or complete finalDensity.
+    /// marker's `NoiseChunk` cache, interpolation, or complete `finalDensity`.
     CandidateSqueeze { input: usize },
 }
 
@@ -141,6 +141,37 @@ pub struct StockDensityProgram262<'a, const N: usize> {
 }
 
 impl<'a, const N: usize> StockDensityProgram262<'a, N> {
+    /// Validate strictly backward unary and binary edges once at COLD construction.
+    fn validate_edges(nodes: &[StockDensityNode262<'a>; N]) -> Result<(), StockDensityProgramError262> {
+        for (index, node) in nodes.iter().enumerate() {
+            match *node {
+                StockDensityNode262::Add { left, right }
+                | StockDensityNode262::Multiply { left, right }
+                | StockDensityNode262::ExplicitAp2Multiply { left, right }
+                | StockDensityNode262::ExplicitAp2Min { left, right } => {
+                    for child in [left, right] {
+                        if child >= index {
+                            return Err(StockDensityProgramError262::InvalidDependency {
+                                node: index,
+                                child,
+                            });
+                        }
+                    }
+                }
+                StockDensityNode262::CandidateSqueeze { input } => {
+                    if input >= index {
+                        return Err(StockDensityProgramError262::InvalidDependency {
+                            node: index,
+                            child: input,
+                        });
+                    }
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
     /// Validate dependencies, dead nodes and a bounded scratch footprint once.
     ///
     /// # Errors
@@ -154,33 +185,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             return Err(StockDensityProgramError262::TooManyNodes);
         }
 
-        for (index, node) in nodes.iter().enumerate() {
-            if let StockDensityNode262::Add { left, right }
-            | StockDensityNode262::Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Min { left, right } = node
-            {
-                for &child in &[*left, *right] {
-                    if child >= index {
-                        return Err(StockDensityProgramError262::InvalidDependency {
-                            node: index,
-                            child,
-                        });
-                    }
-                }
-            }
-        }
-
-        for (index, node) in nodes.iter().enumerate() {
-            if let StockDensityNode262::CandidateSqueeze { input } = *node {
-                if input >= index {
-                    return Err(StockDensityProgramError262::InvalidDependency {
-                        node: index,
-                        child: input,
-                    });
-                }
-            }
-        }
+        Self::validate_edges(&nodes)?;
 
         let mut reachable = [false; N];
         reachable[N - 1] = true;

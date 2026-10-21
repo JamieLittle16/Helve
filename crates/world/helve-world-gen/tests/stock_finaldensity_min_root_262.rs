@@ -11,8 +11,9 @@ use helve_world_gen::stock_density_program_262::{
 };
 
 const ORIGINAL: &str = include_str!("data/stock_finaldensity_min_root_128_rawbits.tsv");
-const FINAL: &str =
-    include_str!("../../../../vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt");
+const FINAL: &str = include_str!(
+    "../../../../vanilla/reports/worldgen-26_2-stock-final-density-singlepoint-128-bits.txt"
+);
 
 fn word(raw: &str) -> u64 {
     assert_eq!(raw.len(), 16, "16 original raw hexadecimal digits");
@@ -34,7 +35,10 @@ fn compiled_explicit_ap2_min_matches_all_128_original_java_root_words() {
         assert!(a.is_finite() && b.is_finite());
         assert_ne!(a, 0.0, "captured min operands exclude unreviewed ±0");
         assert_ne!(b, 0.0, "captured min operands exclude unreviewed ±0");
-        assert_eq!(java, expected[index], "must preserve independent 128-word fixture");
+        assert_eq!(
+            java, expected[index],
+            "must preserve independent 128-word fixture"
+        );
 
         let program = Program::new([
             Node::Primitive(DensityPrimitive262::constant(a)),
@@ -53,7 +57,10 @@ fn compiled_explicit_ap2_min_matches_all_128_original_java_root_words() {
         count += 1;
     }
     assert_eq!(count, 128);
-    assert_eq!(right_wins, 4, "HolderHolder RangeChoice cannot be discarded");
+    assert_eq!(
+        right_wins, 4,
+        "HolderHolder RangeChoice cannot be discarded"
+    );
 }
 
 #[test]
@@ -73,9 +80,18 @@ fn min_node_is_reachable_and_compatible_with_lazy_ap2_multiply() {
 
     let sentinel = f64::from_bits(0x7ff8_1234_5678_9abc);
     let mut scratch = [sentinel; 5];
-    assert_eq!(program.sample_with_scratch(0, 128, 0, &mut scratch).to_bits(), 0);
+    assert_eq!(
+        program
+            .sample_with_scratch(0, 128, 0, &mut scratch)
+            .to_bits(),
+        0
+    );
     for slot in &scratch[..3] {
-        assert_eq!(slot.to_bits(), sentinel.to_bits(), "lazy +0 skips MIN subtree");
+        assert_eq!(
+            slot.to_bits(),
+            sentinel.to_bits(),
+            "lazy +0 skips MIN subtree"
+        );
     }
     assert_eq!(scratch[3].to_bits(), 0.0_f64.to_bits());
     assert_eq!(scratch[4].to_bits(), 0.0_f64.to_bits());
@@ -88,8 +104,8 @@ fn min_node_is_reachable_and_compatible_with_lazy_ap2_multiply() {
 
 #[test]
 fn explicit_min_batch_paths_equal_scalar_results_without_heap_in_evaluator() {
-    let gradient = DensityPrimitive262::y_clamped_gradient(-64, 320, -1.0, 1.0)
-        .expect("observed Y gradient");
+    let gradient =
+        DensityPrimitive262::y_clamped_gradient(-64, 320, -1.0, 1.0).expect("observed Y gradient");
     let program = Program::new([
         Node::Primitive(gradient),
         Node::Primitive(DensityPrimitive262::constant(0.1)),

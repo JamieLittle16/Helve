@@ -114,6 +114,12 @@ pub enum StockDensityNode262<'a> {
     /// against the pinned 26.2 mapping source body. This does not admit the
     /// marker's `NoiseChunk` cache, interpolation, or complete `finalDensity`.
     CandidateSqueeze { input: usize },
+    /// Actual original 26.2 fifth-layer `Mapped(type=ABS)` finite-sample candidate.
+    ///
+    /// Both MAX children independently match 128 stock JVM input/output words
+    /// each, including negative values and zero. Marker `NoiseChunk` caching,
+    /// NaN/signed-zero source law and production admission remain UNQUALIFIED.
+    CandidateAbs { input: usize },
     /// Source-observed `RangeChoice` selector with lazy branch evaluation.
     ///
     /// The stock 26.2 `finalDensity` bound [-1,000,000, 0) selects
@@ -244,7 +250,10 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                         }
                     }
                 }
-                StockDensityNode262::CandidateSqueeze { input } if input >= index => {
+                StockDensityNode262::CandidateSqueeze { input }
+                | StockDensityNode262::CandidateAbs { input }
+                    if input >= index =>
+                {
                     return Err(StockDensityProgramError262::InvalidDependency {
                         node: index,
                         child: input,
@@ -338,6 +347,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                     reachable[right] = true;
                 }
                 StockDensityNode262::CandidateSqueeze { input }
+                | StockDensityNode262::CandidateAbs { input }
                 | StockDensityNode262::CandidateMulOrAdd { input, .. } => {
                     reachable[input] = true;
                 }
@@ -464,6 +474,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::CandidateSqueeze { input } => {
                     candidate_squeeze(scratch[input])
                 }
+                StockDensityNode262::CandidateAbs { input } => scratch[input].abs(),
                 StockDensityNode262::CandidateMulOrAdd {
                     input,
                     argument,
@@ -526,6 +537,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             }
             StockDensityNode262::CandidateSqueeze { input } => {
                 candidate_squeeze(self.evaluate_demand(input, block, scratch, computed))
+            }
+            StockDensityNode262::CandidateAbs { input } => {
+                self.evaluate_demand(input, block, scratch, computed).abs()
             }
             StockDensityNode262::CandidateMulOrAdd {
                 input,

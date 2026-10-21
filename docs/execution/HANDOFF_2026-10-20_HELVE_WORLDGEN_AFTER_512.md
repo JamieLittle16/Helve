@@ -666,3 +666,54 @@ Remaining actual implementation frontier:
 **Do not rerun the original 128 root/operand diagnostic.** Its output
 is complete and pinned; future tools should collect only new semantic
 inputs where implementation genuinely requires them.
+
+
+## 21 October — typed SQUEEZE candidate and true deeper original JVM frontier
+
+After merged PR #478, the root is now correctly implemented as
+`ExplicitAp2Min` and matches 128 genuine stock root values
+**given independently captured JVM operands**. The next missing
+Rust graph node on the left is the unary
+`Mapped(SQUEEZE, Marker)`.
+
+In branch `worldgen/262-candidate-squeeze-rangechoice-frontier`:
+
+- `StockDensityNode262::CandidateSqueeze { input }` is now
+  an explicitly unqualified unary candidate in the **same** bounded
+  immutable Rust density DAG; validates strict backward dependency,
+  reachability and correct eager/demand paths. Computes
+  `c/2 - c*c*c/24` after clamping `c` to [-1,1].
+  Tests cover scalar candidates, bad edges, lazy skipping, shared
+  parents, coherent 16×16 plane and 16³ cell. No allocations added
+  to sampling, no new world owner.
+- A **distinct** read-only source-owning diagnostic now walks the
+  genuine already-verified `RandomState.finalDensity`
+  deeper than before: the `Marker` type and its
+  wrapped child, original Marker input/output values, and the bound
+  `RangeChoice` selector, thresholds and
+  both alternatives at the SAME 128 pinned XYZ frames.
+- Crucially, these are the *missing intermediate values*,
+  **not another finalDensity root recapture**. The tool checks
+  the two previously frozen original JVM child outputs against the
+  source-free PR #478 operand fixture bit for bit, and refuses
+  to publish a packet without exact source/Atlas/JAR identities.
+  All qualification and production flags remain **false**.
+- New Python mutation/structural tests and CI path filters ensure
+  the inner diagnostic rejects altered old operands, wrong shape,
+  changed seed/XYZ, failed Java compilation, malformed bitwords and
+  all false-to-true gate promotions. The private JDK owner run
+  remains necessary for *actual original inner numeric evidence*.
+
+The exact new run command is in
+`docs/execution/WORLDGEN_26_2_STOCK_FINAL_DENSITY_SINGLEPOINT_2026-10-20.md`.
+Owner should upload `/tmp/helve-26_2-final-inner-marker-rangechoice-128.json`
+**only after merging** and only once; old 128 root / 512 / 768
+records must not be recaptured.
+
+**Next:** use the new source-free Marker inputs to test the Rust
+SQUEEZE candidate against the original Mapped JVM bitwords; review
+the actual 26.2 SQUEEZE source expression before admitting the law.
+Independently implement actual bounded RangeChoice and verify selector
+branch semantics. Then traverse real underlying seeded router graphs
+and the stateful NoiseChunk marker/interpolator lifecycle. None of
+this is yet end-to-end finalDensity or production worldgen.

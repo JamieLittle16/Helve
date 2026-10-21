@@ -63,6 +63,14 @@ pub enum StockDensityNode262<'a> {
     /// `HolderHolder` subgraphs or `NoiseChunk` marker/cache lifetimes.
     /// NaN and signed-zero Java-branch behaviour remain unreviewed.
     ExplicitAp2Min { left: usize, right: usize },
+    /// Experimental unary transform for the observed stock
+    /// `Mapped(type=SQUEEZE, input=Marker)` branch.
+    ///
+    /// Its formula is a **candidate** until separately matched against
+    /// genuine original JVM Marker-input/Mapped-output pairs and reviewed
+    /// against the pinned 26.2 mapping source body. This does not admit the
+    /// marker's `NoiseChunk` cache, interpolation, or complete `finalDensity`.
+    CandidateSqueeze { input: usize },
 }
 
 /// COLD program validation errors; no runtime evaluation is attempted.
@@ -94,6 +102,17 @@ impl Arithmetic262 {
     }
 }
 
+/// Hypothesized stock 26.2 SQUEEZE mapping; NOT an admitted source law.
+///
+/// Keep Java-like operation order and explicit clamping rather than applying
+/// FMA or a polynomial simplification. Numeric parity with an original
+/// `Mapped` inner-input oracle remains pending.
+#[inline]
+fn candidate_squeeze(value: f64) -> f64 {
+    let clamped = value.clamp(-1.0, 1.0);
+    clamped / 2.0 - clamped * clamped * clamped / 24.0
+}
+
 /// Preselected specializations. No expensive tree shape matching per sample.
 #[derive(Clone, Copy, Debug)]
 enum SamplingPlan262<'a> {
@@ -122,6 +141,37 @@ pub struct StockDensityProgram262<'a, const N: usize> {
 }
 
 impl<'a, const N: usize> StockDensityProgram262<'a, N> {
+    /// Validate strictly backward unary and binary edges once at COLD construction.
+    fn validate_edges(
+        nodes: &[StockDensityNode262<'a>; N],
+    ) -> Result<(), StockDensityProgramError262> {
+        for (index, node) in nodes.iter().enumerate() {
+            match *node {
+                StockDensityNode262::Add { left, right }
+                | StockDensityNode262::Multiply { left, right }
+                | StockDensityNode262::ExplicitAp2Multiply { left, right }
+                | StockDensityNode262::ExplicitAp2Min { left, right } => {
+                    for child in [left, right] {
+                        if child >= index {
+                            return Err(StockDensityProgramError262::InvalidDependency {
+                                node: index,
+                                child,
+                            });
+                        }
+                    }
+                }
+                StockDensityNode262::CandidateSqueeze { input } if input >= index => {
+                    return Err(StockDensityProgramError262::InvalidDependency {
+                        node: index,
+                        child: input,
+                    });
+                }
+                _ => {}
+            }
+        }
+        Ok(())
+    }
+
     /// Validate dependencies, dead nodes and a bounded scratch footprint once.
     ///
     /// # Errors
@@ -135,22 +185,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             return Err(StockDensityProgramError262::TooManyNodes);
         }
 
-        for (index, node) in nodes.iter().enumerate() {
-            if let StockDensityNode262::Add { left, right }
-            | StockDensityNode262::Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Min { left, right } = node
-            {
-                for &child in &[*left, *right] {
-                    if child >= index {
-                        return Err(StockDensityProgramError262::InvalidDependency {
-                            node: index,
-                            child,
-                        });
-                    }
-                }
-            }
-        }
+        Self::validate_edges(&nodes)?;
 
         let mut reachable = [false; N];
         reachable[N - 1] = true;
@@ -158,13 +193,18 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             if !reachable[index] {
                 continue;
             }
-            if let StockDensityNode262::Add { left, right }
-            | StockDensityNode262::Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Min { left, right } = nodes[index]
-            {
-                reachable[left] = true;
-                reachable[right] = true;
+            match nodes[index] {
+                StockDensityNode262::Add { left, right }
+                | StockDensityNode262::Multiply { left, right }
+                | StockDensityNode262::ExplicitAp2Multiply { left, right }
+                | StockDensityNode262::ExplicitAp2Min { left, right } => {
+                    reachable[left] = true;
+                    reachable[right] = true;
+                }
+                StockDensityNode262::CandidateSqueeze { input } => {
+                    reachable[input] = true;
+                }
+                _ => {}
             }
         }
         for (index, &used) in reachable.iter().enumerate() {
@@ -270,6 +310,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::ExplicitAp2Min { left, right } => {
                     scratch[left].min(scratch[right])
                 }
+                StockDensityNode262::CandidateSqueeze { input } => {
+                    candidate_squeeze(scratch[input])
+                }
                 StockDensityNode262::ExplicitAp2Multiply { .. } => {
                     unreachable!("COLD program selects demand evaluation for all Ap2 nodes")
                 }
@@ -317,6 +360,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 let first = self.evaluate_demand(left, block, scratch, computed);
                 let second = self.evaluate_demand(right, block, scratch, computed);
                 first.min(second)
+            }
+            StockDensityNode262::CandidateSqueeze { input } => {
+                candidate_squeeze(self.evaluate_demand(input, block, scratch, computed))
             }
             StockDensityNode262::ExplicitAp2Multiply { left, right } => {
                 let first = self.evaluate_demand(left, block, scratch, computed);

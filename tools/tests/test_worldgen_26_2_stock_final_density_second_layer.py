@@ -110,7 +110,7 @@ class StockSecondLayerTests(unittest.TestCase):
                 fields[2]=f"{int(fields[2],16)^1:016x}"
                 lines[2]="|".join(fields)
             with self.subTest(changed=changed),self.assertRaises(second.SecondLayerError):
-                second.parse_output("\\n".join(lines))
+                second.parse_output("\n".join(lines))
 
     def test_cold_qualification_gates_remain_false(self):
         report=self.report()

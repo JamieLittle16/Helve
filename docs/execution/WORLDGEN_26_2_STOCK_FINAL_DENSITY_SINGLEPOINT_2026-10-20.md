@@ -594,3 +594,8 @@ a certified fixture.
 Full current next steps, source-law caution, branch and precise
 no-repeat-work requirements:
 [HANDOFF_2026-10-21_HELVE_SECOND_LAYER_FAILURE.md](HANDOFF_2026-10-21_HELVE_SECOND_LAYER_FAILURE.md).
+
+
+## New verified source-owning second layer after PR #484 (21 October 2026)
+
+The original 26.2 owner-private second-layer probe **succeeded** after the `MulOrAdd.specificType` reflection correction. Actual four-seed graph: left `MulOrAdd MUL` with argument IEEE word `0x3fe47ae147ae147b` and wrapped `Marker`; selector `Interpolated Marker` wrapping `RangeChoice`; outside `Ap2 ADD` with left `Marker` and right `MulOrAdd`. 128/128 new input/output raw bits match both actual MulOrAdd and outside ADD, and selector delegation is 128/128 only in `SinglePointContext`. New SHA-pinned four-input 128-row fixture and exact bounded Rust DAG tests are source-law and production unadmitted. Next: source-owning third-layer graph traversal, then original `NoiseChunk` lifecycle. See [WORLDGEN_26_2_FINAL_DENSITY_SECOND_LAYER_2026-10-21.md](WORLDGEN_26_2_FINAL_DENSITY_SECOND_LAYER_2026-10-21.md).

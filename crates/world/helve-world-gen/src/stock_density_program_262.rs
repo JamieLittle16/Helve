@@ -78,6 +78,13 @@ pub enum StockDensityNode262<'a> {
     ObservedPrimitiveComposition(DensityComposition262),
     /// Explicit eager IEEE-754 addition in operand order.
     Add { left: usize, right: usize },
+    /// Caller-explicit Ap2 ADD on the actual 26.2 finalDensity outside branch.
+    ///
+    /// 128 original JVM operands/outputs support ordinary, ordered IEEE
+    /// addition. This is only a typed finite `SinglePointContext` candidate:
+    /// arbitrary factory rewrites, nonfinite laws and `NoiseChunk` cache
+    /// lifecycle remain unreviewed.
+    ExplicitAp2Add { left: usize, right: usize },
     /// Explicit eager IEEE-754 multiplication; **not** vanilla Ap2 short-circuit.
     Multiply { left: usize, right: usize },
     /// Caller-explicit observed Ap2 multiply candidate, demand-evaluated on
@@ -108,10 +115,12 @@ pub enum StockDensityNode262<'a> {
     /// its original source-law and `NoiseChunk` marker lifecycle are admitted.
     /// Candidate fused `MulOrAdd` arithmetic with a single density child.
     ///
-    /// The operator has 1,920 original stock JVM mixed-composition outputs
-    /// as external finite-input evidence. The actual nested `finalDensity`
-    /// instance's argument, operation, input class and marker ownership
-    /// are still unobserved. No arbitrary vanilla factory admission.
+    /// The operator has 1,152 independent original stock mixed-delegate
+    /// output comparisons. The actual `finalDensity` instance is now
+    /// observed as MUL(0x3fe47ae147ae147b, Marker) with 128/128 exact
+    /// original-JVM `SinglePointContext` input/output bit matches.
+    /// This does not source-review its wrapped Marker or `NoiseChunk` lifecycle.
+    /// No arbitrary vanilla factory admission.
     CandidateMulOrAdd {
         /// The one upstream density dependency.
         input: usize,
@@ -214,6 +223,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         for (index, node) in nodes.iter().enumerate() {
             match *node {
                 StockDensityNode262::Add { left, right }
+                | StockDensityNode262::ExplicitAp2Add { left, right }
                 | StockDensityNode262::Multiply { left, right }
                 | StockDensityNode262::ExplicitAp2Multiply { left, right }
                 | StockDensityNode262::ExplicitAp2Min { left, right } => {
@@ -311,6 +321,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             }
             match nodes[index] {
                 StockDensityNode262::Add { left, right }
+                | StockDensityNode262::ExplicitAp2Add { left, right }
                 | StockDensityNode262::Multiply { left, right }
                 | StockDensityNode262::ExplicitAp2Multiply { left, right }
                 | StockDensityNode262::ExplicitAp2Min { left, right } => {
@@ -430,7 +441,10 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::ObservedPrimitiveComposition(composed) => {
                     composed.sample_block_y(block_y)
                 }
-                StockDensityNode262::Add { left, right } => scratch[left] + scratch[right],
+                StockDensityNode262::Add { left, right }
+                | StockDensityNode262::ExplicitAp2Add { left, right } => {
+                    scratch[left] + scratch[right]
+                }
                 StockDensityNode262::Multiply { left, right } => scratch[left] * scratch[right],
                 StockDensityNode262::ExplicitAp2Min { left, right } => {
                     scratch[left].min(scratch[right])
@@ -477,7 +491,8 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             StockDensityNode262::ObservedPrimitiveComposition(composed) => {
                 composed.sample_block_y(block.1)
             }
-            StockDensityNode262::Add { left, right } => {
+            StockDensityNode262::Add { left, right }
+            | StockDensityNode262::ExplicitAp2Add { left, right } => {
                 let a = self.evaluate_demand(left, block, scratch, computed);
                 let b = self.evaluate_demand(right, block, scratch, computed);
                 a + b

@@ -1,8 +1,8 @@
 //! 128 independently captured stock 26.2 SQUEEZE/RangeChoice observations.
 //!
 //! This tests *real* inner original JVM operand words in the bounded Rust DAG.
-//! It still injects source-derived Marker and RangeChoice child values rather
-//! than computing their underlying MulOrAdd / Ap2 / NoiseChunk graphs.
+//! It still injects source-derived `Marker` and `RangeChoice` child values rather
+//! than computing their underlying `MulOrAdd` / `Ap2` / `NoiseChunk` graphs.
 //! Source-law review, cache/interpolation semantics and production stay OPEN.
 
 use helve_world_gen::density_primitives_262::DensityPrimitive262;
@@ -69,7 +69,7 @@ fn stock_range_choice_128_exact_jvm_selector_branch_and_min_root_bits() {
         let when_in = f64::from_bits(bits(cols[4]));
         let when_out = f64::from_bits(bits(cols[5]));
         let holder = bits(cols[6]);
-        let range_in = selector >= MIN && selector < MAX;
+        let range_in = (MIN..MAX).contains(&selector);
         assert_eq!(when_in.to_bits(), 64.0_f64.to_bits());
         assert_eq!(
             if range_in {

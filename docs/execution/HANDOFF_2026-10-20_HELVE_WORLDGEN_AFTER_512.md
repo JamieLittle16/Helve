@@ -808,3 +808,14 @@ Do not repeat old 128 root/128 inner/512 cell/768 NoiseChunk captures.
 Then implement and qualify the actual inner nodes against original JVM
 bitwords, followed by NoiseChunk interpolation lifecycle. No production
 publication or VAR/SEM admission is implied.
+
+
+## 21 October, later — second-layer original JVM failure (CURRENT HANDOFF)
+
+**Read [the dedicated current second-layer failure handoff](HANDOFF_2026-10-21_HELVE_SECOND_LAYER_FAILURE.md) before continuing.** The earlier successful frozen root/inner/512/768 oracle descriptions above remain accurate as historical work; earlier text calling the next probe ready does not imply it succeeded. PR #482 is now merged at `37649da70537ac7993f5edd12f6b6b7be4b23deb`, all eight premerge CI checks green. The first private original Java second-layer probe ran on that main and stopped at:
+
+```text
+HELVE26_2_SECOND_FAILURE|second-layer-0-0|java.lang.IllegalStateException
+```
+
+It yielded **no validated new second-layer numeric packet**. This branch adds source-free, step-specific failure tags before each assumed `MulOrAdd` record operation/child, selector marker and out-`Ap2` reflection and numeric read. After merging the probe fix, rerun **only that failed second-layer diagnostic** to obtain its *specific* failure phase; correct structural guesses using verified original Java 26.2 source. No older capture is to be repeated and no qualification/production gates may be opened.

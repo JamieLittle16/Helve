@@ -614,3 +614,55 @@ laws and inputs have independent JVM parity; preserve the
 NoiseChunk cell and marker lifecycle separately. Do not convert
 the existing Ap2 multiply implementation into an unsupported
 stock finalDensity root or open production generation yet.
+
+## Actual MIN finalDensity root observation — 21 October 2026
+
+The user's previously requested source-free root diagnostic **succeeded**
+after merged PR #477 repaired inherited PureTransformer dispatch.
+Original user-provided JSON (private, not committed):
+`helve-26_2-final-root-semantics-128.json`; length 38,630 bytes,
+SHA-256 `2c8094e2c561f13aff9a392081bf0f7c3fa41b94f1c8d3d922c308269db78e8d`.
+
+**Observed genuine original 26.2 bound Overworld graph root** on four
+independent seeds:
+
+```text
+finalDensity: Ap2 MIN
+  left: Mapped SQUEEZE, input Marker
+  right: HolderHolder, bound concrete target RangeChoice
+```
+
+The Ap2 metadata range is `[-0.4583333333333333, +0.4583333333333333]`
+(read from IEEE-754 bits `bfdd555555555555` and
+`3fdd555555555555`). These are **node metadata bounds**, not proof
+of a clamp. All 128 child/root triples were observed at the exact
+earlier official SinglePointContext points and **all 128 final output
+words match the previously frozen 128-stock-output reference**.
+The left was minimal in 124 rows and the holder in four, at
+zero-indexed rows **21, 66, 67, 87**.
+
+This directly rules out treating the root as the earlier
+`ExplicitAp2Multiply`. A new `ExplicitAp2Min` root **candidate**
+has been implemented in the same `StockDensityProgram262` with
+bounded caller-owned scratch. Compact source-free operand fixture:
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_min_root_128_rawbits.tsv`,
+6,528 bytes and SHA-256
+`5693d6d923ccd3fd29847350c825556349ba1f5eb1a5a7671537d8328ac485fd`.
+Exact-source and root-output validator:
+`tools/worldgen_26_2_stock_finaldensity_min_root_fixture.py`.
+Rust tests combine the **actual JVM child operands** through the
+compiled MIN operator and compare all 128 original root output
+bitwords; they do not yet compute real Mapped/RangeChoice in Rust.
+This distinction is **essential** to report accurately.
+
+Remaining actual implementation frontier:
+- `Mapped(SQUEEZE, Marker)` inner graph and transform source laws.
+- `HolderHolder(RangeChoice)` branch selector and downstream graph.
+- True NoiseChunk cache/interpolator context and full-router numeric
+  parity, keeping old 768 and 512 original JVM references.
+- No extra world owner, no Java source text, no false production
+  publication, all source-review/VAR/SEM/production gates false.
+
+**Do not rerun the original 128 root/operand diagnostic.** Its output
+is complete and pinned; future tools should collect only new semantic
+inputs where implementation genuinely requires them.

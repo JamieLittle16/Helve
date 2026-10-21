@@ -7,6 +7,23 @@
 **Handoff repair branch:** `worldgen/262-second-layer-phase-handoff-20261021` (adds diagnostic *phase precision* and this handoff; merge only after CI green).  
 **Target:** vanilla-faithful Minecraft **Java 26.2**, protocol **776**, DataVersion **4903**.
 
+## Post-#483 correction: original MulOrAdd operation is `specificType` (21 October)
+
+Merged [PR #483](https://github.com/JamieLittle16/Helve/pull/483) and the owner's next source-owning run were verified on `main=c9fdd3c92da817a88d8a993d7bd8bb242794b236`. The precise real original JVM failure was:
+
+```text
+HELVE26_2_SECOND_FAILURE|second-layer-0-0-muloradd-operation-record|java.lang.IllegalStateException
+```
+
+**Isolation:** This stage occurs only *after* the rooted MulOrAdd class, sole typed child, real `argument`, RangeChoice's selector/outer Ap2 and their typed children have been traversed. The broken bridge used `member(mul,"type")`: that reads **record components**, whereas the Minecraft **26.2** MulOrAdd five-component record declares `specificType` and implements a separate inherited `type()` interface method. The 26.2 NeoForge class-use Javadoc exposes the exact signature
+`MulOrAdd(MulOrAdd.Type specificType, DensityFunction input, double minValue, double maxValue, double argument)`. This corroborates the phase failure; the *actual configured enum value and argument* still need a successful owner-private JVM witness.
+
+The branch `worldgen/262-muloradd-specifictype-20261021` replaces only this incorrect reflection assumption. It checks runtime `DensityFunctions$MulOrAdd$Type` with `ADD` or `MUL`, retains the strict five-record-component contract and emits the existing unchanged 14-field second-layer SHAPE frame. Its Python parser additionally requires the runtime declaring enum class and independently verifies all 128 new MulOrAdd operand/parameter results against the **already frozen first-inner MulOrAdd output IEEE words**. This is numerical candidate parity only, **not** source-law, NoiseChunk cache, world-bound or production admission.
+
+**Owner's next action only after CI-green merge:** rerun *only* `tools/worldgen_26_2_stock_final_density_second_layer.py` using the same pinned source, Atlas DB, lock and fresh output path. It should reveal the actual `specificType` operation, parameter, input class and words, selector child, and out-of-range Ap2 children. If it still fails, preserve the **new exact phase or source-free parser error**; do not speculate about unseen graph edges. Then freeze only genuinely new words with SHA-pinned fixtures and recursively compile the demonstrated noise/spline dependencies into the existing bounded Rust density DAG. Existing 128-root, 128-inner, 512-cell, 768-NoiseChunk and 1,152 mixed delegates **stay frozen**, and all review/VAR/SEM/production gates remain false.
+
+Source context (not a substitute for the owner's pinned JVM): [NeoForge 26.2 class-use constructor inventory](https://aldak.netlify.app/javadoc/26.2.x/net/minecraft/world/level/levelgen/class-use/densityfunction).
+
 ## Immediate blocker: real stock source-owning second-layer JVM probe rejected
 
 On 21 October, with user checkout successfully fast-forwarded to the **above merged main**, the user ran:

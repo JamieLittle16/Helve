@@ -107,11 +107,11 @@ pub enum StockDensityNode262<'a> {
     /// `SinglePointContext` observations. This remains a candidate until
     /// its original source-law and `NoiseChunk` marker lifecycle are admitted.
     /// Candidate fused `MulOrAdd` arithmetic with a single density child.
-///
-/// The operator has 1,920 original stock JVM mixed-composition outputs
-/// as external finite-input evidence. The actual nested `finalDensity`
-/// instance's argument, operation, input class and marker ownership
-/// are still unobserved. No arbitrary vanilla factory admission.
+    ///
+    /// The operator has 1,920 original stock JVM mixed-composition outputs
+    /// as external finite-input evidence. The actual nested `finalDensity`
+    /// instance's argument, operation, input class and marker ownership
+    /// are still unobserved. No arbitrary vanilla factory admission.
     CandidateMulOrAdd {
         /// The one upstream density dependency.
         input: usize,
@@ -277,6 +277,17 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         Ok(())
     }
 
+    #[inline]
+    fn requires_demand_evaluation(nodes: &[StockDensityNode262<'a>; N]) -> bool {
+        nodes.iter().any(|node| {
+            matches!(
+                node,
+                StockDensityNode262::ExplicitAp2Multiply { .. }
+                    | StockDensityNode262::CandidateRangeChoice { .. }
+            )
+        })
+    }
+
     /// Validate dependencies, dead nodes and a bounded scratch footprint once.
     ///
     /// # Errors
@@ -375,13 +386,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         } else {
             SamplingPlan262::Generic
         };
-        let contains_demand_nodes = nodes.iter().any(|node| {
-            matches!(
-                node,
-                StockDensityNode262::ExplicitAp2Multiply { .. }
-                    | StockDensityNode262::CandidateRangeChoice { .. }
-            )
-        });
+        let contains_demand_nodes = Self::requires_demand_evaluation(&nodes);
         Ok(Self {
             nodes,
             plan,

@@ -6,8 +6,7 @@
 
 use helve_world_gen::density_primitives_262::DensityPrimitive262;
 use helve_world_gen::stock_density_program_262::{
-    StockDensityNode262 as Node, StockDensityProgram262 as Program,
-    StockMulOrAddOp262 as Op,
+    StockDensityNode262 as Node, StockDensityProgram262 as Program, StockMulOrAddOp262 as Op,
 };
 
 const THIRD: &str = include_str!("data/stock_finaldensity_third_layer_new_128_rawbits.tsv");
@@ -142,7 +141,8 @@ fn original_third_layer_nested_range_and_mul_128_bit_exact_plus_root_composition
         ])
         .expect("one immutable 14-node backwards-only actual partial graph");
         assert_eq!(
-            graph.sample_block(0, 64, 0).to_bits(), old_root,
+            graph.sample_block(0, 64, 0).to_bits(),
+            old_root,
             "source-bound partial finalDensity {i}"
         );
         count += 1;

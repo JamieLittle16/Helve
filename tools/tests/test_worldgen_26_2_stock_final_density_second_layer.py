@@ -22,8 +22,8 @@ class StockSecondLayerTests(unittest.TestCase):
         for seed_index,seed in enumerate(second.final.SEEDS):
             lines.append("|".join((
                 second.HEAD,str(seed_index),seed,
-                second.DENSITY+"TwoArgumentSimpleFunction$Type",
-                "MUL","3fe0000000000000",
+                second.DENSITY+"MulOrAdd$Type",
+                "MUL","3ff0000000000000",
                 second.DENSITY+"Noise",
                 second.DENSITY+"Marker$Type",
                 "Interpolated",second.DENSITY+"MulOrAdd",
@@ -35,7 +35,7 @@ class StockSecondLayerTests(unittest.TestCase):
                 earlier=prev[i]
                 lines.append("|".join((
                     second.VALUE,str(i),
-                    "3fe0000000000000",earlier[1],
+                    earlier[1],earlier[1],
                     "3fe0000000000000",earlier[3],
                     "3fe0000000000000","3fe0000000000000",earlier[5],
                 )))
@@ -87,6 +87,31 @@ class StockSecondLayerTests(unittest.TestCase):
         self.assertEqual(v[21]["outer_output_bits"],"0x"+second.prior.load()[21][5])
         second.validate(self.report())
 
+    def test_specifictype_enum_and_real_operand_bits_fail_closed(self):
+        # MulOrAdd.specificType is a *record* component. type() is a
+        # different inherited interface method; do not conflate them.
+        java=second.JAVA_SOURCE.read_text(encoding="utf-8")
+        self.assertIn('member(mul,"specificType")',java)
+        self.assertNotIn('enumClass(mul,"type")',java)
+        original=self.stdout().splitlines()
+        for changed in ("wrong_enum","wrong_op","wrong_argument","wrong_input"):
+            lines=original.copy()
+            if changed=="wrong_enum":
+                lines[1]=lines[1].replace(
+                    second.DENSITY+"MulOrAdd$Type",
+                    second.DENSITY+"TwoArgumentSimpleFunction$Type",1)
+            elif changed=="wrong_op":
+                lines[1]=lines[1].replace("|MUL|","|MIN|",1)
+            elif changed=="wrong_argument":
+                lines[1]=lines[1].replace(
+                    "|3ff0000000000000|","|3fe0000000000000|",1)
+            else:
+                fields=lines[2].split("|")
+                fields[2]=f"{int(fields[2],16)^1:016x}"
+                lines[2]="|".join(fields)
+            with self.subTest(changed=changed),self.assertRaises(second.SecondLayerError):
+                second.parse_output("\\n".join(lines))
+
     def test_cold_qualification_gates_remain_false(self):
         report=self.report()
         for gate in second.GATES:
@@ -108,7 +133,7 @@ class StockSecondLayerTests(unittest.TestCase):
             lambda x:x.append(x[-1]),
             lambda x:x.__setitem__(1,x[1].replace("DensityFunctions$Noise","UntrustedInput",1)),
             lambda x:x.__setitem__(1,x[1].replace("|MUL|","|mul with spaces|",1)),
-            lambda x:x.__setitem__(1,x[1].replace("|3fe0000000000000|","|7ff0000000000000|",1)),
+            lambda x:x.__setitem__(1,x[1].replace("|3ff0000000000000|","|7ff0000000000000|",1)),
             lambda x:x.__setitem__(2,x[2].replace("|"+second.prior.load()[0][1]+"|","|0000000000000000|",1)),
             lambda x:x.__setitem__(2,x[2][:-16]+"7ff8000000000000"),
             lambda x:x.__setitem__(1,x[1].replace(second.final.SEEDS[0],second.final.SEEDS[1])),

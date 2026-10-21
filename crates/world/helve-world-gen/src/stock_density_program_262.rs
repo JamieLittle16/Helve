@@ -142,7 +142,9 @@ pub struct StockDensityProgram262<'a, const N: usize> {
 
 impl<'a, const N: usize> StockDensityProgram262<'a, N> {
     /// Validate strictly backward unary and binary edges once at COLD construction.
-    fn validate_edges(nodes: &[StockDensityNode262<'a>; N]) -> Result<(), StockDensityProgramError262> {
+    fn validate_edges(
+        nodes: &[StockDensityNode262<'a>; N],
+    ) -> Result<(), StockDensityProgramError262> {
         for (index, node) in nodes.iter().enumerate() {
             match *node {
                 StockDensityNode262::Add { left, right }
@@ -158,13 +160,11 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                         }
                     }
                 }
-                StockDensityNode262::CandidateSqueeze { input } => {
-                    if input >= index {
-                        return Err(StockDensityProgramError262::InvalidDependency {
-                            node: index,
-                            child: input,
-                        });
-                    }
+                StockDensityNode262::CandidateSqueeze { input } if input >= index => {
+                    return Err(StockDensityProgramError262::InvalidDependency {
+                        node: index,
+                        child: input,
+                    });
                 }
                 _ => {}
             }

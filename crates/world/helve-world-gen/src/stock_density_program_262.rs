@@ -444,7 +444,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::Add { left, right }
                 | StockDensityNode262::ExplicitAp2Add { left, right } => {
                     scratch[left] + scratch[right]
-                },
+                }
                 StockDensityNode262::Multiply { left, right } => scratch[left] * scratch[right],
                 StockDensityNode262::ExplicitAp2Min { left, right } => {
                     scratch[left].min(scratch[right])

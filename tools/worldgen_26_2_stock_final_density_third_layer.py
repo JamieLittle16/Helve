@@ -53,6 +53,10 @@ SHAPE_FIELDS=(
     "outside_mul_enum_class","outside_mul_op",
     "outside_mul_argument_bits","outside_mul_wrapped_class",
 )
+PARAM_FIELDS=(
+    "nested_min_inclusive_bits","nested_max_exclusive_bits",
+    "outside_mul_argument_bits",
+)
 GATES=tuple(second.GATES)+(
     "third_layer_four_child_shapes_qualified",
     "third_layer_nested_rangechoice_qualified",
@@ -117,6 +121,13 @@ def parse_output(stdout:str)->tuple[list[dict],list[dict]]:
         if len(row)!=18 or row[:3]!=[HEAD,str(seed_index),seed]:
             raise ThirdLayerError("original third-layer shape frame changed")
         shape=dict(zip(SHAPE_FIELDS,row[3:],strict=True))
+        # JVM frames carry plain 16-digit IEEE words. The validated
+        # JSON report, like every earlier layer, uses "0x"-prefixed
+        # words. Never conflate the two transport representations.
+        for key in PARAM_FIELDS:
+            if not second.inner.finite_word(shape[key]):
+                raise ThirdLayerError("invalid third-layer IEEE shape parameter")
+            shape[key]="0x"+shape[key]
         shape["world_seed_bits"]=seed
         validate_shape(shape)
         shapes.append(shape)
@@ -216,7 +227,8 @@ def validate(report:dict)->None:
         validate_shape(shape)
         rows.append("|".join((
             HEAD,str(seed_index),shape["world_seed_bits"],
-            *(shape[field] for field in SHAPE_FIELDS),
+            *(shape[field][2:] if field in PARAM_FIELDS else shape[field]
+              for field in SHAPE_FIELDS),
         )))
         for j in range(32):
             index=seed_index*32+j

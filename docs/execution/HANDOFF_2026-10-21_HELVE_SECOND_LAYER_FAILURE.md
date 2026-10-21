@@ -7,6 +7,12 @@
 **Handoff repair branch:** `worldgen/262-second-layer-phase-handoff-20261021` (adds diagnostic *phase precision* and this handoff; merge only after CI green).  
 **Target:** vanilla-faithful Minecraft **Java 26.2**, protocol **776**, DataVersion **4903**.
 
+## Current resolution: successful source-owning second layer after #484
+
+**Supersedes the historical reflection failure below.** Merged PR #484 corrected the original `MulOrAdd.specificType` operation record. The user's next private pinned 26.2 original-JVM diagnostic completed successfully; private report SHA-256 `e12d01ccc9defc0c7d8a8a162bc7c7c890af7df6eb12e13656c59277f5eae9d9`, 66,003 bytes. Four seed-invariant class declarations and 128 genuine new upstream tuples show `MUL(0.64, Marker)`, an `Interpolated Marker(RangeChoice)` selector and outside `Ap2 ADD(Marker, MulOrAdd)`. No old capture needs repeating.
+
+The new compact four-word 128-row fixture (8,704 bytes, SHA `e684407be3e3d8ef5435c7518a0d4f5adbccae134684a730b216a11212874f4a`) and true configured Rust operator composition are now the current implementation frontier. The exact next source-owning task is **third-layer structural traversal**, not a rerun of second-layer JVM. Full technical description and admission boundaries: [WORLDGEN_26_2_FINAL_DENSITY_SECOND_LAYER_2026-10-21.md](WORLDGEN_26_2_FINAL_DENSITY_SECOND_LAYER_2026-10-21.md).
+
 ## Post-#483 correction: original MulOrAdd operation is `specificType` (21 October)
 
 Merged [PR #483](https://github.com/JamieLittle16/Helve/pull/483) and the owner's next source-owning run were verified on `main=c9fdd3c92da817a88d8a993d7bd8bb242794b236`. The precise real original JVM failure was:

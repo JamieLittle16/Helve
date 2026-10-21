@@ -111,8 +111,9 @@ class StockFinalDensityInnerFrontierTests(unittest.TestCase):
             lambda x:x.append(x[-1]),
             lambda x:x.__setitem__(1,x[1].replace("CACHE_ALL_IN_CELL","BOGUS-TYPE")),
             lambda x:x.__setitem__(1,x[1].replace("DensityFunctions$Marker$Type","SomethingElse")),
-            lambda x:x.__setitem__(2,x[2].replace("|"+inner.observed.read_words()[0][0]+"|",
-                                                   "|0000000000000000|",1)),
+            lambda x:x.__setitem__(
+                2,"|".join([*x[2].split("|")[:4],"0000000000000000",*x[2].split("|")[5:]])
+            ),
             lambda x:x.__setitem__(2,x[2][:-16]+"7ff8000000000000"),
             lambda x:x.__setitem__(2,x[2].replace("|0|","|8|",1)),
             lambda x:x.__setitem__(1,x[1].replace(inner.final.SEEDS[0],inner.final.SEEDS[1])),

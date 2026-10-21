@@ -58,9 +58,9 @@ pub enum StockDensityNode262<'a> {
     /// Caller-explicit 26.2 Ap2 MIN operation on two density dependencies.
     ///
     /// Verified only on finite, non-zero child-value combinations by 128
-    /// original JVM SinglePointContext finalDensity root observations,
-    /// including four right-child wins. Does NOT implement the Mapped/
-    /// HolderHolder subgraphs or NoiseChunk marker/cache lifetimes.
+    /// original JVM `SinglePointContext` `finalDensity` root observations,
+    /// including four right-child wins. Does NOT implement the `Mapped`/
+    /// `HolderHolder` subgraphs or `NoiseChunk` marker/cache lifetimes.
     /// NaN and signed-zero Java-branch behaviour remain unreviewed.
     ExplicitAp2Min { left: usize, right: usize },
 }

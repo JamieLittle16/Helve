@@ -484,3 +484,84 @@ then recursively bind the selector Marker, `MulOrAdd`, and out-of-range
 primitives. Finally implement the genuine NoiseChunk cache/interpolation
 lifecycle and match the 768 adjacent JVM words, without a second
 semantic world owner.
+
+
+## Next original 26.2 finalDensity subgraph: fused MulOrAdd and second-layer witnesses
+
+The 128-row inner JVM receipt has already established
+`Mapped SQUEEZE(Marker(Interpolated, MulOrAdd))` and
+`RangeChoice(input=Marker, bounds=[-1000000,0), in=Constant(64),
+out=Ap2)`, and the stock SQUEEZE transform matches 128 raw-bit
+input/output pairs. This does **not** reveal the MulOrAdd operand and
+constant, the range selector's wrapped density, or the outer Ap2's
+operation and its two operands.
+
+The new `StockDensityNode262::CandidateMulOrAdd { input, argument,
+operation }` implements caller-**explicit**, fused constant addition
+or ordinary IEEE multiplication in the **same** fixed-bounded density
+DAG. Unlike an Ap2 multiply, it does not skip positive zero. Its cold
+graph constructor rejects forward/unused nodes and nonfinite
+arguments, while allowing signed zero. Both eager and memoized-demand
+sampling paths reuse the existing caller-owned scratch; no additional
+world owner, heap allocation or per-block virtual dispatch.
+
+This operator is independently tested against **1,152 real official
+Minecraft 26.2 stock mixed-noise/constant delegate raw-bit outputs**
+from the earlier 1,920-word frozen JVM fixture, across four seeds,
+three registered noise types and sixteen XYZ contexts for six
+constant profiles. It is **not** asserted to be the actual original
+MulOrAdd root instance until the operation, parameter and real
+subgraph input are separately observed and bound.
+
+### Exactly one new semantic witness, no old recapture
+
+New source-free reviewer:
+`tools/worldgen_26_2_stock_final_density_second_layer.py`,
+with reflection bridge
+`tools/worldgen_java/HelveStockFinalDensitySecondLayer262.java`.
+
+The bridge follows the **actual** pinned original Minecraft Java 26.2
+VanillaRegistries → RandomState → Overworld finalDensity MIN root,
+without source code or class/JAR serialization. For each of the old
+four-seed × 32 fixed SinglePointContexts, it observes only:
+- `MulOrAdd`'s real enum operation, floating argument, upstream
+  density runtime class and **upstream input raw bits**;
+- `RangeChoice`'s selector `Marker` type and **wrapped density
+  input raw bits**;
+- the actual out-of-range `Ap2` enum operation, the two input
+  runtime classes and their **independent raw IEEE bits**.
+
+The three **already observed** values (MulOrAdd output, range
+selector output and outer Ap2 output) are included only as fixed
+equality anchors to the 128 existing source-free **inner** fixture.
+The Python validator rejects any modified prior output word, wrong
+seed/coordinate, nonfinite bits, class/enum substitution, source/Atlas
+or server JAR pin change, unordered evidence, unexpected extra frames
+or false-to-true qualification gate promotion. CI tests exercise
+synthetic frames and compile the reflection bridge **without needing
+the private JVM**.
+
+After this PR merges, run *only this new original second-layer
+diagnostic* from the existing private source-owner checkout:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_second_layer.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-final-second-layer-128.json
+```
+
+Upload the source-free JSON, or the exact fail-closed JVM phase error.
+No earlier 128 root, 128 inner, 512 cell or 768 NoiseChunk data need
+recapturing. After real evidence, validate original MulOrAdd input
+against the Rust fused node with its **actual** parameter and operation;
+then recursively implement the underlying selector and out Ap2
+dependencies and NoiseChunk interpolation/cache timeline.
+
+**All source-law review, full-router and canonical NoiseChunk numeric
+parity, independent VAR/SEM admission and production generation gates
+remain false.** This PR does not publish terrain.

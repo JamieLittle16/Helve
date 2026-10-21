@@ -26,6 +26,59 @@ fn constant(word: u64) -> Node<'static> {
     Node::Primitive(DensityPrimitive262::constant(f64::from_bits(word)))
 }
 
+fn actual_partially_lowered_graph(
+    left_marker: u64,
+    selector: u64,
+    in_value: u64,
+    out_value: u64,
+    outside_marker: u64,
+    mul_input: u64,
+) -> Program<'static, 14> {
+    // Actual graph operators, not an assumed vanilla formula. Four
+    // unexpanded primitive/spline operands stay JVM-supplied leaves.
+    Program::new([
+        constant(left_marker), // 0: BlendDensity's wrapped MulOrAdd output
+        Node::CandidateMulOrAdd {
+            // 1: observed MUL 0.64
+            input: 0,
+            argument: FIRST_MULTIPLIER,
+            operation: Op::Multiply,
+        },
+        Node::CandidateSqueeze { input: 1 }, // 2
+        constant(selector),                  // 3: nested HolderHolder output
+        constant(in_value),                  // 4: original Noise result
+        constant(out_value),                 // 5: original Constant(-1)
+        Node::CandidateRangeChoice {
+            // 6: nested [-60,321)
+            selector: 3,
+            when_in_range: 4,
+            when_out_of_range: 5,
+            min_inclusive: NESTED_LOW,
+            max_exclusive: NESTED_HIGH,
+        },
+        constant(outside_marker), // 7: outside Interpolated RangeChoice
+        constant(mul_input),      // 8: outside MulOrAdd's child Ap2
+        Node::CandidateMulOrAdd {
+            // 9: observed MUL 1.5
+            input: 8,
+            argument: OUTSIDE_MULTIPLIER,
+            operation: Op::Multiply,
+        },
+        Node::ExplicitAp2Add { left: 7, right: 9 }, // 10
+        constant(64.0_f64.to_bits()),               // 11: outer in-range
+        Node::CandidateRangeChoice {
+            // 12: outer [-1_000_000,0)
+            selector: 6,
+            when_in_range: 11,
+            when_out_of_range: 10,
+            min_inclusive: -1_000_000.0,
+            max_exclusive: 0.0,
+        },
+        Node::ExplicitAp2Min { left: 2, right: 12 }, // 13
+    ])
+    .expect("one immutable 14-node backwards-only actual partial graph");
+}
+
 #[test]
 fn original_third_layer_nested_range_and_mul_128_bit_exact_plus_root_composition() {
     let third: Vec<_> = THIRD.lines().collect();
@@ -97,49 +150,14 @@ fn original_third_layer_nested_range_and_mul_128_bit_exact_plus_root_composition
             "MUL(1.5) {i}"
         );
 
-        // Actual graph operators, not an assumed vanilla formula. Four
-        // unexpanded primitive/spline operands stay JVM-supplied leaves.
-        let graph = Program::new([
-            constant(left_marker), // 0: BlendDensity's wrapped MulOrAdd output
-            Node::CandidateMulOrAdd {
-                // 1: observed MUL 0.64
-                input: 0,
-                argument: FIRST_MULTIPLIER,
-                operation: Op::Multiply,
-            },
-            Node::CandidateSqueeze { input: 1 }, // 2
-            constant(selector),                  // 3: nested HolderHolder output
-            constant(in_value),                  // 4: original Noise result
-            constant(out_value),                 // 5: original Constant(-1)
-            Node::CandidateRangeChoice {
-                // 6: nested [-60,321)
-                selector: 3,
-                when_in_range: 4,
-                when_out_of_range: 5,
-                min_inclusive: NESTED_LOW,
-                max_exclusive: NESTED_HIGH,
-            },
-            constant(outside_marker), // 7: outside Interpolated RangeChoice
-            constant(mul_input),      // 8: outside MulOrAdd's child Ap2
-            Node::CandidateMulOrAdd {
-                // 9: observed MUL 1.5
-                input: 8,
-                argument: OUTSIDE_MULTIPLIER,
-                operation: Op::Multiply,
-            },
-            Node::ExplicitAp2Add { left: 7, right: 9 }, // 10
-            constant(64.0_f64.to_bits()),               // 11: outer in-range
-            Node::CandidateRangeChoice {
-                // 12: outer [-1_000_000,0)
-                selector: 6,
-                when_in_range: 11,
-                when_out_of_range: 10,
-                min_inclusive: -1_000_000.0,
-                max_exclusive: 0.0,
-            },
-            Node::ExplicitAp2Min { left: 2, right: 12 }, // 13
-        ])
-        .expect("one immutable 14-node backwards-only actual partial graph");
+        let graph = actual_partially_lowered_graph(
+            left_marker,
+            selector,
+            in_value,
+            out_value,
+            outside_marker,
+            mul_input,
+        );
         assert_eq!(
             graph.sample_block(0, 64, 0).to_bits(),
             old_root,

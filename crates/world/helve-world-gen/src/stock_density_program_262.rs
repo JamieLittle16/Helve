@@ -30,6 +30,31 @@ use crate::density_primitives_262::DensityPrimitive262;
 use crate::registered_noise_state_262::RegisteredNoiseDensityObserved262;
 use crate::stock_vanilla_mixed_density_262::StockVanillaMixedDensity262;
 
+/// Source-observed 26.2 `MulOrAdd` constant operator category.
+///
+/// The 1,920 independently captured mixed delegate outputs support
+/// adding or multiplying a registered noise by a constant, including
+/// ordinary IEEE signed zero (unlike explicit `Ap2` multiplication).
+/// This does NOT determine the operation or coefficient in the actual
+/// `finalDensity` `MulOrAdd` subtree.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum StockMulOrAddOp262 {
+    /// Finite sampled inner input plus a constant.
+    Add,
+    /// Finite sampled inner input multiplied by a constant.
+    Multiply,
+}
+
+impl StockMulOrAddOp262 {
+    #[inline]
+    fn apply(self, input: f64, argument: f64) -> f64 {
+        match self {
+            Self::Add => input + argument,
+            Self::Multiply => input * argument,
+        }
+    }
+}
+
 /// One entry in a caller-constructed, index-validated COLD expression graph.
 ///
 /// All dependencies must point strictly backwards; the final node is the
@@ -81,6 +106,20 @@ pub enum StockDensityNode262<'a> {
     /// constant 64.0 versus its `Ap2` alternative in 47/81 actual JVM
     /// `SinglePointContext` observations. This remains a candidate until
     /// its original source-law and `NoiseChunk` marker lifecycle are admitted.
+    /// Candidate fused `MulOrAdd` arithmetic with a single density child.
+///
+/// The operator has 1,920 original stock JVM mixed-composition outputs
+/// as external finite-input evidence. The actual nested `finalDensity`
+/// instance's argument, operation, input class and marker ownership
+/// are still unobserved. No arbitrary vanilla factory admission.
+    CandidateMulOrAdd {
+        /// The one upstream density dependency.
+        input: usize,
+        /// Signed, finite constant (including negative zero).
+        argument: f64,
+        /// Add or ordinary IEEE multiplication, not `Ap2` +0 skipping.
+        operation: StockMulOrAddOp262,
+    },
     CandidateRangeChoice {
         /// Density input used only to choose the branch.
         selector: usize,
@@ -108,6 +147,8 @@ pub enum StockDensityProgramError262 {
     UnusedNode { node: usize },
     /// Range bounds must be finite and strictly increasing.
     InvalidRangeBounds { node: usize },
+    /// The fused `MulOrAdd` constant is not a finite JVM-observed parameter.
+    InvalidMulOrAddArgument { node: usize },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -191,6 +232,21 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                         child: input,
                     });
                 }
+                StockDensityNode262::CandidateMulOrAdd {
+                    input, argument, ..
+                } => {
+                    if !argument.is_finite() {
+                        return Err(StockDensityProgramError262::InvalidMulOrAddArgument {
+                            node: index,
+                        });
+                    }
+                    if input >= index {
+                        return Err(StockDensityProgramError262::InvalidDependency {
+                            node: index,
+                            child: input,
+                        });
+                    }
+                }
                 StockDensityNode262::CandidateRangeChoice {
                     selector,
                     when_in_range,
@@ -250,7 +306,8 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                     reachable[left] = true;
                     reachable[right] = true;
                 }
-                StockDensityNode262::CandidateSqueeze { input } => {
+                StockDensityNode262::CandidateSqueeze { input }
+                | StockDensityNode262::CandidateMulOrAdd { input, .. } => {
                     reachable[input] = true;
                 }
                 StockDensityNode262::CandidateRangeChoice {
@@ -376,6 +433,11 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::CandidateSqueeze { input } => {
                     candidate_squeeze(scratch[input])
                 }
+                StockDensityNode262::CandidateMulOrAdd {
+                    input,
+                    argument,
+                    operation,
+                } => operation.apply(scratch[input], argument),
                 StockDensityNode262::ExplicitAp2Multiply { .. }
                 | StockDensityNode262::CandidateRangeChoice { .. } => {
                     unreachable!("COLD program selects demand evaluation for conditional nodes")
@@ -428,6 +490,14 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             StockDensityNode262::CandidateSqueeze { input } => {
                 candidate_squeeze(self.evaluate_demand(input, block, scratch, computed))
             }
+            StockDensityNode262::CandidateMulOrAdd {
+                input,
+                argument,
+                operation,
+            } => operation.apply(
+                self.evaluate_demand(input, block, scratch, computed),
+                argument,
+            ),
             StockDensityNode262::CandidateRangeChoice {
                 selector,
                 when_in_range,

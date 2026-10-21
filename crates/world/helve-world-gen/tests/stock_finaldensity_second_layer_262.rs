@@ -1,12 +1,12 @@
 //! Genuine second-layer 26.2 finalDensity input words from the original JVM.
 //!
-//! These tests compute MulOrAdd MUL(0.64), the outer Ap2 ADD, SQUEEZE,
-//! RangeChoice, and final MIN *inside one fixed 10-node immutable Rust DAG*.
+//! These tests compute `MulOrAdd` MUL(0.64), the outer Ap2 ADD, SQUEEZE,
+//! `RangeChoice`, and final MIN *inside one fixed 10-node immutable Rust DAG*.
 //! The four remaining child inputs are original-JVM-provided leaves, not
 //! independently computed world-seeded noise/spline/Marker graph values.
 //! Interpolated Marker identity is valid only for the observed
-//! SinglePointContext. This is NOT native end-to-end finalDensity or
-//! original NoiseChunk lifecycle/source-law admission.
+//! `SinglePointContext`. This is NOT native end-to-end finalDensity or
+//! original `NoiseChunk` lifecycle/source-law admission.
 
 use helve_world_gen::density_primitives_262::DensityPrimitive262;
 use helve_world_gen::stock_density_program_262::{

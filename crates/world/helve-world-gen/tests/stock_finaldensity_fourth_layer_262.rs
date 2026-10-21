@@ -44,7 +44,9 @@ fn all_rows() -> Vec<FixtureRow> {
         .zip(roots)
         .map(|((a, b), root)| {
             let f = words(a).try_into().expect("seven new inputs");
-            let t = words(b).try_into().expect("six frozen third-layer operands");
+            let t = words(b)
+                .try_into()
+                .expect("six frozen third-layer operands");
             let original: [u64; 3] = words(root).try_into().expect("three root words");
             (f, t, original[2])
         })
@@ -57,7 +59,15 @@ fn constant(word: u64) -> Node<'static> {
 
 /// Reconstructed exact *observed* operator topology, no graph compiler.
 fn partial_graph(f: [u64; 7], t: [u64; 6]) -> Program<'static, 20> {
-    let [left_ap2, inner_y, outside_y, outside_in, outside_out, max_left, max_right] = f;
+    let [
+        left_ap2,
+        inner_y,
+        outside_y,
+        outside_in,
+        outside_out,
+        max_left,
+        max_right,
+    ] = f;
     Program::new([
         constant(left_ap2), // 0: unexpanded left Ap2
         Node::CandidateMulOrAdd {
@@ -71,9 +81,9 @@ fn partial_graph(f: [u64; 7], t: [u64; 6]) -> Program<'static, 20> {
             operation: Op::Multiply,
         }, // 2: observed MUL 0.64
         Node::CandidateSqueeze { input: 2 }, // 3: observed SQUEEZE
-        constant(inner_y), // 4: nested YClampedGradient, JVM-injected
-        constant(t[2]),    // 5: earlier source-observed nested Noise
-        constant(t[3]),    // 6: earlier Constant(-1)
+        constant(inner_y),  // 4: nested YClampedGradient, JVM-injected
+        constant(t[2]),     // 5: earlier source-observed nested Noise
+        constant(t[3]),     // 6: earlier Constant(-1)
         Node::CandidateRangeChoice {
             selector: 4,
             when_in_range: 5,
@@ -81,8 +91,8 @@ fn partial_graph(f: [u64; 7], t: [u64; 6]) -> Program<'static, 20> {
             min_inclusive: LOW,
             max_exclusive: HIGH,
         }, // 7
-        constant(outside_y),   // 8: separate outside HolderHolder (no shared identity claim)
-        constant(outside_in),  // 9: not yet descended MulOrAdd
+        constant(outside_y), // 8: separate outside HolderHolder (no shared identity claim)
+        constant(outside_in), // 9: not yet descended MulOrAdd
         constant(outside_out), // 10: actual Constant(+0)
         Node::CandidateRangeChoice {
             selector: 8,
@@ -91,7 +101,7 @@ fn partial_graph(f: [u64; 7], t: [u64; 6]) -> Program<'static, 20> {
             min_inclusive: LOW,
             max_exclusive: HIGH,
         }, // 11
-        constant(max_left),  // 12: first Mapped child
+        constant(max_left), // 12: first Mapped child
         constant(max_right), // 13: second Mapped child
         Node::ExplicitAp2Max {
             left: 12,
@@ -114,10 +124,7 @@ fn partial_graph(f: [u64; 7], t: [u64; 6]) -> Program<'static, 20> {
             min_inclusive: OUTER_LOW,
             max_exclusive: OUTER_HIGH,
         }, // 18
-        Node::ExplicitAp2Min {
-            left: 3,
-            right: 18,
-        }, // 19: actual original finalDensity root
+        Node::ExplicitAp2Min { left: 3, right: 18 }, // 19: actual original finalDensity root
     ])
     .expect("one bounded, cold-validated 20-node original partial graph")
 }
@@ -164,7 +171,13 @@ fn actual_fourth_layer_independently_checks_all_parent_operands() {
         assert_eq!(max.sample_block(0, 0, 0).to_bits(), t[5], "MAX {index}");
         let lhs = f64::from_bits(left);
         let rhs = f64::from_bits(right);
-        max_winners[if lhs > rhs { 0 } else if lhs < rhs { 1 } else { 2 }] += 1;
+        max_winners[if lhs > rhs {
+            0
+        } else if lhs < rhs {
+            1
+        } else {
+            2
+        }] += 1;
     }
     assert_eq!(branches, [108, 20]);
     assert_eq!(max_winners, [44, 64, 20]);

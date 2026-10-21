@@ -1,9 +1,9 @@
 //! Exact stock 26.2 finite Ap2 MIN *root operator* evidence.
 //!
 //! This test compiles the MIN operation over the two frozen, original JVM
-//! child values at each of 128 real Overworld SinglePointContext coordinates.
+//! child values at each of 128 real Overworld `SinglePointContext` coordinates.
 //! It does NOT implement or recompute either child subtree in Rust. Full
-//! finalDensity / NoiseChunk numerical parity and production remain OPEN.
+//! `finalDensity` / `NoiseChunk` numerical parity and production remain OPEN.
 
 use helve_world_gen::density_primitives_262::DensityPrimitive262;
 use helve_world_gen::stock_density_program_262::{
@@ -33,8 +33,8 @@ fn compiled_explicit_ap2_min_matches_all_128_original_java_root_words() {
         let b = f64::from_bits(word(fields[1]));
         let java = word(fields[2]);
         assert!(a.is_finite() && b.is_finite());
-        assert_ne!(a, 0.0, "captured min operands exclude unreviewed ±0");
-        assert_ne!(b, 0.0, "captured min operands exclude unreviewed ±0");
+        assert_ne!(a.to_bits() & 0x7fff_ffff_ffff_ffff, 0, "observed nonzero left");
+        assert_ne!(b.to_bits() & 0x7fff_ffff_ffff_ffff, 0, "observed nonzero right");
         assert_eq!(
             java, expected[index],
             "must preserve independent 128-word fixture"

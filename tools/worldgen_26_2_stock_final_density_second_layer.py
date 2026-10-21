@@ -15,6 +15,7 @@ import json
 import os
 import re
 import sqlite3
+import struct
 import subprocess
 import sys
 import tempfile
@@ -88,6 +89,16 @@ def parse_output(stdout:str)->tuple[list[dict],list[dict]]:
         require_enum(mul_op,mul_enum)
         require_enum(selector_kind,selector_enum)
         require_enum(ap2_op,ap2_enum)
+        # The real 26.2 MulOrAdd operation is a specificType record
+        # component, not the type() interface method. Preserve its exact
+        # runtime declaring enum and reject unsupported operation values.
+        if (mul_enum!=DENSITY+"MulOrAdd$Type" or
+            mul_op not in ("ADD","MUL")):
+            raise SecondLayerError("original MulOrAdd specificType not qualified")
+        if selector_enum!=DENSITY+"Marker$Type":
+            raise SecondLayerError("original selector Marker enum changed")
+        if ap2_enum!=DENSITY+"TwoArgumentSimpleFunction$Type":
+            raise SecondLayerError("original out-of-range Ap2 enum changed")
         for cls in (mul_input,selector_input,ap2_left,ap2_right):
             require_class(cls)
         if not inner.finite_word(mul_arg):
@@ -117,6 +128,15 @@ def parse_output(stdout:str)->tuple[list[dict],list[dict]]:
                 new["selector_output_bits"][2:]!=earlier[3] or
                 new["outer_output_bits"][2:]!=earlier[5]):
                 raise SecondLayerError("original previous JVM inner output bit anchor moved")
+            # Compare the *new* actual upstream operand and specificType
+            # argument against the previously frozen real MulOrAdd result.
+            # This is only 128-point candidate IEEE parity, not source-law
+            # review, NoiseChunk parity or production admission.
+            lhs=struct.unpack(">d",bytes.fromhex(new["mul_input_bits"][2:]))[0]
+            arg=struct.unpack(">d",bytes.fromhex(mul_arg))[0]
+            result=lhs+arg if mul_op=="ADD" else lhs*arg
+            if struct.pack(">d",result).hex()!=new["mul_output_bits"][2:]:
+                raise SecondLayerError("real MulOrAdd constant-operation bits differ")
             vectors.append({**final.input_rows()[index],**new})
         if cursor>=len(frames) or frames[cursor]!=[END,str(seed_index),"32"]:
             raise SecondLayerError("missing second-layer terminator")

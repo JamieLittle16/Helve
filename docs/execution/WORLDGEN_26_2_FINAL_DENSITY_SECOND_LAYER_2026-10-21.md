@@ -206,3 +206,25 @@ Read-only original JSON authentication (if needed, no recapture):
 ### Next sixth-layer frontier: advance genuine source leaves, not old oracles
 
 The real graph is now narrower. A new bounded original-JVM source-owner descent, if needed, must inspect only: (1) *left* `Ap2` Y-gradient **own** record bounds and its right `MulOrAdd` actual operation/argument/child; (2) the **outside** `YClampedGradient` own record bounds, permitting an independent exact structural equality test against the nested one; (3) outside in-range `MulOrAdd` child's operation/argument/child; and (4) the actual child types beneath the **two ABS Markers** (with distinct marker kinds). Separately review the existing nested `Noise` registry key, scales and noise-seeding binding, and qualify the full canonical `NoiseChunk` lifecycle before production. Preserve the existing performance, reusable seeded-noise stack, bounded allocation-free scratch and true source-gated publication architecture. All source-law, NoiseChunk, full-router, VAR/SEM and production gates remain FALSE.
+
+
+## Sixth-layer next source-owning four-child diagnostic (after green merged #491)
+
+PR #491 has merged with all eight checks green. Original private fifth-layer source-free JSON 103,398 bytes, SHA-256 0116b9cc0d7ed21edc19a93b37a99207f37726fa781affbd7901dc814b390bbd and its exact six-column fixture 13,056 bytes, SHA-256 1f0c3cf5e9c7fda8a8c348d68d431a99f4c3871611dacd48a97a442ed95a9433, are completed **do-not-recapture** evidence. Current fifth-layer observed finite graph has a 25-node Rust candidate tested against the frozen MIN root on 128 original points. Production remains forbidden.
+
+The bounded **sixth-layer** original-26.2-JVM bridge is staged in tools/worldgen_java/HelveStockFinalDensitySixthLayer262.java with transport and source-pin validator tools/worldgen_26_2_stock_final_density_sixth_layer.py and synthetic plus JDK tests tools/tests/test_worldgen_26_2_stock_final_density_sixth_layer.py.
+
+This instrument explores only the remaining four genuine unknown child values: (1) left-MUL's child MulOrAdd input; (2) outside-ADD's child MulOrAdd input; (3) first right-side ABS Marker child; (4) second right-side ABS Marker child. It also inspects **each separate real YClampedGradient record** (left Ap2 and outside Holder) to test whether either equals the already-known nested selector, without guessing. It reads **six old fifth-layer output words ONLY as independent immutable equality anchors** and does NOT promote them to new fixtures; strict exact enum record components, gradient finite bounds, operation bit parity, Marker SinglePointContext forwarding, source archive/server/Atlas/method pins, fixed four seeds and all prior false admission gates fail closed. No code paths report Java source text, original registries, JAR bytes, private stack traces or exception messages.
+
+After this sixth PR passes all CI and is merged, run exactly the next new diagnostic on the private original source-owner machine; DO NOT repeat old captures:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_sixth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-sixth-layer-128.json
+
+Upload only the bounded source-free sixth-layer JSON, or paste the precise original `HELVE26_2_SIXTH_FAILURE` tag with failure phase/class. Deeper native lowering must wait for the observed operators and Marker child types, while independent source-law, NoiseChunk marker lifetimes, all-input density router, VAR/SEM and production-worldgen admission remain false.

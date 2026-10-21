@@ -222,3 +222,65 @@ chunks, not only scalar microbenchmarks.
 `stock_noisechunk_interpolation_observed=false`,
 `independent_var_sem_admitted=false`,
 `production_worldgen_enabled=false`.
+
+## First source-confirmed stock finalDensity operator and compiled Rust candidate
+
+The owner independently ran the **original stock Minecraft Java 26.2**
+root+children diagnostic introduced by merged PR #476 and repaired in
+PR #477. The exact **source-free** private receipt has SHA-256
+`2c8094e2c561f13aff9a392081bf0f7c3fa41b94f1c8d3d922c308269db78e8d`
+(38,630 bytes) and is **not** committed to the repository.
+
+Across the same four seeds × 32 original SinglePointContext XYZ frames,
+the actual bound Overworld `finalDensity` is:
+
+```text
+Ap2(type = MIN; observed bounds -0.4583333333333333 .. +0.4583333333333333)
+  argument1 = Mapped(type = SQUEEZE, input = Marker)
+  argument2 = HolderHolder(holder.value() = RangeChoice)
+```
+
+This identity follows real `VanillaRegistries`, original
+`RandomState.create` and `NoiseRouter.finalDensity` reflection, with
+the inherited `PureTransformer.compute` declared class and source body
+pinned. All **128 original root values** match the earlier independent
+frozen `SinglePointContext` oracle exactly. A **separate** pair of
+original stock child operand words was obtained for each of the same
+128 coordinates.
+
+Among these 128 observations, the left Mapped child is the smaller
+operand **124** times, and the right RangeChoice holder **four**
+times (zero-indexed rows 21, 66, 67, 87). The root is MIN, **not**
+MUL, and neither child may be unconditionally removed. Crucially this
+measurement is **not** a source-law proof for NaNs, signed zeros,
+short-circuiting, mapping math, interpolation, or cache lifetime.
+
+The compact original-JVM operand/output record now lives in
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_min_root_128_rawbits.tsv`.
+Its **6,528 bytes** are pinned to SHA-256
+`5693d6d923ccd3fd29847350c825556349ba1f5eb1a5a7671537d8328ac485fd`
+by `tools/worldgen_26_2_stock_finaldensity_min_root_fixture.py`,
+which also requires all 128 root result words to match the **earlier
+independent** frozen stock fixture. The exact original 38,630-byte
+source-free owner JSON can optionally be checked locally with
+`--capture /path/to/helve-26_2-final-root-semantics-128.json`.
+
+The real Rust compiler extension
+`StockDensityNode262::ExplicitAp2Min { left, right }` combines two
+finite independently evaluated density results in the **same**
+immutable, caller-owned `StockDensityProgram262` DAG. It is a
+typed operator **candidate**, not the full source-bound graph.
+The new Rust tests reconstruct these 128 original root results from
+their frozen independent JVM **first-level operand words** and check
+the full 16×16 / 16³ sampling logic as well as nesting with lazy Ap2
+multiplication. **It does not recompute either stock Mapped or
+RangeChoice subtree in Rust.** Only those original child values are
+injected for root-operator parity. Do not mislabel this end-to-end
+Rust-versus-JVM `finalDensity` parity.
+
+**Next after this PR:** implement and source-review the exact
+`SQUEEZE`-mapped Marker input and bound `RangeChoice` subtree, with
+true Rust evaluations against **independent JVM child outputs** and
+explicit `NoiseChunk` cache/interpolation lifecycle. Full router,
+VAR/SEM, canonical traversal and production worldgen flags remain
+**false**; no second world owner and no old captures need repeating.

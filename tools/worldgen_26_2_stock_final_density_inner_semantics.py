@@ -37,7 +37,12 @@ END="HELVE26_2_FINAL_INNER_END"
 FAIL="HELVE26_2_FINAL_INNER_FAILURE"
 HEX=re.compile(r"[0-9a-f]{16}\Z")
 NAME=re.compile(r"[A-Za-z0-9_.$]{1,180}\Z")
-ENUM=re.compile(r"[A-Z][A-Z0-9_]*\Z")
+# Java's stock Marker$Type constants use normal Java identifiers, including
+# UpperCamelCase (for example CacheAllInCell), not necessarily ALL_CAPS.
+# Limit the *untrusted stream* to short ASCII identifiers; class identity
+# is verified separately against the exact pinned enum declaring class.
+ENUM=re.compile(r"[A-Za-z][A-Za-z0-9_]{0,79}\Z")
+MARKER_ENUM_CLASS="net.minecraft.world.level.levelgen.DensityFunctions$Marker$Type"
 GATES=(
     "mapped_squeeze_source_law_reviewed",
     "mapped_squeeze_rust_jvm_parity_qualified",
@@ -79,12 +84,20 @@ def parse_output(stdout:str)->tuple[list[dict],list[dict]]:
         if len(shape)!=11 or shape[:3]!=[HEAD,str(seed_idx),seed]:
             raise InnerFrontierError("original inner class/seed metadata changed")
         marker_type,marker_kind,wrapped_type,selector_type,in_type,out_type,low,high=shape[3:]
-        if (not all(NAME.fullmatch(v) for v in (
-            marker_type,wrapped_type,selector_type,in_type,out_type))
-            or not ENUM.fullmatch(marker_kind)
-            or not marker_type.startswith(final.FINAL.rsplit("$",1)[0]+"$")
-            or not finite_word(low) or not finite_word(high)):
-            raise InnerFrontierError("unqualified original marker/range classes")
+        if marker_type!=MARKER_ENUM_CLASS:
+            raise InnerFrontierError("original Marker enum declaring class changed")
+        if not ENUM.fullmatch(marker_kind):
+            raise InnerFrontierError("unqualified stock Marker enum identifier")
+        for label,name in (
+            ("marker_wrapped",wrapped_type),
+            ("range_selector",selector_type),
+            ("range_when_in",in_type),
+            ("range_when_out",out_type),
+        ):
+            if not NAME.fullmatch(name):
+                raise InnerFrontierError("unqualified stock runtime class name: "+label)
+        if not finite_word(low) or not finite_word(high):
+            raise InnerFrontierError("unqualified stock RangeChoice threshold bits")
         shapes.append({
             "world_seed_bits":seed,"marker_type_class":marker_type,
             "marker_kind":marker_kind,"marker_wrapped_class":wrapped_type,

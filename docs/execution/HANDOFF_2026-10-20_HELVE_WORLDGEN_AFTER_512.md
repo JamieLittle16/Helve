@@ -717,3 +717,26 @@ Independently implement actual bounded RangeChoice and verify selector
 branch semantics. Then traverse real underlying seeded router graphs
 and the stateful NoiseChunk marker/interpolator lifecycle. None of
 this is yet end-to-end finalDensity or production worldgen.
+
+
+## 21 October — inner Marker enum parser repair following first owner run
+
+The first user-owned execution of merged PR #479's
+`tools/worldgen_26_2_stock_final_density_inner_semantics.py`
+stopped with `STOCK 26.2 FINAL INNER REVIEW OPEN: unqualified original
+marker/range classes`. Inspection found a **transport grammar bug**:
+our Python validator accepted only ALL_CAPS enum constants, whereas
+the Java bridge reports `Enum.name()` and Mojang's marker variants
+can use UpperCamelCase. The previously mocked Python fixture used
+`CACHE_ALL_IN_CELL`, so it did not exercise this naming distinction.
+
+The fix in branch `worldgen/262-inner-marker-enum-parser-fix`
+accepts short ASCII Java-style enum identifiers, while explicitly
+pinning their declaring class to
+`DensityFunctions$Marker$Type` and still rejecting invalid names,
+new/different classes, altered IEEE bits, seed/XYZ shifts, source
+identities, false-to-true gates and all changed historical child
+results. Updated CI tests include UpperCamelCase and negative
+declaring-class coverage. **No new inner JVM receipt exists yet**;
+after merging, rerun the same inner diagnostic only. Do not redo the
+128 finalDensity root, 512-cell, or 768 NoiseChunk references.

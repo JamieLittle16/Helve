@@ -284,3 +284,90 @@ true Rust evaluations against **independent JVM child outputs** and
 explicit `NoiseChunk` cache/interpolation lifecycle. Full router,
 VAR/SEM, canonical traversal and production worldgen flags remain
 **false**; no second world owner and no old captures need repeating.
+
+
+## Inner graph implementation and genuinely new stock input frontier
+
+After merged PR #478 at `10915192613ccf8298658547a36a5622f60a0b07`, the 26.2
+finalDensity first-level root is correctly observed to be
+`Ap2 MIN(Mapped SQUEEZE(Marker), HolderHolder(RangeChoice))`.
+The existing compact 128-row fixture pins **real original stock JVM**
+Mapped and holder output words. It does **not** contain the Marker input
+to SQUEEZE, the RangeChoice selector or its two branch results.
+
+The next compiler increment, in
+`crates/world/helve-world-gen/src/stock_density_program_262.rs`,
+adds **`StockDensityNode262::CandidateSqueeze { input }`** as
+a typed unary node in the existing immutable bounded Rust graph.
+Its implementation is the *candidate* Java-order expression
+
+```text
+c = clamp(input, -1.0, +1.0)
+result = c / 2.0 - c * c * c / 24.0
+```
+
+with original left-to-right multiplication order and no per-sample
+allocation. The COLD constructor checks one strict backward edge and
+rejects disconnected nodes. The candidate works both in ordinary
+eager graph sampling and beneath the existing demand-evaluated Ap2
+multiplication; coherent planes and volumes reuse the caller's
+existing buffers. **This is not yet original-JVM-qualified
+SQUEEZE**: the original Marker *input* was not part of the 128
+first-level child receipt, and the actual Mapped apply source branch
+has not undergone manual source-law review. Never promote any VAR/SEM
+or production gate on the basis of those candidate tests.
+
+### One new input capture, without repeating past work
+
+The new read-only original Java 26.2 diagnostic is
+`tools/worldgen_26_2_stock_final_density_inner_semantics.py`,
+with bridge
+`tools/worldgen_java/HelveStockFinalDensityInnerSemantics262.java`.
+
+It reuses the exact already-frozen four seeds × 32 world coordinates;
+there are **no additional old finalDensity root values to capture**.
+For each original seeded stock `RandomState`, it unwraps:
+
+- `Mapped(SQUEEZE)`'s real `Marker` input, the
+  marker's original type and its one directly wrapped density input;
+- the `RangeChoice` target behind the existing
+  `HolderHolder`, its real selector, two branch types,
+  and exact inclusive/exclusive double thresholds;
+- raw IEEE-754 bits from both new original paths — Marker value,
+  wrapped value, selector value, whenInRange value, whenOutOfRange
+  value — plus two **comparison-only** previously captured Mapped and
+  holder outputs.
+
+The Python validator requires the two old output words at all 128
+points to match **exactly** the independent 6,528-byte PR #478
+fixture; the holder must agree with an actually computed branch,
+but this observation alone does not establish the source branch
+predicate (including boundary handling), ordering, or NoiseChunk
+cache lifetimes. It also re-verifies the exact stock source archive,
+Atlas fingerprints, version lock and official server JAR. The private
+source-free output is deliberately not committed; all admission flags
+remain **false**.
+
+Once this PR is merged, run **only this new inner review**, without
+repeating the earlier root/512/768/noise captures:
+
+```bash
+cd ~/Crucible
+git switch main && git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_inner_semantics.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --output /tmp/helve-26_2-final-inner-marker-rangechoice-128.json
+```
+
+Upload only the source-free JSON, or the specific fail-closed error.
+With those **new** original Marker-input/Mapped-output pairs, test the
+Rust SQUEEZE candidate against all 128 independent JVM words and
+separately inspect source-law operation order. With the RangeChoice
+selector and both branch words, implement a typed Rust RangeChoice
+operator with independently verified boundary and branch semantics.
+Then expand recursively to the actual underlying noise and spline
+graph, followed by separate NoiseChunk/interpolator and 768/512
+original-cell parity. Do not instantiate a production terrain
+publisher until the documented gates are satisfied.

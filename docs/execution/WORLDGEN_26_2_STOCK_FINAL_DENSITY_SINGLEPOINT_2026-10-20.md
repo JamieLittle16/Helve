@@ -565,3 +565,32 @@ dependencies and NoiseChunk interpolation/cache timeline.
 **All source-law review, full-router and canonical NoiseChunk numeric
 parity, independent VAR/SEM admission and production generation gates
 remain false.** This PR does not publish terrain.
+
+
+## Actual first owner run and precise second-layer failure instrumentation (21 October)
+
+The new second-layer probe was run on verified merged PR #482 main
+`37649da70537ac7993f5edd12f6b6b7be4b23deb`. It **failed closed** on the first seed's first point, emitting
+
+```text
+STOCK 26.2 FINAL SECOND LAYER OPEN: original 26.2 JVM second-layer rejected: HELVE26_2_SECOND_FAILURE|second-layer-0-0|java.lang.IllegalStateException
+```
+
+The previous first-level root, inner SQUEEZE/RangeChoice and other
+official stock evidence stays valid. The coarse initial `second-layer-0-0`
+tag is insufficient to decide whether the original record-only
+`MulOrAdd` child assumption, `argument`/enum component, marker, or
+outside `Ap2` reflection was contradicted.
+
+This repair instruments the **same** owner-private Java diagnostic with
+safe, enumerated `second-layer-0-0-<step>` phases before each important
+reflection action. No original source, registry/JAR contents, exception
+messages or stack traces are exported. The exact Python invocation in
+the preceding section is **unchanged**; rerun it only after CI-green
+merge of the instrumentation branch. The second-layer output is still
+written only on validated success, so a failed attempt has not created
+a certified fixture.
+
+Full current next steps, source-law caution, branch and precise
+no-repeat-work requirements:
+[HANDOFF_2026-10-21_HELVE_SECOND_LAYER_FAILURE.md](HANDOFF_2026-10-21_HELVE_SECOND_LAYER_FAILURE.md).

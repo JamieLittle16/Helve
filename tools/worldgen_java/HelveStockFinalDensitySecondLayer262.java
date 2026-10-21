@@ -16,6 +16,11 @@ public final class HelveStockFinalDensitySecondLayer262 {
   static final PrintStream OUT=new PrintStream(
       new FileOutputStream(FileDescriptor.out),true,StandardCharsets.US_ASCII);
   static String phase="bootstrap";
+  // Narrow, source-free failure stages. Only fixed identifiers, never
+  // reflection exception messages, private class contents, or source text.
+  static void stage(int seed, int point, String step) {
+    phase="second-layer-"+seed+"-"+point+"-"+step;
+  }
   static String bits(double value) {
     if(!Double.isFinite(value))
       throw new IllegalStateException("nonfinite stock second-layer density");
@@ -83,7 +88,7 @@ public final class HelveStockFinalDensitySecondLayer262 {
       Object outer=null,outLeft=null,outRight=null;
       String seed=null;
       for(int pointIndex=0;pointIndex<32;pointIndex++) {
-        phase="second-layer-"+seedIndex+"-"+pointIndex;
+        stage(seedIndex,pointIndex,"input-frame");
         String line=input.readLine();
         if(line==null) throw new IllegalStateException("missing frozen frame");
         String[] f=line.split("\\t",-1);
@@ -91,64 +96,102 @@ public final class HelveStockFinalDensitySecondLayer262 {
           throw new IllegalStateException("unqualified bounded XYZ seed frame");
         if(pointIndex==0) {
           seed=f[0];
+          stage(seedIndex,pointIndex,"create-random-state");
           Object state=create.invoke(null,provider,overworld,
               HelveWorldSeededDensity262.bits(seed));
+          stage(seedIndex,pointIndex,"resolve-root");
           Object root=HelveStockFinalDensitySinglePoint262.finalDensity(
               router.invoke(state),routerClass,density);
+          stage(seedIndex,pointIndex,"check-min-root");
           if(!type(root).equals(LV+"DensityFunctions$Ap2") ||
              !HelveStockFinalDensityRootSemantics262.enumName(root,"type").equals("MIN"))
             throw new IllegalStateException("original rooted MIN changed");
+          stage(seedIndex,pointIndex,"root-left-child");
           Object mapped=member(root,"argument1");
+          stage(seedIndex,pointIndex,"root-right-child");
           Object holder=member(root,"argument2");
+          stage(seedIndex,pointIndex,"check-first-level-types");
           if(!type(mapped).equals(LV+"DensityFunctions$Mapped") ||
              !type(holder).equals(LV+"DensityFunctions$HolderHolder") ||
              !HelveStockFinalDensityRootSemantics262.enumName(mapped,"type").equals("SQUEEZE"))
             throw new IllegalStateException("root first-layer graph changed");
+          stage(seedIndex,pointIndex,"mapped-input");
           Object marked=HelveStockFinalDensityRootSemantics262.mappedInput(mapped,density);
+          stage(seedIndex,pointIndex,"check-interpolated-marker");
           if(!type(marked).equals(LV+"DensityFunctions$Marker") ||
              !HelveStockFinalDensityRootSemantics262.enumName(marked,"type").equals("Interpolated"))
             throw new IllegalStateException("original left Marker changed");
+          stage(seedIndex,pointIndex,"interpolated-wrapped-child");
           mul=child(marked,density);
+          stage(seedIndex,pointIndex,"check-muloradd-class");
           if(!type(mul).equals(LV+"DensityFunctions$MulOrAdd"))
             throw new IllegalStateException("actual wrapped MulOrAdd changed");
+          stage(seedIndex,pointIndex,"muloradd-child-record");
           mulChild=child(mul,density);
+          stage(seedIndex,pointIndex,"resolve-holder-target");
           Object choice=HelveStockFinalDensityRootSemantics262.holderTarget(holder,density);
+          stage(seedIndex,pointIndex,"check-rangechoice-class");
           if(!type(choice).equals(LV+"DensityFunctions$RangeChoice"))
             throw new IllegalStateException("actual HolderHolder target changed");
+          stage(seedIndex,pointIndex,"range-selector-record");
           selector=member(choice,"input");
+          stage(seedIndex,pointIndex,"range-outside-record");
           outer=member(choice,"whenOutOfRange");
+          stage(seedIndex,pointIndex,"check-selector-and-ap2-class");
           if(!type(selector).equals(LV+"DensityFunctions$Marker") ||
              !type(outer).equals(LV+"DensityFunctions$Ap2"))
             throw new IllegalStateException("selector Marker or out Ap2 changed");
+          stage(seedIndex,pointIndex,"selector-marker-child-record");
           selectorChild=child(selector,density);
+          stage(seedIndex,pointIndex,"outside-ap2-left");
           outLeft=member(outer,"argument1");
+          stage(seedIndex,pointIndex,"outside-ap2-right");
           outRight=member(outer,"argument2");
+          stage(seedIndex,pointIndex,"check-all-density-inputs");
           if(!density.isInstance(mulChild) || !density.isInstance(selectorChild) ||
              !density.isInstance(outLeft) || !density.isInstance(outRight))
             throw new IllegalStateException("second-layer node children not densities");
+          stage(seedIndex,pointIndex,"muloradd-argument-record");
           double arg=(Double)member(mul,"argument");
+          stage(seedIndex,pointIndex,"muloradd-operation-record");
+          String mulOpClass=HelveStockFinalDensityRootSemantics262.enumClass(mul,"type");
+          String mulOpName=HelveStockFinalDensityRootSemantics262.enumName(mul,"type");
+          stage(seedIndex,pointIndex,"selector-marker-type-record");
+          String selectorClass=HelveStockFinalDensityRootSemantics262.enumClass(selector,"type");
+          String selectorName=HelveStockFinalDensityRootSemantics262.enumName(selector,"type");
+          stage(seedIndex,pointIndex,"outside-ap2-operation-record");
+          String outsideClass=HelveStockFinalDensityRootSemantics262.enumClass(outer,"type");
+          String outsideName=HelveStockFinalDensityRootSemantics262.enumName(outer,"type");
+          stage(seedIndex,pointIndex,"emit-shape");
           OUT.println(SHAPE+seedIndex+"|"+seed+"|"+
-              HelveStockFinalDensityRootSemantics262.enumClass(mul,"type")+"|"+
-              HelveStockFinalDensityRootSemantics262.enumName(mul,"type")+"|"+
+              mulOpClass+"|"+mulOpName+"|"+
               bits(arg)+"|"+type(mulChild)+"|"+
-              HelveStockFinalDensityRootSemantics262.enumClass(selector,"type")+"|"+
-              HelveStockFinalDensityRootSemantics262.enumName(selector,"type")+"|"+
+              selectorClass+"|"+selectorName+"|"+
               type(selectorChild)+"|"+
-              HelveStockFinalDensityRootSemantics262.enumClass(outer,"type")+"|"+
-              HelveStockFinalDensityRootSemantics262.enumName(outer,"type")+"|"+
+              outsideClass+"|"+outsideName+"|"+
               type(outLeft)+"|"+type(outRight));
         } else if(!seed.equals(f[0])) {
           throw new IllegalStateException("original seed frame changed");
         }
+        stage(seedIndex,pointIndex,"decode-xyz");
         int x=Integer.parseInt(f[1]),y=Integer.parseInt(f[2]),z=Integer.parseInt(f[3]);
+        stage(seedIndex,pointIndex,"single-point-context");
         Object at=pointCtor.newInstance(x,y,z);
+        stage(seedIndex,pointIndex,"muloradd-output");
         double m=HelveStockFinalDensityInnerSemantics262.finite(mul,compute,at);
+        stage(seedIndex,pointIndex,"muloradd-input");
         double mc=HelveStockFinalDensityInnerSemantics262.finite(mulChild,compute,at);
+        stage(seedIndex,pointIndex,"selector-output");
         double ss=HelveStockFinalDensityInnerSemantics262.finite(selector,compute,at);
+        stage(seedIndex,pointIndex,"selector-wrapped-input");
         double sc=HelveStockFinalDensityInnerSemantics262.finite(selectorChild,compute,at);
+        stage(seedIndex,pointIndex,"outside-ap2-left-value");
         double a=HelveStockFinalDensityInnerSemantics262.finite(outLeft,compute,at);
+        stage(seedIndex,pointIndex,"outside-ap2-right-value");
         double b=HelveStockFinalDensityInnerSemantics262.finite(outRight,compute,at);
+        stage(seedIndex,pointIndex,"outside-ap2-output");
         double o=HelveStockFinalDensityInnerSemantics262.finite(outer,compute,at);
+        stage(seedIndex,pointIndex,"emit-bit-frame");
         OUT.println(VALUE+captured+"|"+bits(mc)+"|"+bits(m)+"|"+
             bits(sc)+"|"+bits(ss)+"|"+bits(a)+"|"+bits(b)+"|"+bits(o));
         captured++;

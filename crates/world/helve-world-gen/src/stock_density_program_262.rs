@@ -12,7 +12,11 @@
 //! The first-level stock finalDensity root is now independently observed as
 //! Ap2 MIN(Mapped SQUEEZE(Marker), HolderHolder(RangeChoice)) across four seeds.
 //! An explicit MIN node can combine independently evaluated finite operands.
-//! Mapping, holder targets, cache lifecycle and complete finalDensity remain open.
+//! The real SQUEEZE mapping is now bit-confirmed on 128 original JVM Marker
+//! input/output pairs, and RangeChoice's actual [-1_000_000, 0) branch
+//! selection matches 128 independent seeded observations. The candidate
+//! nodes remain explicitly source-law unadmitted; actual inner graph children,
+//! marker interpolation lifecycle and complete finalDensity remain open.
 //! Factory selection and arbitrary graph shapes remain unqualified.
 //! No production authority.
 //!
@@ -71,6 +75,24 @@ pub enum StockDensityNode262<'a> {
     /// against the pinned 26.2 mapping source body. This does not admit the
     /// marker's `NoiseChunk` cache, interpolation, or complete `finalDensity`.
     CandidateSqueeze { input: usize },
+    /// Source-observed `RangeChoice` selector with lazy branch evaluation.
+    ///
+    /// The stock 26.2 `finalDensity` bound [-1,000,000, 0) selects
+    /// constant 64.0 versus its `Ap2` alternative in 47/81 actual JVM
+    /// `SinglePointContext` observations. This remains a candidate until
+    /// its original source-law and `NoiseChunk` marker lifecycle are admitted.
+    CandidateRangeChoice {
+        /// Density input used only to choose the branch.
+        selector: usize,
+        /// Evaluated only when the selector is >= min and < max.
+        when_in_range: usize,
+        /// Evaluated only when the selector is outside the range.
+        when_out_of_range: usize,
+        /// Inclusive lower bound, verified finite at COLD construction.
+        min_inclusive: f64,
+        /// Exclusive upper bound, verified finite at COLD construction.
+        max_exclusive: f64,
+    },
 }
 
 /// COLD program validation errors; no runtime evaluation is attempted.
@@ -84,6 +106,8 @@ pub enum StockDensityProgramError262 {
     InvalidDependency { node: usize, child: usize },
     /// A disconnected node would cause unnecessary work on the hot path.
     UnusedNode { node: usize },
+    /// Range bounds must be finite and strictly increasing.
+    InvalidRangeBounds { node: usize },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -102,11 +126,12 @@ impl Arithmetic262 {
     }
 }
 
-/// Hypothesized stock 26.2 SQUEEZE mapping; NOT an admitted source law.
+/// Stock 26.2 SQUEEZE mapping candidate: 128/128 original JVM bit matches.
 ///
-/// Keep Java-like operation order and explicit clamping rather than applying
-/// FMA or a polynomial simplification. Numeric parity with an original
-/// `Mapped` inner-input oracle remains pending.
+/// The original 26.2 `Mapped` source operation ordering is still unreviewed;
+/// bit parity in four seeded `SinglePointContext` frames alone does not
+/// authorize using this transform as a stock `NoiseChunk` implementation.
+/// Keep the observed arithmetic order, without FMA or simplification.
 #[inline]
 fn candidate_squeeze(value: f64) -> f64 {
     let clamped = value.clamp(-1.0, 1.0);
@@ -137,7 +162,7 @@ enum SamplingPlan262<'a> {
 pub struct StockDensityProgram262<'a, const N: usize> {
     nodes: [StockDensityNode262<'a>; N],
     plan: SamplingPlan262<'a>,
-    contains_explicit_ap2: bool,
+    contains_demand_nodes: bool,
 }
 
 impl<'a, const N: usize> StockDensityProgram262<'a, N> {
@@ -165,6 +190,30 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                         node: index,
                         child: input,
                     });
+                }
+                StockDensityNode262::CandidateRangeChoice {
+                    selector,
+                    when_in_range,
+                    when_out_of_range,
+                    min_inclusive,
+                    max_exclusive,
+                } => {
+                    if !min_inclusive.is_finite()
+                        || !max_exclusive.is_finite()
+                        || min_inclusive >= max_exclusive
+                    {
+                        return Err(StockDensityProgramError262::InvalidRangeBounds {
+                            node: index,
+                        });
+                    }
+                    for child in [selector, when_in_range, when_out_of_range] {
+                        if child >= index {
+                            return Err(StockDensityProgramError262::InvalidDependency {
+                                node: index,
+                                child,
+                            });
+                        }
+                    }
                 }
                 _ => {}
             }
@@ -203,6 +252,16 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 }
                 StockDensityNode262::CandidateSqueeze { input } => {
                     reachable[input] = true;
+                }
+                StockDensityNode262::CandidateRangeChoice {
+                    selector,
+                    when_in_range,
+                    when_out_of_range,
+                    ..
+                } => {
+                    reachable[selector] = true;
+                    reachable[when_in_range] = true;
+                    reachable[when_out_of_range] = true;
                 }
                 _ => {}
             }
@@ -259,13 +318,17 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         } else {
             SamplingPlan262::Generic
         };
-        let contains_explicit_ap2 = nodes
-            .iter()
-            .any(|node| matches!(node, StockDensityNode262::ExplicitAp2Multiply { .. }));
+        let contains_demand_nodes = nodes.iter().any(|node| {
+            matches!(
+                node,
+                StockDensityNode262::ExplicitAp2Multiply { .. }
+                    | StockDensityNode262::CandidateRangeChoice { .. }
+            )
+        });
         Ok(Self {
             nodes,
             plan,
-            contains_explicit_ap2,
+            contains_demand_nodes,
         })
     }
 
@@ -284,7 +347,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         block_z: i32,
         scratch: &mut [f64; N],
     ) -> f64 {
-        if self.contains_explicit_ap2 {
+        if self.contains_demand_nodes {
             let mut computed = [false; N];
             return self.evaluate_demand(
                 N - 1,
@@ -313,8 +376,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::CandidateSqueeze { input } => {
                     candidate_squeeze(scratch[input])
                 }
-                StockDensityNode262::ExplicitAp2Multiply { .. } => {
-                    unreachable!("COLD program selects demand evaluation for all Ap2 nodes")
+                StockDensityNode262::ExplicitAp2Multiply { .. }
+                | StockDensityNode262::CandidateRangeChoice { .. } => {
+                    unreachable!("COLD program selects demand evaluation for conditional nodes")
                 }
             };
         }
@@ -363,6 +427,21 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             }
             StockDensityNode262::CandidateSqueeze { input } => {
                 candidate_squeeze(self.evaluate_demand(input, block, scratch, computed))
+            }
+            StockDensityNode262::CandidateRangeChoice {
+                selector,
+                when_in_range,
+                when_out_of_range,
+                min_inclusive,
+                max_exclusive,
+            } => {
+                let key = self.evaluate_demand(selector, block, scratch, computed);
+                let branch = if key >= min_inclusive && key < max_exclusive {
+                    when_in_range
+                } else {
+                    when_out_of_range
+                };
+                self.evaluate_demand(branch, block, scratch, computed)
             }
             StockDensityNode262::ExplicitAp2Multiply { left, right } => {
                 let first = self.evaluate_demand(left, block, scratch, computed);

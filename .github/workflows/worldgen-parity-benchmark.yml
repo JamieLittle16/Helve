@@ -46,6 +46,10 @@ on:
       - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_26_2_stock_final_density_root_semantics.py"
       - "tools/worldgen_26_2_stock_final_density_inner_semantics.py"
+      - "tools/worldgen_26_2_stock_finaldensity_inner_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_finaldensity_inner_fixture.py"
+      - "crates/world/helve-world-gen/tests/data/stock_finaldensity_inner_128_rawbits.tsv"
+      - "crates/world/helve-world-gen/tests/stock_finaldensity_inner_262.rs"
       - "tools/worldgen_java/HelveStockFinalDensityInnerSemantics262.java"
       - "tools/tests/test_worldgen_26_2_stock_final_density_inner_semantics.py"
       - "crates/world/helve-world-gen/tests/stock_candidate_squeeze_262.rs"
@@ -140,6 +144,10 @@ on:
       - "tools/worldgen_26_2_stock_final_density_singlepoint_capture.py"
       - "tools/worldgen_26_2_stock_final_density_root_semantics.py"
       - "tools/worldgen_26_2_stock_final_density_inner_semantics.py"
+      - "tools/worldgen_26_2_stock_finaldensity_inner_fixture.py"
+      - "tools/tests/test_worldgen_26_2_stock_finaldensity_inner_fixture.py"
+      - "crates/world/helve-world-gen/tests/data/stock_finaldensity_inner_128_rawbits.tsv"
+      - "crates/world/helve-world-gen/tests/stock_finaldensity_inner_262.rs"
       - "tools/worldgen_java/HelveStockFinalDensityInnerSemantics262.java"
       - "tools/tests/test_worldgen_26_2_stock_final_density_inner_semantics.py"
       - "crates/world/helve-world-gen/tests/stock_candidate_squeeze_262.rs"
@@ -306,6 +314,11 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_finaldensity_min_root_fixture.py' -v
           python3 tools/worldgen_26_2_stock_finaldensity_min_root_fixture.py
+
+      - name: Verify 128 genuine stock JVM SQUEEZE and RangeChoice inner bit witnesses
+        run: |
+          python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_finaldensity_inner_fixture.py' -v
+          python3 tools/worldgen_26_2_stock_finaldensity_inner_fixture.py
 
       - name: Verify genuine inner Marker and RangeChoice branch reviewer transport
         run: python3 -m unittest discover -s tools/tests -p 'test_worldgen_26_2_stock_final_density_inner_semantics.py' -v

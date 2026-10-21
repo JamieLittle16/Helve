@@ -740,3 +740,45 @@ results. Updated CI tests include UpperCamelCase and negative
 declaring-class coverage. **No new inner JVM receipt exists yet**;
 after merging, rerun the same inner diagnostic only. Do not redo the
 128 finalDensity root, 512-cell, or 768 NoiseChunk references.
+
+
+## 21 October — actual nested finalDensity evidence and RangeChoice compiler
+
+After the successful bounded inner JVM capture (following merged PR
+#480), the new source-free user JSON is 67,785 bytes, SHA-256
+`22c8473fa1cc409f9833731306a1d35cb633808c6571ea75fbb84a45150c56b1`.
+All four seeds agree on actual `Mapped SQUEEZE(Marker Interpolated(MulOrAdd))`
+and bound `RangeChoice(input Marker, min=-1000000, max=0,
+in=Constant64, out=Ap2)` shapes. All 128 original new pairs
+exactly re-anchor the older Mapped/holder words. Source-free 15,232-byte
+TSV SHA-256
+`967c9203950f0e22a8b69f73dfe5e1bd1438ef1224fcc4346b8d578409c45170`.
+
+Numerically:
+- `CandidateSqueeze` computes 128/128 original marker-to-Mapped
+  bits correctly, including clamped inputs beyond [-1,1].
+- `Interpolated` wrapper equals its inner `MulOrAdd` at all
+  128 `SinglePointContext` points only.
+- RangeChoice [-1000000,0) selects exactly 47 in/81 out JVM branches;
+  the inside constant is 64 and the outside graph is an `Ap2`.
+  Holder wins the existing MIN root at four known points.
+
+Current PR `worldgen/262-rangechoice-squeeze-inner-128` adds a typed,
+lazy, COLD-validated `CandidateRangeChoice` to **the existing**
+`StockDensityProgram262`, using the fixed scratch/memoized demand
+path to avoid computing the unchosen branch. New Rust tests reconstruct
+the full first-level `MIN` output given original Java Marker and
+RangeChoice inputs and original selected branch values; they do NOT
+yet evaluate all three inner stock density subtrees in Rust.
+`tools/worldgen_26_2_stock_finaldensity_inner_fixture.py` pins the
+source-free receipt/old outputs and rejects mutations. CI/regression
+tests cover 128 actual words, 47/81 branches, cold bound rejection,
+inactive branch skipping, +0 Ap2 short-circuit nesting and boundary
+cases.
+
+**No more capture of the known 128 root or inner inputs.** Required
+future implementation: source-review mapped/range branch laws,
+implement exact inner `MulOrAdd`, marker selector and out `Ap2`,
+then the true `NoiseChunk` interpolation lifecycle and 768 bitwise
+cells. Production/VAR/SEM and full-router numeric parity still
+**unqualified**; no second world owner or permission to publish.

@@ -397,3 +397,90 @@ Marker/RangeChoice numerical evidence has yet been committed or
 validated. Rerun only this same **new** inner review after its fix is
 merged. The prior 128 first-level, 512 cell and 768 NoiseChunk oracle
 records remain frozen and require no recapture.
+
+
+## Verified deeper 26.2 inner graph — 128 original JVM pairs
+
+The previously requested *new* inner source-owning diagnostic succeeded
+after PR #480 fixed the exact Java Marker enum grammar. The user-supplied,
+source-free report is **67,785 bytes**, SHA-256
+`22c8473fa1cc409f9833731306a1d35cb633808c6571ea75fbb84a45150c56b1`;
+no Minecraft Java source, JAR or registry state is committed. The
+four-seed × 32 original `SinglePointContext` XYZ inputs are unchanged,
+and all **128 Mapped and holder output words match** the previously
+frozen PR #478 first-level fixture.
+
+The real 26.2 Overworld graph has the following *now independently
+observed* deeper nodes across all four seeds:
+
+```text
+finalDensity = Ap2 MIN
+├── Mapped SQUEEZE
+│   └── Marker(type = Interpolated)
+│       └── MulOrAdd [actual wrapped original runtime class]
+└── HolderHolder -> RangeChoice
+    ├── input: Marker
+    ├── minInclusive: -1000000.0 (0xc12e848000000000)
+    ├── maxExclusive: 0.0 (0x0000000000000000)
+    ├── whenInRange: Constant(64.0)
+    └── whenOutOfRange: Ap2
+```
+
+The **new numeric input/output evidence** confirms:
+- the existing Rust `CandidateSqueeze`'s clamped ordered polynomial
+  matches **128/128 original JVM Mapped outputs bit-for-bit** when given
+  the real Marker input; values include magnitudes beyond one;
+- in stock `SinglePointContext`, the `Interpolated` Marker output
+  equals the wrapped `MulOrAdd` value at all 128 recorded inputs;
+  **this does not establish how NoiseChunk interpolation works**;
+- the observed predicate `selector >= -1000000.0 && selector < 0.0`
+  selects the exact original holder branch in **128/128** cases:
+  **47 in-range** and **81 out-of-range**;
+- the in-range original branch yields exactly `64.0` at all 128
+  points. The outer `Ap2` branch remains an **unimplemented
+  underlying subgraph**. Four original root points favour the holder.
+
+The compact, source-free and independently testable fixture is
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_inner_128_rawbits.tsv`:
+**15,232 bytes**, SHA-256
+`967c9203950f0e22a8b69f73dfe5e1bd1438ef1224fcc4346b8d578409c45170`.
+The tool
+`tools/worldgen_26_2_stock_finaldensity_inner_fixture.py` checks
+all 128 new operand tuples, historical first-level and root output
+SHA pins, the exact 47/81 and four holder-winner counts, formula raw
+bits, stock constant, range decision, and optionally the original
+private user receipt with `--capture /path/to/helve-26_2-final-inner-marker-rangechoice-128.json`.
+No future duplicate capture of these facts is warranted.
+
+### Rust implementation scope
+
+The bounded compiled `StockDensityProgram262` now has
+`CandidateRangeChoice { selector, when_in_range, when_out_of_range,
+min_inclusive, max_exclusive }`. The COLD constructor requires
+finite strictly ascending bounds and backward-reachable dependencies.
+The existing fixed scratch/demand evaluator computes the selector,
+then **only the chosen branch** — no eager evaluation of the unused
+RangeChoice subtree, heap work, or second world owner. The already
+implemented candidate SQUEEZE remains the **same** ordered arithmetic
+validated by the stock marker/mapped words. Rust tests reconstruct all
+128 original first-level and MIN-root words using the real Marker
+input, range selector, and two **stock-JVM-provided** range alternative
+values. The marker's nested `MulOrAdd`, the out-of-range `Ap2` and
+RangeChoice selector's true density graphs **are not computed from
+original seeded noise in Rust yet**. This is **operator+partial
+composition parity, not full end-to-end finalDensity parity**.
+
+The code is still a source-law **candidate** until original 26.2
+SQUEEZE and RangeChoice methods' exact branch/FP details are
+independently reviewed. Numerical observations do not qualify NaN,
+signed-zero, range boundary or full stateful `NoiseChunk` context.
+The existing 768 NoiseChunk and 512 cell records remain frozen;
+the full-router, VAR/SEM, cache/interpolation and production worldgen
+admission gates stay **false**.
+
+**Next:** source-review exact `Mapped` transform / `RangeChoice.compute`,
+then recursively bind the selector Marker, `MulOrAdd`, and out-of-range
+`Ap2` via the existing typed compiler and observed seeded noise
+primitives. Finally implement the genuine NoiseChunk cache/interpolation
+lifecycle and match the 768 adjacent JVM words, without a second
+semantic world owner.

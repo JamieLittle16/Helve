@@ -75,12 +75,12 @@ pub enum StockDensityNode262<'a> {
     /// against the pinned 26.2 mapping source body. This does not admit the
     /// marker's `NoiseChunk` cache, interpolation, or complete `finalDensity`.
     CandidateSqueeze { input: usize },
-    /// Source-observed RangeChoice selector with lazy branch evaluation.
+    /// Source-observed `RangeChoice` selector with lazy branch evaluation.
     ///
-    /// The exact stock 26.2 finalDensity bound [-1_000_000, 0) selects
+    /// The stock 26.2 `finalDensity` bound [-1,000,000, 0) selects
     /// constant 64.0 versus its `Ap2` alternative in 47/81 actual JVM
     /// `SinglePointContext` observations. This remains a candidate until
-    /// its original source-law and NoiseChunk marker lifecycle are admitted.
+    /// its original source-law and `NoiseChunk` marker lifecycle are admitted.
     CandidateRangeChoice {
         /// Density input used only to choose the branch.
         selector: usize,

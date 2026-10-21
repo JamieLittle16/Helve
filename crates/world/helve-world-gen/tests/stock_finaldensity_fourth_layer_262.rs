@@ -3,7 +3,7 @@
 //! All seven new child leaves come from the source-free fourth-layer capture,
 //! never generated from a guessed vanilla formula. The independently frozen
 //! third-layer and MIN root fixtures are *outputs* that must be reproduced.
-//! No source law, NoiseChunk interpolation, or production admission.
+//! No source law, `NoiseChunk` interpolation, or production admission.
 
 use helve_world_gen::density_primitives_262::DensityPrimitive262;
 use helve_world_gen::stock_density_program_262::{

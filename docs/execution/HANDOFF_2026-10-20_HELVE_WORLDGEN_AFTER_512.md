@@ -782,3 +782,29 @@ implement exact inner `MulOrAdd`, marker selector and out `Ap2`,
 then the true `NoiseChunk` interpolation lifecycle and 768 bitwise
 cells. Production/VAR/SEM and full-router numeric parity still
 **unqualified**; no second world owner or permission to publish.
+
+
+## Next implementation frontier: fused MulOrAdd and real second-layer data
+
+After PR #481, the stock 26.2 finalDensity root is a compiled MIN over
+SQUEEZE(Interpolated Marker → MulOrAdd) and lazy RangeChoice
+(selector Marker, bounds [-1000000, 0), Constant64 or Ap2). The new
+branch worldgen/262-muloradd-real-inner-sources adds a finite constant
+MulOrAdd node to the existing bounded DAG, with 1,152 old independent
+stock JVM constant-delegate parity references. This is not yet the
+actual configured MulOrAdd input or parameter.
+
+New read-only private-source diagnostic:
+tools/worldgen_26_2_stock_final_density_second_layer.py.
+It collects original MulOrAdd operation/argument/upstream input, the
+selector Marker's wrapped input, and the outside Ap2 operation and
+two operands. Existing MulOrAdd output, selector output and outside
+Ap2 output are used only as frozen equality anchors. It retains all
+source/JAR locks and unadmitted qualification gates.
+
+Run only the new diagnostic after merging, using the command in
+docs/execution/WORLDGEN_26_2_STOCK_FINAL_DENSITY_SINGLEPOINT_2026-10-20.md.
+Do not repeat old 128 root/128 inner/512 cell/768 NoiseChunk captures.
+Then implement and qualify the actual inner nodes against original JVM
+bitwords, followed by NoiseChunk interpolation lifecycle. No production
+publication or VAR/SEM admission is implied.

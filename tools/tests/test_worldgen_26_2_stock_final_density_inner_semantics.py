@@ -25,7 +25,7 @@ class StockFinalDensityInnerFrontierTests(unittest.TestCase):
             lines.append("|".join((
                 inner.HEAD,str(seed_idx),seed,
                 "net.minecraft.world.level.levelgen.DensityFunctions$Marker$Type",
-                "CACHE_ALL_IN_CELL",
+                "CacheAllInCell",
                 "net.minecraft.world.level.levelgen.DensityFunctions$Ap2",
                 "net.minecraft.world.level.levelgen.DensityFunctions$Marker",
                 "net.minecraft.world.level.levelgen.DensityFunctions$Constant",
@@ -83,12 +83,38 @@ class StockFinalDensityInnerFrontierTests(unittest.TestCase):
         shapes,values=inner.parse_output(self.stdout())
         self.assertEqual(len(shapes),4)
         self.assertEqual(len(values),128)
-        self.assertEqual(shapes[0]["marker_kind"],"CACHE_ALL_IN_CELL")
+        self.assertEqual(shapes[0]["marker_kind"],"CacheAllInCell")
         self.assertEqual(values[0]["mapped_bits"],
                          "0x"+inner.observed.read_words()[0][0])
         self.assertEqual(values[21]["holder_bits"],
                          "0x"+inner.observed.read_words()[21][1])
         inner.validate(self.report())
+
+    def test_exact_marker_type_accepts_realistic_java_enum_name_shapes(self):
+        # These are synthetic transport fixtures, not a claim that any
+        # particular enum value is present at the actual pinned Overworld root.
+        baseline=self.stdout()
+        for name in ("CacheAllInCell","Cache2D","Interpolated","CACHE_ALL_IN_CELL"):
+            modified=baseline.replace("|CacheAllInCell|","|"+name+"|")
+            with self.subTest(name=name):
+                shapes,vectors=inner.parse_output(modified)
+                self.assertEqual([shape["marker_kind"] for shape in shapes],[name]*4)
+                self.assertEqual(len(vectors),128)
+
+    def test_rejects_invalid_enum_identifiers_and_changed_declaring_classes(self):
+        original=self.stdout()
+        for name in ("cache-all-in-cell","2DCache","Name With Spaces","x"*81):
+            modified=original.replace("|CacheAllInCell|","|"+name+"|")
+            with self.subTest(name=name),self.assertRaisesRegex(
+                inner.InnerFrontierError,"Marker enum identifier"
+            ):
+                inner.parse_output(modified)
+        modified=original.replace(
+            "DensityFunctions$Marker$Type",
+            "DensityFunctions$Unrelated$Type",
+        )
+        with self.assertRaisesRegex(inner.InnerFrontierError,"declaring class"):
+            inner.parse_output(modified)
 
     def test_no_false_scope_admission(self):
         base=self.report()
@@ -109,7 +135,7 @@ class StockFinalDensityInnerFrontierTests(unittest.TestCase):
         variants=(
             lambda x:x.pop(1),
             lambda x:x.append(x[-1]),
-            lambda x:x.__setitem__(1,x[1].replace("CACHE_ALL_IN_CELL","BOGUS-TYPE")),
+            lambda x:x.__setitem__(1,x[1].replace("CacheAllInCell","BOGUS-TYPE")),
             lambda x:x.__setitem__(1,x[1].replace("DensityFunctions$Marker$Type","SomethingElse")),
             lambda x:x.__setitem__(
                 2,"|".join([*x[2].split("|")[:4],"0000000000000000",*x[2].split("|")[5:]])

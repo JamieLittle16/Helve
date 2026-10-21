@@ -117,3 +117,25 @@ The new Rust test crates/world/helve-world-gen/tests/stock_finaldensity_third_la
 ### Next genuinely unknown fourth layer
 
 Inspect only: (1) the BlendDensity Marker's wrapped MulOrAdd operation, coefficient, child; (2) nested selector HolderHolder target; (3) outside Interpolated Marker's wrapped RangeChoice selector, thresholds and two branch types; (4) outside MUL 1.5's wrapped Ap2 operator and both children. The newly seen nested Noise additionally needs actual noise registry-key/scale binding. Strictly no repeat of old root, inner, second, third, 512 cell, 768 NoiseChunk or 1152 delegate captures. All source-law, NoiseChunk marker-lifecycle, full-router, independent VAR/SEM and production admission gates stay false.
+
+
+## Fourth-layer source-owning observer prepared after green merged #487
+
+The actual third-layer owner receipt has been independently frozen and merged: PR #487, main commit 1d843bc2b5c8dfbb29387c822586ec2bb12dbd46. The fourth-layer instrument is implemented in tools/worldgen_java/HelveStockFinalDensityFourthLayer262.java and tools/worldgen_26_2_stock_final_density_fourth_layer.py with synthetic failure and JDK compilation tests in tools/tests/test_worldgen_26_2_stock_final_density_fourth_layer.py.
+
+The instrument follows only the four **actually established** runtime types and discovers (1) BlendDensity's wrapped MulOrAdd specificType, argument and density input; (2) nested HolderHolder's real delegate target; (3) outside Interpolated RangeChoice selector, in/out child classes and exact inclusive/exclusive bounds; (4) the second MulOrAdd's wrapped Ap2 actual type and both children. It emits exactly **seven new input words per original fixed XYZ**. It also calculates **four old third-layer values only as strict equality anchors**, checking them against the frozen third-layer TSV SHA bacf33b5d8274083ad3e5ff5a557d66dc9c999c07d9f358b0e06e1978fe79181. It does not export old oracles again, holder registry data, Java source/binary, source methods or original exception messages.
+
+The previously unknown Ap2 operation must be read before any source-faithful Rust arithmetic lowering. The transport **does not guess** an Ap2 formula. It checks strict original enum identities, all new argument classes, finite IEEE operands, real constant MulOrAdd output bits, HolderHolder single-point forwarding and outer RangeChoice selected input. Any mismatch fails with a bounded original-JVM phase tag and leaves no approved capture. Source-law, NoiseChunk lifecycle, independent VAR/SEM, full-router and production remain false.
+
+**After this fourth-layer PR is green and merged**, run only the new diagnostic on the private source-owning machine, no repeats:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_fourth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-fourth-layer-128.json
+
+Only upload the resulting bounded source-free JSON (or the exact bounded failure stage/class). The next lowering must use its actual first MulOrAdd argument, nested Holder target, outside choice bounds and Ap2 type—not historical Minecraft guesses.

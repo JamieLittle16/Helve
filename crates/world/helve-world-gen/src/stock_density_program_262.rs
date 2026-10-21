@@ -102,7 +102,7 @@ pub enum StockDensityNode262<'a> {
     /// Caller-explicit original 26.2 fourth-layer Ap2 MAX candidate.
     ///
     /// Both child results are JVM-injected at this stage: 128 exact finite
-    /// SinglePointContext words (44 left wins, 64 right, 20 ties).
+    /// `SinglePointContext` words (44 left wins, 64 right, 20 ties).
     /// Java NaN/signed-zero branches, marker lifecycle, arbitrary factory
     /// rewrites and source-law admission are NOT established.
     ExplicitAp2Max { left: usize, right: usize },
@@ -457,7 +457,7 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::Multiply { left, right } => scratch[left] * scratch[right],
                 StockDensityNode262::ExplicitAp2Min { left, right } => {
                     scratch[left].min(scratch[right])
-                },
+                }
                 StockDensityNode262::ExplicitAp2Max { left, right } => {
                     scratch[left].max(scratch[right])
                 }

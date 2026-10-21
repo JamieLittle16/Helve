@@ -154,8 +154,21 @@ public final class HelveStockFinalDensitySecondLayer262 {
           stage(seedIndex,pointIndex,"muloradd-argument-record");
           double arg=(Double)member(mul,"argument");
           stage(seedIndex,pointIndex,"muloradd-operation-record");
-          String mulOpClass=HelveStockFinalDensityRootSemantics262.enumClass(mul,"type");
-          String mulOpName=HelveStockFinalDensityRootSemantics262.enumName(mul,"type");
+          // 26.2 MulOrAdd is a five-component record whose operation is
+          // specificType (MulOrAdd$Type). Its inherited type() method is
+          // NOT a record component and cannot be read by member().
+          if(!mul.getClass().isRecord() ||
+             mul.getClass().getRecordComponents().length!=5)
+            throw new IllegalStateException("original MulOrAdd arity changed");
+          Object operation=member(mul,"specificType");
+          if(!(operation instanceof Enum<?> typedOperation))
+            throw new IllegalStateException("MulOrAdd specificType not enum");
+          String mulOpClass=type(operation);
+          String mulOpName=HelveStockFinalDensityInnerSemantics262.safe(
+              typedOperation.name());
+          if(!mulOpClass.equals(LV+"DensityFunctions$MulOrAdd$Type") ||
+             !(mulOpName.equals("MUL") || mulOpName.equals("ADD")))
+            throw new IllegalStateException("MulOrAdd specificType not qualified");
           stage(seedIndex,pointIndex,"selector-marker-type-record");
           String selectorClass=HelveStockFinalDensityRootSemantics262.enumClass(selector,"type");
           String selectorName=HelveStockFinalDensityRootSemantics262.enumName(selector,"type");

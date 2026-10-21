@@ -96,7 +96,10 @@ fn fused_candidate_matches_all_1152_original_java_mul_or_add_constant_outputs() 
         }
     }
     assert_eq!(compared, 1152);
-    assert!(negative_zeros > 0, "finite IEEE signed-zero witness must be exercised");
+    assert!(
+        negative_zeros > 0,
+        "finite IEEE signed-zero witness must be exercised"
+    );
 }
 
 #[test]
@@ -114,8 +117,15 @@ fn constant_transform_is_reachable_nested_and_skipped_under_lazy_conditions() {
     ])
     .expect("candidate fused constant nested under lazy original Ap2");
     let mut scratch = [sentinel; 4];
-    assert_eq!(program.sample_with_scratch(0, 0, 0, &mut scratch).to_bits(), 0);
-    assert!(scratch[1..3].iter().all(|v| v.to_bits() == sentinel.to_bits()));
+    assert_eq!(
+        program.sample_with_scratch(0, 0, 0, &mut scratch).to_bits(),
+        0
+    );
+    assert!(
+        scratch[1..3]
+            .iter()
+            .all(|v| v.to_bits() == sentinel.to_bits())
+    );
 
     let program = Program::new([
         constant(-0.5),
@@ -171,7 +181,10 @@ fn fused_constant_cold_validation_rejects_nonfinite_and_invalid_dependency() {
                 },
             ])
             .unwrap_err(),
-            Error::InvalidDependency { node: 1, child: input }
+            Error::InvalidDependency {
+                node: 1,
+                child: input
+            }
         );
     }
 }
@@ -212,7 +225,9 @@ fn fused_constant_plane_and_cell_are_scalar_bit_coherent() {
                 -16,
                 120,
                 -16,
-                cell.as_mut().try_into().expect("borrowed fixed 4096 output"),
+                cell.as_mut()
+                    .try_into()
+                    .expect("borrowed fixed 4096 output"),
             )
             .expect("bounded cell");
         for dy in 0_i32..16 {

@@ -99,6 +99,13 @@ pub enum StockDensityNode262<'a> {
     /// `HolderHolder` subgraphs or `NoiseChunk` marker/cache lifetimes.
     /// NaN and signed-zero Java-branch behaviour remain unreviewed.
     ExplicitAp2Min { left: usize, right: usize },
+    /// Caller-explicit original 26.2 fourth-layer Ap2 MAX candidate.
+    ///
+    /// Both child results are JVM-injected at this stage: 128 exact finite
+    /// `SinglePointContext` words (44 left wins, 64 right, 20 ties).
+    /// Java NaN/signed-zero branches, marker lifecycle, arbitrary factory
+    /// rewrites and source-law admission are NOT established.
+    ExplicitAp2Max { left: usize, right: usize },
     /// Experimental unary transform for the observed stock
     /// `Mapped(type=SQUEEZE, input=Marker)` branch.
     ///
@@ -226,7 +233,8 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 | StockDensityNode262::ExplicitAp2Add { left, right }
                 | StockDensityNode262::Multiply { left, right }
                 | StockDensityNode262::ExplicitAp2Multiply { left, right }
-                | StockDensityNode262::ExplicitAp2Min { left, right } => {
+                | StockDensityNode262::ExplicitAp2Min { left, right }
+                | StockDensityNode262::ExplicitAp2Max { left, right } => {
                     for child in [left, right] {
                         if child >= index {
                             return Err(StockDensityProgramError262::InvalidDependency {
@@ -324,7 +332,8 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 | StockDensityNode262::ExplicitAp2Add { left, right }
                 | StockDensityNode262::Multiply { left, right }
                 | StockDensityNode262::ExplicitAp2Multiply { left, right }
-                | StockDensityNode262::ExplicitAp2Min { left, right } => {
+                | StockDensityNode262::ExplicitAp2Min { left, right }
+                | StockDensityNode262::ExplicitAp2Max { left, right } => {
                     reachable[left] = true;
                     reachable[right] = true;
                 }
@@ -449,6 +458,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 StockDensityNode262::ExplicitAp2Min { left, right } => {
                     scratch[left].min(scratch[right])
                 }
+                StockDensityNode262::ExplicitAp2Max { left, right } => {
+                    scratch[left].max(scratch[right])
+                }
                 StockDensityNode262::CandidateSqueeze { input } => {
                     candidate_squeeze(scratch[input])
                 }
@@ -506,6 +518,11 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 let first = self.evaluate_demand(left, block, scratch, computed);
                 let second = self.evaluate_demand(right, block, scratch, computed);
                 first.min(second)
+            }
+            StockDensityNode262::ExplicitAp2Max { left, right } => {
+                let first = self.evaluate_demand(left, block, scratch, computed);
+                let second = self.evaluate_demand(right, block, scratch, computed);
+                first.max(second)
             }
             StockDensityNode262::CandidateSqueeze { input } => {
                 candidate_squeeze(self.evaluate_demand(input, block, scratch, computed))

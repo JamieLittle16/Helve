@@ -139,3 +139,25 @@ The previously unknown Ap2 operation must be read before any source-faithful Rus
       --output /tmp/helve-26_2-final-fourth-layer-128.json
 
 Only upload the resulting bounded source-free JSON (or the exact bounded failure stage/class). The next lowering must use its actual first MulOrAdd argument, nested Holder target, outside choice bounds and Ap2 type—not historical Minecraft guesses.
+
+
+## Fourth-layer original-JVM receipt succeeded and frozen (22 October 2026)
+
+**Do not repeat the fourth-layer or earlier captures.** The original 26.2 fourth-layer source-free JSON is 97,865 bytes, SHA-256 fb4d7207276311b6853e6bb25d407137417111432d1b3a937c623a5ab866d19f (the original private JSON stays off GitHub). It declares the same actual graph for all four world seeds and 128 finite SinglePointContexts. Every one of the four *previously frozen third-layer outputs* per point matches the new report bit-for-bit: 512/512 independent anchors. Third-layer original fixture SHA bacf33b5d8274083ad3e5ff5a557d66dc9c999c07d9f358b0e06e1978fe79181 unchanged.
+
+Actual source-observed fourth children:
+- BlendDensity Marker's inner MulOrAdd is **ADD (0x3fbe000000000000 = 0.1171875)** applied to an actual **Ap2**. It matches 128/128 ordinary finite raw binary64 additions.
+- Nested RangeChoice's HolderHolder target is **YClampedGradient**. The earlier Y=-4096 observation of -4064 is no longer cause to guess identity with block Y; the actual target's lower/upper heights and values must be separately observed and source-reviewed. HolderHolder forwards the delegate's 128 original outputs bit-for-bit.
+- Outside Interpolated Marker wraps a **RangeChoice [-60,321)** whose input is another **HolderHolder**, in-range child is **MulOrAdd**, and out-of-range is **Constant(+0)** on all 128 observed points. Branches select 108 in / 20 out with 128/128 raw-bit parity.
+- Outside MUL(1.5)'s child is **Ap2 MAX(Mapped, Mapped)**, with 44 left wins, 64 right wins and 20 ties (128/128 finite raw-bit matches). The two Mapped subgraphs and the Ap2 MAX NaN/signed-zero corner behavior remain source-law unreviewed.
+
+The permanent fourth-layer fixture is crates/world/helve-world-gen/tests/data/stock_finaldensity_fourth_layer_new_128_rawbits.tsv: 128 x 7 **new** input words, exactly 15,232 bytes, SHA-256 149ebe4d87dbbf2ebc1d40bc5149656b5e50ae16db16bf9d9210f3510b37543c. Earlier values are used ONLY as old separate TSV output anchors; no new old-root fixtures. Run strict read-only optional private original receipt verification with:
+
+    python3 tools/worldgen_26_2_stock_finaldensity_fourth_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-fourth-layer-128.json
+
+The new typed Rust ExplicitAp2Max node is bounded and source-unadmitted. crates/world/helve-world-gen/tests/stock_finaldensity_fourth_layer_262.rs individually checks original ADD, outside RangeChoice and MAX even when higher branches skip their computation, then assembles one cold-validated **20-node** partial true graph against the **original frozen finalDensity MIN root for 128 points**. It retains the actual Y-gradient, left Ap2, both MAX Mapped leaves, outside MulOrAdd leaf and original inner Noise as **JVM-injected** operands; there is still no fully native world-seed density router. This adds no production hot-path work and admits no factory rewrite or lifecycle assumptions.
+
+### Next fifth-layer source-owning frontier
+
+Only descend newly unresolved actual branches: (1) left ADD's child Ap2 enum and two real child types; (2) the YClampedGradient actual gradient endpoints (bounds and densities) and whether the two HolderHolder targets are source-identical, without assuming so from equal single-point samples; (3) outside RangeChoice's HolderHolder target class and exact delegation; (4) outside in-range MulOrAdd operation, finite argument and child type; (5) both MAX Mapped nodes' mapping enum and wrapped child classes. Separately source-review the existing nested Noise registry key/scales for coherent native qualification. Keep captures bounded and use **only new leaf words** with fourth-layer old anchors; no previous capture reruns. Independently qualify source-law, NoiseChunk cache/interpolation and production admission before ever connecting generated terrain to live publication. All previously false admission flags stay false.

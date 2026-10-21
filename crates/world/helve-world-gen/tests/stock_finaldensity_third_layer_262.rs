@@ -76,7 +76,7 @@ fn actual_partially_lowered_graph(
         },
         Node::ExplicitAp2Min { left: 2, right: 12 }, // 13
     ])
-        .expect("one immutable 14-node backwards-only actual partial graph")
+    .expect("one immutable 14-node backwards-only actual partial graph")
 }
 
 #[test]

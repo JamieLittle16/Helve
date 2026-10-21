@@ -32,16 +32,16 @@ fn stock_squeeze_128_exact_jvm_marker_to_mapped_bits() {
     for (index, row) in INNER.lines().enumerate() {
         let cols: Vec<_> = row.split('\t').collect();
         assert_eq!(cols.len(), 7);
-        assert_eq!(cols[0], cols[1], "single-point Interpolated Marker delegates");
+        assert_eq!(
+            cols[0], cols[1],
+            "single-point Interpolated Marker delegates"
+        );
         let marker = f64::from_bits(bits(cols[0]));
         if !(-1.0..=1.0).contains(&marker) {
             clamped += 1;
         }
-        let program = Program::new([
-            constant(marker),
-            Node::CandidateSqueeze { input: 0 },
-        ])
-        .expect("one stock marker input and a typed SQUEEZE candidate");
+        let program = Program::new([constant(marker), Node::CandidateSqueeze { input: 0 }])
+            .expect("one stock marker input and a typed SQUEEZE candidate");
         assert_eq!(
             program.sample_block(0, 64, 0).to_bits(),
             bits(cols[2]),
@@ -128,7 +128,7 @@ fn stock_range_choice_128_exact_jvm_selector_branch_and_min_root_bits() {
 #[test]
 fn range_choice_skips_inactive_dependency_and_memoizes_selected_branch() {
     const SENTINEL: u64 = 0x7ff8_1234_5678_9abc;
-    for (selector, selected, skipped) in [(-0.5, 64.0, 2), (0.5, 3.0, 1)] {
+    for (selector, selected, skipped) in [(-0.5_f64, 64.0_f64, 2), (0.5, 3.0, 1)] {
         let program = Program::new([
             constant(selector),
             constant(64.0),
@@ -144,7 +144,9 @@ fn range_choice_skips_inactive_dependency_and_memoizes_selected_branch() {
         .expect("valid explicitly selected branch");
         let mut scratch = [f64::from_bits(SENTINEL); 4];
         assert_eq!(
-            program.sample_with_scratch(0, 64, 0, &mut scratch).to_bits(),
+            program
+                .sample_with_scratch(0, 64, 0, &mut scratch)
+                .to_bits(),
             selected.to_bits()
         );
         assert_eq!(
@@ -170,8 +172,17 @@ fn range_choice_skips_inactive_dependency_and_memoizes_selected_branch() {
     ])
     .expect("nested conditional subgraph");
     let mut scratch = [f64::from_bits(SENTINEL); 6];
-    assert_eq!(program.sample_with_scratch(0, 64, 0, &mut scratch).to_bits(), 0);
-    assert!(scratch[1..5].iter().all(|value| value.to_bits() == SENTINEL));
+    assert_eq!(
+        program
+            .sample_with_scratch(0, 64, 0, &mut scratch)
+            .to_bits(),
+        0
+    );
+    assert!(
+        scratch[1..5]
+            .iter()
+            .all(|value| value.to_bits() == SENTINEL)
+    );
 }
 
 #[test]
@@ -239,7 +250,7 @@ fn range_choice_cold_validator_rejects_forward_edges_and_invalid_bounds() {
 fn range_choice_boundary_is_inclusive_low_and_exclusive_high() {
     const BELOW_ZERO: f64 = f64::from_bits(0x8000_0000_0000_0001);
     for (selector, expected) in [
-        (MIN, 64.0),
+        (MIN, 64.0_f64),
         (MIN - 1.0, 3.0),
         (BELOW_ZERO, 64.0),
         (0.0, 3.0),
@@ -259,9 +270,6 @@ fn range_choice_boundary_is_inclusive_low_and_exclusive_high() {
             },
         ])
         .expect("valid finite range candidate");
-        assert_eq!(
-            program.sample_block(0, 0, 0).to_bits(),
-            expected.to_bits()
-        );
+        assert_eq!(program.sample_block(0, 0, 0).to_bits(), expected.to_bits());
     }
 }

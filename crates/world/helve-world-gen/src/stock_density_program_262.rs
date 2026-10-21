@@ -9,7 +9,11 @@
 //! Both preserve the observed 26.2 Ap2 +0 and MulOrAdd signed-zero behaviour.
 //! An explicit Ap2-multiply DAG node additionally demand-evaluates its right
 //! child, preserving that observed early return even across nested subgraphs.
-//! Factory selection, arbitrary graph shapes and full finalDensity remain open.
+//! The first-level stock finalDensity root is now independently observed as
+//! Ap2 MIN(Mapped SQUEEZE(Marker), HolderHolder(RangeChoice)) across four seeds.
+//! An explicit MIN node can combine independently evaluated finite operands.
+//! Mapping, holder targets, cache lifecycle and complete finalDensity remain open.
+//! Factory selection and arbitrary graph shapes remain unqualified.
 //! No production authority.
 //!
 //! A maximum of 32 immutable nodes and fixed per-worker scratch bound hot-path
@@ -51,6 +55,14 @@ pub enum StockDensityNode262<'a> {
     /// the right only when the left is not positive zero. It must not be
     /// inferred from an arbitrary upstream vanilla graph or factory.
     ExplicitAp2Multiply { left: usize, right: usize },
+    /// Caller-explicit 26.2 Ap2 MIN operation on two density dependencies.
+    ///
+    /// Verified only on finite, non-zero child-value combinations by 128
+    /// original JVM SinglePointContext finalDensity root observations,
+    /// including four right-child wins. Does NOT implement the Mapped/
+    /// HolderHolder subgraphs or NoiseChunk marker/cache lifetimes.
+    /// NaN and signed-zero Java-branch behaviour remain unreviewed.
+    ExplicitAp2Min { left: usize, right: usize },
 }
 
 /// COLD program validation errors; no runtime evaluation is attempted.
@@ -126,7 +138,8 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
         for (index, node) in nodes.iter().enumerate() {
             if let StockDensityNode262::Add { left, right }
             | StockDensityNode262::Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Multiply { left, right } = node
+            | StockDensityNode262::ExplicitAp2Multiply { left, right }
+            | StockDensityNode262::ExplicitAp2Min { left, right } = node
             {
                 for &child in &[*left, *right] {
                     if child >= index {
@@ -147,7 +160,8 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
             }
             if let StockDensityNode262::Add { left, right }
             | StockDensityNode262::Multiply { left, right }
-            | StockDensityNode262::ExplicitAp2Multiply { left, right } = nodes[index]
+            | StockDensityNode262::ExplicitAp2Multiply { left, right }
+            | StockDensityNode262::ExplicitAp2Min { left, right } = nodes[index]
             {
                 reachable[left] = true;
                 reachable[right] = true;
@@ -253,6 +267,9 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 }
                 StockDensityNode262::Add { left, right } => scratch[left] + scratch[right],
                 StockDensityNode262::Multiply { left, right } => scratch[left] * scratch[right],
+                StockDensityNode262::ExplicitAp2Min { left, right } => {
+                    scratch[left].min(scratch[right])
+                }
                 StockDensityNode262::ExplicitAp2Multiply { .. } => {
                     unreachable!("COLD program selects demand evaluation for all Ap2 nodes")
                 }
@@ -295,6 +312,11 @@ impl<'a, const N: usize> StockDensityProgram262<'a, N> {
                 let a = self.evaluate_demand(left, block, scratch, computed);
                 let b = self.evaluate_demand(right, block, scratch, computed);
                 a * b
+            }
+            StockDensityNode262::ExplicitAp2Min { left, right } => {
+                let first = self.evaluate_demand(left, block, scratch, computed);
+                let second = self.evaluate_demand(right, block, scratch, computed);
+                first.min(second)
             }
             StockDensityNode262::ExplicitAp2Multiply { left, right } => {
                 let first = self.evaluate_demand(left, block, scratch, computed);

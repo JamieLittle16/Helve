@@ -81,8 +81,8 @@ pub enum StockDensityNode262<'a> {
     /// Caller-explicit Ap2 ADD on the actual 26.2 finalDensity outside branch.
     ///
     /// 128 original JVM operands/outputs support ordinary, ordered IEEE
-    /// addition. This is only a typed finite SinglePointContext candidate:
-    /// arbitrary factory rewrites, nonfinite laws and NoiseChunk cache
+    /// addition. This is only a typed finite `SinglePointContext` candidate:
+    /// arbitrary factory rewrites, nonfinite laws and `NoiseChunk` cache
     /// lifecycle remain unreviewed.
     ExplicitAp2Add { left: usize, right: usize },
     /// Explicit eager IEEE-754 multiplication; **not** vanilla Ap2 short-circuit.
@@ -119,7 +119,7 @@ pub enum StockDensityNode262<'a> {
     /// output comparisons. The actual `finalDensity` instance is now
     /// observed as MUL(0x3fe47ae147ae147b, Marker) with 128/128 exact
     /// original-JVM `SinglePointContext` input/output bit matches.
-    /// This does not source-review its wrapped Marker or NoiseChunk lifecycle.
+    /// This does not source-review its wrapped Marker or `NoiseChunk` lifecycle.
     /// No arbitrary vanilla factory admission.
     CandidateMulOrAdd {
         /// The one upstream density dependency.

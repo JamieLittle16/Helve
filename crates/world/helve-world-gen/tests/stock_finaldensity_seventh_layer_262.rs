@@ -88,37 +88,73 @@ fn partial_program(new: [u64; 7], sixth: [u64; 4], third: [u64; 6]) -> Program<'
     Program::new(std::array::from_fn(|i| match i {
         0 => Node::Primitive(left_gradient()),
         1 => constant(new[0]), // actual deeper left Ap2 output remains unresolved
-        2 => Node::CandidateMulOrAdd { input: 1, argument: LEFT_DEEP_ADD, operation: Op::Add },
-        3 => Node::CandidateMulOrAdd { input: 2, argument: LEFT_INNER_ADD, operation: Op::Add },
+        2 => Node::CandidateMulOrAdd {
+            input: 1,
+            argument: LEFT_DEEP_ADD,
+            operation: Op::Add,
+        },
+        3 => Node::CandidateMulOrAdd {
+            input: 2,
+            argument: LEFT_INNER_ADD,
+            operation: Op::Add,
+        },
         4 => Node::ExplicitAp2Multiply { left: 0, right: 3 },
-        5 => Node::CandidateMulOrAdd { input: 4, argument: LEFT_OUTER_ADD, operation: Op::Add },
-        6 => Node::CandidateMulOrAdd { input: 5, argument: FIRST_MUL, operation: Op::Multiply },
+        5 => Node::CandidateMulOrAdd {
+            input: 4,
+            argument: LEFT_OUTER_ADD,
+            operation: Op::Add,
+        },
+        6 => Node::CandidateMulOrAdd {
+            input: 5,
+            argument: FIRST_MUL,
+            operation: Op::Multiply,
+        },
         7 => Node::CandidateSqueeze { input: 6 },
         8 | 12 => Node::Primitive(outside_gradient()),
         9 => constant(third[2]), // original nested Noise output
         10 => constant(third[3]), // genuine Constant(-1) output
         11 => Node::CandidateRangeChoice {
-            selector: 8, when_in_range: 9, when_out_of_range: 10,
-            min_inclusive: -60.0, max_exclusive: 321.0,
+            selector: 8,
+            when_in_range: 9,
+            when_out_of_range: 10,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
         },
         13 => constant(sixth[1]), // outside inner original Noise output
-        14 => Node::CandidateMulOrAdd { input: 13, argument: OUTSIDE_INNER_MUL, operation: Op::Multiply },
-        15 => Node::CandidateMulOrAdd { input: 14, argument: OUTSIDE_OUTER_ADD, operation: Op::Add },
+        14 => Node::CandidateMulOrAdd {
+            input: 13,
+            argument: OUTSIDE_INNER_MUL,
+            operation: Op::Multiply,
+        },
+        15 => Node::CandidateMulOrAdd {
+            input: 14,
+            argument: OUTSIDE_OUTER_ADD,
+            operation: Op::Add,
+        },
         16 => constant(0.0_f64.to_bits()), // both actual out-of-range Constant(0)
         17 => Node::CandidateRangeChoice {
-            selector: 12, when_in_range: 15, when_out_of_range: 16,
-            min_inclusive: -60.0, max_exclusive: 321.0,
+            selector: 12,
+            when_in_range: 15,
+            when_out_of_range: 16,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
         },
         18 => constant(new[2]), // first actual Marker RangeChoice Noise
         19 => Node::CandidateRangeChoice {
-            selector: 12, when_in_range: 18, when_out_of_range: 16,
-            min_inclusive: -60.0, max_exclusive: 321.0,
+            selector: 12,
+            when_in_range: 18,
+            when_out_of_range: 16,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
         },
         20 => Node::CandidateAbs { input: 19 },
         21 => constant(new[5]), // second actual Marker RangeChoice Noise
         22 => Node::CandidateRangeChoice {
-            selector: 12, when_in_range: 21, when_out_of_range: 16,
-            min_inclusive: -60.0, max_exclusive: 321.0,
+            selector: 12,
+            when_in_range: 21,
+            when_out_of_range: 16,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
         },
         23 => Node::CandidateAbs { input: 22 },
         24 => Node::ExplicitAp2Max { left: 20, right: 23 },
@@ -126,8 +162,11 @@ fn partial_program(new: [u64; 7], sixth: [u64; 4], third: [u64; 6]) -> Program<'
         26 => Node::ExplicitAp2Add { left: 17, right: 25 },
         27 => constant(64.0_f64.to_bits()),
         28 => Node::CandidateRangeChoice {
-            selector: 11, when_in_range: 27, when_out_of_range: 26,
-            min_inclusive: -1_000_000.0, max_exclusive: 0.0,
+            selector: 11,
+            when_in_range: 27,
+            when_out_of_range: 26,
+            min_inclusive: -1_000_000.0,
+            max_exclusive: 0.0,
         },
         29 => Node::ExplicitAp2Min { left: 7, right: 28 },
         _ => unreachable!("fixed 30-node original partial graph"),
@@ -148,7 +187,11 @@ fn exact_original_deep_add_and_independent_two_marker_choices() {
 
         let deep = Program::new([
             constant(new[0]),
-            Node::CandidateMulOrAdd { input: 0, argument: LEFT_DEEP_ADD, operation: Op::Add },
+            Node::CandidateMulOrAdd {
+            input: 0,
+            argument: LEFT_DEEP_ADD,
+            operation: Op::Add,
+        },
         ])
         .expect("real original seventh ADD(-0.078125)");
         assert_eq!(deep.sample_block(0, y, 0).to_bits(), sixth[0], "deep ADD {i}");
@@ -162,8 +205,11 @@ fn exact_original_deep_add_and_independent_two_marker_choices() {
                 constant(input),
                 constant(zero),
                 Node::CandidateRangeChoice {
-                    selector: 0, when_in_range: 1, when_out_of_range: 2,
-                    min_inclusive: -60.0, max_exclusive: 321.0,
+                    selector: 0,
+                    when_in_range: 1,
+                    when_out_of_range: 2,
+                    min_inclusive: -60.0,
+                    max_exclusive: 321.0,
                 },
             ])
             .expect("separately source-observed actual seventh RangeChoice");

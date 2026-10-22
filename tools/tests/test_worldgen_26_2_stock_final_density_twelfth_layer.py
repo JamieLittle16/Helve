@@ -99,6 +99,35 @@ class TwelfthOutLeftAp2SourceOwnerTests(unittest.TestCase):
         )
         twelfth.validate(self.report())
 
+    def test_true_original_selected_path_weight_justifies_ap2_frontier(self):
+        eleventh = twelfth.prior.load()
+        tenth = twelfth.prior.prior.load()
+        self.assertEqual((len(tenth), len(eleventh)), (128, 128))
+        counts = {"in_left": 0, "in_right": 0, "out_left": 0, "out_right": 0}
+        for i, (choice, operands) in enumerate(zip(tenth, eleventh, strict=True)):
+            selector = twelfth.value("0x" + choice[0])
+            actual_min_right = (
+                twelfth.value("0x" + operands[2])
+                < twelfth.value("0x" + operands[1])
+            )
+            actual_max_right = (
+                twelfth.value("0x" + operands[4])
+                > twelfth.value("0x" + operands[3])
+            )
+            inside = -1_000_000.0 <= selector < 1.5625
+            if inside:
+                counts["in_right" if actual_min_right else "in_left"] += 1
+            else:
+                counts["out_right" if actual_max_right else "out_left"] += 1
+            if i == 110:
+                # Real original MAX right-wins sample; outer choice selects
+                # the in-range branch, so it does not influence that root.
+                self.assertTrue(actual_max_right)
+                self.assertTrue(inside)
+        self.assertEqual(
+            counts, {"in_left": 67, "in_right": 1, "out_left": 60, "out_right": 0}
+        )
+
     def test_adversarial_source_shape_seed_and_old_parent_mutations(self):
         original = self.frames().splitlines()
         changes = [

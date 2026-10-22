@@ -277,10 +277,12 @@ def capture(*,source:Path,db:Path,lock:Path,server:Path,output:Path)->dict:
         f.write(payload)
     return {
         "output":str(dest),"sha256":hashlib.sha256(payload).hexdigest(),
-        "genuinely_new_tenth_child_points":len(vectors),
-        "selector_class":shapes[0]["selector_class"],
-        "when_in_class":shapes[0]["when_in_class"],
-        "when_out_class":shapes[0]["when_out_class"],
+        "genuinely_new_eleventh_child_points":len(vectors),
+        "genuinely_new_eleventh_ieee_words":len(vectors)*len(NEW_FIELDS),
+        "marker_enum":shapes[0]["marker_type"],
+        "marker_child_class":shapes[0]["marker_child_class"],
+        "in_ap2_operation":shapes[0]["in_op"],
+        "out_ap2_operation":shapes[0]["out_op"],
         "marker_candidate_telemetry":marker_candidate_telemetry(shapes,vectors),
         **{gate:False for gate in GATES},
     }

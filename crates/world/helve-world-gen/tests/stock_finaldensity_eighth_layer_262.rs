@@ -866,3 +866,131 @@ fn eleventh_staged_min_max_then_tenth_choice_then_ninth_root_matches_128_origina
         (68, 60, 1)
     );
 }
+
+const TWELFTH: &str =
+    include_str!("data/stock_finaldensity_twelfth_outleft_ap2_children_128_rawbits.tsv");
+
+/// Exactly TWO new original JVM operands for the genuine out-of-range
+/// eleventh MAX left Ap2(MIN). Its old numerical parent belongs ONLY to
+/// `eleventh_samples()`. Earlier selector, root and parent fixtures remain
+/// independently frozen. Test-only finite single-point candidate parity.
+type TwelfthReceipt = ([u64; 2], EleventhReceipt);
+
+fn twelfth_samples() -> Vec<TwelfthReceipt> {
+    let rows: Vec<_> = TWELFTH.lines().collect();
+    assert_eq!(
+        rows.len(),
+        128,
+        "only 256 source-owned twelfth operand words"
+    );
+    rows.into_iter()
+        .zip(eleventh_samples())
+        .map(|(line, earlier)| {
+            let child: [u64; 2] = words(line)
+                .try_into()
+                .expect("exactly two genuinely new original twelfth Ap2 child words");
+            (child, earlier)
+        })
+        .collect()
+}
+
+/// Native explicit Ap2(MIN) supplied with its actual independently
+/// computed stock-JVM Ap2 children. The original source owner observed:
+/// Ap2(MIN) with two distinct class-recorded Ap2 child nodes.
+/// This does not assert any arbitrary-input Java special-case, short circuit,
+/// `NoiseChunk` caching, object identity or production admission.
+fn twelfth_outleft_min_stage(left: u64, right: u64) -> Program<'static, 3> {
+    Program::new([
+        constant(left),
+        constant(right),
+        Node::ExplicitAp2Min { left: 0, right: 1 },
+    ])
+    .expect("source-observed twelfth MIN three-node stage, cold validated")
+}
+
+#[test]
+fn twelfth_source_owned_outleft_ap2_min_has_three_real_right_wins_and_128_old_parent_matches() {
+    let mut left_wins = 0;
+    let mut right_wins = 0;
+    let mut right_indices = Vec::new();
+    for (i, (new, (eleventh, _, _, _, _))) in twelfth_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        assert_ne!(
+            new[0], new[1],
+            "twelfth original MIN tie unqualified at {i}"
+        );
+        let min = twelfth_outleft_min_stage(new[0], new[1]).sample_block(0, y, 0);
+        assert_eq!(
+            min.to_bits(),
+            eleventh[3],
+            "actual original twelfth out-left MIN => immutable eleventh parent row {i}"
+        );
+        if min.to_bits() == new[0] {
+            left_wins += 1;
+        } else {
+            assert_eq!(min.to_bits(), new[1], "right must be an actual operand");
+            right_wins += 1;
+            right_indices.push(i);
+        }
+    }
+    assert_eq!((left_wins, right_wins), (125, 3));
+    assert_eq!(right_indices, vec![21, 97, 106]);
+}
+
+#[test]
+fn twelfth_staged_min_then_max_then_tenth_choice_then_ninth_root_matches_128_originals() {
+    let mut actual_tenth_inside = 0;
+    let mut actual_tenth_outside = 0;
+    let mut actual_root_parity = 0;
+    for (
+        i,
+        (twelfth, (eleventh, tenth, old_ninth_choice, _, (ninth_new, sixth, third, stock_root))),
+    ) in twelfth_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+        let native_outleft = twelfth_outleft_min_stage(twelfth[0], twelfth[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            native_outleft, eleventh[3],
+            "new twelfth MIN/eleventh MAX input boundary row {i}"
+        );
+        let native_in = eleventh_min_stage(eleventh[1], eleventh[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let native_out = eleventh_max_stage(native_outleft, eleventh[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            [eleventh[0], native_in, native_out],
+            tenth,
+            "independent stock tenth Marker / both Ap2 parents row {i}"
+        );
+        assert_eq!(eleventh[0], tenth[0], "Marker finite forwarding row {i}");
+        if (TENTH_MIN..TENTH_MAX).contains(&f64::from_bits(eleventh[0])) {
+            actual_tenth_inside += 1;
+        } else {
+            actual_tenth_outside += 1;
+        }
+        let choice = tenth_choice_stage([eleventh[0], native_in, native_out])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            choice, old_ninth_choice,
+            "independent original ninth parent row {i}"
+        );
+        let actual_root = ninth_partial_program(choice, ninth_new, sixth, third)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            actual_root, stock_root,
+            "genuine original 26.2 finalDensity MIN root after twelfth staged native {i}"
+        );
+        actual_root_parity += 1;
+    }
+    assert_eq!((actual_tenth_inside, actual_tenth_outside), (68, 60));
+    assert_eq!(actual_root_parity, 128);
+    // Each separate cold-validated HOT evaluation uses at most 32 nodes:
+    // 3 (twelfth Ap2), 3+3 (eleventh branches), 4 (tenth), 32 (ninth).
+    // Never merge these into an unbounded or production-authorized graph.
+}

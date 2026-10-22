@@ -77,7 +77,7 @@ def validate_shape(s: dict) -> None:
     except (ValueError, TypeError) as exc:
         raise EighteenthLayerError("genuine Clamp sole wrapped DensityFunction class moved") from exc
     for k in ("clamp_min_bits", "clamp_max_bits"):
-        if not finite_bits("0x" + s[k]):
+        if not isinstance(s[k], str) or not finite_bits(s[k]):
             raise EighteenthLayerError("original Clamp min/max raw IEEE is malformed/nonfinite")
     if not value("0x" + s["clamp_min_bits"]) < value("0x" + s["clamp_max_bits"]):
         raise EighteenthLayerError("actual original Clamp bounds not ordered")

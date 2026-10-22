@@ -181,9 +181,9 @@ class TwelfthOutLeftAp2SourceOwnerTests(unittest.TestCase):
             lambda lines: lines.__setitem__(1, lines[1].replace(
                 "|MUL|", "|UNSUPPORTED|", 1)),
             lambda lines: lines.__setitem__(1, lines[1].replace(
-                "|Noise", "|invalid.class", 1)),
+                twelfth.CLASS + "Noise", "invalid.class", 1)),
             lambda lines: lines.__setitem__(1, lines[1].replace(
-                "|Constant", "|also.invalid", 1)),
+                twelfth.CLASS + "Constant", "also.invalid", 1)),
         ]
 
         def old_parent_mutation(lines: list[str]) -> None:

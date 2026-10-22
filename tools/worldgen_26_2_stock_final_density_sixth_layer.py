@@ -201,6 +201,7 @@ def validate(report:dict)->None:
         "point_count_per_seed":32,
         "sample_context":"DensityFunction$SinglePointContext",
         "original_stock_registry_used":True,"new_sixth_layer_inputs_observed":True,
+        "source_text_included":False,
         **{gate:False for gate in GATES},
     }
     if set(report)!=set(pins)|{"shapes","vectors"} or any(
@@ -300,6 +301,7 @@ def capture(*,source:Path,db:Path,lock:Path,server:Path,output:Path)->dict:
         "point_count_per_seed":32,
         "sample_context":"DensityFunction$SinglePointContext",
         "original_stock_registry_used":True,"new_sixth_layer_inputs_observed":True,
+        "source_text_included":False,
         "shapes":shapes,"vectors":vectors,
         **{gate:False for gate in GATES},
     }

@@ -71,7 +71,9 @@ def validate_shape(s: dict) -> None:
         raise TwelfthLayerError("actual original MulOrAdd enum declaring class moved")
     if s["mul_op"] not in ("ADD", "MUL"):
         raise TwelfthLayerError("actual original MulOrAdd operation moved")
-    if not finite_bits(s["mul_argument_bits"]):
+    argument = s["mul_argument_bits"]
+    if (not isinstance(argument, str) or not argument.startswith("0x")
+            or not finite_bits(argument[2:])):
         raise TwelfthLayerError("real source coefficient is not finite IEEE")
     eleventh.tenth.ninth.eighth.seventh.sixth.fifth.fourth.third.second.require_class(
         s["mul_child_class"]

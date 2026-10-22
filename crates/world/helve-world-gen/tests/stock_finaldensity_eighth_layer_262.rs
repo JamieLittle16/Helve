@@ -246,7 +246,6 @@ fn thirty_node_source_observed_partial_finaldensity_matches_original_128_min_roo
     }
 }
 
-
 const EIGHTH: &str = include_str!("data/stock_finaldensity_eighth_layer_new_128_rawbits.tsv");
 
 fn eighth_samples() -> Vec<([u64; 2], Receipt)> {
@@ -375,7 +374,6 @@ fn eighth_partial_program(
     .expect("one cold-validated 32-node backward-only eighth graph")
 }
 
-
 #[test]
 fn eighth_ap2_matches_original_positive_zero_and_all_128_deep_outputs() {
     let mut ordinary_ieee_mismatches = 0;
@@ -396,7 +394,11 @@ fn eighth_ap2_matches_original_positive_zero_and_all_128_deep_outputs() {
         let ordinary = f64::from_bits(eighth[0]) * f64::from_bits(eighth[1]);
         if ordinary.to_bits() != seventh[0] {
             ordinary_ieee_mismatches += 1;
-            assert_eq!(eighth[0], 0.0_f64.to_bits(), "only +zero can differ row {i}");
+            assert_eq!(
+                eighth[0],
+                0.0_f64.to_bits(),
+                "only +zero can differ row {i}"
+            );
             assert_eq!(ordinary.to_bits(), (-0.0_f64).to_bits());
             assert_eq!(seventh[0], 0.0_f64.to_bits());
             positive_zero_cases += 1;

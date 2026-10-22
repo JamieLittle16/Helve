@@ -1320,3 +1320,154 @@ fn sixteenth_native_ap2_through_thirteenth_twelfth_eleventh_tenth_ninth_matches_
     // Separate 16th/13th/12th/11th/10th/9th evaluations: 3,3,3,3,4,32.
     // No HOT capacity change, no streaming cache, no NoiseChunk lifecycle law.
 }
+
+const SEVENTEENTH: &str =
+    include_str!("data/stock_finaldensity_seventeenth_minright_add_children_128_rawbits.tsv");
+
+// Exactly TWO new original JVM words from actual sixteenth MIN RIGHT Ap2(ADD):
+// real LEFT HolderHolder, RIGHT Clamp. The previous 16th right-parent is only
+// loaded from the immutable SIXTEENTH fixture, never refrozen.
+type SeventeenthReceipt = ([u64; 2], SixteenthReceipt);
+
+fn seventeenth_samples() -> Vec<SeventeenthReceipt> {
+    let rows: Vec<_> = SEVENTEENTH.lines().collect();
+    assert_eq!(
+        rows.len(),
+        128,
+        "source-owned 128 genuinely new ADD operand pairs"
+    );
+    rows.into_iter()
+        .zip(sixteenth_samples())
+        .map(|(line, older)| {
+            let words: [u64; 2] = words(line)
+                .try_into()
+                .expect("exactly two genuine original seventeenth operand words");
+            (words, older)
+        })
+        .collect()
+}
+
+// Separate COLD-validated 3-node explicit ADD. This is not an admitted
+// seeded original-JVM/noise/cache runtime node or all-input Java law.
+fn seventeenth_minright_add_stage(left: u64, right: u64) -> Program<'static, 3> {
+    Program::new([
+        constant(left),
+        constant(right),
+        Node::ExplicitAp2Add { left: 0, right: 1 },
+    ])
+    .expect("genuine original 17th actual ADD, independent three-node HOT stage")
+}
+
+#[test]
+fn seventeenth_actual_add_children_bitmatch_independent_sixteenth_right_128() {
+    let mut left_smaller = 0;
+    let mut right_smaller = 0;
+    for (i, (actual_add, (old_sixteenth, _))) in seventeenth_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        let produced = seventeenth_minright_add_stage(actual_add[0], actual_add[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            produced, old_sixteenth[1],
+            "new genuine 17th ADD vs frozen 16th MIN RIGHT Ap2 row {i}"
+        );
+        let a = f64::from_bits(actual_add[0]);
+        let b = f64::from_bits(actual_add[1]);
+        assert!(a.is_finite() && b.is_finite());
+        assert_ne!(actual_add[0], actual_add[1]);
+        if a < b {
+            left_smaller += 1;
+        } else {
+            assert!(a > b);
+            right_smaller += 1;
+        }
+    }
+    assert_eq!((left_smaller, right_smaller), (124, 4));
+}
+
+#[test]
+fn seventeenth_add_then_sixteenth_min_to_stock_original_finaldensity_root_128() {
+    let mut roots = 0;
+    let mut original_right_wins = 0;
+    let mut original_left_wins = 0;
+    for (
+        i,
+        (
+            new_add,
+            (
+                old_sixteenth,
+                (
+                    thirteenth,
+                    (
+                        twelfth,
+                        (
+                            eleventh,
+                            tenth,
+                            old_ninth_choice,
+                            _,
+                            (ninth_new, sixth, third, stock_root),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ) in seventeenth_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+        let actual_right = seventeenth_minright_add_stage(new_add[0], new_add[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            actual_right, old_sixteenth[1],
+            "new ADD => original 16th right row {i}"
+        );
+        let actual_sixteenth =
+            sixteenth_cacheonce_wrapped_min_stage(old_sixteenth[0], actual_right)
+                .sample_block(0, y, 0)
+                .to_bits();
+        assert_eq!(
+            actual_sixteenth, thirteenth[1],
+            "16th MIN => old 13th RIGHT {i}"
+        );
+        if actual_sixteenth == old_sixteenth[0] {
+            original_left_wins += 1;
+        } else {
+            assert_eq!(actual_sixteenth, actual_right);
+            original_right_wins += 1;
+        }
+        let native_thirteenth = thirteenth_left_ap2_min_stage(thirteenth[0], actual_sixteenth)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            native_thirteenth, twelfth[0],
+            "new 17th => prior twelfth parent {i}"
+        );
+        let native_twelfth = twelfth_outleft_min_stage(native_thirteenth, twelfth[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_twelfth, eleventh[3]);
+        let native_inside = eleventh_min_stage(eleventh[1], eleventh[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let native_outside = eleventh_max_stage(native_twelfth, eleventh[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!([eleventh[0], native_inside, native_outside], tenth);
+        let choice = tenth_choice_stage([eleventh[0], native_inside, native_outside])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(choice, old_ninth_choice);
+        let root = ninth_partial_program(choice, ninth_new, sixth, third)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            root, stock_root,
+            "original JVM root after genuine 17th ADD row {i}"
+        );
+        roots += 1;
+    }
+    assert_eq!(roots, 128);
+    assert_eq!((original_left_wins, original_right_wins), (57, 71));
+    // Separate cold-validated stages of 3,3,3,3,3,3,4,32 HOT nodes max.
+    // No operation/Holder/Clamp/cache source admission or production authority.
+}

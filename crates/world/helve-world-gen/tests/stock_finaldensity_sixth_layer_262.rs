@@ -104,8 +104,8 @@ fn partial_program(sixth: [u64; 4], third: [u64; 6]) -> Program<'static, 27> {
         },
         6 => Node::CandidateSqueeze { input: 5 },
         7 | 11 => Node::Primitive(outside_gradient()), // separate source-observed records
-        8 => constant(third[2]),                  // nested original Noise, not yet native
-        9 => constant(third[3]),                  // original Constant(-1), independently frozen
+        8 => constant(third[2]),                       // nested original Noise, not yet native
+        9 => constant(third[3]), // original Constant(-1), independently frozen
         10 => Node::CandidateRangeChoice {
             selector: 7,
             when_in_range: 8,

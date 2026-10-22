@@ -251,3 +251,32 @@ Verification of an already available original private JSON (does not execute JVM
       --capture /tmp/helve-26_2-final-sixth-layer-128.json
 
 No original-owner JSON/source/JAR/private Atlas content is committed.
+
+
+## Seventh-layer source-owner probe prepared (22 October 2026; **NOT EXECUTED**)
+
+After the original sixth-layer receipt, PR #493 merged with all eight CI checks green; \`main\` advanced to **90601a31aac7fa8b8b5e0283c50d1c01e174085a**. The exact **93,302-byte original private sixth-layer JSON** (SHA-256 **597287a4fde98d3fd2f984f6c4b9de20016782e8fd45532092fd797d5697aa35**) and exact **8,704-byte sixth-layer four-column source-free fixture** (SHA-256 **b41f262fe145d82fa5d7f05d586663918c4ad900654a7e0906559405cca1d68e**) are **FROZEN; do not recapture**.
+
+The 27-node bounded partial native Rust \`StockDensityProgram262\` exercises both actual gradients and the two nested arithmetic operators with original root 128-point parity. It is a **candidate**; it does NOT implement the remaining seeded \`Noise\`, marker-interpolated choices or stock \`NoiseChunk\` sampling.
+
+The new \`tools/worldgen_26_2_stock_final_density_seventh_layer.py\` + \`tools/worldgen_java/HelveStockFinalDensitySeventhLayer262.java\` is the only next original-JVM diagnostic. It explores **three actual unresolved nodes only**, with the previously observed original stock 26.2 graph as its exact source shape anchor:
+(1) left deeper \`MulOrAdd\` actual enum operation/IEEE coefficient and one child class/value;
+(2–3) both separate \`Interpolated Marker -> RangeChoice\` genuine numeric bounds, selector/in/out classes, and selector/in/out finite words.
+The two nested choices must be independently evaluated even if a parent MIN/RangeChoice would skip them. **Seven NEW IEEE words/point** are emitted; just three sixth-layer words/point are read and compared **as old immutable anchors only**. This preserves old root/inner/second/third/fourth/fifth/sixth, 512-cell and 768-NoiseChunk captures.
+
+The source-owner transport is finite, strict-seed/XYZ, source/JAR/Atlas/method SHA-locked, two-branch runtime shape locked, no extracted Java source, private exception messages or registries. All previous false admission flags stay false, including all-input density law, stock NoiseChunk interpolation, VAR/SEM, seeded full-router and production.
+
+**After the seventh-layer PR merges green, run on the private original-source owner only:**
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_seventh_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-seventh-layer-128.json
+
+Upload that source-free seventh JSON, or paste the \`HELVE26_2_SEVENTH_FAILURE|<phase>|<exception-class>\` original-JVM failure tag; **do not rerun any previously frozen capture**.
+
+**Architecture note:** the 27-node graph currently retains Helve's existing 32-node limit. Native expansion of two distinct RangeChoice subgraphs may not fit one flat 32-node program; compare original graph sharing and use separately cold-validated smaller subgraphs/composition if necessary. Do **NOT** silently increase hot-path scratch or heap allocations merely to fit more layers, and do not guess structural aliasing between distinct source nodes.

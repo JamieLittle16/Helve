@@ -102,11 +102,11 @@ class TwelfthSourceOwnerTests(unittest.TestCase):
             lambda r: r.__setitem__(1, r[1].replace(
                 "3ff0000000000000", "7ff0000000000000", 1)),
             lambda r: r.__setitem__(1, r[1].replace(
-                "|Noise", "|NotAStockDensityClass", 1)),
+                "|Noise", "|invalid.class", 1)),
         ]
         def change_old_parent(rows: list[str]) -> None:
             fields = rows[2].split("|")
-            fields[-1] = "7ff0000000000000"
+            fields[-1] = "0000000000000000"
             rows[2] = "|".join(fields)
         changes.append(change_old_parent)
         for index, mutation in enumerate(changes):
@@ -127,7 +127,7 @@ class TwelfthSourceOwnerTests(unittest.TestCase):
             "new_twelfth_inright_direct_child_observed",
         ):
             report = self.report()
-            report[field] = True
+            report[field] = False if field == "new_twelfth_inright_direct_child_observed" else True
             with self.subTest(field=field), self.assertRaises(twelfth.TwelfthLayerError):
                 twelfth.validate(report)
         for gate in twelfth.GATES:

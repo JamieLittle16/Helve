@@ -789,3 +789,94 @@ HOT scratch ≤32 nodes, no HOT allocations, new performance claims,
 Java all-input operator / signed-zero / NaN semantics admission,
 stock NoiseChunk lifecycle qualification, native fully seeded worldgen,
 source VAR/SEM gates or production publication authority.
+
+## Thirteenth actual original-JVM MIN fixture and native bounded parity (22 October 2026)
+
+**The original thirteenth JVM observer (#510) HAS NOW RUN. Do not recapture
+it or any prior layers 1–12.** The original source-free thirteenth
+JSON has exactly **41,610 bytes**, SHA-256
+**e50e4ef14a7d3716613e0bb77982a5693c0395ac1f32e24325930dbf0c8d79db**.
+The four seed records independently identify the twelfth MIN-left
+child as an actual original Minecraft 26.2
+`DensityFunctions$Ap2(MIN)` whose two direct classes are a LEFT
+`DensityFunctions$Ap2` and RIGHT
+`DensityFunctions$HolderHolder` (enum owner
+`DensityFunctions$TwoArgumentSimpleFunction$Type`).
+The unchanged original 26.2 source-method hashes/source ZIP and
+official server SHA remain pinned in the capture. No source text,
+stack trace, original Java jar, old fixture values or private indexed
+database has been committed.
+
+Exactly **128×2 genuine new** raw IEEE-754 operands were emitted
+over the *same* fixed original 4×32 SinglePointContext coordinates.
+Original Java's two operands agree with the independently pinned
+**twelfth LEFT operand** at **128/128 bit-exact** values when the
+direct MIN candidate is selected. No NaN, nonfinite, signed-zero
+tie, or arithmetic candidate mismatch was observed. True thirteenth
+MIN selection is **12 left** and **116 right**. The exact sampled left
+winners are **[0, 1, 9, 10, 11, 12, 31, 32, 41, 53, 62, 117]**.
+Intersecting with original independent Java tenth RangeChoice,
+eleventh MAX, twelfth MIN and final root MIN results, only
+**12 left** and **43 right** thirteenth child values lie on the
+selected original root path (55 total). The observed right
+`HolderHolder` is thus the higher-impact FOURTEENTH review target,
+not a reason to presume it forwards without a real source record.
+
+Immutable genuine new-only source-free fixture:
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_thirteenth_selected_left_ap2_children_128_rawbits.tsv`.
+It contains EXACTLY **128×2 = 256 new original IEEE words**,
+only (`left_ap2_left_bits`, `left_ap2_right_bits`), in this order.
+The fixture is **4,352 bytes**, SHA-256
+**cd8ba322bea4575aba70a28223940162af7feed926806a96c217d7a4b04eee4a**.
+NO prior twelfth parent values, old tenth RangeChoice / eleventh
+MAX inputs, ninth graph parent or old final root are copied into it.
+The old twelfth child pair fixture remains untouched at 4,352
+bytes, SHA-256
+**c51d0c1686a5a7160abb2f03c6db5e377b6a2f6fee23cc18bca7a493439b552f**.
+
+Strict fail-closed fixture/provenance validator:
+`tools/worldgen_26_2_stock_finaldensity_thirteenth_layer_fixture.py`,
+with adversarial SHA, structure, ordering, source-provenance,
+branch witness, old-parent bit, NaN and signed-zero/tie mutation
+tests in `tools/tests/test_worldgen_26_2_stock_finaldensity_thirteenth_layer_fixture.py`.
+It requires the exact original private report full length and SHA,
+actual four seed class/operation records and original Java
+unadmitted telemetry, and the full prior source-method inventory.
+The original report is not part of git. To verify an existing local
+original report **without re-running any source capture**:
+
+    python3 tools/worldgen_26_2_stock_finaldensity_thirteenth_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-thirteenth-layer-128.json
+
+The existing test-only
+`crates/world/helve-world-gen/tests/stock_finaldensity_eighth_layer_262.rs`
+adds a separately cold-validated three-node
+`ExplicitAp2Min` sample stage with the **two NEW original JVM
+thirteenth child bits**, verifying 128/128 original twelfth MIN-left
+parents. Its computed value, not the old twelfth parent fixture,
+feeds twelfth Ap2(MIN), eleventh Ap2(MAX) plus in-range MIN,
+tenth RangeChoice and ninth fixed 32-node final-density MIN graph.
+The independent original stock MIN-root results remain **128/128
+IEEE rawbit parity** after full composition.
+
+The distinct test-only stage scratch bounds remain
+**3 + 3 + 3 + 3 + 4 + 32, with per-stage HOT maximum 32 nodes**.
+Do not replace separate cold-validated stages with an unbounded
+production DAG or allocate on the HOT sampling path.
+
+**Limits: all observed results are only finite sample-level
+SinglePointContext parity.** No arbitrary-input Java operation law,
+NaN/signed-zero/short-circuit behaviour, `HolderHolder` target
+forwarding, marker cache semantics, NoiseChunk lifecycle,
+seeded native noise ownership, independent VAR/SEM, full router
+qualification or production worldgen is newly admitted. Every
+source-law and production admission flag in the authentic report
+was **FALSE** and must remain false in the fixture and tests.
+
+**Next only if source-weighted:** inspect the original right
+`HolderHolder` record beneath the thirteenth MIN (43 selected
+root paths), obtaining its underlying original target type and
+finite values without assuming identity/alias or doing a redundant
+prior JVM capture. Prioritize review of actual target source
+identity and lifecycle before calling any holder numerical
+coincidence a native source law.

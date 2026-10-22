@@ -65,6 +65,44 @@ def pack(number:float)->str:
     return "0x"+struct.pack(">d",number).hex()
 
 
+def ap2_candidate_observation(shapes:list[dict],vectors:list[dict])->dict:
+    """Classify candidates ONLY; original Ap2 body is not source-law admitted.
+
+    Java Ap2 multiplication can short-circuit on +0.0. Helve already has a
+    distinct Rust ExplicitAp2Multiply candidate for that observed behaviour.
+    Neither candidate is asserted here: all valid source-owned raw inputs
+    and the separately frozen old Ap2 output are retained for source review.
+    """
+    raw_bad=[]
+    zero_skip_bad=[]
+    compared=0
+    for i,row in enumerate(vectors):
+        op=shapes[i//32]["deep_ap2_op"]
+        if op not in ("ADD","MUL"):
+            continue
+        compared+=1
+        left=value(row["ap2_left_bits"])
+        right=value(row["ap2_right_bits"])
+        raw=left+right if op=="ADD" else left*right
+        # Only positive zero is the previously observed short-circuit
+        # candidate. Do not infer this candidate's general source law.
+        zero_skip=(0.0 if op=="MUL" and
+                   row["ap2_left_bits"]=="0x0000000000000000" else raw)
+        if pack(raw)!=row["ap2_old_bits"]:
+            raw_bad.append(i)
+        if pack(zero_skip)!=row["ap2_old_bits"]:
+            zero_skip_bad.append(i)
+    return {
+        "candidate_operand_pairs_checked":compared,
+        "raw_ieee_mismatch_count":len(raw_bad),
+        "raw_ieee_first_mismatch_index":raw_bad[0] if raw_bad else -1,
+        "positive_zero_shortcircuit_mismatch_count":len(zero_skip_bad),
+        "positive_zero_shortcircuit_first_mismatch_index":(
+            zero_skip_bad[0] if zero_skip_bad else -1),
+        "source_law_admitted":False,
+    }
+
+
 def validate_shape(s:dict)->None:
     if not isinstance(s,dict) or set(s)!=set(SHAPE_FIELDS)|{"world_seed_bits"}:
         raise EighthLayerError("original eighth-layer shape schema changed")
@@ -140,13 +178,10 @@ def parse_output(stdout:str)->tuple[list[dict],list[dict]]:
             if entry["left_target_bits"]!=entry["left_selector_old_bits"] or (
                     entry["right_target_bits"]!=entry["right_selector_old_bits"]):
                 raise EighthLayerError("actual original Holder target forwarding changed")
-            a=value(entry["ap2_left_bits"])
-            b=value(entry["ap2_right_bits"])
-            if s["deep_ap2_op"] in ("ADD","MUL"):
-                result=a+b if s["deep_ap2_op"]=="ADD" else a*b
-                if pack(result)!=entry["ap2_old_bits"]:
-                    raise EighthLayerError("original eighth Ap2 real arithmetic changed")
-            # MIN/MAX source law is not presumed from the enum alone.
+            # The old output is *already* independently frozen above.
+            # Never discard authentic operands because an unreviewed Python
+            # simplification differs from the original Ap2 implementation.
+            # Record candidate comparisons separately, with admission FALSE.
             vectors.append({**points[idx],**entry})
         if cursor>=len(frames) or frames[cursor]!=[END,str(i),"32"]:
             raise EighthLayerError("original eighth seed-end marker missing")
@@ -175,6 +210,7 @@ def validate(report:dict)->None:
         "sample_context":"DensityFunction$SinglePointContext",
         "original_stock_registry_used":True,"new_eighth_layer_inputs_observed":True,
         "source_text_included":False,
+        "ap2_candidate_observation":report.get("ap2_candidate_observation"),
         **{g:False for g in GATES},
     }
     if set(report)!=set(pins)|{"shapes","vectors"} or any(
@@ -215,6 +251,10 @@ def validate(report:dict)->None:
                 raise EighthLayerError("original eighth XYZ/seed changed")
             lines.append("|".join((VALUE,str(idx),*(v[k][2:] for k in WORDS))))
         lines.append("|".join((END,str(i),"32")))
+    expected=ap2_candidate_observation(shapes,vectors)
+    if type(report["ap2_candidate_observation"]) is not dict or (
+            report["ap2_candidate_observation"]!=expected):
+        raise EighthLayerError("unreviewed Ap2 arithmetic telemetry changed")
     if parse_output("\n".join(lines))!=(shapes,vectors):
         raise EighthLayerError("eighth source-owner receipt cannot round-trip")
 
@@ -279,6 +319,7 @@ def capture(*,source:Path,db:Path,lock:Path,server:Path,output:Path)->dict:
         "original_stock_registry_used":True,"new_eighth_layer_inputs_observed":True,
         "source_text_included":False,
         "shapes":shapes,"vectors":vectors,
+        "ap2_candidate_observation":ap2_candidate_observation(shapes,vectors),
         **{gate:False for gate in GATES},
     }
     validate(report)
@@ -294,6 +335,7 @@ def capture(*,source:Path,db:Path,lock:Path,server:Path,output:Path)->dict:
         "real_deeper_ap2_type":shapes[0]["deep_ap2_op"],
         "left_selector_target_type":shapes[0]["left_target_class"],
         "right_selector_target_type":shapes[0]["right_target_class"],
+        "ap2_candidate_observation":ap2_candidate_observation(shapes,vectors),
         **{gate:False for gate in GATES},
     }
 

@@ -744,7 +744,9 @@ const ELEVENTH: &str = include_str!("data/stock_finaldensity_eleventh_layer_new_
 /// Five genuine new direct original Java child words. The three old tenth
 /// `Marker`/`Ap2` parent values come only from the independently frozen tenth
 /// source fixture. No previous parent or stock MIN-root bits are recopied.
-fn eleventh_samples() -> Vec<([u64; 5], [u64; 3], u64, [u64; 2], Receipt)> {
+type EleventhReceipt = ([u64; 5], [u64; 3], u64, [u64; 2], Receipt);
+
+fn eleventh_samples() -> Vec<EleventhReceipt> {
     let rows: Vec<_> = ELEVENTH.lines().collect();
     assert_eq!(rows.len(), 128, "only 640 new eleventh JVM child words");
     rows.into_iter()

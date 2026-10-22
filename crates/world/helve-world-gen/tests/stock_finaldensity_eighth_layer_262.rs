@@ -995,7 +995,6 @@ fn twelfth_staged_min_then_max_then_tenth_choice_then_ninth_root_matches_128_ori
     // Never merge these into an unbounded or production-authorized graph.
 }
 
-
 const THIRTEENTH: &str =
     include_str!("data/stock_finaldensity_thirteenth_selected_left_ap2_children_128_rawbits.tsv");
 
@@ -1071,13 +1070,7 @@ fn thirteenth_staged_min_through_twelfth_eleventh_tenth_ninth_matches_original_r
     let mut parity = 0;
     for (
         i,
-        (
-            child,
-            (
-                twelfth,
-                (eleventh, tenth, old_ninth, _, (ninth_new, sixth, third, stock_root)),
-            ),
-        ),
+        (child, (twelfth, (eleventh, tenth, old_ninth, _, (ninth_new, sixth, third, stock_root)))),
     ) in thirteenth_samples().into_iter().enumerate()
     {
         let y = BLOCK_Y[i % 32];
@@ -1134,17 +1127,10 @@ fn thirteenth_staged_min_through_twelfth_eleventh_tenth_ninth_matches_original_r
             .expect("two actual original root operands plus final root");
         assert_eq!(root_words[2], stock_root);
         let root_left = f64::from_bits(root_words[0]) < f64::from_bits(root_words[1]);
-        let selected_tenth_outside =
-            !(TENTH_MIN..TENTH_MAX).contains(&f64::from_bits(tenth[0]));
-        let selected_eleventh_left = f64::from_bits(eleventh[3])
-            > f64::from_bits(eleventh[4]);
-        let selected_twelfth_left = f64::from_bits(twelfth[0])
-            < f64::from_bits(twelfth[1]);
-        if root_left
-            && selected_tenth_outside
-            && selected_eleventh_left
-            && selected_twelfth_left
-        {
+        let selected_tenth_outside = !(TENTH_MIN..TENTH_MAX).contains(&f64::from_bits(tenth[0]));
+        let selected_eleventh_left = f64::from_bits(eleventh[3]) > f64::from_bits(eleventh[4]);
+        let selected_twelfth_left = f64::from_bits(twelfth[0]) < f64::from_bits(twelfth[1]);
+        if root_left && selected_tenth_outside && selected_eleventh_left && selected_twelfth_left {
             if native_left == child[0] {
                 root_selected_thirteenth_left += 1;
             } else {
@@ -1156,7 +1142,10 @@ fn thirteenth_staged_min_through_twelfth_eleventh_tenth_ninth_matches_original_r
     }
     assert_eq!(parity, 128);
     assert_eq!(
-        (root_selected_thirteenth_left, root_selected_thirteenth_right),
+        (
+            root_selected_thirteenth_left,
+            root_selected_thirteenth_right
+        ),
         (12, 43)
     );
     assert_eq!(root_selected_right_indices.len(), 43);

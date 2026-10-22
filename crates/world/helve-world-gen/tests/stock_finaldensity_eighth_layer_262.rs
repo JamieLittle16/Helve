@@ -1153,3 +1153,162 @@ fn thirteenth_staged_min_through_twelfth_eleventh_tenth_ninth_matches_original_r
     // Separate cold-validated stages: 3, 3, 3, 3, 4, 32. No new production
     // graph, scheduler, runtime cache, or source law is admitted.
 }
+
+
+const SIXTEENTH: &str =
+    include_str!("data/stock_finaldensity_sixteenth_cacheonce_ap2_children_128_rawbits.tsv");
+
+// Exactly 2 new genuine original JVM numeric operands for the actually observed
+// thirteenth RIGHT Holder$Direct -> Marker(CacheOnce) -> Ap2(MIN) ancestry.
+// 14th/15th old wrapped parent values are NEVER duplicated as fixtures.
+// Existing independent thirteenth RIGHT column remains the old Ap2 parent.
+type SixteenthReceipt = ([u64; 2], ThirteenthReceipt);
+
+fn sixteenth_samples() -> Vec<SixteenthReceipt> {
+    let source_lines: Vec<_> = SIXTEENTH.lines().collect();
+    assert_eq!(source_lines.len(), 128, "only 256 genuine new original 16th IEEE operands");
+    source_lines
+        .into_iter()
+        .zip(thirteenth_samples())
+        .map(|(line, old)| {
+            let new: [u64; 2] = words(line)
+                .try_into()
+                .expect("exactly two original stock 26.2 16th Ap2 operands");
+            (new, old)
+        })
+        .collect()
+}
+
+// 3-node, cold-validated HOT standalone MIN. The actual original source
+// type enum is MIN and both child classes are Ap2. Each numeric input is
+// independently source-owned, not computed by production seeded worldgen.
+fn sixteenth_cacheonce_wrapped_min_stage(left: u64, right: u64) -> Program<'static, 3> {
+    Program::new([
+        constant(left),
+        constant(right),
+        Node::ExplicitAp2Min { left: 0, right: 1 },
+    ])
+    .expect("genuine sixteenth original MIN, separate cold 3-node stage")
+}
+
+#[test]
+fn sixteenth_source_owned_ap2_min_matches_frozen_thirteenth_right_parent_128() {
+    let mut wins_left = 0;
+    let mut wins_right = 0;
+    for (i, (children, (thirteenth, _))) in sixteenth_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        assert_ne!(
+            children[0], children[1],
+            "original sixteenth unreviewed equal MIN operands at row {i}"
+        );
+        let native = sixteenth_cacheonce_wrapped_min_stage(children[0], children[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            native, thirteenth[1],
+            "independent thirteenth RIGHT Holder/CacheOnce/Ap2 output row {i}"
+        );
+        if native == children[0] {
+            wins_left += 1;
+        } else {
+            assert_eq!(native, children[1]);
+            wins_right += 1;
+        }
+    }
+    assert_eq!((wins_left, wins_right), (57, 71));
+}
+
+#[test]
+fn sixteenth_native_ap2_through_thirteenth_twelfth_eleventh_tenth_ninth_matches_128_roots() {
+    let mut root_parity = 0;
+    let mut sixteen_right_selected = 0;
+    let mut sixteen_left_selected = 0;
+    for (
+        i,
+        (
+            new_sixteenth,
+            (
+                thirteenth,
+                (
+                    twelfth,
+                    (
+                        eleventh,
+                        tenth,
+                        old_ninth_choice,
+                        _,
+                        (ninth_new, sixth, third, stock_root)
+                    )
+                )
+            )
+        )
+    ) in sixteenth_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        let new_right = sixteenth_cacheonce_wrapped_min_stage(
+            new_sixteenth[0],
+            new_sixteenth[1]
+        )
+        .sample_block(0, y, 0)
+        .to_bits();
+        assert_eq!(new_right, thirteenth[1], "new 16th -> old 13th RIGHT row {i}");
+
+        // Feed actual newly calculated sixteenth Ap2 parent into the earlier
+        // independently source-owned test-only thirteenth MIN stage.
+        let native_thirteenth = thirteenth_left_ap2_min_stage(thirteenth[0], new_right)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_thirteenth, twelfth[0], "13th MIN -> old 12th LEFT {i}");
+
+        let native_twelfth = twelfth_outleft_min_stage(native_thirteenth, twelfth[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_twelfth, eleventh[3], "12th MIN -> old 11th MAX-left {i}");
+
+        let native_inside = eleventh_min_stage(eleventh[1], eleventh[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let native_outside = eleventh_max_stage(native_twelfth, eleventh[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!([eleventh[0], native_inside, native_outside], tenth);
+
+        let native_choice = tenth_choice_stage([eleventh[0], native_inside, native_outside])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_choice, old_ninth_choice, "tenth choice => ninth parent row {i}");
+
+        let native_root = ninth_partial_program(native_choice, ninth_new, sixth, third)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_root, stock_root, "original JVM root after native 16th stage row {i}");
+        root_parity += 1;
+
+        // Actual source-bounded root selection only; no all-input branch law.
+        let root_words: [u64; 3] = words(ROOT.lines().nth(i).expect("128 original roots"))
+            .try_into()
+            .expect("two original root operands + original final result");
+        let root_selects_left =
+            f64::from_bits(root_words[0]) < f64::from_bits(root_words[1]);
+        let tenth_outside =
+            !(TENTH_MIN..TENTH_MAX).contains(&f64::from_bits(tenth[0]));
+        let eleventh_out_left =
+            f64::from_bits(eleventh[3]) > f64::from_bits(eleventh[4]);
+        let twelfth_left =
+            f64::from_bits(twelfth[0]) < f64::from_bits(twelfth[1]);
+        let thirteenth_right =
+            f64::from_bits(thirteenth[1]) < f64::from_bits(thirteenth[0]);
+        if root_selects_left && tenth_outside && eleventh_out_left
+            && twelfth_left && thirteenth_right
+        {
+            if new_right == new_sixteenth[0] {
+                sixteen_left_selected += 1;
+            } else {
+                assert_eq!(new_right, new_sixteenth[1]);
+                sixteen_right_selected += 1;
+            }
+        }
+    }
+    assert_eq!(root_parity, 128);
+    assert_eq!(sixteen_left_selected + sixteen_right_selected, 43);
+    // Separate 16th/13th/12th/11th/10th/9th evaluations: 3,3,3,3,4,32.
+    // No HOT capacity change, no streaming cache, no NoiseChunk lifecycle law.
+}

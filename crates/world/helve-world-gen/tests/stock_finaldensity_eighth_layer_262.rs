@@ -873,7 +873,7 @@ const TWELFTH: &str =
 
 /// Exactly TWO new original JVM operands for the genuine out-of-range
 /// eleventh MAX left Ap2(MIN). Its old numerical parent belongs ONLY to
-/// eleventh_samples(). Earlier selector, root and parent fixtures remain
+/// `eleventh_samples()`. Earlier selector, root and parent fixtures remain
 /// independently frozen. Test-only finite single-point candidate parity.
 type TwelfthReceipt = ([u64; 2], EleventhReceipt);
 
@@ -895,7 +895,7 @@ fn twelfth_samples() -> Vec<TwelfthReceipt> {
 /// computed stock-JVM Ap2 children. The original source owner observed:
 /// Ap2(MIN) with two distinct class-recorded Ap2 child nodes.
 /// This does not assert any arbitrary-input Java special-case, short circuit,
-/// NoiseChunk caching, object identity or production admission.
+/// `NoiseChunk` caching, object identity or production admission.
 fn twelfth_outleft_min_stage(left: u64, right: u64) -> Program<'static, 3> {
     Program::new([
         constant(left),

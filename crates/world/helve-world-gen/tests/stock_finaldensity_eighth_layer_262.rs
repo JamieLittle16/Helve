@@ -442,8 +442,8 @@ fn ninth_samples() -> Vec<(u64, [u64; 2], Receipt)> {
         .collect()
 }
 
-/// The two distinct Java HolderHolder targets were each independently
-/// reflected as the exact same YClampedGradient record with parameters
+/// The two distinct Java `HolderHolder` targets were each independently
+/// reflected as the exact same `YClampedGradient` record with parameters
 /// (-4064, 4062, -4064, 4062). Reusing their pure native numerical
 /// value is a finite sample-test simplification, NOT Java object identity
 /// or all-input holder forwarding qualification. This saves one DAG node,

@@ -432,3 +432,30 @@ The tenth source-owner probe staged by green PR #501 was **actually executed aga
 **Composed native finite parity with UNCHANGED 32-node scratch cap:** the existing source-observed **32-node ninth partial finalDensity** Rust test graph is preserved, along with all seventh/eighth/ninth and lower regressions. Instead of adding three source-unresolved children plus the RangeChoice operation above 32, a separate **four-node cold-validated local test stage** evaluates the original tenth Marker selector and both independently original Java Ap2 child values; the three child raw words are still JVM-fed. Its computed IEEE output is the single input to the unchanged ninth 32-node native test graph. Tests independently assert 128/128 tenth stage -> frozen ninth result, 68 in/60 out, the non-alias witness and 128/128 exact final MIN-root parity through the **4+32 two-stage composition**. This does not create a production scheduler, increase any stage's HOT scratch, make a throughput claim, source-admit either Ap2 or establish Marker lifecycle semantics.
 
 **Next genuine eleventh source frontier, NOT executed:** inspect the two actual in/out Ap2 branch operator types, each of their two independent child class records and sampled values, and separately the Marker enum and its true wrapped child. Only real source-grounded sharing or bounded composition can justify further native lowering. Entire seeded Noise constructor/router, actual NoiseChunk marker/cache/interpolator lifecycle, VAR/SEM and production world-publishing gates remain false despite finite-sample parity.
+
+
+## Eleventh source-only Marker/Ap2 operator-record probe staged (22 October 2026; genuine JVM execution pending)
+
+**PR #502 has merged all eight checks GREEN**, squash SHA **8c0456782c6c2fc60ad3cf2e54bd7c86e91fbf52**. Authentic completed tenth original-stock 26.2 report **45,434 bytes**, SHA **b5bed75d54e2704718af4795407614ebd591330cb714263e61e6d7a21e8c3e8e**; new-only committed three-child original IEEE fixture **6,528 bytes**, SHA **5786ee42753215750163ec740220082b941e9d34adb76d145bfd43c21f9656f1**. Previous root through ninth, 128 frozen tenth branch samples, all 512-cell/NoiseChunk data are immutable and are NOT to be recaptured. Two-stage candidate **4-node tenth RangeChoice + 32-node ninth partial finalDensity** matches all 128 source-owned stock MIN outputs while retaining existing per-stage scratch limit. This is only independently frozen finite SinglePointContext parity, not genuine seeded NoiseChunk source admission.
+
+The eleventh Java bridge prepares ONLY the narrow frontier exposed by the actual tenth original JVM shape: source-owned **DensityFunctions$Marker** selector and TWO separate original **DensityFunctions$Ap2** in/out branches, not presumed identical to each other or other known Ap2. The first bounded 32-coordinate seed record reflects:
+- Original Marker enum declaring class, exact enum constant (actual marker lifecycle name), and runtime class of its sole actual density child.
+- Exact in-range Ap2 enum declaring class and operation plus independently reflected original runtime classes of argument1/argument2.
+- Exact out-of-range Ap2 enum declaring class and operation plus independently reflected original runtime classes of argument1/argument2.
+- Five genuinely NEW numeric observations per original XYZ: Marker wrapped child's finite raw IEEE value and four separate in/out Ap2 actual child operands. The three **old** original tenth values — Marker selector, in-range Ap2 result and out-of-range Ap2 result — are independently recomputed ONLY as SHA-pinned 128×3 prior-boundary checks, never copied to any new permanent fixture.
+
+Source-only transport tools: **tools/worldgen_java/HelveStockFinalDensityEleventhLayer262.java**, **tools/worldgen_26_2_stock_final_density_eleventh_layer.py**, with bounded four-seed synthetic frame/JDK compilation and fail-closed mutation tests. The original archive, official 26.2 JAR, prior tenth report/fixture SHA and actual indexed source-method hashes must agree; output is source-free and finite, has exact four seed-invariant 32-row graph shapes and unchanged strict no-source/VAR-SEM/production/NoiseChunk/all-input admission gates. Candidate Marker-child numeric equality on SinglePointContext is diagnostic telemetry ONLY; there is no unconditional source-law or actual NoiseChunk cache/interpolator qualification, and the two Ap2 operation semantics remain separately unadmitted.
+
+**After the eleventh diagnostic PR is GREEN and merged, run ONLY this new original private owner capture**:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+
+    python3 tools/worldgen_26_2_stock_final_density_eleventh_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-eleventh-layer-128.json
+
+Upload source-free eleventh JSON or exact bounded HELVE26_2_ELEVENTH_FAILURE|phase|ExceptionClass. Do not execute any prior eighth, ninth, tenth or older original oracle. Upon successful true-source evidence, explore independent fixed-cap composed Rust stages with exact signed-zero-aware Ap2 operators; do not fabricate node sharing or exceed fixed per-stage HOT scratch.

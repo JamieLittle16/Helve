@@ -49,7 +49,7 @@ ROOT = thirteenth.ROOT
 
 
 class FourteenthLayerError(ValueError):
-    """The original thirteenth 26.2 JVM source-owner evidence cannot be admitted."""
+    """The original fourteenth 26.2 JVM source-owner evidence cannot be admitted."""
 
 
 def finite_bits(word: str) -> bool:
@@ -172,12 +172,12 @@ def validate(report: dict) -> None:
         type(report.get(k)) is not type(v) or report[k] != v
         for k, v in pins.items()
     ):
-        raise FourteenthLayerError("original twelfth provenance/source/admission drift")
+        raise FourteenthLayerError("original fourteenth provenance/source/admission drift")
     methods = report["source_methods"]
     if not isinstance(methods, dict) or set(methods) != {
         "ap2_compute", "holder_holder_compute", "mapped_delegate_compute"
     }:
-        raise FourteenthLayerError("twelfth original source method inventory changed")
+        raise FourteenthLayerError("fourteenth original source method inventory changed")
     for name in ("ap2_compute", "holder_holder_compute"):
         owner = methods[name]
         if (not isinstance(owner, dict)
@@ -267,7 +267,7 @@ def observe(server: Path, timeout: int = 240) -> tuple[list[dict], list[dict]]:
         if proc.returncode:
             reason = next(
                 (line for line in proc.stdout.splitlines() if line.startswith(FAIL)),
-                "no bounded original twelfth failure tag"
+                "no bounded original fourteenth failure tag"
             )
             raise FourteenthLayerError("real original fourteenth JVM failure: " + reason[:160])
         return parse_output(proc.stdout)

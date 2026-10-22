@@ -1250,3 +1250,95 @@ Upload only the source-free seventeenth JSON or bounded phase/error
 marker. Original captures 1–16 do not need repeating. No stock
 NoiseChunk interpolation, caching, other VAR/SEM admission or production
 worldgen gates have been switched on.
+
+## Seventeenth genuine ADD HolderHolder+Clamp and eighteenth source-owned Clamp frontier (22 October 2026)
+
+**Original SEVENTEENTH completed. DO NOT recapture layers 1–17.**
+Actual source-free original stock Minecraft Java **26.2**, protocol 776,
+DataVersion 4903, four world seeds × 32 original SinglePointContext XYZ
+JSON: **43,284 bytes**, exact SHA-256
+**1c9fd95824aef71b68aaeb9c9528cb1adca174d6a258bc002989c3eb2fcac3c1**.
+The original four original-JVM source runtime shapes agree:
+sixteenth genuine Ap2(MIN) RIGHT child is an actual **Ap2(ADD)**,
+LEFT actual **DensityFunctions$HolderHolder**, RIGHT actual
+**DensityFunctions$Clamp**. This is not inferred from outputs or
+assumed from another MIN/ADD. This local sixteenth MIN RIGHT branch won
+**71/128** original MIN samples; the seventeenth ADD operand comparison
+is **124 LEFT smaller, 4 RIGHT smaller, 0 equal** but **ADD does not
+select either operand**, so 124/4 is NOT a MIN/branch win count.
+
+Original source owner computes two immediate child IEEE words and one
+OLD right-Ap2 output. Exact IEEE-754 ADD of the genuine HolderHolder
+and Clamp original words reproduces **128/128** frozen sixteenth RIGHT
+operand words, with **zero arithmetic candidate mismatches**. The
+old parent is column TWO of the already immutable sixteenth 128x2 TSV
+(SHA **bd56e08412141819e938a0370b5375c458ff131d2cda12882826108b196b99d9**).
+The original report retains all independently pinned original thirteenth,
+fourteenth, fifteenth and sixteenth reports, Java source ZIP/JAR/indexed
+method SHA, genuine XYZ/world seeds and every all-input/cache/NoiseChunk/
+VAR/SEM/production qualification gate **FALSE**. No source-law is
+established from the 128 arithmetic matches.
+
+Exactly **256 NEW original source-owned operand IEEE words** (128×2)
+are frozen in the independent 4,352-byte fixture
+'crates/world/helve-world-gen/tests/data/stock_finaldensity_seventeenth_minright_add_children_128_rawbits.tsv',
+SHA-256 **ef9a7e19fc793ce4d33592756faa73a80d86ad59941ae171820b3ed8eb4263a5**.
+There is no duplicate sixteenth old-parent column. New strict validator
+'tools/worldgen_26_2_stock_finaldensity_seventeenth_layer_fixture.py'
+verifies 17th original private report SHA/length, actual four source
+class/enum shapes, full owner validator, all 128 new-only words against
+the immutable seventeenth TSV, exact binary ADD against old sixteenth
+RIGHT, and all original unadmitted gates. Adversarial checksum-bypass,
+nonfinite, IEEE overflow, source gate, wrong parent and reorder tests
+are at 'tools/tests/test_worldgen_26_2_stock_finaldensity_seventeenth_layer_fixture.py'.
+Verify the ALREADY completed private JSON, no Java replay:
+
+    python3 tools/worldgen_26_2_stock_finaldensity_seventeenth_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-seventeenth-layer-128.json
+
+**Native test-only genuine source parity extended to seventeenth ADD.**
+'crates/world/helve-world-gen/tests/stock_finaldensity_eighth_layer_262.rs'
+loads the immutable seventeenth 2-word original operand receipt,
+cold-validates a separate three-node HOT ExplicitAp2Add, asserts 128
+IEEE rawbit parent matches, then FEEDS the newly computed ADD as the
+sixteenth MIN RIGHT child into the already source-owned 16th/13th/12th/
+11th/10th/9th stages to verify **128 original stock finalDensity roots**.
+Earlier fixture hashes/production code and max **32 HOT node scratch**
+remain unchanged. No cache law, original arbitrary-XYZ generated terrain,
+or production chunk publication authority is admitted.
+
+**Next, EIGHTEENTH original capture NOT run:** the actual seventeenth
+ADD RIGHT is genuine 'DensityFunctions$Clamp' (not another imagined
+source operator). Source-owned Java
+'tools/worldgen_java/HelveStockFinalDensityEighteenthLayer262.java'
+retraces full original real ancestry, verifies original sixteenth
+MIN/Ap2+Ap2 and seventeenth ADD HolderHolder+Clamp, then reflects the
+actual Clamp's source-owned min/max double bounds and its sole actual
+DensityFunction child runtime class. At the SAME 4×32 XYZ it observes
+just **one NEW original Clamp-wrapped child IEEE raw word**, plus **one
+OLD original Clamp output** independently anchored to immutable
+seventeenth RIGHT column. Source-only Python owner
+'tools/worldgen_26_2_stock_final_density_eighteenth_layer.py'
+pins all prior fixture/report/source ZIP/JAR/indexed-method identities,
+actual class/bounds-shape and original coordinates; clamp candidate
+telemetry reports below/inside/above positions and candidate mismatches
+WITHOUT admitting all-input Clamp clipping or NoiseChunk cache semantics.
+'tools/tests/test_worldgen_26_2_stock_final_density_eighteenth_layer.py'
+validates bounded source-only frame adversarial cases and full source-free
+JDK bridge compilation. Production and source gates remain FALSE.
+
+**Only after all CI checks green and observer PR merge**, run JUST:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_eighteenth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-eighteenth-layer-128.json
+
+Upload only the new original source-free eighteenth JSON or a bounded
+HELVE26_2_EIGHTEENTH_FAILURE|phase|ExceptionClass marker. Original JVM
+captures 1–17 must not be repeated; source-law/all-input/production
+admission requires independent review beyond finite originals.

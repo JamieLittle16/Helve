@@ -480,3 +480,62 @@ Genuine seed-invariant source shape, four seed groups × 32 fixed pinned XYZ in 
 
 **After the above exact source-honest PR passes CI green and merges**, plan only ONE narrow real twelfth original owner frontier, chosen among still-unresolved in-right MulOrAdd, out-left Ap2, out-right RangeChoice, and independent Marker/Holder ownership. No shotgun source probing. The next fresh context should use the uploaded eleventh report and the 22 October handoff, and should start with **fixture freeze / native eleventh finite parity**, NOT another original-JVM capture.
 
+
+## Eleventh compact original-JVM fixture and bounded source-observed native parity (22 October 2026)
+
+This section supersedes the preceding *fixture still pending* paragraph. The already
+completed **original 26.2 eleventh source-owner report is reused, NOT recaptured**:
+**71,499 bytes, SHA-256 a9d39854865d84bc8bdc2cf061ff715a589101af57c842dc159c2754cc71c6cc**.
+The prior independently committed tenth fixture is unchanged: **6,528 bytes,
+SHA-256 5786ee42753215750163ec740220082b941e9d34adb76d145bfd43c21f9656f1**.
+Exactly **384/384 old tenth parent words** reconstructed from the genuine eleventh
+report match that earlier three-column tenth fixture.
+
+New source-free immutable *eleventh-only* fixture:
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_eleventh_layer_new_128_rawbits.tsv`.
+It contains exactly **128 × 5 = 640 new original JVM IEEE-754 direct-child words**
+(`marker_child_bits`, `in_left_bits`, `in_right_bits`, `out_left_bits`,
+`out_right_bits`), **10,880 bytes**, SHA-256
+**f2d4b9084f30aa5f277053f9513c7529c321648d491b21b77e12bfd24b960e99**.
+It contains no duplicated old selector, Ap2 parent, ninth choice or original root
+result words, private source text, raw registry contents, or JVM stack traces.
+
+The fail-closed source-only fixture checker is
+`tools/worldgen_26_2_stock_finaldensity_eleventh_layer_fixture.py`.
+Its exact-size/SHA/type/finite/4×32/shape/parent checks use the immutable prior
+tenth TSV, and the optional `--capture` checks the completed private JSON's
+original exact byte SHA, source/JAR/method owner pins, fixed coordinates/seeds,
+all-false source and production gates, source text exclusion, original shape
+and candidate telemetry, and all 640+384 rawbit words. Tampering with a selected
+MIN parent, with the genuine rare MAX right winner, or the source owner fails
+closed. Run only against an **already captured** original JSON (do not recapture):
+
+    python3 tools/worldgen_26_2_stock_finaldensity_eleventh_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-eleventh-layer-128.json
+
+The test-only Rust staged candidate retains the pre-existing **32-node**
+backward-only ninth graph and the **4-node** tenth `RangeChoice` stage unchanged.
+Two additional separately cold-validated **3-node** actual `ExplicitAp2Min` and
+`ExplicitAp2Max` local stages consume four original-JVM eleventh child operands;
+the genuine `CacheOnce` `Marker→HolderHolder` child is tested as a *bounded
+finite numerical forwarding observation* only, never simulated as a
+`NoiseChunk` cache lifecycle law. Independent old tenth Marker, MIN and MAX
+parents are asserted bitwise **128/128 each**; the existing 68/60 tenth range
+choice and genuine selector-not-in-branch witness are retained. The actual
+MIN picks left/right **68/60**, actual MAX picks left/right **127/1** and the
+right-hand real `RangeChoice` takes a nonconstant value at rows **19,109,110**.
+Row **110** is an explicit right-wins regression. This feeds existing tenth
+choice and ninth graph against the *independently frozen original stock Java*
+`finalDensity` MIN root **128/128**. The per-stage HOT scratch ceiling
+**remains 32 nodes**; no production HOT executor or orchestration is modified.
+
+**Critical scope:** finite original `SinglePointContext` arithmetic and
+candidate parity ONLY, not all-input Java `Ap2` semantics, exact signed-zero
+proofs for new inputs, general `CacheOnce` identity/lifecycle, stock
+`NoiseChunk` interpolation, seeded native full graph generation, VAR/SEM or
+production admission. Existing source-fidelity and throughput obligations
+remain OPEN and all reported qualification booleans stay FALSE. The next
+narrow source-owned frontier, only if necessary, is the actual in-right
+`MulOrAdd`, out-left `Ap2`, out-right `RangeChoice` and independent
+Marker/Holder ownership. Original captures through layer eleven are complete
+and **must not be replayed**.

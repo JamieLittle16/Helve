@@ -709,3 +709,83 @@ nodes, prioritized by which contributes to the root's selected path.
 Do not guess their operators, expand HOT scratch, repeat any previous
 source capture (layers one through twelve), or silently admit source
 laws from finite agreement.
+
+## Thirteenth original source-owner frontier — selected twelfth MIN-left Ap2 (22 October 2026, JVM execution PENDING)
+
+Prior **twelfth** original JVM evidence and staged native parity are already
+merged (#509) and **MUST NOT be recaptured or duplicated**. The original
+twelfth report remains exactly 39,658 bytes, SHA-256
+**041eadc4a4174b4bace6eed2270c129cad6c65fe06cdbd7396268216bf26ab26**.
+The immutable genuine twelfth-only two-child TSV remains 4,352 bytes,
+SHA-256 **c51d0c1686a5a7160abb2f03c6db5e377b6a2f6fee23cc18bca7a493439b552f**.
+Existing eleventh/tenth/ninth stock captures and fixture hashes remain untouched.
+
+**Control-flow priority audit against independently frozen Java fixtures:** the
+twelfth out-left Ap2(MIN) picks its left immediate Ap2 result 125/128 and its
+right Ap2 result 3/128 (right-wins original rows **21, 97, 106**).
+The selected tenth branch is in-range 68/128 and out-of-range 60/128;
+out-of-range MAX takes that twelfth MIN in all 60 out-of-range sample
+results. However, original stock finalDensity root MIN selects its *left*
+result only at 124/128. On the actual original selected ROOT path, the
+twelfth Ap2(MIN) **left** child therefore contributes at **55/128**
+samples; the twelfth MIN **right** child contributes at **2/128**
+(rows **97, 106**). The third local right-wins row **21** is masked by
+root MIN's other side on that sample.
+
+These intersections are **only finite evidence of selection**; they
+do not prove call execution (stock Java may evaluate operands even
+when ultimately masked), computational sensitivity, dead branches on
+arbitrary coordinates, object identity, or admissible optimizations
+to source-observed graph topology.
+
+**Therefore** the thirteenth observer descends into **ONLY the actual
+twelfth Ap2(MIN) left child**. Both twelfth siblings were original-JVM
+class-observed as Ap2, but their internal enum operations and immediate
+child classes are **not yet known**. The new source-only Java bridge
+`tools/worldgen_java/HelveStockFinalDensityThirteenthLayer262.java`
+records its actual original Java TwoArgumentSimpleFunction Type enum,
+actual ADD/MUL/MIN/MAX operation, two immediate child runtime classes,
+and **two new original IEEE child words** per same fixed four seeds ×
+32 SinglePointContext XYZ. It recomputes the original twelfth MIN-left
+parent **only** to compare 128/128 exact raw words against **column one**
+of the immutable twelfth TSV, NOT to write a duplicated parent fixture.
+
+The new bounded source-free observer is
+`tools/worldgen_26_2_stock_final_density_thirteenth_layer.py`
+and its adversarial regression tests are in
+`tools/tests/test_worldgen_26_2_stock_final_density_thirteenth_layer.py`.
+It strictly preserves original 26.2 source ZIP/JAR and three indexed
+Java method-body owner pins, frozen prior twelfth report/fixture SHAs,
+4 identical original seeded records, no source text/trace/registry
+export, exactly 128 finite ordered original child pairs with 128
+independent old-parent anchors, and **all** previous source-law,
+NoiseChunk, seeded worldgen, VAR/SEM, and production flags **FALSE**.
+Synthetic transport/Java compilation CI is NOT genuine original
+runtime evidence and may never auto-admit an operator law.
+
+**Original thirteenth JVM probe has NOT YET RUN.** Only after the
+observer PR's required checks are green and merged should the
+private source owner run this **ONE NEW** thirteenth capture:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_thirteenth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-thirteenth-layer-128.json
+
+Upload the NEW source-free thirteenth JSON or bounded
+`HELVE26_2_THIRTEENTH_FAILURE|phase|ExceptionClass` marker.
+Do not repeat captures 1–12. After genuine thirteenth report validation,
+freeze only **128×2 new** original child rawbit words, SHA-pin the
+private thirteenth report and fixture, and add one test-only source-
+observed native operator stage feeding the twelfth MIN, eleventh MAX,
+tenth RangeChoice, and ninth fixed 32-node root parity.
+
+**Constraints remain absolute:** each stage cold-validated separately,
+HOT scratch ≤32 nodes, no HOT allocations, new performance claims,
+Java all-input operator / signed-zero / NaN semantics admission,
+stock NoiseChunk lifecycle qualification, native fully seeded worldgen,
+source VAR/SEM gates or production publication authority.

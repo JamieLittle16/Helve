@@ -880,3 +880,93 @@ finite values without assuming identity/alias or doing a redundant
 prior JVM capture. Prioritize review of actual target source
 identity and lifecycle before calling any holder numerical
 coincidence a native source law.
+
+
+## Fourteenth genuine MIN-right Holder target frontier — source-only owner prepared (22 October 2026)
+
+**Prior original captures 1–13 are finished. Do not re-run any previous capture.**
+PR #511 merged the original thirteenth **Ap2(MIN)** evidence (original private
+report **41,610 bytes**, SHA-256
+**e50e4ef14a7d3716613e0bb77982a5693c0395ac1f32e24325930dbf0c8d79db**).
+The immutable 128×2 **thirteenth-new-only** fixture is 4,352 bytes,
+SHA-256 **cd8ba322bea4575aba70a28223940162af7feed926806a96c217d7a4b04eee4a**.
+It must not be rewritten or its old parent duplicated. The thirteenth
+MIN's RIGHT original child is an independently class-observed
+\`DensityFunctions$HolderHolder\`, selected by its local MIN **116/128**
+times and contributing to **43/128** final-root selected paths. The
+LEFT local child is an actual distinct \`DensityFunctions$Ap2\`,
+selected 12 times, contributing 12 final-root selected paths.
+This is a source-weighted investigative priority, **not** proof of
+dead branches, call-path execution, Holder forwarding or Java all-input law.
+
+The **fourteenth only** original-JVM frontier is the previously unseen
+target of that exact right \`HolderHolder\` child of the actual
+thirteenth \`Ap2(MIN)\`, itself the LEFT child of the twelfth
+\`Ap2(MIN)\` under the eleventh outside \`Ap2(MAX)\`.
+New Java:
+\`tools/worldgen_java/HelveStockFinalDensityFourteenthLayer262.java\`.
+It strictly retraces real runtime record edges and verifies both known
+twelfth and thirteenth MIN enums and the genuine thirteenth immediate
+children's actual classes; it then calls the existing source-reflective
+\`HelveStockFinalDensityRootSemantics262.holderTarget()\` helper.
+That helper explicitly requires the original \`function\` record
+component to contain a \`net.minecraft.core.Holder$Direct\`, reads
+its **actual** \`value()\` and requires a real
+\`DensityFunction\` delegate. The diagnostic records *without
+guessing* each original seed's actual Holder wrapper, Direct container,
+and resolved delegate runtime class. A different real container or
+graph aborts with a bounded source-only failure phase rather than
+attempting to infer an equivalent numeric replacement.
+
+Each of the SAME unchanged four world seeds × 32
+\`DensityFunction$SinglePointContext\` XYZ yields **only ONE new
+resolved target original-JVM rawbit word**, plus the original direct
+Holder output solely to independently compare against **column two**
+(\`left_ap2_right_bits\`) of the immutable thirteenth fixture.
+The old Holder bits are NOT a new fixture and should never be
+copied into any fourteenth-new-only TSV. Record validation requires
+four seed-invariant genuine shape records, 128 finite ordered IEEE
+pairs, strict original source ZIP/JAR/Atlas method provenance,
+the exact prior thirteenth report/fixture checksums, and every
+old/all-input/NoiseChunk/VAR-SEM/production source-law gate **FALSE**.
+
+Source-free Python driver:
+\`tools/worldgen_26_2_stock_final_density_fourteenth_layer.py\`;
+adversarial transport/provenance/class/old-parent tests:
+\`tools/tests/test_worldgen_26_2_stock_final_density_fourteenth_layer.py\`.
+The synthetic JDK build merely establishes source-free Java compilation.
+New \`holder_forward_candidate_telemetry\` records disagreement between
+actual delegate and old Holder finite words, **without filtering genuine
+Java observations** or turning equality into a forwarding source law.
+Neither original Java source text, private registry values, JVM bytecode
+nor original stack traces are exported. No Rust production code or HOT
+scratch bound is changed in the observer PR.
+
+**Real original fourteenth JVM has NOT RUN.** Only after green CI and
+merging the observer PR should the local original-source owner run
+ONE NEW source-only capture:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_fourteenth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-fourteenth-layer-128.json
+
+Upload only the NEW source-free JSON, or the bounded
+\`HELVE26_2_FOURTEENTH_FAILURE|phase|ExceptionClass\` failure marker.
+Never repeat captures 1–13. On genuine validated evidence, freeze
+only any **genuinely new** direct target words if justified; if the
+target equals the old Holder for every point, preserve the equality
+receipt without duplicating prior words or claiming all-input
+delegation. Use actual target class and source-record semantics
+before planning a native primitive or subsequent original JVM probe.
+
+**All source-law, all-input Holder forwarding, NaN/signed-zero,
+cache/marker/NoiseChunk traversal, VAR/SEM, fully seeded native
+worldgen, and production publication gates remain FALSE.**
+The existing original 128/128 bounded finalDensity root parity
+from the test-only native stages and immutable 32-node maximum
+HOT scratch remain unchanged.

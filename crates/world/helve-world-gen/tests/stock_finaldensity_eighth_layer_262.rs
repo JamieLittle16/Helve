@@ -867,7 +867,6 @@ fn eleventh_staged_min_max_then_tenth_choice_then_ninth_root_matches_128_origina
     );
 }
 
-
 const TWELFTH: &str =
     include_str!("data/stock_finaldensity_twelfth_outleft_ap2_children_128_rawbits.tsv");
 
@@ -879,7 +878,11 @@ type TwelfthReceipt = ([u64; 2], EleventhReceipt);
 
 fn twelfth_samples() -> Vec<TwelfthReceipt> {
     let rows: Vec<_> = TWELFTH.lines().collect();
-    assert_eq!(rows.len(), 128, "only 256 source-owned twelfth operand words");
+    assert_eq!(
+        rows.len(),
+        128,
+        "only 256 source-owned twelfth operand words"
+    );
     rows.into_iter()
         .zip(eleventh_samples())
         .map(|(line, earlier)| {
@@ -912,10 +915,14 @@ fn twelfth_source_owned_outleft_ap2_min_has_three_real_right_wins_and_128_old_pa
     let mut right_indices = Vec::new();
     for (i, (new, (eleventh, _, _, _, _))) in twelfth_samples().into_iter().enumerate() {
         let y = BLOCK_Y[i % 32];
-        assert_ne!(new[0], new[1], "twelfth original MIN tie unqualified at {i}");
+        assert_ne!(
+            new[0], new[1],
+            "twelfth original MIN tie unqualified at {i}"
+        );
         let min = twelfth_outleft_min_stage(new[0], new[1]).sample_block(0, y, 0);
         assert_eq!(
-            min.to_bits(), eleventh[3],
+            min.to_bits(),
+            eleventh[3],
             "actual original twelfth out-left MIN => immutable eleventh parent row {i}"
         );
         if min.to_bits() == new[0] {
@@ -937,10 +944,7 @@ fn twelfth_staged_min_then_max_then_tenth_choice_then_ninth_root_matches_128_ori
     let mut actual_root_parity = 0;
     for (
         i,
-        (
-            twelfth,
-            (eleventh, tenth, old_ninth_choice, _, (ninth_new, sixth, third, stock_root)),
-        ),
+        (twelfth, (eleventh, tenth, old_ninth_choice, _, (ninth_new, sixth, third, stock_root))),
     ) in twelfth_samples().into_iter().enumerate()
     {
         let y = BLOCK_Y[i % 32];
@@ -971,7 +975,10 @@ fn twelfth_staged_min_then_max_then_tenth_choice_then_ninth_root_matches_128_ori
         let choice = tenth_choice_stage([eleventh[0], native_in, native_out])
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(choice, old_ninth_choice, "independent original ninth parent row {i}");
+        assert_eq!(
+            choice, old_ninth_choice,
+            "independent original ninth parent row {i}"
+        );
         let actual_root = ninth_partial_program(choice, ninth_new, sixth, third)
             .sample_block(0, y, 0)
             .to_bits();

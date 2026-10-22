@@ -41,7 +41,7 @@ class GenuineSeventeenthAddFixture(unittest.TestCase):
                 path.write_bytes(candidate)
                 with self.subTest(index=i), self.assertRaises(genuine.SeventeenthFixtureError):
                     genuine.load(path)
-            path.write_bytes(old.replace(b"3f873c91bd775944", b"3f873c91bd775945", 1))
+            path.write_bytes(old.replace(b"3f873c91bd775944", b"3ff0000000000000", 1))
             with self.assertRaises(genuine.SeventeenthFixtureError):
                 genuine.load(path, require_sha=False)
             with self.assertRaises(genuine.SeventeenthFixtureError):

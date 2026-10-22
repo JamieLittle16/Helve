@@ -165,7 +165,7 @@ def validate(report: dict) -> None:
         "original_stock_registry_used": True,
         "new_fourteenth_minright_holder_direct_target_observed": True,
         "source_text_included": False,
-        "arithmetic_candidate_telemetry": report.get("arithmetic_candidate_telemetry"),
+        "holder_forward_candidate_telemetry": report.get("holder_forward_candidate_telemetry"),
         **{gate: False for gate in GATES},
     }
     if set(report) != set(pins) | {"shapes", "vectors"} or any(
@@ -214,8 +214,8 @@ def validate(report: dict) -> None:
             replay.append("|".join((VALUE, str(i), *(v[k][2:] for k in WORDS))))
         replay.append("|".join((END, str(group), "32")))
     candidate = candidate_telemetry(shapes, vectors)
-    if (type(report["arithmetic_candidate_telemetry"]) is not dict
-            or report["arithmetic_candidate_telemetry"] != candidate):
+    if (type(report["holder_forward_candidate_telemetry"]) is not dict
+            or report["holder_forward_candidate_telemetry"] != candidate):
         raise FourteenthLayerError("fourteenth sample-only candidate telemetry tampered")
     if parse_output("\n".join(replay)) != (shapes, vectors):
         raise FourteenthLayerError("fourteenth source-free real record round-trip failed")
@@ -296,7 +296,7 @@ def capture(*, source: Path, db: Path, lock: Path,
         "new_fourteenth_minright_holder_direct_target_observed": True,
         "source_text_included": False,
         "shapes": shapes, "vectors": vectors,
-        "arithmetic_candidate_telemetry": candidate_telemetry(shapes, vectors),
+        "holder_forward_candidate_telemetry": candidate_telemetry(shapes, vectors),
         **{gate: False for gate in GATES},
     }
     validate(report)
@@ -314,7 +314,7 @@ def capture(*, source: Path, db: Path, lock: Path,
         "original_holder_class": shapes[0]["holder_class"],
         "original_holder_container_class": shapes[0]["holder_container_class"],
         "original_holder_target_class": shapes[0]["target_class"],
-        "arithmetic_candidate_telemetry": candidate_telemetry(shapes, vectors),
+        "holder_forward_candidate_telemetry": candidate_telemetry(shapes, vectors),
         **{gate: False for gate in GATES},
     }
 

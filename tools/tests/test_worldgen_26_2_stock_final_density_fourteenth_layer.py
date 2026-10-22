@@ -132,6 +132,42 @@ class FourteenthHolderTargetSourceTests(unittest.TestCase):
             with self.subTest(i=i), self.assertRaises(owner.FourteenthLayerError):
                 owner.parse_output("\n".join(lines))
 
+    def test_cross_seed_target_class_drift_and_nonfinite_target_fail_closed(self):
+        # A class is genuine only when all four separately instantiated
+        # original RandomState/holder records agree in this bounded corpus.
+        initial = self.frames().splitlines()
+        changed = initial.copy()
+        header = next(
+            i for i, line in enumerate(changed)
+            if line.startswith(owner.HEAD + "|1|")
+        )
+        changed[header] = changed[header].replace(
+            owner.CLASS + "YClampedGradient",
+            owner.CLASS + "Constant",
+        )
+        with self.assertRaises(owner.FourteenthLayerError):
+            owner.parse_output("\n".join(changed))
+        changed = initial.copy()
+        first = changed[2].split("|")
+        first[2] = "7ff0000000000000"
+        changed[2] = "|".join(first)
+        with self.assertRaises(owner.FourteenthLayerError):
+            owner.parse_output("\n".join(changed))
+        changed = initial.copy()
+        first = changed[2].split("|")
+        first[2] = "8000000000000000"
+        changed[2] = "|".join(first)
+        # Signed zero is an allowed *finite original sample word* here:
+        # do not silently turn sampled delegate forwarding into a universal
+        # signed-zero law or reject a genuine observation without source.
+        shapes, rows = owner.parse_output("\n".join(changed))
+        self.assertEqual(rows[0]["holder_target_bits"], "0x8000000000000000")
+        self.assertGreater(
+            owner.candidate_telemetry(
+                shapes, rows
+            )["direct_target_forward_candidate_mismatches"], 0
+        )
+
     def test_source_provenance_and_every_admission_gate_must_remain_false(self):
         owner.validate(self.report())
         for key in (

@@ -84,7 +84,7 @@ def load(path:Path=FIXTURE,*,require_sha:bool=True)->tuple[tuple[str,str],...]:
         if not math.isfinite(a) or not math.isfinite(b):
             raise EighthFixtureError("nonfinite eighth original child: "+str(i))
         left_distribution[left]+=1
-        expected=eighth.prior.load()[i][0]
+        expected=old[i][0]
         naive=word(a*b)
         actual=ZERO if left==ZERO else naive
         if actual!=expected:

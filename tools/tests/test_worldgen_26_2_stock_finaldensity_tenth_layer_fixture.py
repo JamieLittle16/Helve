@@ -40,8 +40,8 @@ class TenthActualSourceFixtureTests(unittest.TestCase):
                 with self.subTest(i=i),self.assertRaises(tenth.TenthFixtureError):
                     path.write_bytes(changed)
                     tenth.load(path)
-            path.write_bytes(changes[2])
-            # Either the selected parent or the branch coverage must disagree.
+            path.write_bytes(raw.replace(b"3fd36cd350602ed8",b"3fd36cd350602ed9",1))
+            # The actually selected out branch must retain its original bits.
             with self.assertRaises(tenth.TenthFixtureError):
                 tenth.load(path,require_sha=False)
 

@@ -641,14 +641,13 @@ fn ninth_flat_32node_actual_gradient_add_and_shared_selectors_match_original_min
     }
 }
 
-
 const TENTH: &str = include_str!("data/stock_finaldensity_tenth_layer_new_128_rawbits.tsv");
 const TENTH_MIN: f64 = f64::from_bits(0xc12e_8480_0000_0000); // actual -1_000_000.0
 const TENTH_MAX: f64 = f64::from_bits(0x3ff9_0000_0000_0000); // actual +1.5625
 
 /// Three NEW actual original Java tenth child observations per seeded
-/// coordinate. The original ninth RangeChoice output is *not* duplicated
-/// here: it remains an independently frozen parent from ninth_samples.
+/// coordinate. The original ninth `RangeChoice` output is *not* duplicated
+/// here: it remains an independently frozen parent from `ninth_samples`.
 fn tenth_samples() -> Vec<([u64; 3], u64, [u64; 2], Receipt)> {
     let rows: Vec<_> = TENTH.lines().collect();
     assert_eq!(rows.len(), 128);
@@ -666,7 +665,7 @@ fn tenth_samples() -> Vec<([u64; 3], u64, [u64; 2], Receipt)> {
 /// The actually reflected original tenth branch records are Marker,
 /// Ap2 and Ap2, in that order; their compute results are *three separate*
 /// injected original-JVM values. This four-node cold-validated local stage
-/// samples the observed RangeChoice independently of its fixed 32-node
+/// samples the observed `RangeChoice` independently of its fixed 32-node
 /// ninth parent and without growing either graph's HOT scratch capacity.
 /// Neither Java Marker lifecycle nor either Ap2 source law is inferred.
 fn tenth_choice_stage(children: [u64; 3]) -> Program<'static, 4> {
@@ -702,7 +701,10 @@ fn tenth_true_selector_and_both_independent_ap2_branches_match_128_ninth_parents
             outside += 1;
             children[2]
         };
-        assert_eq!(expected, old_ninth, "genuine original tenth selected child {i}");
+        assert_eq!(
+            expected, old_ninth,
+            "genuine original tenth selected child {i}"
+        );
         assert_eq!(
             tenth_choice_stage(children)
                 .sample_block(0, BLOCK_Y[i % 32], 0)

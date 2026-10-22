@@ -71,6 +71,7 @@ class EighthOwnerFrameTests(unittest.TestCase):
             "original_stock_registry_used":True,"new_eighth_layer_inputs_observed":True,
             "source_text_included":False,
             "shapes":shapes,"vectors":vectors,
+            "ap2_candidate_observation":eighth.ap2_candidate_observation(shapes,vectors),
             **{gate:False for gate in eighth.GATES},
         }
 
@@ -88,12 +89,11 @@ class EighthOwnerFrameTests(unittest.TestCase):
             lambda l:l.append(l[-1]),
             lambda l:l.__setitem__(1,l[1].replace("|ADD|","|UNSUPPORTED|",1)),
             lambda l:l.__setitem__(1,l[1].replace("|-4064|4062|","|4062|-4064|",1)),
-            lambda l:l.__setitem__(2,l[2].replace(
-                eighth.prior.load()[0][0],"3ff0000000000000",1)),
+            lambda l:l.__setitem__(2,"|".join(
+                [*(l[2].split("|")[:4]),"3ff0000000000000",
+                 *(l[2].split("|")[5:])])),
             lambda l:l.__setitem__(2,l[2].replace(
                 eighth.prior.load()[0][1], "3ff0000000000000",1)),
-            lambda l:l.__setitem__(2,l[2].replace(
-                "0000000000000000","3ff0000000000000",1)),
         ]
         for i,mutation in enumerate(changes):
             lines=original.copy()
@@ -111,6 +111,45 @@ class EighthOwnerFrameTests(unittest.TestCase):
             report[gate]=True
             with self.subTest(gate=gate),self.assertRaises(eighth.EighthLayerError):
                 eighth.validate(report)
+
+    def test_unreviewed_ap2_arithmetic_divergence_is_observed_not_silenced(self):
+        frames=self.stdout().splitlines()
+        # Hold the separately frozen original Ap2 parent constant. Change an
+        # artificial operand to deliberately violate naive ADD arithmetic;
+        # it must be recorded as a counterexample, not discarded or admitted.
+        words=frames[2].split("|")
+        self.assertEqual(words[0],eighth.VALUE)
+        words[3]="3ff0000000000000"  # new second operand, old parent unchanged
+        frames[2]="|".join(words)
+        shapes,vectors=eighth.parse_output("\n".join(frames))
+        obs=eighth.ap2_candidate_observation(shapes,vectors)
+        self.assertEqual(obs["candidate_operand_pairs_checked"],128)
+        self.assertEqual(obs["raw_ieee_mismatch_count"],1)
+        self.assertEqual(obs["raw_ieee_first_mismatch_index"],0)
+        self.assertEqual(obs["positive_zero_shortcircuit_mismatch_count"],1)
+        self.assertIs(obs["source_law_admitted"],False)
+        report=self.report()
+        report["vectors"]=vectors
+        report["ap2_candidate_observation"]=obs
+        eighth.validate(report)
+        report["ap2_candidate_observation"]={**obs,"source_law_admitted":True}
+        with self.assertRaises(eighth.EighthLayerError):
+            eighth.validate(report)
+
+    def test_positive_zero_mul_shortcircuit_candidate_not_source_admission(self):
+        class_shape={"deep_ap2_op":"MUL"}
+        # IEEE-754 multiplication of +0 by negative finite yields negative
+        # zero; the existing explicitly distinct Ap2 candidate returns +0.
+        original=eighth.pack(0.0)
+        vectors=[{
+            "ap2_left_bits":original,
+            "ap2_right_bits":eighth.pack(-3.0),
+            "ap2_old_bits":original,
+        }]
+        obs=eighth.ap2_candidate_observation([class_shape],vectors)
+        self.assertEqual(obs["raw_ieee_mismatch_count"],1)
+        self.assertEqual(obs["positive_zero_shortcircuit_mismatch_count"],0)
+        self.assertIs(obs["source_law_admitted"],False)
 
     def test_private_source_absent_fails_before_output(self):
         with tempfile.TemporaryDirectory() as td:

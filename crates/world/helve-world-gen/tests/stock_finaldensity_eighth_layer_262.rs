@@ -994,3 +994,173 @@ fn twelfth_staged_min_then_max_then_tenth_choice_then_ninth_root_matches_128_ori
     // 3 (twelfth Ap2), 3+3 (eleventh branches), 4 (tenth), 32 (ninth).
     // Never merge these into an unbounded or production-authorized graph.
 }
+
+
+const THIRTEENTH: &str =
+    include_str!("data/stock_finaldensity_thirteenth_selected_left_ap2_children_128_rawbits.tsv");
+
+// Exactly two genuinely NEW original JVM words from the actual thirteenth
+// Ap2(MIN): left child Ap2, right child HolderHolder. Parent values are
+// loaded ONLY from the original prior twelfth new-only fixture.
+type ThirteenthReceipt = ([u64; 2], TwelfthReceipt);
+
+fn thirteenth_samples() -> Vec<ThirteenthReceipt> {
+    let rows: Vec<_> = THIRTEENTH.lines().collect();
+    assert_eq!(rows.len(), 128, "only 256 genuine new thirteenth words");
+    rows.into_iter()
+        .zip(twelfth_samples())
+        .map(|(line, older)| {
+            let children: [u64; 2] = words(line)
+                .try_into()
+                .expect("two new original Java thirteenth Ap2 operands");
+            (children, older)
+        })
+        .collect()
+}
+
+// Real source-owner enum MIN and two actual runtime child classes. Genuine
+// 128x2 Java operand words are JVM-fed; no all-input law, HolderHolder
+// lifecycle or stock NoiseChunk admission is inferred from this sample.
+fn thirteenth_left_ap2_min_stage(left: u64, right: u64) -> Program<'static, 3> {
+    Program::new([
+        constant(left),
+        constant(right),
+        Node::ExplicitAp2Min { left: 0, right: 1 },
+    ])
+    .expect("source-observed original thirteenth three-node MIN stage")
+}
+
+#[test]
+fn thirteenth_actual_ap2_and_holderholder_min_match_128_immutable_twelfth_parents() {
+    let mut left_wins = 0;
+    let mut right_wins = 0;
+    let mut left_indices = Vec::new();
+    for (i, (child, (twelfth, _))) in thirteenth_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        assert_ne!(
+            child[0], child[1],
+            "source-owner thirteenth MIN tie not source-admitted at {i}"
+        );
+        let reconstructed = thirteenth_left_ap2_min_stage(child[0], child[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            reconstructed, twelfth[0],
+            "independent original twelfth left Ap2 parent mismatch row {i}"
+        );
+        if reconstructed == child[0] {
+            left_wins += 1;
+            left_indices.push(i);
+        } else {
+            assert_eq!(reconstructed, child[1]);
+            right_wins += 1;
+        }
+    }
+    assert_eq!((left_wins, right_wins), (12, 116));
+    assert_eq!(
+        left_indices,
+        vec![0, 1, 9, 10, 11, 12, 31, 32, 41, 53, 62, 117]
+    );
+}
+
+#[test]
+fn thirteenth_staged_min_through_twelfth_eleventh_tenth_ninth_matches_original_root() {
+    let mut root_selected_thirteenth_left = 0;
+    let mut root_selected_thirteenth_right = 0;
+    let mut root_selected_right_indices = Vec::new();
+    let mut parity = 0;
+    for (
+        i,
+        (
+            child,
+            (
+                twelfth,
+                (eleventh, tenth, old_ninth, _, (ninth_new, sixth, third, stock_root)),
+            ),
+        ),
+    ) in thirteenth_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+
+        // Thirteenth MIN is locally a 3-node pure native candidate.
+        let native_left = thirteenth_left_ap2_min_stage(child[0], child[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            native_left, twelfth[0],
+            "new thirteenth to old twelfth parent boundary row {i}"
+        );
+        // Twelfth MIN must consume the *calculated* thirteenth result,
+        // not a new copy of its previous original-JVM parent fixture.
+        let native_twelfth = twelfth_outleft_min_stage(native_left, twelfth[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            native_twelfth, eleventh[3],
+            "thirteenth=>twelfth=>old eleventh MAX-left boundary row {i}"
+        );
+
+        let in_branch = eleventh_min_stage(eleventh[1], eleventh[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let out_branch = eleventh_max_stage(native_twelfth, eleventh[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            [eleventh[0], in_branch, out_branch],
+            tenth,
+            "independent original tenth three old source-observed parents row {i}"
+        );
+        let choice = tenth_choice_stage([eleventh[0], in_branch, out_branch])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            choice, old_ninth,
+            "independent original ninth RangeChoice parent row {i}"
+        );
+        let root = ninth_partial_program(choice, ninth_new, sixth, third)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            root, stock_root,
+            "original stock finalDensity MIN 128-bit root row {i}"
+        );
+        parity += 1;
+
+        // Counts derive from the actual independently frozen ROOT operands,
+        // not solely from local MIN child selections.
+        let root_words: [u64; 3] = words(ROOT.lines().nth(i).expect("128 stock roots"))
+            .try_into()
+            .expect("two actual original root operands plus final root");
+        assert_eq!(root_words[2], stock_root);
+        let root_left = f64::from_bits(root_words[0]) < f64::from_bits(root_words[1]);
+        let selected_tenth_outside =
+            !(TENTH_MIN..TENTH_MAX).contains(&f64::from_bits(tenth[0]));
+        let selected_eleventh_left = f64::from_bits(eleventh[3])
+            > f64::from_bits(eleventh[4]);
+        let selected_twelfth_left = f64::from_bits(twelfth[0])
+            < f64::from_bits(twelfth[1]);
+        if root_left
+            && selected_tenth_outside
+            && selected_eleventh_left
+            && selected_twelfth_left
+        {
+            if native_left == child[0] {
+                root_selected_thirteenth_left += 1;
+            } else {
+                assert_eq!(native_left, child[1]);
+                root_selected_thirteenth_right += 1;
+                root_selected_right_indices.push(i);
+            }
+        }
+    }
+    assert_eq!(parity, 128);
+    assert_eq!(
+        (root_selected_thirteenth_left, root_selected_thirteenth_right),
+        (12, 43)
+    );
+    assert_eq!(root_selected_right_indices.len(), 43);
+    // The HOT scratch never grows beyond the existing ninth 32-node bound.
+    // Separate cold-validated stages: 3, 3, 3, 3, 4, 32. No new production
+    // graph, scheduler, runtime cache, or source law is admitted.
+}

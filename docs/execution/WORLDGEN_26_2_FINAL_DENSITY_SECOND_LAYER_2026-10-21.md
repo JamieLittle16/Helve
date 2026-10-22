@@ -636,3 +636,76 @@ a test-only native explicit Ap2 local stage into the existing MAX,
 tenth `RangeChoice`, ninth 32-node original MIN-root parity. Maintain
 per-stage ≤32-node scratch, no new HOT allocations, no production
 worldgen or stock `NoiseChunk` lifecycle claim.
+
+## Twelfth genuine original-JVM out-left Ap2(MIN) and staged native parity (22 October 2026)
+
+**Original owner has run; DO NOT run it again.** The genuine completed
+26.2 source-only report is **39,658 bytes**, SHA-256
+**041eadc4a4174b4bace6eed2270c129cad6c65fe06cdbd7396268216bf26ab26**.
+It was captured by the merged original twelfth owner from #508 at the
+unchanged 4 world seeds × 32 SinglePointContext XYZ, against the pinned
+original 26.2 source ZIP/JAR and indexed Java method-body checksum
+inventory. No source text, private trace or registry dump was exported.
+
+**Actual new original source record:** the eleventh out-of-range
+Ap2(MAX) **left** operand is genuinely **Ap2(MIN)**, with two independent
+class-observed DensityFunctions$Ap2 children. Its enum owner is
+DensityFunctions$TwoArgumentSimpleFunction$Type, and all four seeded
+record shapes agree. No operator or class was inferred from a numeric
+coincidence. Both actual child IEEE words are finite at all 128 original
+contexts, without any observed signed-zero/tie sample.
+
+Direct numerical MIN on each pair of genuine original child words
+reproduces the independently frozen old eleventh out-left parent rawbits
+**128/128**. The actual child selection is **125 left, 3 right**;
+the three rare genuine right winners are at **rows 21, 97, 106**.
+The source-only original report records zero direct arithmetic candidate
+mismatches, but retains source_law_admitted=false and every other
+original source, NoiseChunk, VAR/SEM, fully seeded and production gate
+**FALSE**.
+
+New immutable **twelfth-new-only** fixture:
+crates/world/helve-world-gen/tests/data/stock_finaldensity_twelfth_outleft_ap2_children_128_rawbits.tsv.
+Exactly **128 × 2 = 256 NEW original IEEE words**, columns
+(ap2_left_bits, ap2_right_bits), **4,352 bytes**, SHA-256
+**c51d0c1686a5a7160abb2f03c6db5e377b6a2f6fee23cc18bca7a493439b552f**.
+It contains NO old parent, previous tenth branch/selector or original
+root words; all parent comparisons load the previously merged and
+SHA-pinned eleventh new-only fixture separately. No earlier capture,
+fixture or test oracle is rewritten.
+
+Source-only fail-closed verifier:
+tools/worldgen_26_2_stock_finaldensity_twelfth_layer_fixture.py,
+with adversarial mutation tests at
+tools/tests/test_worldgen_26_2_stock_finaldensity_twelfth_layer_fixture.py.
+The optional --capture verifies the **already generated** private JSON's
+exact complete SHA, length, original owner provenance/method record and
+all-false gates; this command does NOT rerun original Java:
+
+    python3 tools/worldgen_26_2_stock_finaldensity_twelfth_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-twelfth-layer-128.json
+
+The existing test-only Rust stock_finaldensity_eighth_layer_262.rs now
+adds separately cold-validated **3-node explicit Ap2(MIN)** arithmetic
+fed by the genuinely new child words, validating the old eleventh
+MAX-left parent 128/128 and all three right-winning witnesses.
+That output feeds the existing eleventh 3-node MAX (plus the
+independent eleventh 3-node MIN), tenth 4-node RangeChoice,
+and ninth **32-node fixed** original root graph. The previously frozen
+stock Java finalDensity MIN root remains **128/128 raw-bit parity**.
+Per-stage scratch ceilings are **3, 3, 3, 4, 32**, maximum **32**;
+no new HOT allocations, production scheduler or worldgen authority.
+
+**Critical unqualified boundary:** only the original finite
+4×32 SinglePointContext candidates are parity tested. The two
+actual twelfth Ap2 children are STILL numerically supplied by the
+original JVM. This does NOT prove all-input Java Ap2 NaN or signed-zero
+semantics, general marker/Holder/NoiseChunk lifecycle, native seeded
+noise sources, VAR/SEM, full graph worldgen, or production admission.
+
+**Potential next narrow source-owned frontier:** independently observe
+the actual operation and immediate children of the two twelfth Ap2
+nodes, prioritized by which contributes to the root's selected path.
+Do not guess their operators, expand HOT scratch, repeat any previous
+source capture (layers one through twelve), or silently admit source
+laws from finite agreement.

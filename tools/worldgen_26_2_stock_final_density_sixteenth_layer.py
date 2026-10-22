@@ -127,7 +127,7 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
     frames = [parts for line in stdout.splitlines()
               if (parts := line.split("|"))[0] in (HEAD, VALUE, END, FAIL)]
     if any(frame[0] == FAIL for frame in frames):
-        raise SixteenthLayerError("original bounded fifteenth JVM source reflection failed")
+        raise SixteenthLayerError("original bounded sixteenth JVM source reflection failed")
     old = prior.load()
     points = FINAL.input_rows()
     shapes: list[dict] = []
@@ -206,7 +206,7 @@ def validate(report: dict) -> None:
     if not isinstance(methods, dict) or set(methods) != {
         "ap2_compute", "holder_holder_compute", "mapped_delegate_compute"
     }:
-        raise SixteenthLayerError("fifteenth original source method inventory changed")
+        raise SixteenthLayerError("sixteenth original source method inventory changed")
     for name in ("ap2_compute", "holder_holder_compute"):
         owner = methods[name]
         if (not isinstance(owner, dict)
@@ -298,9 +298,9 @@ def observe(server: Path, timeout: int = 240) -> tuple[list[dict], list[dict]]:
         if proc.returncode:
             reason = next(
                 (line for line in proc.stdout.splitlines() if line.startswith(FAIL)),
-                "no bounded original fifteenth failure tag"
+                "no bounded original sixteenth failure tag"
             )
-            raise SixteenthLayerError("real original fifteenth JVM failure: " + reason[:160])
+            raise SixteenthLayerError("real original sixteenth JVM failure: " + reason[:160])
         return parse_output(proc.stdout)
 
 

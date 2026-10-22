@@ -54,8 +54,12 @@ fn samples() -> Vec<Receipt> {
         .zip(&root)
         .map(|(((s, f), t), r)| {
             let s = words(s).try_into().expect("four NEW source-owned words");
-            let f = words(f).try_into().expect("six immutable fifth-layer words");
-            let t = words(t).try_into().expect("six immutable third-layer words");
+            let f = words(f)
+                .try_into()
+                .expect("six immutable fifth-layer words");
+            let t = words(t)
+                .try_into()
+                .expect("six immutable third-layer words");
             let root: [u64; 3] = words(r).try_into().expect("three immutable root words");
             (s, f, t, root[2])
         })
@@ -100,8 +104,8 @@ fn partial_program(sixth: [u64; 4], third: [u64; 6]) -> Program<'static, 27> {
         },
         6 => Node::CandidateSqueeze { input: 5 },
         7 => Node::Primitive(outside_gradient()), // nested selector's matching record
-        8 => constant(third[2]), // nested original Noise, not yet native
-        9 => constant(third[3]), // original Constant(-1), independently frozen
+        8 => constant(third[2]),                  // nested original Noise, not yet native
+        9 => constant(third[3]),                  // original Constant(-1), independently frozen
         10 => Node::CandidateRangeChoice {
             selector: 7,
             when_in_range: 8,
@@ -193,7 +197,11 @@ fn exact_sixth_layer_two_new_gradients_and_nested_arithmetic() {
             },
         ])
         .expect("actual source-backed outside inner multiplication");
-        assert_eq!(left.sample_block(0, y, 0).to_bits(), fifth[1], "left ADD {i}");
+        assert_eq!(
+            left.sample_block(0, y, 0).to_bits(),
+            fifth[1],
+            "left ADD {i}"
+        );
         assert_eq!(
             outside.sample_block(0, y, 0).to_bits(),
             fifth[3],

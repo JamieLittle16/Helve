@@ -89,8 +89,9 @@ class EighthOwnerFrameTests(unittest.TestCase):
             lambda l:l.append(l[-1]),
             lambda l:l.__setitem__(1,l[1].replace("|ADD|","|UNSUPPORTED|",1)),
             lambda l:l.__setitem__(1,l[1].replace("|-4064|4062|","|4062|-4064|",1)),
-            lambda l:l.__setitem__(2,l[2].replace(
-                eighth.prior.load()[0][0],"3ff0000000000000",1)),
+            lambda l:l.__setitem__(2,"|".join(
+                [*(l[2].split("|")[:4]),"3ff0000000000000",
+                 *(l[2].split("|")[5:])])),
             lambda l:l.__setitem__(2,l[2].replace(
                 eighth.prior.load()[0][1], "3ff0000000000000",1)),
         ]

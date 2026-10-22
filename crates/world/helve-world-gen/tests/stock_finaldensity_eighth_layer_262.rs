@@ -1321,7 +1321,6 @@ fn sixteenth_native_ap2_through_thirteenth_twelfth_eleventh_tenth_ninth_matches_
     // No HOT capacity change, no streaming cache, no NoiseChunk lifecycle law.
 }
 
-
 const SEVENTEENTH: &str =
     include_str!("data/stock_finaldensity_seventeenth_minright_add_children_128_rawbits.tsv");
 
@@ -1332,7 +1331,11 @@ type SeventeenthReceipt = ([u64; 2], SixteenthReceipt);
 
 fn seventeenth_samples() -> Vec<SeventeenthReceipt> {
     let rows: Vec<_> = SEVENTEENTH.lines().collect();
-    assert_eq!(rows.len(), 128, "source-owned 128 genuinely new ADD operand pairs");
+    assert_eq!(
+        rows.len(),
+        128,
+        "source-owned 128 genuinely new ADD operand pairs"
+    );
     rows.into_iter()
         .zip(sixteenth_samples())
         .map(|(line, older)| {
@@ -1397,7 +1400,13 @@ fn seventeenth_add_then_sixteenth_min_to_stock_original_finaldensity_root_128() 
                     thirteenth,
                     (
                         twelfth,
-                        (eleventh, tenth, old_ninth_choice, _, (ninth_new, sixth, third, stock_root)),
+                        (
+                            eleventh,
+                            tenth,
+                            old_ninth_choice,
+                            _,
+                            (ninth_new, sixth, third, stock_root),
+                        ),
                     ),
                 ),
             ),
@@ -1408,12 +1417,18 @@ fn seventeenth_add_then_sixteenth_min_to_stock_original_finaldensity_root_128() 
         let actual_right = seventeenth_minright_add_stage(new_add[0], new_add[1])
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(actual_right, old_sixteenth[1], "new ADD => original 16th right row {i}");
+        assert_eq!(
+            actual_right, old_sixteenth[1],
+            "new ADD => original 16th right row {i}"
+        );
         let actual_sixteenth =
             sixteenth_cacheonce_wrapped_min_stage(old_sixteenth[0], actual_right)
                 .sample_block(0, y, 0)
                 .to_bits();
-        assert_eq!(actual_sixteenth, thirteenth[1], "16th MIN => old 13th RIGHT {i}");
+        assert_eq!(
+            actual_sixteenth, thirteenth[1],
+            "16th MIN => old 13th RIGHT {i}"
+        );
         if actual_sixteenth == old_sixteenth[0] {
             original_left_wins += 1;
         } else {
@@ -1423,7 +1438,10 @@ fn seventeenth_add_then_sixteenth_min_to_stock_original_finaldensity_root_128() 
         let native_thirteenth = thirteenth_left_ap2_min_stage(thirteenth[0], actual_sixteenth)
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(native_thirteenth, twelfth[0], "new 17th => prior twelfth parent {i}");
+        assert_eq!(
+            native_thirteenth, twelfth[0],
+            "new 17th => prior twelfth parent {i}"
+        );
         let native_twelfth = twelfth_outleft_min_stage(native_thirteenth, twelfth[1])
             .sample_block(0, y, 0)
             .to_bits();
@@ -1442,7 +1460,10 @@ fn seventeenth_add_then_sixteenth_min_to_stock_original_finaldensity_root_128() 
         let root = ninth_partial_program(choice, ninth_new, sixth, third)
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(root, stock_root, "original JVM root after genuine 17th ADD row {i}");
+        assert_eq!(
+            root, stock_root,
+            "original JVM root after genuine 17th ADD row {i}"
+        );
         roots += 1;
     }
     assert_eq!(roots, 128);

@@ -394,8 +394,8 @@ public final class HelveStockFinalDensityEleventhLayer262 {
 
           stage(seedIndex,pointIndex,"actual-eleventh-out-ap2-record");
           expect(tenthWhenOut,"Ap2");
-          String outEnum=enumClass(tenthWhenOut,"type");
-          String outOp=enumName(tenthWhenOut,"type");
+          String eleventhOutEnum=enumClass(tenthWhenOut,"type");
+          String eleventhOutOp=enumName(tenthWhenOut,"type");
           eleventhOutLeft=member(tenthWhenOut,"argument1");
           eleventhOutRight=member(tenthWhenOut,"argument2");
 
@@ -409,7 +409,7 @@ public final class HelveStockFinalDensityEleventhLayer262 {
           OUT.println(HEAD+seedIndex+"|"+seed+"|"+
               markerEnum+"|"+markerType+"|"+type(eleventhMarkerInput)+"|"+
               inEnum+"|"+inOp+"|"+type(eleventhInLeft)+"|"+type(eleventhInRight)+"|"+
-              outEnum+"|"+outOp+"|"+type(eleventhOutLeft)+"|"+type(eleventhOutRight));
+              eleventhOutEnum+"|"+eleventhOutOp+"|"+type(eleventhOutLeft)+"|"+type(eleventhOutRight));
         } else if(!seed.equals(row[0])) {
           throw new IllegalStateException("seed changed within eleventh-layer 32-point group");
         }

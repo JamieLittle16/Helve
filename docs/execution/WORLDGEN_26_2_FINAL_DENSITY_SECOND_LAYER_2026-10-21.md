@@ -970,3 +970,98 @@ worldgen, and production publication gates remain FALSE.**
 The existing original 128/128 bounded finalDensity root parity
 from the test-only native stages and immutable 32-node maximum
 HOT scratch remain unchanged.
+
+
+## Fourteenth original Marker receipt and fifteenth source-owner frontier (22 October 2026)
+
+**The original fourteenth JVM capture is complete. DO NOT rerun layers 1–14.**
+Original source-free fourteenth JSON is **36,371 bytes**, exact SHA-256
+**8d258327bb24a5b8f6d6a3a64ad6ab751fd5dea7706b80ca88e42ca6a2b43492**.
+The four independent world-seed records show exactly
+`DensityFunctions$HolderHolder` → `net.minecraft.core.Holder$Direct` →
+`DensityFunctions$Marker`, not a presumed gradient, noise, or other
+delegate. Original provenance remains Minecraft Java **26.2**, protocol
+776, DataVersion 4903, original ZIP SHA
+**1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750**,
+official server SHA **cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5**,
+and already pinned indexed Java method owners.
+
+The original Holder's direct target value matches the original Holder
+itself **128/128 exact raw IEEE words**, and BOTH match **column two**
+of the independently frozen thirteenth fixture (4,352 bytes,
+SHA-256 **cd8ba322bea4575aba70a28223940162af7feed926806a96c217d7a4b04eee4a**).
+The original report's candidate telemetry is zero mismatches with
+`source_law_admitted=false`. The fourteenth therefore contributes
+**zero genuinely novel numerical words**. Do **NOT** create a
+fourteenth TSV by repeating 128 existing thirteenth-right values.
+The actual added evidence is the real original `Marker` source class,
+a known genuine `Holder$Direct` container and bounded finite
+numeric agreement; all-input Holder forwarding, Marker caching,
+NoiseChunk lifecycle and production admission remain FALSE.
+
+`tools/worldgen_26_2_stock_finaldensity_fourteenth_layer_receipt.py`
+pins the **exact full private original report length/SHA**, all four
+actual original runtime shape records, 128 independent thirteenth
+old-parent comparisons, zero-mismatch telemetry and every all-false
+qualification gate. It does **not** commit the original private JSON
+or produce duplicate original numerical fixture values. Verify the
+**existing**, already-completed original local report, without
+re-running the Java observer:
+
+    python3 tools/worldgen_26_2_stock_finaldensity_fourteenth_layer_receipt.py \
+      --capture /tmp/helve-26_2-final-fourteenth-layer-128.json
+
+The next bounded **FIFTEENTH** source-owning question is the real
+`DensityFunctions$Marker` beneath this exact thirteenth-right
+`HolderHolder`, with its actual original `DensityFunctions$Marker$Type`
+enum and its **sole real immediate wrapped DensityFunction child**.
+No operation or cached input may be guessed from older Marker nodes:
+these are different source runtime objects. The new Java
+`tools/worldgen_java/HelveStockFinalDensityFifteenthLayer262.java`
+re-traces the established original twelfth MIN → thirteenth MIN →
+right `HolderHolder` → `Holder$Direct` → fourteenth `Marker`
+ancestry and checks the exact JVM enum class, enum value, and actual
+child density runtime class. At the SAME original four world seeds
+× 32 fixed `SinglePointContext` XYZ, it computes only **one NEW
+original wrapped-child raw IEEE word**. The original Marker target
+output and the old original Holder output are computed **only as
+independent consistency anchors**; each MUST equal column two of
+the frozen thirteenth TSV, previously independently validated by
+the authentic fourteenth receipt. No old parent/target/root IEEE
+values may enter a new permanent fifteenth-new-only fixture.
+
+The source-free bounded Python observer is
+`tools/worldgen_26_2_stock_final_density_fifteenth_layer.py`;
+its source-free JDK build, adversarial frames/shape/methods/gates tests,
+and fourteenth SHA/no-duplicate receipt tests live in
+`tools/tests/test_worldgen_26_2_stock_final_density_fifteenth_layer.py`.
+Record `marker_wrapped_candidate_telemetry` only as **finite numeric
+evidence**, never a Java Marker cache/forwarding law. Original
+method-body SHA/source ZIP, official server, original 4×32 XYZ,
+thirteenth report/fixture, and fourteenth full report SHA remain
+pinned. Synthetic tests are NOT genuine new original JVM evidence.
+
+**FIFTEENTH original JVM has NOT RUN.** Only after the observer PR
+passes all required green CI and merges, perform just this one new
+original capture on the original-source local machine:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_fifteenth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-fifteenth-layer-128.json
+
+Upload only the NEW fifteenth source-free JSON or bounded
+`HELVE26_2_FIFTEENTH_FAILURE|phase|ExceptionClass` marker.
+**Do not repeat any of the first fourteen captures.**
+After authentic evidence, compare the genuine Marker-wrapped values
+to the frozen Holder parent; if they duplicate old values, preserve
+the topology/verified equality receipt **without** a new TSV. If
+distinct, freeze only genuinely NEW original child IEEE words.
+No rust production source, HOT scratch, or earlier fixture changes
+are included in the observer. Existing bounded original finalDensity
+root parity 128/128 and max HOT 32-node budget remain unchanged,
+as do all NoiseChunk, VAR/SEM, all-input and production gates **FALSE**.

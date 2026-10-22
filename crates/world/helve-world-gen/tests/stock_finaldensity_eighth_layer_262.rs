@@ -421,7 +421,6 @@ fn thirty_two_node_source_observed_eighth_finaldensity_min_matches_stock_origina
     }
 }
 
-
 const NINTH: &str = include_str!("data/stock_finaldensity_ninth_layer_new_128_rawbits.tsv");
 const NINTH_RIGHT_ADD: f64 = f64::from_bits(0x3fb4_0000_0000_0000);
 
@@ -432,7 +431,11 @@ fn ninth_left_gradient() -> Primitive {
 
 fn ninth_samples() -> Vec<(u64, [u64; 2], Receipt)> {
     let rows: Vec<_> = NINTH.lines().collect();
-    assert_eq!(rows.len(), 128, "only 128 new original RangeChoice child bits");
+    assert_eq!(
+        rows.len(),
+        128,
+        "only 128 new original RangeChoice child bits"
+    );
     rows.into_iter()
         .zip(eighth_samples())
         .map(|(line, (eighth, prior))| {
@@ -554,12 +557,14 @@ fn ninth_partial_program(
             min_inclusive: -1_000_000.0,
             max_exclusive: 0.0,
         },
-        31 => Node::ExplicitAp2Min { left: 10, right: 30 },
+        31 => Node::ExplicitAp2Min {
+            left: 10,
+            right: 30,
+        },
         _ => unreachable!("fixed 32-node source-observed ninth partial graph"),
     }))
     .expect("one cold-validated 32-node backward-only ninth graph")
 }
-
 
 #[test]
 fn ninth_source_owned_left_gradient_and_actual_right_add_match_128_old_parents() {
@@ -610,8 +615,16 @@ fn ninth_source_owned_left_gradient_and_actual_right_add_match_128_old_parents()
 fn ninth_flat_32node_actual_gradient_add_and_shared_selectors_match_original_min() {
     for (i, (child, _, (new, sixth, third, root))) in ninth_samples().into_iter().enumerate() {
         let y = BLOCK_Y[i % 32];
-        assert_eq!(new[1], sample_shared_selector(y), "original first selector {i}");
-        assert_eq!(new[4], sample_shared_selector(y), "original second selector {i}");
+        assert_eq!(
+            new[1],
+            sample_shared_selector(y),
+            "original first selector {i}"
+        );
+        assert_eq!(
+            new[4],
+            sample_shared_selector(y),
+            "original second selector {i}"
+        );
         let graph = ninth_partial_program(child, new, sixth, third);
         assert_eq!(
             graph.sample_block(0, y, 0).to_bits(),

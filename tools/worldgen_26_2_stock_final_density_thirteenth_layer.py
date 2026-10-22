@@ -49,7 +49,7 @@ ROOT = twelfth.ROOT
 
 
 class ThirteenthLayerError(ValueError):
-    """The original twelfth 26.2 JVM source-owner evidence cannot be admitted."""
+    """The original thirteenth 26.2 JVM source-owner evidence cannot be admitted."""
 
 
 def finite_bits(word: str) -> bool:
@@ -66,11 +66,11 @@ def bits(number: float) -> str:
 
 def validate_shape(s: dict) -> None:
     if not isinstance(s, dict) or set(s) != set(SHAPE_FIELDS) | {"world_seed_bits"}:
-        raise ThirteenthLayerError("actual twelfth Ap2 source-owned record shape moved")
+        raise ThirteenthLayerError("actual thirteenth left-Ap2 source-owned record shape moved")
     if s["ap2_enum_class"] != CLASS + "TwoArgumentSimpleFunction$Type":
-        raise ThirteenthLayerError("original out-left Ap2 enum declaring class moved")
+        raise ThirteenthLayerError("original selected twelfth left Ap2 enum declaring class moved")
     if s["ap2_op"] not in ("ADD", "MUL", "MIN", "MAX"):
-        raise ThirteenthLayerError("actual original out-left Ap2 operation moved")
+        raise ThirteenthLayerError("actual original selected twelfth left Ap2 operation moved")
     for key in ("ap2_left_class", "ap2_right_class"):
         try:
             twelfth.eleventh.tenth.ninth.eighth.seventh.sixth.fifth.fourth.third.second.require_class(
@@ -85,8 +85,8 @@ def candidate_telemetry(shapes: list[dict], vectors: list[dict]) -> dict:
     mismatches = []
     for i, vector in enumerate(vectors):
         op = shapes[i // 32]["ap2_op"]
-        x = value(vector["ap2_left_bits"])
-        y = value(vector["ap2_right_bits"])
+        x = value(vector["left_ap2_left_bits"])
+        y = value(vector["left_ap2_right_bits"])
         try:
             if op == "ADD":
                 guess = x + y
@@ -96,7 +96,7 @@ def candidate_telemetry(shapes: list[dict], vectors: list[dict]) -> dict:
                 guess = min(x, y)
             else:
                 guess = max(x, y)
-            same = math.isfinite(guess) and bits(guess) == vector["old_out_left_bits"]
+            same = math.isfinite(guess) and bits(guess) == vector["old_twelfth_left_bits"]
         except (OverflowError, ValueError):
             same = False
         if not same:
@@ -111,11 +111,11 @@ def candidate_telemetry(shapes: list[dict], vectors: list[dict]) -> dict:
 
 def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
     if not isinstance(stdout, str) or len(stdout) > 100000:
-        raise ThirteenthLayerError("unbounded twelfth original JVM output")
+        raise ThirteenthLayerError("unbounded thirteenth original JVM output")
     frames = [parts for line in stdout.splitlines()
               if (parts := line.split("|"))[0] in (HEAD, VALUE, END, FAIL)]
     if any(frame[0] == FAIL for frame in frames):
-        raise ThirteenthLayerError("original bounded twelfth JVM source reflection failed")
+        raise ThirteenthLayerError("original bounded thirteenth JVM source reflection failed")
     old = prior.load()
     points = FINAL.input_rows()
     shapes: list[dict] = []
@@ -123,11 +123,11 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
     cursor = 0
     for group, seed in enumerate(FINAL.SEEDS):
         if cursor >= len(frames):
-            raise ThirteenthLayerError("missing bounded source-owner twelfth seed shape")
+            raise ThirteenthLayerError("missing bounded source-owner thirteenth seed shape")
         header = frames[cursor]
         cursor += 1
         if len(header) != 3 + len(SHAPE_FIELDS) or header[:3] != [HEAD, str(group), seed]:
-            raise ThirteenthLayerError("actual original twelfth seed shape header drift")
+            raise ThirteenthLayerError("actual original thirteenth seed shape header drift")
         shape = dict(zip(SHAPE_FIELDS, header[3:], strict=True))
         shape["world_seed_bits"] = seed
         validate_shape(shape)
@@ -135,13 +135,13 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
         for j in range(32):
             index = group * 32 + j
             if cursor >= len(frames):
-                raise ThirteenthLayerError("missing twelfth original fixed XYZ point")
+                raise ThirteenthLayerError("missing thirteenth original fixed XYZ point")
             record = frames[cursor]
             cursor += 1
             if (len(record) != 2 + len(WORDS)
                     or record[:2] != [VALUE, str(index)]
                     or not all(finite_bits(word) for word in record[2:])):
-                raise ThirteenthLayerError("twelfth genuine finite IEEE point frame invalid")
+                raise ThirteenthLayerError("thirteenth genuine finite IEEE point frame invalid")
             actual = dict(zip(WORDS, ("0x" + w for w in record[2:]), strict=True))
             if actual["old_twelfth_left_bits"][2:] != old[index][0]:
                 raise ThirteenthLayerError(
@@ -150,10 +150,10 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
                 )
             vectors.append({**points[index], **actual})
         if cursor >= len(frames) or frames[cursor] != [END, str(group), "32"]:
-            raise ThirteenthLayerError("actual original twelfth 32-point seed terminator moved")
+            raise ThirteenthLayerError("actual original thirteenth 32-point seed terminator moved")
         cursor += 1
     if cursor != len(frames):
-        raise ThirteenthLayerError("twelfth original JVM emitted extra record frames")
+        raise ThirteenthLayerError("thirteenth original JVM emitted extra record frames")
     if any(
         {k: v for k, v in s.items() if k != "world_seed_bits"}
         != {k: v for k, v in shapes[0].items() if k != "world_seed_bits"}
@@ -165,7 +165,7 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
 
 def validate(report: dict) -> None:
     if not isinstance(report, dict):
-        raise ThirteenthLayerError("original twelfth report must be JSON object")
+        raise ThirteenthLayerError("original thirteenth report must be JSON object")
     pins = {
         "schema": 1, "kind": KIND, "minecraft": "26.2",
         "protocol": 776, "data_version": 4903,
@@ -210,7 +210,7 @@ def validate(report: dict) -> None:
     shapes, vectors = report.get("shapes"), report.get("vectors")
     if (not isinstance(shapes, list) or len(shapes) != 4
             or not isinstance(vectors, list) or len(vectors) != 128):
-        raise ThirteenthLayerError("twelfth actual 4x32 finite capture size moved")
+        raise ThirteenthLayerError("thirteenth actual 4x32 finite capture size moved")
     points = FINAL.input_rows()
     replay = []
     for group, shape in enumerate(shapes):
@@ -225,15 +225,15 @@ def validate(report: dict) -> None:
             if (not isinstance(v, dict)
                     or set(v) != set(points[i]) | set(WORDS)
                     or any(v.get(k) != p for k, p in points[i].items())):
-                raise ThirteenthLayerError("twelfth original XYZ/seed or field set altered")
+                raise ThirteenthLayerError("thirteenth original XYZ/seed or field set altered")
             replay.append("|".join((VALUE, str(i), *(v[k][2:] for k in WORDS))))
         replay.append("|".join((END, str(group), "32")))
     candidate = candidate_telemetry(shapes, vectors)
     if (type(report["arithmetic_candidate_telemetry"]) is not dict
             or report["arithmetic_candidate_telemetry"] != candidate):
-        raise ThirteenthLayerError("twelfth sample-only candidate telemetry tampered")
+        raise ThirteenthLayerError("thirteenth sample-only candidate telemetry tampered")
     if parse_output("\n".join(replay)) != (shapes, vectors):
-        raise ThirteenthLayerError("twelfth source-free real record round-trip failed")
+        raise ThirteenthLayerError("thirteenth source-free real record round-trip failed")
 
 
 def observe(server: Path, timeout: int = 240) -> tuple[list[dict], list[dict]]:
@@ -260,14 +260,14 @@ def observe(server: Path, timeout: int = 240) -> tuple[list[dict], list[dict]]:
             JAVA_SOURCE,
         )
         if any(not path.is_file() for path in sources):
-            raise ThirteenthLayerError("missing original source-free twelfth bridge")
+            raise ThirteenthLayerError("missing original source-free thirteenth bridge")
         build = subprocess.run(
             ["javac", "-encoding", "UTF-8", "-d", str(work),
              *(str(path) for path in sources)],
             capture_output=True, text=True, timeout=timeout, check=False
         )
         if build.returncode:
-            raise ThirteenthLayerError("twelfth bounded javac failed: " + build.stderr[:480])
+            raise ThirteenthLayerError("thirteenth bounded javac failed: " + build.stderr[:480])
         proc = subprocess.run(
             ["java", "-Xmx768m", "-cp",
              os.pathsep.join((str(work), *(str(jar) for jar in jars))),
@@ -283,7 +283,7 @@ def observe(server: Path, timeout: int = 240) -> tuple[list[dict], list[dict]]:
                 (line for line in proc.stdout.splitlines() if line.startswith(FAIL)),
                 "no bounded original twelfth failure tag"
             )
-            raise ThirteenthLayerError("real original twelfth JVM failure: " + reason[:160])
+            raise ThirteenthLayerError("real original thirteenth JVM failure: " + reason[:160])
         return parse_output(proc.stdout)
 
 
@@ -316,7 +316,7 @@ def capture(*, source: Path, db: Path, lock: Path,
     validate(report)
     payload = (json.dumps(report, indent=2, sort_keys=True) + "\n").encode("ascii")
     if len(payload) > 115000:
-        raise ThirteenthLayerError("unbounded twelfth source-free report payload")
+        raise ThirteenthLayerError("unbounded thirteenth source-free report payload")
     dest.parent.mkdir(parents=True, exist_ok=True)
     with os.fdopen(os.open(dest, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), "wb") as fp:
         fp.write(payload)

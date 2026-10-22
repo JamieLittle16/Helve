@@ -72,9 +72,12 @@ def validate_shape(s: dict) -> None:
     if s["ap2_op"] not in ("ADD", "MUL", "MIN", "MAX"):
         raise TwelfthLayerError("actual original out-left Ap2 operation moved")
     for key in ("ap2_left_class", "ap2_right_class"):
-        eleventh.tenth.ninth.eighth.seventh.sixth.fifth.fourth.third.second.require_class(
-            s[key]
-        )
+        try:
+            eleventh.tenth.ninth.eighth.seventh.sixth.fifth.fourth.third.second.require_class(
+                s[key]
+            )
+        except (ValueError, TypeError) as exc:
+            raise TwelfthLayerError("original out-left Ap2 child class invalid") from exc
 
 
 def candidate_telemetry(shapes: list[dict], vectors: list[dict]) -> dict:

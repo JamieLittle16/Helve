@@ -228,3 +228,26 @@ After this sixth PR passes all CI and is merged, run exactly the next new diagno
       --output /tmp/helve-26_2-final-sixth-layer-128.json
 
 Upload only the bounded source-free sixth-layer JSON, or paste the precise original `HELVE26_2_SIXTH_FAILURE` tag with failure phase/class. Deeper native lowering must wait for the observed operators and Marker child types, while independent source-law, NoiseChunk marker lifetimes, all-input density router, VAR/SEM and production-worldgen admission remain false.
+
+
+## Original sixth-layer 26.2 receipt — completed (22 October 2026)
+
+The owner's **authentic original-JVM sixth-layer** JSON was uploaded and verified against the original fifth-layer owner receipt; **do not recapture this or any of the earlier root/inner/second/third/fourth/fifth/512-cell/768-NoiseChunk oracles**.
+
+- Original **93,302-byte** private JSON, SHA-256 **597287a4fde98d3fd2f984f6c4b9de20016782e8fd45532092fd797d5697aa35**. Four seed-invariant authentic runtime shapes, 4 × 32 finite SinglePointContext XYZ, real pinned Java source/JAR and exact recorded source-method SHA metadata. Six old output words per row match the immutable fifth-layer fixture (**768/768 exact parent anchors**).
+- Only **four genuinely new IEEE-754 operands per point**, compact **8,704-byte** TSV, SHA-256 **b41f262fe145d82fa5d7f05d586663918c4ad900654a7e0906559405cca1d68e**; no repeated old output words are copied into the new fixture. The permanent validator verifies exact SHA/length, the old pinned fifth-layer parents and independent child arithmetic; optional original JSON checking verifies exact byte identity, original provenance and source-free schema.
+- The observed **left Ap2 gradient** really is \`YClampedGradient(-64,-40,0.0,1.0)\`: its original output matches the existing primitive at all 128 sampled Y values, including -63 and -4096.
+- The observed **outside HolderHolder gradient** is **independently** \`YClampedGradient(-4064,4062,-4064,4062)\`; exactly the same **record fields** as the nested selector's earlier observed gradient. This does not by itself establish they are the same object, but they do not need source aliasing to use two cold-created immutable primitive nodes.
+- The left inner \`MulOrAdd\` is actual **ADD argument 0xbfbe000000000000 (-0.1171875)**, child class itself \`MulOrAdd\`. The outside inner \`MulOrAdd\` is actual **MUL argument 0xbf9999999999999a (-0.025)**, child class **\`Noise\`**. Each independently agrees on **128/128 exact finite operations**, not just an accidentally lazy outer root.
+- **Both MAX-side \`Mapped ABS\` Marker children** are actual \`Marker(type=Interpolated, child=RangeChoice)\`. Their original original-JVM single-point forwarding is exact **256/256**, but neither NoiseChunk interpolation/cache lifecycle nor either child RangeChoice graph is yet known.
+- The source-free owner report explicitly contains \`"source_text_included": false\`. The initially merged sixth transport expected an older report schema lacking the field; this changes **only the strict negative provenance field**, not arithmetic, Java source identity or graph evidence. The corrected source-owner validator explicitly requires **false** and emits **false** in future sixth-layer transport. Never silently discard or ignore this transport field.
+- The Rust partial \`finalDensity\` now uses **27 immutable, statically bounded, backward-only nodes**, including both native Y-gradient records, both real inner MulOrAdd operations, existing outer arithmetic, ABS, nested choices and the final MIN; only genuinely unresolved inner \`MulOrAdd\`, \`Noise\` and two \`RangeChoice\` values remain stock-JVM injected. The independent old original-JVM root fixture is the only final equality oracle for the same 128 coordinates.
+
+**Next genuine seventh-layer source-owning frontier:** inspect the **left inner MulOrAdd** operation/constant/dependency; inspect **both distinct Marker-wrapped RangeChoice** min/max and selector, when-in, when-out *runtime classes and numeric values*; inspect whether the known real outside \`Noise\` can already bind to the existing source-locked keyed registry/noise-seed Rust implementation. Do not ask the original JVM to recapture old parent values except fixed equality anchors; do not assume cache markers match SinglePointContext outside the observed context. Check whether the two RangeChoice subgraphs share source structure before collapsing anything, but no alias guesses. Independent source-law, stock NoiseChunk cache/interpolation lifecycle, complete native seeded router, VAR/SEM and **production admission remain FALSE**.
+
+Verification of an already available original private JSON (does not execute JVM):
+
+    python3 tools/worldgen_26_2_stock_finaldensity_sixth_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-sixth-layer-128.json
+
+No original-owner JSON/source/JAR/private Atlas content is committed.

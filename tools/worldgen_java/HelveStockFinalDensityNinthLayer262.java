@@ -354,20 +354,20 @@ public final class HelveStockFinalDensityNinthLayer262 {
 
           stage(seedIndex,pointIndex,"real-deep-right-muloradd-record");
           expect(eighthAp2Right,"MulOrAdd");
-          String deepEnum=enumClass(eighthAp2Right,"specificType");
-          String deepOp=enumName(eighthAp2Right,"specificType");
-          double deepArg=(Double)member(eighthAp2Right,"argument");
+          String rightChildEnum=enumClass(eighthAp2Right,"specificType");
+          String rightChildOp=enumName(eighthAp2Right,"specificType");
+          double rightChildArg=(Double)member(eighthAp2Right,"argument");
           ninthRightChild=child(eighthAp2Right,density);
-          if(!deepEnum.equals(LV+"DensityFunctions$MulOrAdd$Type") ||
-             !(deepOp.equals("ADD") || deepOp.equals("MUL")) ||
-             !Double.isFinite(deepArg) ||
+          if(!rightChildEnum.equals(LV+"DensityFunctions$MulOrAdd$Type") ||
+             !(rightChildOp.equals("ADD") || rightChildOp.equals("MUL")) ||
+             !Double.isFinite(rightChildArg) ||
              !density.isInstance(ninthRightChild))
             throw new IllegalStateException("real deep MulOrAdd source operator changed");
 
           stage(seedIndex,pointIndex,"emit-ninth-shape");
           OUT.println(HEAD+seedIndex+"|"+seed+"|"+
               deepFrom+"|"+deepTo+"|"+bits(deepVFrom)+"|"+bits(deepVTo)+"|"+
-              deepEnum+"|"+deepOp+"|"+bits(deepArg)+"|"+type(ninthRightChild));
+              rightChildEnum+"|"+rightChildOp+"|"+bits(rightChildArg)+"|"+type(ninthRightChild));
         } else if(!seed.equals(row[0])) {
           throw new IllegalStateException("seed changed within ninth-layer 32-point group");
         }

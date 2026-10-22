@@ -552,37 +552,37 @@ The merged source-observed staged **3+3+4+32 node** test-only candidate has
 original JVM oracles **must not be recaptured or rewritten**.
 
 **Narrow technical choice:** the original eleventh in-range
-\`Ap2(MIN)\` right operand is a genuine class-observed
-\`DensityFunctions$MulOrAdd\`. It determines MIN at 60 of the 128
+`Ap2(MIN)` right operand is a genuine class-observed
+`DensityFunctions$MulOrAdd`. It determines MIN at 60 of the 128
 previously observed points (the in-range MIN's 68/60 left/right
 operand results are a *different* measurement from the outer
-\`RangeChoice\` 68/60 branch counts). Rather than inspect several
+`RangeChoice` 68/60 branch counts). Rather than inspect several
 unrelated branches, descend into ONLY this exact right operand:
 
-- Real \`MulOrAdd.specificType\` enum declaring class and exact
-  operation \`ADD\` or \`MUL\`, not guessed from the finite values.
-- Original raw IEEE-754 \`argument\` coefficient and its sole wrapped
+- Real `MulOrAdd.specificType` enum declaring class and exact
+  operation `ADD` or `MUL`, not guessed from the finite values.
+- Original raw IEEE-754 `argument` coefficient and its sole wrapped
   density child's actual Java runtime class. The four 26.2 seed graph
   shape records must be identical.
 - One genuinely NEW direct-child IEEE-754 word per each of the existing
-  128 pinned \`SinglePointContext\` XYZ. The *old* original in-right
-  \`MulOrAdd\` result is freshly observed only as a bitwise independent
+  128 pinned `SinglePointContext` XYZ. The *old* original in-right
+  `MulOrAdd` result is freshly observed only as a bitwise independent
   anchor to **column three of the previously merged eleventh TSV**,
   not duplicated in a new fixture or source report.
-- Arithmetic \`ADD\`/\`MUL\` on genuine original operand words is recorded
+- Arithmetic `ADD`/`MUL` on genuine original operand words is recorded
   as telemetry only; a mismatch, signed-zero subtlety or original
   special-case never authorizes changing actual JVM evidence or
   admitting a general Java source law.
 
 Bridge files:
-\`tools/worldgen_java/HelveStockFinalDensityTwelfthLayer262.java\`,
-\`tools/worldgen_26_2_stock_final_density_twelfth_layer.py\`,
-\`tools/tests/test_worldgen_26_2_stock_final_density_twelfth_layer.py\`.
+`tools/worldgen_java/HelveStockFinalDensityTwelfthLayer262.java`,
+`tools/worldgen_26_2_stock_final_density_twelfth_layer.py`,
+`tools/tests/test_worldgen_26_2_stock_final_density_twelfth_layer.py`.
 They check immutable source ZIP/JAR SHA, indexed pinned Java method body
 hashes (existing source-provenance inventory), eleventh owner report/fixture
 SHA, 4 seed-invariant record shapes, 4×32 exact bounded finite frames,
 128/128 prior-parent anchors, fixed point/seed identity, source text
-exclusion, and all false source-law, \`NoiseChunk\`, VAR/SEM, full seeded
+exclusion, and all false source-law, `NoiseChunk`, VAR/SEM, full seeded
 generator and production flags. Synthetic CI and JDK compilation **are
 not** original 26.2 runtime evidence.
 
@@ -599,8 +599,8 @@ the ONE NEW bounded original-JVM capture on the private original owner:
       --output /tmp/helve-26_2-final-twelfth-layer-128.json
 
 Upload only that NEW source-free JSON or bounded
-\`HELVE26_2_TWELFTH_FAILURE|phase|ExceptionClass\` marker. No
-root/inner/first–eleventh, noise, or \`NoiseChunk\` captures need replay.
+`HELVE26_2_TWELFTH_FAILURE|phase|ExceptionClass` marker. No
+root/inner/first–eleventh, noise, or `NoiseChunk` captures need replay.
 Once the genuine twelfth original evidence arrives, freeze only the
 **128 new child words** in a separate 128×1 TSV, SHA-pin the complete owner
 receipt, test its independently anchored eleventh parent and source

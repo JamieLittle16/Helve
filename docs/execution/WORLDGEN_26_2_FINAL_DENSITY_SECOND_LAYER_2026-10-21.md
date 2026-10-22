@@ -556,6 +556,19 @@ intersection with independently observed eleventh child comparisons is:
 | tenth out-of-range, eleventh MAX left `Ap2` | **60** |
 | tenth out-of-range, eleventh MAX right `RangeChoice` | 0 |
 
+**Second independent final-root boundary:** comparing the frozen **three-column
+original stock MIN-root** TSV, root MIN chooses its left result **124/128**
+and its right result **4/128**, without ties. Intersecting that with the
+above true tenth-choice and eleventh MIN/MAX choices leaves the actual
+out-left `Ap2` on **57** selected root-left paths, while the
+in-right `MulOrAdd` occurs on **zero** selected root-left paths.
+The remaining three of 60 selected out-left results are masked by the
+root MIN right side in these samples. These are observed control-flow
+intersections, not proof of nonzero numerical sensitivity or arbitrary-
+coordinate dead code. A separate source-free Python regression now anchors
+all counts to BOTH the immutable eleventh/tenth fixtures and the original
+root MIN fixture.
+
 The authentic isolated MAX right-wins witness at original row 110 remains
 **real and important for branch fidelity**, but the *tenth outer selector
 chooses in-range* at row 110, so it is not an executed right MAX branch in

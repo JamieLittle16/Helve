@@ -1065,3 +1065,85 @@ No rust production source, HOT scratch, or earlier fixture changes
 are included in the observer. Existing bounded original finalDensity
 root parity 128/128 and max HOT 32-node budget remain unchanged,
 as do all NoiseChunk, VAR/SEM, all-input and production gates **FALSE**.
+
+## Fifteenth genuine CacheOnce/Ap2 receipt and sixteenth original-JVM frontier (22 October 2026)
+
+**Fifteenth original capture COMPLETE. DO NOT repeat any original 1–15 captures.**
+Actual original Minecraft Java 26.2 source-only JSON is **43,502 bytes**,
+SHA-256 **bc1df68c3245c55735df84c4c2e36bc35b4d349d4a5c9623db24ac9630cbe0f0**.
+Four independent seeded original runtime shapes identify the actual
+'DensityFunctions$Marker$Type = CacheOnce' whose sole original wrapped
+child is a real 'DensityFunctions$Ap2'. The direct source-owned path is:
+thirteenth Ap2(MIN) RIGHT -> HolderHolder -> Holder$Direct ->
+Marker(CacheOnce) -> Ap2. This contributes to **43 original root-selected
+sample paths** out of the frozen 128. Do not infer all-input branch
+selection or wrapper source semantics from these observations.
+
+At the unchanged 4 seeds × 32 original SinglePointContext XYZ, the
+direct actual Ap2 wrapped child, original Marker output, and original
+Holder output agree **128/128 exact IEEE bits** with EACH OTHER and with
+column TWO (RIGHT) of the independently frozen original thirteenth
+2-column fixture, 4,352 bytes, SHA-256
+**cd8ba322bea4575aba70a28223940162af7feed926806a96c217d7a4b04eee4a**.
+The original report contains zero candidate mismatches and explicit
+'source_law_admitted=false', and retains exact previous fourteenth
+report SHA **8d258327bb24a5b8f6d6a3a64ad6ab751fd5dea7706b80ca88e42ca6a2b43492**,
+the original thirteenth report SHA and original stock source ZIP/JAR
+method-body identity pins. Fifteenth contributes exactly **zero
+genuinely distinct numerical IEEE words**. There is deliberately
+**NO fifteenth numerical TSV**; repeating old values would violate
+new-only immutable fixture discipline.
+
+New source-free receipt verifier:
+'tools/worldgen_26_2_stock_finaldensity_fifteenth_layer_receipt.py'.
+It checks the complete original private report length/SHA, all four
+genuine CacheOnce -> Ap2 source-record shapes and 128 independent
+old thirteenth-right equalities, preserving all false gates. To
+check the already-created private report (WITHOUT rerunning Java):
+
+    python3 tools/worldgen_26_2_stock_finaldensity_fifteenth_layer_receipt.py \
+      --capture /tmp/helve-26_2-final-fifteenth-layer-128.json
+
+**SIXTEENTH original-JVM owner is prepared but NOT RUN.** Follow ONLY
+the actual fifteenth CacheOnce-wrapped Ap2 and inspect this Ap2's real
+'TwoArgumentSimpleFunction$Type' enum and **two actual density children**.
+Do not assume its operation (ADD/MUL/MIN/MAX) or class from other Ap2 nodes.
+The Java bridge
+'tools/worldgen_java/HelveStockFinalDensitySixteenthLayer262.java'
+reflects actual original ancestry and emits exactly **TWO genuinely
+new direct child IEEE words per point**, plus only ONE old Ap2 output
+checked against the independently immutable thirteenth RIGHT column.
+The source-only Python
+'tools/worldgen_26_2_stock_final_density_sixteenth_layer.py'
+pins exact stock source ZIP, official server JAR, indexed Java method
+body identities, three prior original reports, thirteenth fixture,
+all 4×32 XYZ records and all-false source-law/VAR-SEM/NoiseChunk/production
+gates. Finite sample-only arithmetic candidate telemetry is not an
+all-input Java source-law admission; observed mismatches are never
+filtered. No old parent outputs are committed as a new numerical fixture.
+Tests live at
+'tools/tests/test_worldgen_26_2_stock_final_density_sixteenth_layer.py';
+they cover source-free javac, fake records, prior immutable source
+pins and admission flips.
+
+The existing test-only full finalDensity original root parity is
+**128/128 exact IEEE bits**. Separated cold-validated stages keep the
+HOT scratch budget **at most 32 nodes**, without extra HOT allocations,
+production chunk publication or NoiseChunk cache/lifecycle assumptions.
+
+**After SIXTEENTH observer PR green CI and merge only**, run exactly
+ONE new original source-owner diagnostic; do not repeat previous captures:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_sixteenth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-sixteenth-layer-128.json
+
+Upload the new source-free JSON or the bounded
+'HELVE26_2_SIXTEENTH_FAILURE|phase|ExceptionClass' marker. Source review
+and genuine operand bits must precede any test-only native lowering.
+All-input and production admission flags remain FALSE.

@@ -127,6 +127,49 @@ class TwelfthOutLeftAp2SourceOwnerTests(unittest.TestCase):
         self.assertEqual(
             counts, {"in_left": 67, "in_right": 1, "out_left": 60, "out_right": 0}
         )
+        root_path = (
+            Path(__file__).resolve().parents[2]
+            / "crates/world/helve-world-gen/tests/data/"
+              "stock_finaldensity_min_root_128_rawbits.tsv"
+        )
+        roots = [line.split("\t") for line in root_path.read_text(
+            encoding="ascii"
+        ).splitlines()]
+        self.assertEqual(len(roots), 128)
+        root_left = root_right = root_left_out_ap2 = root_left_inright = 0
+        for index, (original_root, original_choice, observed) in enumerate(
+            zip(roots, tenth, eleventh, strict=True)
+        ):
+            self.assertEqual(len(original_root), 3)
+            left = twelfth.value("0x" + original_root[0])
+            right = twelfth.value("0x" + original_root[1])
+            self.assertNotEqual(left, right)
+            left_wins = left < right
+            self.assertEqual(
+                original_root[2],
+                original_root[0] if left_wins else original_root[1]
+            )
+            root_left += int(left_wins)
+            root_right += int(not left_wins)
+            choice_inside = (
+                -1_000_000.0
+                <= twelfth.value("0x" + original_choice[0])
+                < 1.5625
+            )
+            min_right = (
+                twelfth.value("0x" + observed[2])
+                < twelfth.value("0x" + observed[1])
+            )
+            max_right = (
+                twelfth.value("0x" + observed[4])
+                > twelfth.value("0x" + observed[3])
+            )
+            root_left_out_ap2 += int(left_wins and not choice_inside and not max_right)
+            root_left_inright += int(left_wins and choice_inside and min_right)
+        self.assertEqual(
+            (root_left, root_right, root_left_out_ap2, root_left_inright),
+            (124, 4, 57, 0)
+        )
 
     def test_adversarial_source_shape_seed_and_old_parent_mutations(self):
         original = self.frames().splitlines()

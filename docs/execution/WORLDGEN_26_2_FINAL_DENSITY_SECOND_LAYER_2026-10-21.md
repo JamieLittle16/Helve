@@ -539,3 +539,100 @@ narrow source-owned frontier, only if necessary, is the actual in-right
 `MulOrAdd`, out-left `Ap2`, out-right `RangeChoice` and independent
 Marker/Holder ownership. Original captures through layer eleven are complete
 and **must not be replayed**.
+
+## Selected-path accounting and twelfth narrow original Ap2 frontier (22 October 2026; JVM execution PENDING)
+
+After #506 merged green, the existing authentic eleventh original-JVM report was
+analysed **without recapture** for *two successive branch selectors*. The naive
+"MIN chooses right 60 of 128" statistic is **not the selected parent contribution**:
+the outer tenth `RangeChoice` chooses in-range MIN on 68/128 points and
+out-of-range MAX on 60/128. For the **actual selected path**, the exact
+intersection with independently observed eleventh child comparisons is:
+
+| Actual frozen tenth choice and eleventh selected child | Samples |
+| --- | ---: |
+| tenth in-range, eleventh MIN left `Marker` | 67 |
+| tenth in-range, eleventh MIN right `MulOrAdd` | 1 |
+| tenth out-of-range, eleventh MAX left `Ap2` | **60** |
+| tenth out-of-range, eleventh MAX right `RangeChoice` | 0 |
+
+**Second independent final-root boundary:** comparing the frozen **three-column
+original stock MIN-root** TSV, root MIN chooses its left result **124/128**
+and its right result **4/128**, without ties. Intersecting that with the
+above true tenth-choice and eleventh MIN/MAX choices leaves the actual
+out-left `Ap2` on **57** selected root-left paths, while the
+in-right `MulOrAdd` occurs on **zero** selected root-left paths.
+The remaining three of 60 selected out-left results are masked by the
+root MIN right side in these samples. These are observed control-flow
+intersections, not proof of nonzero numerical sensitivity or arbitrary-
+coordinate dead code. A separate source-free Python regression now anchors
+all counts to BOTH the immutable eleventh/tenth fixtures and the original
+root MIN fixture.
+
+The authentic isolated MAX right-wins witness at original row 110 remains
+**real and important for branch fidelity**, but the *tenth outer selector
+chooses in-range* at row 110, so it is not an executed right MAX branch in
+these 128 original `SinglePointContext` points. This is finite source
+evidence, NOT Java-wide dead-code elimination, object sharing, general lazy
+evaluation qualification or authorization to remove any branch.
+
+**Therefore the next highest-leverage source-owned edge is out-of-range
+MAX's actual left `DensityFunctions$Ap2`**, not the in-range MIN's right
+`MulOrAdd`. The briefly opened in-right twelfth proposal #507 was
+**closed unmerged without an original JVM capture**, precisely to avoid a
+low-yield probe; do not rerun or reintroduce it unless later evidence gives
+an independent reason.
+
+**Twelfth bounded source-only observer (staged, NOT original-JVM executed):**
+`tools/worldgen_java/HelveStockFinalDensityTwelfthLayer262.java`,
+`tools/worldgen_26_2_stock_final_density_twelfth_layer.py`, and
+`tools/tests/test_worldgen_26_2_stock_final_density_twelfth_layer.py`.
+Only the *actual eleventh out-left Ap2* is descended:
+
+- Reflect the original `TwoArgumentSimpleFunction$Type` declaring class
+  and actual `ADD`/`MUL`/`MIN`/`MAX` enum, with **two independently
+  original runtime child classes**.
+- For exactly four existing seeds × 32 existing XYZ, observe **two genuinely
+  new IEEE-754 operand words each**. The old original eleventh
+  `out_left_bits` (column four of the previously frozen five-field eleventh
+  TSV) is observed only as a **128/128 independent bitwise parent anchor**
+  and must never be recopied into a permanent twelfth fixture.
+- Require four seed-invariant source shape records, source ZIP and stock
+  JAR SHA, existing indexed source method body hashes, the immutable
+  original eleventh report SHA
+  `a9d39854865d84bc8bdc2cf061ff715a589101af57c842dc159c2754cc71c6cc`,
+  and eleventh new-only fixture SHA
+  `f2d4b9084f30aa5f277053f9513c7529c321648d491b21b77e12bfd24b960e99`.
+  Only bounded, source-free, exact pinned `SinglePointContext` IEEE
+  frames are allowed; all source-law, cache/interpolator, fully native,
+  VAR/SEM and production flags remain **FALSE**.
+- Arithmetic comparison from actual operands against original Ap2 parent
+  bits is a **diagnostic candidate only**. Preserve any mismatch, signed
+  zero or special Java `Ap2` early-exit; neither a guessed operation nor
+  finite numbers can justify source-law admission or changing JVM evidence.
+- Native ninth 32-node scratch, staged eleventh 3+3+4+32 finite parity and
+  all prior oracle fixtures remain **untouched**. Synthetic tests and JDK
+  compilation qualify this *source-free observer*, not the original Java
+  result or seeded worldgen.
+
+After this twelfth observer passes all CI checks and merges, run **ONLY this
+one new original-JVM capture**, against the same private pinned original
+source owner. Do NOT repeat captures one through eleven:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_twelfth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-twelfth-layer-128.json
+
+Upload only the NEW source-free JSON or bounded
+`HELVE26_2_TWELFTH_FAILURE|phase|ExceptionClass` marker.
+Once authentic twelfth evidence exists, freeze **only 128×2 new operand
+rawbit words**, SHA-pin the original report and parent fixture, and compose
+a test-only native explicit Ap2 local stage into the existing MAX,
+tenth `RangeChoice`, ninth 32-node original MIN-root parity. Maintain
+per-stage ≤32-node scratch, no new HOT allocations, no production
+worldgen or stock `NoiseChunk` lifecycle claim.

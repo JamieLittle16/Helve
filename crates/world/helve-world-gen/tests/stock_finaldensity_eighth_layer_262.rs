@@ -420,3 +420,223 @@ fn thirty_two_node_source_observed_eighth_finaldensity_min_matches_stock_origina
         );
     }
 }
+
+const NINTH: &str = include_str!("data/stock_finaldensity_ninth_layer_new_128_rawbits.tsv");
+const NINTH_RIGHT_ADD: f64 = f64::from_bits(0x3fb4_0000_0000_0000);
+
+fn ninth_left_gradient() -> Primitive {
+    Primitive::y_clamped_gradient(240, 256, 1.0, 0.0)
+        .expect("actual source-owned deep left gradient record")
+}
+
+fn ninth_samples() -> Vec<(u64, [u64; 2], Receipt)> {
+    let rows: Vec<_> = NINTH.lines().collect();
+    assert_eq!(
+        rows.len(),
+        128,
+        "only 128 new original RangeChoice child bits"
+    );
+    rows.into_iter()
+        .zip(eighth_samples())
+        .map(|(line, (eighth, prior))| {
+            let inputs: [u64; 1] = words(line).try_into().expect("one NEW ninth child word");
+            (inputs[0], eighth, prior)
+        })
+        .collect()
+}
+
+/// The two distinct Java `HolderHolder` targets were each independently
+/// reflected as the exact same `YClampedGradient` record with parameters
+/// (-4064, 4062, -4064, 4062). Reusing their pure native numerical
+/// value is a finite sample-test simplification, NOT Java object identity
+/// or all-input holder forwarding qualification. This saves one DAG node,
+/// permitting the actual deep ADD with a new child under the 32-node ceiling.
+// Construct only the source-observed right-hand candidates in cold graph setup.
+fn ninth_right_branch_node(i: usize, new: [u64; 7], sixth: [u64; 4]) -> Node<'static> {
+    match i {
+        15 => constant(sixth[1]), // outside inner original Noise output
+        16 => Node::CandidateMulOrAdd {
+            input: 15,
+            argument: OUTSIDE_INNER_MUL,
+            operation: Op::Multiply,
+        },
+        17 => Node::CandidateMulOrAdd {
+            input: 16,
+            argument: OUTSIDE_OUTER_ADD,
+            operation: Op::Add,
+        },
+        18 => constant(0.0_f64.to_bits()), // both actual out-of-range Constant(0)
+        19 => Node::CandidateRangeChoice {
+            selector: 11,
+            when_in_range: 17,
+            when_out_of_range: 18,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
+        },
+        20 => constant(new[2]), // first actual Marker RangeChoice Noise
+        21 => Node::CandidateRangeChoice {
+            selector: 11,
+            when_in_range: 20,
+            when_out_of_range: 18,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
+        },
+        22 => Node::CandidateAbs { input: 21 },
+        23 => constant(new[5]), // second actual Marker RangeChoice Noise
+        24 => Node::CandidateRangeChoice {
+            selector: 11,
+            when_in_range: 23,
+            when_out_of_range: 18,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
+        },
+        25 => Node::CandidateAbs { input: 24 },
+        26 => Node::ExplicitAp2Max {
+            left: 22,
+            right: 25,
+        },
+        27 => Node::CandidateMulOrAdd {
+            input: 26,
+            argument: 1.5,
+            operation: Op::Multiply,
+        },
+        28 => Node::ExplicitAp2Add {
+            left: 19,
+            right: 27,
+        },
+        29 => constant(64.0_f64.to_bits()),
+        30 => Node::CandidateRangeChoice {
+            selector: 14,
+            when_in_range: 29,
+            when_out_of_range: 28,
+            min_inclusive: -1_000_000.0,
+            max_exclusive: 0.0,
+        },
+        31 => Node::ExplicitAp2Min {
+            left: 10,
+            right: 30,
+        },
+        _ => unreachable!("ninth bounded right-hand graph node"),
+    }
+}
+
+fn ninth_partial_program(
+    new_child: u64,
+    new: [u64; 7],
+    sixth: [u64; 4],
+    third: [u64; 6],
+) -> Program<'static, 32> {
+    Program::new(std::array::from_fn(|i| match i {
+        0 => Node::Primitive(left_gradient()),
+        1 => Node::Primitive(ninth_left_gradient()), // genuine real Y-gradient record from ninth JVM
+        2 => constant(new_child), // only genuine ninth new RangeChoice child output
+        3 => Node::CandidateMulOrAdd {
+            input: 2,
+            argument: NINTH_RIGHT_ADD,
+            operation: Op::Add,
+        },
+        4 => Node::ExplicitAp2Multiply { left: 1, right: 3 },
+        5 => Node::CandidateMulOrAdd {
+            input: 4,
+            argument: LEFT_DEEP_ADD,
+            operation: Op::Add,
+        },
+        6 => Node::CandidateMulOrAdd {
+            input: 5,
+            argument: LEFT_INNER_ADD,
+            operation: Op::Add,
+        },
+        7 => Node::ExplicitAp2Multiply { left: 0, right: 6 },
+        8 => Node::CandidateMulOrAdd {
+            input: 7,
+            argument: LEFT_OUTER_ADD,
+            operation: Op::Add,
+        },
+        9 => Node::CandidateMulOrAdd {
+            input: 8,
+            argument: FIRST_MUL,
+            operation: Op::Multiply,
+        },
+        10 => Node::CandidateSqueeze { input: 9 },
+        11 => Node::Primitive(outside_gradient()),
+        12 => constant(third[2]), // original nested Noise output
+        13 => constant(third[3]), // genuine Constant(-1) output
+        14 => Node::CandidateRangeChoice {
+            selector: 11,
+            when_in_range: 12,
+            when_out_of_range: 13,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
+        },
+        _ => ninth_right_branch_node(i, new, sixth),
+    }))
+    .expect("one cold-validated 32-node backward-only ninth graph")
+}
+
+#[test]
+fn ninth_source_owned_left_gradient_and_actual_right_add_match_128_old_parents() {
+    let mut checks = 0;
+    for (i, (child, eighth, (seventh, _, _, _))) in ninth_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        assert_eq!(
+            ninth_left_gradient().sample_block_y(y).to_bits(),
+            eighth[0],
+            "original ninth gradient Y record at point {i}"
+        );
+        let right = Program::new([
+            constant(child),
+            Node::CandidateMulOrAdd {
+                input: 0,
+                argument: NINTH_RIGHT_ADD,
+                operation: Op::Add,
+            },
+        ])
+        .expect("original Java ninth deep right MulOrAdd ADD(+0.078125)");
+        assert_eq!(
+            right.sample_block(0, y, 0).to_bits(),
+            eighth[1],
+            "actual original ninth right child ADD at point {i}"
+        );
+        let deep = Program::new([
+            Node::Primitive(ninth_left_gradient()),
+            constant(child),
+            Node::CandidateMulOrAdd {
+                input: 1,
+                argument: NINTH_RIGHT_ADD,
+                operation: Op::Add,
+            },
+            Node::ExplicitAp2Multiply { left: 0, right: 2 },
+        ])
+        .expect("real ninth extended deep Ap2 MUL with positive-zero short circuit");
+        assert_eq!(
+            deep.sample_block(0, y, 0).to_bits(),
+            seventh[0],
+            "original ninth deep Ap2 at point {i}"
+        );
+        checks += 1;
+    }
+    assert_eq!(checks, 128);
+}
+
+#[test]
+fn ninth_flat_32node_actual_gradient_add_and_shared_selectors_match_original_min() {
+    for (i, (child, _, (new, sixth, third, root))) in ninth_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        assert_eq!(
+            new[1],
+            sample_shared_selector(y),
+            "original first selector {i}"
+        );
+        assert_eq!(
+            new[4],
+            sample_shared_selector(y),
+            "original second selector {i}"
+        );
+        let graph = ninth_partial_program(child, new, sixth, third);
+        assert_eq!(
+            graph.sample_block(0, y, 0).to_bits(),
+            root,
+            "actual original 26.2 ninth bounded 32-node finalDensity MIN point {i}"
+        );
+    }
+}

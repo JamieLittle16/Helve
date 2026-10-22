@@ -128,7 +128,15 @@ class GenuineFifteenthAndSixteenthJVM(unittest.TestCase):
             mutate(1, "|ADD|", "|XOR|"),
             mutate(1, "DensityFunctions$Noise", "bad.Density"),
             mutate(2, "3fda6dfd96e05940", "7ff0000000000000"),
-            mutate(2, "3fda6dfd96e05940", "3fda6dfd96e05941"),
+            "\n".join([
+                *frame[:2],
+                "|".join([
+                    *frame[2].split("|")[:2],
+                    "3fda6dfd96e05941",
+                    *frame[2].split("|")[3:],
+                ]),
+                *frame[3:],
+            ]),
         ]
         # Valid finite child mutation only: must not claim arithmetic source admission.
         for i, v in enumerate(changed):

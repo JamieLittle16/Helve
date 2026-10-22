@@ -49,7 +49,7 @@ class GenuineNinthJVMFixtureTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             path=Path(td)/"fabricated.json"
             path.write_text('{"production_worldgen_enabled":true}',encoding="ascii")
-            with self.assertRaisesRegex(ninth.NinthFixtureError,"source"):
+            with self.assertRaisesRegex(ninth.NinthFixtureError,"report bytes/SHA"):
                 ninth.validate_original(path)
             err=io.StringIO()
             with contextlib.redirect_stderr(err):

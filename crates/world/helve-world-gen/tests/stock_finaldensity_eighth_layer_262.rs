@@ -268,7 +268,12 @@ fn eighth_samples() -> Vec<([u64; 2], Receipt)> {
 /// both source-owned operands, including four positive-zero short circuits.
 /// This does not source-qualify the right child MulOrAdd or the source law for
 /// arbitrary Ap2 instances. Exact two finite operands are still JVM-injected.
-fn eighth_partial_program(eighth: [u64; 2], new: [u64; 7], sixth: [u64; 4], third: [u64; 6]) -> Program<'static, 32> {
+fn eighth_partial_program(
+    eighth: [u64; 2],
+    new: [u64; 7],
+    sixth: [u64; 4],
+    third: [u64; 6],
+) -> Program<'static, 32> {
     Program::new(std::array::from_fn(|i| match i {
         0 => Node::Primitive(left_gradient()),
         1 => constant(eighth[0]), // genuine new left YClampedGradient output (record not yet inspected)
@@ -297,7 +302,7 @@ fn eighth_partial_program(eighth: [u64; 2], new: [u64; 7], sixth: [u64; 4], thir
         },
         9 => Node::CandidateSqueeze { input: 8 },
         10 | 14 => Node::Primitive(outside_gradient()),
-        11 => constant(third[2]),  // original nested Noise output
+        11 => constant(third[2]), // original nested Noise output
         12 => constant(third[3]), // genuine Constant(-1) output
         13 => Node::CandidateRangeChoice {
             selector: 10,

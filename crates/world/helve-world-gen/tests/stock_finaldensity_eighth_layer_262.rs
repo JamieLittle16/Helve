@@ -742,7 +742,7 @@ fn tenth_composed_four_plus_thirty_two_nodes_match_stock_original_128_min_root()
 const ELEVENTH: &str = include_str!("data/stock_finaldensity_eleventh_layer_new_128_rawbits.tsv");
 
 /// Five genuine new direct original Java child words. The three old tenth
-/// Marker/Ap2 parent values come only from the independently frozen tenth
+/// `Marker`/`Ap2` parent values come only from the independently frozen tenth
 /// source fixture. No previous parent or stock MIN-root bits are recopied.
 fn eleventh_samples() -> Vec<([u64; 5], [u64; 3], u64, [u64; 2], Receipt)> {
     let rows: Vec<_> = ELEVENTH.lines().collect();
@@ -811,7 +811,13 @@ fn eleventh_actual_marker_min_and_max_parity_against_old_tenth_ieee_parents() {
         }
     }
     assert_eq!(
-        (min_left, min_right, max_left, max_right, nonconstant_out_right),
+        (
+            min_left,
+            min_right,
+            max_left,
+            max_right,
+            nonconstant_out_right
+        ),
         (68, 60, 127, 1, 3)
     );
 }
@@ -853,5 +859,8 @@ fn eleventh_staged_min_max_then_tenth_choice_then_ninth_root_matches_128_origina
             "original eleventh staged native candidate stock MIN root row {i}"
         );
     }
-    assert_eq!((choice_inside, choice_outside, selector_not_selected_inner), (68, 60, 1));
+    assert_eq!(
+        (choice_inside, choice_outside, selector_not_selected_inner),
+        (68, 60, 1)
+    );
 }

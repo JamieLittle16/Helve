@@ -1,12 +1,12 @@
-//! Sixth-layer source-observed partial 26.2 stock Java \`finalDensity\`.
+//! Sixth-layer source-observed partial 26.2 stock Java `finalDensity`.
 //!
 //! Four **new** original-JVM child operands per point, six immutable fifth-layer
 //! parent output anchors, and the frozen original MIN-root observations.
-//! Both separately reviewed \`YClampedGradient\` record parameters are now
-//! native Rust primitives; two actual \`MulOrAdd\` operations are native nodes.
+//! Both separately reviewed `YClampedGradient` record parameters are now
+//! native Rust primitives; two actual `MulOrAdd` operations are native nodes.
 //! Original-JVM values are still required for deeper noise and both
-//! \`Interpolated\` Marker-wrapped \`RangeChoice\` subgraphs; this is *not*
-//! stock \`NoiseChunk\` lifecycle, all-input or production qualification.
+//! `Interpolated` Marker-wrapped `RangeChoice` subgraphs; this is *not*
+//! stock `NoiseChunk` lifecycle, all-input or production qualification.
 
 use helve_world_gen::density_primitives_262::DensityPrimitive262 as Primitive;
 use helve_world_gen::stock_density_program_262::{
@@ -80,7 +80,7 @@ fn outside_gradient() -> Primitive {
         .expect("independent actual sixth-layer outside Holder gradient record")
 }
 
-/// 27 cold-validated nodes. Unknown deeper noise and marker RangeChoice
+/// 27 cold-validated nodes. Unknown deeper noise and marker `RangeChoice`
 /// values are separately original-JVM-injected; no sampled hot-path heap.
 fn partial_program(sixth: [u64; 4], third: [u64; 6]) -> Program<'static, 27> {
     Program::new(std::array::from_fn(|i| match i {
@@ -103,7 +103,7 @@ fn partial_program(sixth: [u64; 4], third: [u64; 6]) -> Program<'static, 27> {
             operation: Op::Multiply,
         },
         6 => Node::CandidateSqueeze { input: 5 },
-        7 => Node::Primitive(outside_gradient()), // nested selector's matching record
+        7 | 11 => Node::Primitive(outside_gradient()), // separate source-observed records
         8 => constant(third[2]),                  // nested original Noise, not yet native
         9 => constant(third[3]),                  // original Constant(-1), independently frozen
         10 => Node::CandidateRangeChoice {
@@ -113,7 +113,6 @@ fn partial_program(sixth: [u64; 4], third: [u64; 6]) -> Program<'static, 27> {
             min_inclusive: -60.0,
             max_exclusive: 321.0,
         },
-        11 => Node::Primitive(outside_gradient()), // independently reflected real record
         12 => constant(sixth[1]), // actual outside inner Noise output; unseeded here
         13 => Node::CandidateMulOrAdd {
             input: 12,

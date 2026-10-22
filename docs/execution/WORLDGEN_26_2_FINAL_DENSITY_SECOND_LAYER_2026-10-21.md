@@ -349,3 +349,27 @@ The only new permanent fixture contains **two original child raw IEEE words per 
 **Native Rust parity:** the new test-only bounded finalDensity candidate contains **exactly 32 immutable, backward-only, cold-validated nodes**. It replaces the previously injected deep Ap2 *output* with two separately JVM-injected actual *children*, combined with native ExplicitAp2Multiply. Independently compare all 128 actual Ap2 results and frozen final MIN-root results. Previous seventh 30-node reconstruction and its independent operator tests remain regressions. The existing 32-node ceiling, stack scratch and allocation-free hot path stay intact; all production world-publishing authority remains disabled. Future expansion must use source-grounded sharing or composition rather than increase the scratch cap.
 
 **Next genuine ninth source-only frontier (not executed):** inspect the original deep-left YClampedGradient's fromY/toY/fromValue/toValue record (eighth observed class only), and deep-right MulOrAdd actual enum, IEEE argument and single wrapped child class/value. Native seeded Noise holder/key/seed settings and true NoiseChunk marker/interpolation traversal are independent, unqualified obligations. **Do not rerun** any root/inner/second/third/fourth/fifth/sixth/seventh/eighth or existing NoiseChunk source captures.
+
+
+## Ninth-layer source-owner diagnostic staged (22 October 2026; not original-JVM executed)
+
+**PR #498 merged GREEN (all eight CI checks)** at **9dc1355fe168ef1c80b5f659e6a8723b3e6ac56c**. The authentic original eighth 67,230-byte private JSON **SHA 3fae6fa522856983894335830a7f54689bf2534e66c446f6f73f3a3ed1548b58**, and **4,352-byte two-only-new-child fixture SHA 4fc059ebcfb74cf3e0b155460fca8b144c975aaafc653f6da51a913c68fc2c6e**, are fully frozen. The existing no-allocation, cold-validated 32-node test-only Rust candidate matches 128/128 original frozen Java MIN-root words; previous 30-node and all original NoiseChunk evidence remain unchanged.
+
+The next actual source-owning frontier has ONLY TWO unresolved immediate source types:
+1. The real deep-left **YClampedGradient** was class-identified and numerically sampled by the eighth Java but its original actual fromY/toY/fromValue/toValue record was not inspected. The ninth bridge reads that record without guessing endpoints from the 1, 1/16, 0 observed output categories.
+2. The real deep-right **MulOrAdd** was class-identified and sampled by the eighth Java but its actual specificType enum, IEEE coefficient and sole density child runtime class were not inspected. The ninth bridge reads the exact record and observes **one genuinely new direct child IEEE-754 word per XYZ**. Do not assume its operation is ordinary IEEE arithmetic at signed zero without independent proof. Any direct arithmetic mismatch is recorded as unadmitted candidate telemetry, never suppressed or discarded.
+
+The staged program pair is **tools/worldgen_java/HelveStockFinalDensityNinthLayer262.java** + **tools/worldgen_26_2_stock_final_density_ninth_layer.py**. It verifies the two separately frozen previous eighth original JVM child values as **256 independent old equality anchors**, without repeating old entries in a new fixture. It requires four seed-invariant original 26.2 graph shapes × 32 pinned finite SinglePointContext coordinates, unchanged exact previous eighth fixture/report/source/official JAR/method-body SHA provenance, an explicit source_text_included=false, fixed bounded output and ALL existing production, VAR/SEM, full-router, NoiseChunk marker/cache, arbitrary source-law and ninth admission gates **FALSE**. CI synthetic frames and Java compilation tests do NOT count as original-JVM evidence.
+
+**After the ninth PR passes CI and merges**, run only the one remaining private-source original 26.2 probe (never rerun eighth or any earlier capture):
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_ninth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-ninth-layer-128.json
+
+Upload the new source-free ninth JSON, or paste its bounded HELVE26_2_NINTH_FAILURE|phase|ExceptionClass if original source reflects differently. On successful genuine ninth evidence, next task is **source-grounded native compositional evaluation**: the current flat finalDensity candidate already uses all 32 allowed nodes. Confirm actual same-record semantics and registry/noise seeding before attempting to lower another Java child; split into bounded cold-validated subgraphs or prove a real graph sharing law rather than increase per-worker hot-path scratch. Nothing so far proves stock NoiseChunk interpolation/cache traversal or production worldgen.

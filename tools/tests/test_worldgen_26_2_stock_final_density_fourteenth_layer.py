@@ -84,7 +84,7 @@ class FourteenthHolderTargetSourceTests(unittest.TestCase):
             "source_text_included": False,
             "shapes": shapes,
             "vectors": vectors,
-            "arithmetic_candidate_telemetry":
+            "holder_forward_candidate_telemetry":
                 owner.candidate_telemetry(shapes, vectors),
             **{gate: False for gate in owner.GATES},
         }
@@ -106,7 +106,7 @@ class FourteenthHolderTargetSourceTests(unittest.TestCase):
 
     def test_numeric_target_mismatch_preserves_genuine_JVM_frames(self):
         report = self.report(different_target=True)
-        telemetry = report["arithmetic_candidate_telemetry"]
+        telemetry = report["holder_forward_candidate_telemetry"]
         self.assertGreater(telemetry["direct_target_forward_candidate_mismatches"], 0)
         self.assertEqual(telemetry["direct_target_forward_first_mismatch_index"], 0)
         self.assertFalse(telemetry["source_law_admitted"])
@@ -149,7 +149,7 @@ class FourteenthHolderTargetSourceTests(unittest.TestCase):
             with self.subTest(gate=gate), self.assertRaises(owner.FourteenthLayerError):
                 owner.validate(v)
         v = self.report()
-        v["arithmetic_candidate_telemetry"]["source_law_admitted"] = True
+        v["holder_forward_candidate_telemetry"]["source_law_admitted"] = True
         with self.assertRaises(owner.FourteenthLayerError):
             owner.validate(v)
 

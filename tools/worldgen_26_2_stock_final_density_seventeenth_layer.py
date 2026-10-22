@@ -1,20 +1,12 @@
 #!/usr/bin/env python3
-"""Bounded genuine original 26.2 seventeenth: real sixteenth-MIN RIGHT Ap2.
+"""Bounded original 26.2 seventeenth: genuine sixteenth-MIN RIGHT Ap2.
 
-Original fifteenth CacheOnce wraps Ap2(MIN) whose real RIGHT Ap2 child
-wins 71/128 finite sampled points. Reflect RIGHT child's *own* source
-operation and actual immediate density child types. Export TWO NEW
-IEEE words plus an OLD RIGHT-child parent anchored ONLY to the immutable
-sixteenth new-only fixture. No older Java captures repeated; no
-all-input Java/NoiseChunk/cache/production source law admitted.
-"""Bounded original JVM 26.2 sixteenth: actual CacheOnce-wrapped Ap2 operands.
-
-Genuine fifteenth Marker(CacheOnce) wraps actual DensityFunctions$Ap2.
-Reflect its real enum and two immediate classes; export exactly TWO NEW
-actual child IEEE words per original 4x32 SinglePointContext, with one OLD
-Ap2 output checked against immutable thirteenth RIGHT operand. A complete
-fifteenth original source-report SHA pins prior Holder/Marker equality.
-Original stock NoiseChunk/cache law and production authority stay disabled.
+Original fifteenth CacheOnce wraps Ap2(MIN), whose right Ap2 child
+wins 71/128 genuine fixed sample positions. Reflect that RIGHT child's
+actual enum and two immediate classes and two NEW operand IEEE words.
+The old RIGHT child output is anchored only to the independently frozen
+sixteenth new-only fixture. No previous Java capture replayed and no
+all-input/cache/production law admitted.
 """
 from __future__ import annotations
 
@@ -59,7 +51,7 @@ ROOT = sixteenth.ROOT
 
 
 class SeventeenthLayerError(ValueError):
-    """The original sixteenth 26.2 JVM source-owner evidence cannot be admitted."""
+    """The original seventeenth 26.2 JVM source-owner evidence cannot be admitted."""
 
 
 def finite_bits(word: str) -> bool:
@@ -87,7 +79,7 @@ def validate_shape(s: dict) -> None:
                 s[k]
             )
         except (ValueError, TypeError) as exc:
-            raise SeventeenthLayerError("genuine sixteenth density child class malformed") from exc
+            raise SeventeenthLayerError("genuine seventeenth child density class malformed") from exc
 
 
 def candidate_telemetry(shapes: list[dict], vectors: list[dict]) -> dict:
@@ -135,7 +127,7 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
     frames = [parts for line in stdout.splitlines()
               if (parts := line.split("|"))[0] in (HEAD, VALUE, END, FAIL)]
     if any(frame[0] == FAIL for frame in frames):
-        raise SeventeenthLayerError("original bounded sixteenth JVM source reflection failed")
+        raise SeventeenthLayerError("original bounded seventeenth JVM source reflection failed")
     old = prior.load()
     points = FINAL.input_rows()
     shapes: list[dict] = []
@@ -170,7 +162,7 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
                 )
             vectors.append({**points[index], **actual})
         if cursor >= len(frames) or frames[cursor] != [END, str(group), "32"]:
-            raise SeventeenthLayerError("actual original sixteenth 32-point seed terminator moved")
+            raise SeventeenthLayerError("actual original seventeenth 32-point seed terminator moved")
         cursor += 1
     if cursor != len(frames):
         raise SeventeenthLayerError("seventeenth original JVM emitted extra record frames")

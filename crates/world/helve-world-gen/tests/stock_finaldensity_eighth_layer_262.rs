@@ -738,3 +738,131 @@ fn tenth_composed_four_plus_thirty_two_nodes_match_stock_original_128_min_root()
         );
     }
 }
+
+const ELEVENTH: &str = include_str!("data/stock_finaldensity_eleventh_layer_new_128_rawbits.tsv");
+
+/// Five genuine new direct original Java child words. The three old tenth
+/// `Marker`/`Ap2` parent values come only from the independently frozen tenth
+/// source fixture. No previous parent or stock MIN-root bits are recopied.
+type EleventhReceipt = ([u64; 5], [u64; 3], u64, [u64; 2], Receipt);
+
+fn eleventh_samples() -> Vec<EleventhReceipt> {
+    let rows: Vec<_> = ELEVENTH.lines().collect();
+    assert_eq!(rows.len(), 128, "only 640 new eleventh JVM child words");
+    rows.into_iter()
+        .zip(tenth_samples())
+        .map(|(line, (old_tenth, ninth, eighth, receipt))| {
+            let child: [u64; 5] = words(line)
+                .try_into()
+                .expect("five source-observed eleventh original child words");
+            (child, old_tenth, ninth, eighth, receipt)
+        })
+        .collect()
+}
+
+/// Bounded independently source-observed `Ap2(MIN)` candidate. Actual Java
+/// children are a `Marker` and a `MulOrAdd`; both remain original-JVM fed here.
+/// This tests ONLY finite `SinglePointContext` arithmetic against the tenth
+/// original parent, not generalized Java operator semantics or `NoiseChunk`.
+fn eleventh_min_stage(left: u64, right: u64) -> Program<'static, 3> {
+    Program::new([
+        constant(left),
+        constant(right),
+        Node::ExplicitAp2Min { left: 0, right: 1 },
+    ])
+    .expect("cold-validated genuine eleventh three-node MIN branch candidate")
+}
+
+/// Genuine separately observed out-of-range `Ap2(MAX)` operands: an `Ap2`
+/// and a `RangeChoice`. Preserve the rare right-wins row; never flatten
+/// the second operand into a constant or guess object identity.
+fn eleventh_max_stage(left: u64, right: u64) -> Program<'static, 3> {
+    Program::new([
+        constant(left),
+        constant(right),
+        Node::ExplicitAp2Max { left: 0, right: 1 },
+    ])
+    .expect("cold-validated genuine eleventh three-node MAX branch candidate")
+}
+
+#[test]
+fn eleventh_actual_marker_min_and_max_parity_against_old_tenth_ieee_parents() {
+    let mut min_left = 0;
+    let mut min_right = 0;
+    let mut max_left = 0;
+    let mut max_right = 0;
+    let mut nonconstant_out_right = 0;
+    for (i, (new, old, _, _, _)) in eleventh_samples().into_iter().enumerate() {
+        let y = BLOCK_Y[i % 32];
+        // Original CacheOnce Marker wraps HolderHolder. Identical IEEE samples
+        // establish no identity, caching, interpolation or lifecycle law.
+        assert_eq!(new[0], old[0], "actual Marker child/parent row {i}");
+        let min = eleventh_min_stage(new[1], new[2]).sample_block(0, y, 0);
+        let max = eleventh_max_stage(new[3], new[4]).sample_block(0, y, 0);
+        assert_eq!(min.to_bits(), old[1], "original MIN Ap2 parent row {i}");
+        assert_eq!(max.to_bits(), old[2], "original MAX Ap2 parent row {i}");
+        min_left += usize::from(min.to_bits() == new[1]);
+        min_right += usize::from(min.to_bits() == new[2] && new[1] != new[2]);
+        max_left += usize::from(max.to_bits() == new[3]);
+        max_right += usize::from(max.to_bits() == new[4] && new[3] != new[4]);
+        nonconstant_out_right += usize::from(new[4] != TENTH_MIN.to_bits());
+        if i == 110 {
+            assert_eq!(new[3], 0x3fde_51af_db79_aeec);
+            assert_eq!(new[4], 0x3fdf_8360_6ba0_8263);
+            assert_eq!(max.to_bits(), new[4], "rare original MAX right-wins");
+        }
+    }
+    assert_eq!(
+        (
+            min_left,
+            min_right,
+            max_left,
+            max_right,
+            nonconstant_out_right
+        ),
+        (68, 60, 127, 1, 3)
+    );
+}
+
+#[test]
+fn eleventh_staged_min_max_then_tenth_choice_then_ninth_root_matches_128_originals() {
+    let mut choice_inside = 0;
+    let mut choice_outside = 0;
+    let mut selector_not_selected_inner = 0;
+    for (i, (children, tenth, original_choice, _, (new, sixth, third, root))) in
+        eleventh_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+        assert_eq!(children[0], tenth[0], "original Marker parent boundary {i}");
+        let actual_in = eleventh_min_stage(children[1], children[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let actual_out = eleventh_max_stage(children[3], children[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!([children[0], actual_in, actual_out], tenth);
+        let selector = f64::from_bits(children[0]);
+        if (TENTH_MIN..TENTH_MAX).contains(&selector) {
+            choice_inside += 1;
+            selector_not_selected_inner += usize::from(children[0] != actual_in);
+        } else {
+            choice_outside += 1;
+        }
+        let choice = tenth_choice_stage([children[0], actual_in, actual_out])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(choice, original_choice, "original ninth old parent row {i}");
+        // The preexisting ninth fixed 32-node partial graph and frozen stock
+        // root remain untouched. Per-stage scratch: 3, 3, 4, 32 nodes.
+        let root_candidate = ninth_partial_program(choice, new, sixth, third);
+        assert_eq!(
+            root_candidate.sample_block(0, y, 0).to_bits(),
+            root,
+            "original eleventh staged native candidate stock MIN root row {i}"
+        );
+    }
+    assert_eq!(
+        (choice_inside, choice_outside, selector_not_selected_inner),
+        (68, 60, 1)
+    );
+}

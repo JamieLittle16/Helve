@@ -299,3 +299,25 @@ New precise graph discoveries:
          --capture /tmp/helve-26_2-final-seventh-layer-128.json
 
 **Next true eighth-layer frontier:** descend into the genuine left deeper \`Ap2\` (operation enum, its two children and independent 128-point child outputs) and read the two separate \`HolderHolder\` selector **targets and actual record fields**, to determine whether all-input source-honest selector-sharing is warranted. Separately bind the now-three-or-more outstanding actual \`Noise\` inputs only by reviewing original 26.2 named-noise holders/seeded settings and immutable native noise constructor/registry laws; original \`SinglePointContext\` observations alone do not justify that. Avoid private registry exports or recapturing any root/second/third/fourth/fifth/sixth/seventh, 512-cell, 768-NoiseChunk oracle. Existing 32-node cap/hot-path no-allocation requirement remains strict; if the new native topology grows beyond 32 distinct reachable nodes, first seek source-grounded sharing or bounded compositional evaluator stages, never simply raise scratch.
+
+
+## Eighth original JVM source-only frontier — prepared, not executed (22 October 2026)
+
+After all **eight** required checks green, **PR #495 merged** the exact seventh 30-node finite raw-bit parity into \`main\` as **e0bc616913e960f6cc0442295052cd08fae73e20**. Original seventh report **87,635 bytes SHA 9b7adeb5d9fdec39e78668e5cd89d14e8134d31cd38ae8109444d23e72f16f4a**, seventh new-operand fixture **15,232 bytes SHA f749b5a0d6519de971a8a715d02e306111f04a697d7c4c3068aefc0f54c6bd92**. The old seventh and all earlier evidence are **frozen** and must never be recaptured.
+
+The next only **source-owning eighth-layer** program is \`tools/worldgen_26_2_stock_final_density_eighth_layer.py\` with Java diagnostic \`tools/worldgen_java/HelveStockFinalDensityEighthLayer262.java\`. It observes the actual two inputs/enum/child classes of the real deeper left \`Ap2\` that was revealed by the seventh JVM, and separately unwraps **both** \`HolderHolder\` selectors of the two Marker RangeChoice branches. It inspects each target's actual density runtime class and Y-gradient record parameters. The original stock *numeric* target and holder output are compared independently; matching sampled outputs do not establish Holder source semantics or all-input aliasing. Only **two genuinely new Ap2 operand IEEE words per point** are intended for the next permanent fixture (the prior Ap2 result and two older selector outputs are immutable consistency anchors, not recaptured oracle data). The two target output observations are source-law evidence only and should not be recopied into the final fixture if identical.
+
+This diagnostic keeps pinned source/JAR/Atlas and method hashes, exact four-seed/32 XYZ finite bounds, explicit source-text exclusion and every production/VAR-SEM/whole-router/NoiseChunk/actual all-input admission flag FALSE. No old root/inner/second/third/fourth/fifth/sixth/seventh/512-cell/768-NoiseChunk recaptures. The original JVM owner alone runs the program; CI's Java compilation and synthetic frames are **not proof of its original runtime reflection**.
+
+**Once the eighth diagnostic PR is green and merged, run on private original-source owner:**
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_eighth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-eighth-layer-128.json
+
+Upload only the bounded source-free JSON, or paste the exact \`HELVE26_2_EIGHTH_FAILURE|<phase>|<exception-class>\` marker if original reflection differs. Do not infer full native seeded router, real noise or Marker lifecycle parity from this diagnostic. Preserve 32-node hot-path scratch cap and immutable no-allocation DAG; all further nodes require source-grounded sharing or bounded composition before promotion.

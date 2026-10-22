@@ -640,3 +640,101 @@ fn ninth_flat_32node_actual_gradient_add_and_shared_selectors_match_original_min
         );
     }
 }
+
+const TENTH: &str = include_str!("data/stock_finaldensity_tenth_layer_new_128_rawbits.tsv");
+const TENTH_MIN: f64 = f64::from_bits(0xc12e_8480_0000_0000); // actual -1_000_000.0
+const TENTH_MAX: f64 = f64::from_bits(0x3ff9_0000_0000_0000); // actual +1.5625
+
+/// Three NEW actual original Java tenth child observations per seeded
+/// coordinate. The original ninth `RangeChoice` output is *not* duplicated
+/// here: it remains an independently frozen parent from `ninth_samples`.
+fn tenth_samples() -> Vec<([u64; 3], u64, [u64; 2], Receipt)> {
+    let rows: Vec<_> = TENTH.lines().collect();
+    assert_eq!(rows.len(), 128);
+    rows.into_iter()
+        .zip(ninth_samples())
+        .map(|(line, (ninth, eighth, old))| {
+            let children: [u64; 3] = words(line)
+                .try_into()
+                .expect("three source-owned tenth selector/Ap2 branch words");
+            (children, ninth, eighth, old)
+        })
+        .collect()
+}
+
+/// The actually reflected original tenth branch records are Marker,
+/// Ap2 and Ap2, in that order; their compute results are *three separate*
+/// injected original-JVM values. This four-node cold-validated local stage
+/// samples the observed `RangeChoice` independently of its fixed 32-node
+/// ninth parent and without growing either graph's HOT scratch capacity.
+/// Neither Java Marker lifecycle nor either Ap2 source law is inferred.
+fn tenth_choice_stage(children: [u64; 3]) -> Program<'static, 4> {
+    Program::new([
+        constant(children[0]),
+        constant(children[1]),
+        constant(children[2]),
+        Node::CandidateRangeChoice {
+            selector: 0,
+            when_in_range: 1,
+            when_out_of_range: 2,
+            min_inclusive: TENTH_MIN,
+            max_exclusive: TENTH_MAX,
+        },
+    ])
+    .expect("source-observed original tenth RangeChoice bounded four-node stage")
+}
+
+#[test]
+fn tenth_true_selector_and_both_independent_ap2_branches_match_128_ninth_parents() {
+    let mut inside = 0;
+    let mut outside = 0;
+    let mut non_alias_inside = 0;
+    for (i, (children, old_ninth, _, _)) in tenth_samples().into_iter().enumerate() {
+        let selector = f64::from_bits(children[0]);
+        let expected = if (TENTH_MIN..TENTH_MAX).contains(&selector) {
+            inside += 1;
+            if children[0] != children[1] {
+                non_alias_inside += 1;
+            }
+            children[1]
+        } else {
+            outside += 1;
+            children[2]
+        };
+        assert_eq!(
+            expected, old_ninth,
+            "genuine original tenth selected child {i}"
+        );
+        assert_eq!(
+            tenth_choice_stage(children)
+                .sample_block(0, BLOCK_Y[i % 32], 0)
+                .to_bits(),
+            old_ninth,
+            "original tenth actual Marker-selector RangeChoice row {i}"
+        );
+    }
+    assert_eq!((inside, outside, non_alias_inside), (68, 60, 1));
+}
+
+#[test]
+fn tenth_composed_four_plus_thirty_two_nodes_match_stock_original_128_min_root() {
+    for (i, (children, old_ninth, _, (new, sixth, third, root))) in
+        tenth_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+        let original_choice = tenth_choice_stage(children).sample_block(0, y, 0);
+        assert_eq!(
+            original_choice.to_bits(),
+            old_ninth,
+            "source-free tenth original parent boundary {i}"
+        );
+        // Stage output is an explicit per-sample IEEE word. Only the
+        // test fixture can supply its unresolved original density children.
+        let final_density = ninth_partial_program(original_choice.to_bits(), new, sixth, third);
+        assert_eq!(
+            final_density.sample_block(0, y, 0).to_bits(),
+            root,
+            "original tenth staged 4+32 stock finalDensity MIN point {i}"
+        );
+    }
+}

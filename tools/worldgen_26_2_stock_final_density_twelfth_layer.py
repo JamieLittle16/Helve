@@ -156,7 +156,7 @@ def parse_output(stdout: str) -> tuple[list[dict], list[dict]]:
         != {k: v for k, v in shapes[0].items() if k != "world_seed_bits"}
         for s in shapes[1:]
     ):
-        raise TwelfthLayerError("real MulOrAdd record changed across four seeds")
+        raise TwelfthLayerError("real out-left Ap2 record changed across four seeds")
     return shapes, vectors
 
 
@@ -303,7 +303,7 @@ def capture(*, source: Path, db: Path, lock: Path,
         "point_count_per_seed": 32,
         "sample_context": "DensityFunction$SinglePointContext",
         "original_stock_registry_used": True,
-        "new_twelfth_inright_direct_child_observed": True,
+        "new_twelfth_outleft_ap2_children_observed": True,
         "source_text_included": False,
         "shapes": shapes, "vectors": vectors,
         "arithmetic_candidate_telemetry": candidate_telemetry(shapes, vectors),

@@ -539,3 +539,73 @@ narrow source-owned frontier, only if necessary, is the actual in-right
 `MulOrAdd`, out-left `Ap2`, out-right `RangeChoice` and independent
 Marker/Holder ownership. Original captures through layer eleven are complete
 and **must not be replayed**.
+
+## Twelfth source-owner frontier — actual in-right MulOrAdd only (22 October 2026; original JVM execution PENDING)
+
+**Source-owner observer staged, NOT run against private original 26.2 yet.**
+Eleventh completed immutable Java report: **71,499 bytes SHA-256
+a9d39854865d84bc8bdc2cf061ff715a589101af57c842dc159c2754cc71c6cc**;
+eleventh **five-only-new** 128×5 IEEE fixture: **10,880 bytes SHA-256
+f2d4b9084f30aa5f277053f9513c7529c321648d491b21b77e12bfd24b960e99**.
+The merged source-observed staged **3+3+4+32 node** test-only candidate has
+128/128 genuine frozen stock finalDensity MIN-root parity. Those preceding
+original JVM oracles **must not be recaptured or rewritten**.
+
+**Narrow technical choice:** the original eleventh in-range
+\`Ap2(MIN)\` right operand is a genuine class-observed
+\`DensityFunctions$MulOrAdd\`. It determines MIN at 60 of the 128
+previously observed points (the in-range MIN's 68/60 left/right
+operand results are a *different* measurement from the outer
+\`RangeChoice\` 68/60 branch counts). Rather than inspect several
+unrelated branches, descend into ONLY this exact right operand:
+
+- Real \`MulOrAdd.specificType\` enum declaring class and exact
+  operation \`ADD\` or \`MUL\`, not guessed from the finite values.
+- Original raw IEEE-754 \`argument\` coefficient and its sole wrapped
+  density child's actual Java runtime class. The four 26.2 seed graph
+  shape records must be identical.
+- One genuinely NEW direct-child IEEE-754 word per each of the existing
+  128 pinned \`SinglePointContext\` XYZ. The *old* original in-right
+  \`MulOrAdd\` result is freshly observed only as a bitwise independent
+  anchor to **column three of the previously merged eleventh TSV**,
+  not duplicated in a new fixture or source report.
+- Arithmetic \`ADD\`/\`MUL\` on genuine original operand words is recorded
+  as telemetry only; a mismatch, signed-zero subtlety or original
+  special-case never authorizes changing actual JVM evidence or
+  admitting a general Java source law.
+
+Bridge files:
+\`tools/worldgen_java/HelveStockFinalDensityTwelfthLayer262.java\`,
+\`tools/worldgen_26_2_stock_final_density_twelfth_layer.py\`,
+\`tools/tests/test_worldgen_26_2_stock_final_density_twelfth_layer.py\`.
+They check immutable source ZIP/JAR SHA, indexed pinned Java method body
+hashes (existing source-provenance inventory), eleventh owner report/fixture
+SHA, 4 seed-invariant record shapes, 4×32 exact bounded finite frames,
+128/128 prior-parent anchors, fixed point/seed identity, source text
+exclusion, and all false source-law, \`NoiseChunk\`, VAR/SEM, full seeded
+generator and production flags. Synthetic CI and JDK compilation **are
+not** original 26.2 runtime evidence.
+
+**Only after the twelfth observer PR is all-green and merged**, perform
+the ONE NEW bounded original-JVM capture on the private original owner:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_twelfth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-twelfth-layer-128.json
+
+Upload only that NEW source-free JSON or bounded
+\`HELVE26_2_TWELFTH_FAILURE|phase|ExceptionClass\` marker. No
+root/inner/first–eleventh, noise, or \`NoiseChunk\` captures need replay.
+Once the genuine twelfth original evidence arrives, freeze only the
+**128 new child words** in a separate 128×1 TSV, SHA-pin the complete owner
+receipt, test its independently anchored eleventh parent and source
+coefficient/operation against a cold-validated ≤32-node local native
+arithmetic stage, then test composed original MIN-root parity. Never
+rewrite old fixtures, increase per-stage HOT scratch, optimize from merely
+equal sample numbers, infer arbitrary-input Java arithmetic/marker-cache
+equivalence or enable production worldgen from finite parity.

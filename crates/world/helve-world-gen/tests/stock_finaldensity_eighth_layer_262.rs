@@ -8,7 +8,7 @@
 //! an all-input alias or stock `NoiseChunk` lifecycle claim.
 //!
 //! Original seventh 30-node regression is retained; new 32-node candidate stays within the hard bound.
-//! Deeper left Ap2 operands are independently source-owned, but the right MulOrAdd and actual Noise remain JVM-fed.
+//! Deeper left Ap2 operands are independently source-owned, but the right `MulOrAdd` and actual `Noise` remain JVM-fed.
 
 use helve_world_gen::density_primitives_262::DensityPrimitive262 as Primitive;
 use helve_world_gen::stock_density_program_262::{
@@ -265,7 +265,7 @@ fn eighth_samples() -> Vec<([u64; 2], Receipt)> {
 
 /// The genuine deeper Ap2 operation is MUL and was independently measured on
 /// both source-owned operands, including four positive-zero short circuits.
-/// This does not source-qualify the right child MulOrAdd or the source law for
+/// This does not source-qualify the right child `MulOrAdd` or the source law for
 /// arbitrary Ap2 instances. Exact two finite operands are still JVM-injected.
 fn eighth_partial_program(
     eighth: [u64; 2],

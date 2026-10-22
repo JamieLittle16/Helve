@@ -451,54 +451,9 @@ fn ninth_samples() -> Vec<(u64, [u64; 2], Receipt)> {
 /// value is a finite sample-test simplification, NOT Java object identity
 /// or all-input holder forwarding qualification. This saves one DAG node,
 /// permitting the actual deep ADD with a new child under the 32-node ceiling.
-fn ninth_partial_program(
-    new_child: u64,
-    new: [u64; 7],
-    sixth: [u64; 4],
-    third: [u64; 6],
-) -> Program<'static, 32> {
-    Program::new(std::array::from_fn(|i| match i {
-        0 => Node::Primitive(left_gradient()),
-        1 => Node::Primitive(ninth_left_gradient()), // genuine real Y-gradient record from ninth JVM
-        2 => constant(new_child), // only genuine ninth new RangeChoice child output
-        3 => Node::CandidateMulOrAdd {
-            input: 2,
-            argument: NINTH_RIGHT_ADD,
-            operation: Op::Add,
-        },
-        4 => Node::ExplicitAp2Multiply { left: 1, right: 3 },
-        5 => Node::CandidateMulOrAdd {
-            input: 4,
-            argument: LEFT_DEEP_ADD,
-            operation: Op::Add,
-        },
-        6 => Node::CandidateMulOrAdd {
-            input: 5,
-            argument: LEFT_INNER_ADD,
-            operation: Op::Add,
-        },
-        7 => Node::ExplicitAp2Multiply { left: 0, right: 6 },
-        8 => Node::CandidateMulOrAdd {
-            input: 7,
-            argument: LEFT_OUTER_ADD,
-            operation: Op::Add,
-        },
-        9 => Node::CandidateMulOrAdd {
-            input: 8,
-            argument: FIRST_MUL,
-            operation: Op::Multiply,
-        },
-        10 => Node::CandidateSqueeze { input: 9 },
-        11 => Node::Primitive(outside_gradient()),
-        12 => constant(third[2]), // original nested Noise output
-        13 => constant(third[3]), // genuine Constant(-1) output
-        14 => Node::CandidateRangeChoice {
-            selector: 11,
-            when_in_range: 12,
-            when_out_of_range: 13,
-            min_inclusive: -60.0,
-            max_exclusive: 321.0,
-        },
+// Construct only the source-observed right-hand candidates in cold graph setup.
+fn ninth_right_branch_node(i: usize, new: [u64; 7], sixth: [u64; 4]) -> Node<'static> {
+    match i {
         15 => constant(sixth[1]), // outside inner original Noise output
         16 => Node::CandidateMulOrAdd {
             input: 15,
@@ -561,7 +516,59 @@ fn ninth_partial_program(
             left: 10,
             right: 30,
         },
-        _ => unreachable!("fixed 32-node source-observed ninth partial graph"),
+        _ => unreachable!("ninth bounded right-hand graph node"),
+    }
+}
+
+fn ninth_partial_program(
+    new_child: u64,
+    new: [u64; 7],
+    sixth: [u64; 4],
+    third: [u64; 6],
+) -> Program<'static, 32> {
+    Program::new(std::array::from_fn(|i| match i {
+        0 => Node::Primitive(left_gradient()),
+        1 => Node::Primitive(ninth_left_gradient()), // genuine real Y-gradient record from ninth JVM
+        2 => constant(new_child), // only genuine ninth new RangeChoice child output
+        3 => Node::CandidateMulOrAdd {
+            input: 2,
+            argument: NINTH_RIGHT_ADD,
+            operation: Op::Add,
+        },
+        4 => Node::ExplicitAp2Multiply { left: 1, right: 3 },
+        5 => Node::CandidateMulOrAdd {
+            input: 4,
+            argument: LEFT_DEEP_ADD,
+            operation: Op::Add,
+        },
+        6 => Node::CandidateMulOrAdd {
+            input: 5,
+            argument: LEFT_INNER_ADD,
+            operation: Op::Add,
+        },
+        7 => Node::ExplicitAp2Multiply { left: 0, right: 6 },
+        8 => Node::CandidateMulOrAdd {
+            input: 7,
+            argument: LEFT_OUTER_ADD,
+            operation: Op::Add,
+        },
+        9 => Node::CandidateMulOrAdd {
+            input: 8,
+            argument: FIRST_MUL,
+            operation: Op::Multiply,
+        },
+        10 => Node::CandidateSqueeze { input: 9 },
+        11 => Node::Primitive(outside_gradient()),
+        12 => constant(third[2]), // original nested Noise output
+        13 => constant(third[3]), // genuine Constant(-1) output
+        14 => Node::CandidateRangeChoice {
+            selector: 11,
+            when_in_range: 12,
+            when_out_of_range: 13,
+            min_inclusive: -60.0,
+            max_exclusive: 321.0,
+        },
+        _ => ninth_right_branch_node(i, new, sixth),
     }))
     .expect("one cold-validated 32-node backward-only ninth graph")
 }

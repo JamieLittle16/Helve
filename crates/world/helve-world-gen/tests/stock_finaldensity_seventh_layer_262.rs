@@ -3,7 +3,7 @@
 //! Seven genuinely new original-JVM child operands per point; all previous
 //! sixth/third outputs and the original MIN-root fixture remain separate.
 //! Actual deeper left `MulOrAdd` and both distinct Marker `RangeChoice`
-//! branches are lowered. The two original HolderHolder selectors independently
+//! branches are lowered. The two original `HolderHolder` selectors independently
 //! agree with the existing Rust gradient on 128 finite samples; this is NOT
 //! an all-input alias or stock `NoiseChunk` lifecycle claim.
 //!
@@ -66,8 +66,7 @@ fn constant(bits: u64) -> Node<'static> {
 }
 
 fn left_gradient() -> Primitive {
-    Primitive::y_clamped_gradient(-64, -40, 0.0, 1.0)
-        .expect("actual left-gradient original record")
+    Primitive::y_clamped_gradient(-64, -40, 0.0, 1.0).expect("actual left-gradient original record")
 }
 
 fn outside_gradient() -> Primitive {
@@ -111,7 +110,7 @@ fn partial_program(new: [u64; 7], sixth: [u64; 4], third: [u64; 6]) -> Program<'
         },
         7 => Node::CandidateSqueeze { input: 6 },
         8 | 12 => Node::Primitive(outside_gradient()),
-        9 => constant(third[2]), // original nested Noise output
+        9 => constant(third[2]),  // original nested Noise output
         10 => constant(third[3]), // genuine Constant(-1) output
         11 => Node::CandidateRangeChoice {
             selector: 8,
@@ -157,9 +156,19 @@ fn partial_program(new: [u64; 7], sixth: [u64; 4], third: [u64; 6]) -> Program<'
             max_exclusive: 321.0,
         },
         23 => Node::CandidateAbs { input: 22 },
-        24 => Node::ExplicitAp2Max { left: 20, right: 23 },
-        25 => Node::CandidateMulOrAdd { input: 24, argument: 1.5, operation: Op::Multiply },
-        26 => Node::ExplicitAp2Add { left: 17, right: 25 },
+        24 => Node::ExplicitAp2Max {
+            left: 20,
+            right: 23,
+        },
+        25 => Node::CandidateMulOrAdd {
+            input: 24,
+            argument: 1.5,
+            operation: Op::Multiply,
+        },
+        26 => Node::ExplicitAp2Add {
+            left: 17,
+            right: 25,
+        },
         27 => constant(64.0_f64.to_bits()),
         28 => Node::CandidateRangeChoice {
             selector: 11,
@@ -188,18 +197,19 @@ fn exact_original_deep_add_and_independent_two_marker_choices() {
         let deep = Program::new([
             constant(new[0]),
             Node::CandidateMulOrAdd {
-            input: 0,
-            argument: LEFT_DEEP_ADD,
-            operation: Op::Add,
-        },
+                input: 0,
+                argument: LEFT_DEEP_ADD,
+                operation: Op::Add,
+            },
         ])
         .expect("real original seventh ADD(-0.078125)");
-        assert_eq!(deep.sample_block(0, y, 0).to_bits(), sixth[0], "deep ADD {i}");
+        assert_eq!(
+            deep.sample_block(0, y, 0).to_bits(),
+            sixth[0],
+            "deep ADD {i}"
+        );
 
-        for (input, zero, original) in [
-            (new[2], new[3], sixth[2]),
-            (new[5], new[6], sixth[3]),
-        ] {
+        for (input, zero, original) in [(new[2], new[3], sixth[2]), (new[5], new[6], sixth[3])] {
             let choice = Program::new([
                 Node::Primitive(outside_gradient()),
                 constant(input),
@@ -213,7 +223,11 @@ fn exact_original_deep_add_and_independent_two_marker_choices() {
                 },
             ])
             .expect("separately source-observed actual seventh RangeChoice");
-            assert_eq!(choice.sample_block(0, y, 0).to_bits(), original, "choice {i}");
+            assert_eq!(
+                choice.sample_block(0, y, 0).to_bits(),
+                original,
+                "choice {i}"
+            );
         }
         checks += 1;
     }

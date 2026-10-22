@@ -72,6 +72,7 @@ class SixthLayerTransportTests(unittest.TestCase):
             "point_count_per_seed":32,
             "sample_context":"DensityFunction$SinglePointContext",
             "original_stock_registry_used":True,"new_sixth_layer_inputs_observed":True,
+            "source_text_included":False,
             "shapes":shapes,"vectors":vectors,
             **{gate:False for gate in sixth.GATES},
         }

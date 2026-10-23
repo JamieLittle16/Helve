@@ -1630,7 +1630,6 @@ fn eighteenth_true_clamp_native_then_add_min_to_128_genuine_original_roots() {
     // No new production or all-input Java/NoiseChunk/Clamp cache semantics.
 }
 
-
 const NINETEENTH_TWO_NEW_ONLY: &str =
     include_str!("data/stock_finaldensity_nineteenth_clamp_ap2_add_children_128_rawbits.tsv");
 
@@ -1640,7 +1639,11 @@ const NINETEENTH_TWO_NEW_ONLY: &str =
 // do not copy the 128 old parent words or admit the Java Ap2 source law.
 fn nineteenth_original_child_samples() -> Vec<(u64, u64)> {
     let lines: Vec<_> = NINETEENTH_TWO_NEW_ONLY.lines().collect();
-    assert_eq!(lines.len(), 128, "four genuine original stock seed groups x 32");
+    assert_eq!(
+        lines.len(),
+        128,
+        "four genuine original stock seed groups x 32"
+    );
     lines
         .into_iter()
         .enumerate()
@@ -1715,7 +1718,8 @@ fn nineteenth_original_add_into_clamp_and_full_bounded_finaldensity_root_128() {
             .sample_block(0, y, 0)
             .to_bits();
         assert_eq!(
-            true_inner, eighteenth_original_inner_bits(i, new_add[1]),
+            true_inner,
+            eighteenth_original_inner_bits(i, new_add[1]),
             "genuine original nineteenth -> eighteenth raw input {i}"
         );
         let computed_clamp = eighteenth_actual_clamp_sample_stage(true_inner)
@@ -1727,11 +1731,10 @@ fn nineteenth_original_add_into_clamp_and_full_bounded_finaldensity_root_128() {
             .sample_block(0, y, 0)
             .to_bits();
         assert_eq!(seventeenth_parent, old_sixteenth[1]);
-        let sixteenth_parent = sixteenth_cacheonce_wrapped_min_stage(
-            old_sixteenth[0], seventeenth_parent
-        )
-        .sample_block(0, y, 0)
-        .to_bits();
+        let sixteenth_parent =
+            sixteenth_cacheonce_wrapped_min_stage(old_sixteenth[0], seventeenth_parent)
+                .sample_block(0, y, 0)
+                .to_bits();
         assert_eq!(sixteenth_parent, thirteenth[1]);
         let thirteenth_parent = thirteenth_left_ap2_min_stage(thirteenth[0], sixteenth_parent)
             .sample_block(0, y, 0)

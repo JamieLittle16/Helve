@@ -1472,7 +1472,6 @@ fn seventeenth_add_then_sixteenth_min_to_stock_original_finaldensity_root_128() 
     // No operation/Holder/Clamp/cache source admission or production authority.
 }
 
-
 const EIGHTEENTH_TRUE_NEW: &str =
     include_str!("data/stock_finaldensity_eighteenth_clamp_true_new_two_overrides_128.tsv");
 
@@ -1480,12 +1479,13 @@ const EIGHTEENTH_TRUE_NEW: &str =
 // match already-frozen 17th RIGHT Clamp values at 126 of 128 positions.
 // Only index 18 and index 28 have distinct original inner words. Never
 // duplicate the other 126 old original numerical values as a new fixture.
-fn eighteenth_original_inner_bits(
-    index: usize,
-    old_seventeenth_clamp: u64,
-) -> u64 {
+fn eighteenth_original_inner_bits(index: usize, old_seventeenth_clamp: u64) -> u64 {
     let entries: Vec<_> = EIGHTEENTH_TRUE_NEW.lines().collect();
-    assert_eq!(entries.len(), 2, "only two genuinely new inner operand words");
+    assert_eq!(
+        entries.len(),
+        2,
+        "only two genuinely new inner operand words"
+    );
     let first: Vec<_> = entries[0].split('\t').collect();
     let second: Vec<_> = entries[1].split('\t').collect();
     assert_eq!(first.len(), 2);
@@ -1557,7 +1557,13 @@ fn eighteenth_true_clamp_native_then_add_min_to_128_genuine_original_roots() {
                     thirteenth,
                     (
                         twelfth,
-                        (eleventh, tenth, old_ninth_choice, _, (ninth_new, sixth, third, stock_root)),
+                        (
+                            eleventh,
+                            tenth,
+                            old_ninth_choice,
+                            _,
+                            (ninth_new, sixth, third, stock_root),
+                        ),
                     ),
                 ),
             ),
@@ -1576,16 +1582,24 @@ fn eighteenth_true_clamp_native_then_add_min_to_128_genuine_original_roots() {
         let native_add = seventeenth_minright_add_stage(new_add[0], native_clamp)
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(native_add, old_sixteenth[1], "17th ADD -> 16th right parent {i}");
-        let native_sixteenth =
-            sixteenth_cacheonce_wrapped_min_stage(old_sixteenth[0], native_add)
-                .sample_block(0, y, 0)
-                .to_bits();
-        assert_eq!(native_sixteenth, thirteenth[1], "16th MIN -> thirteenth right {i}");
+        assert_eq!(
+            native_add, old_sixteenth[1],
+            "17th ADD -> 16th right parent {i}"
+        );
+        let native_sixteenth = sixteenth_cacheonce_wrapped_min_stage(old_sixteenth[0], native_add)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            native_sixteenth, thirteenth[1],
+            "16th MIN -> thirteenth right {i}"
+        );
         let native_thirteenth = thirteenth_left_ap2_min_stage(thirteenth[0], native_sixteenth)
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(native_thirteenth, twelfth[0], "13th MIN -> twelfth left {i}");
+        assert_eq!(
+            native_thirteenth, twelfth[0],
+            "13th MIN -> twelfth left {i}"
+        );
         let native_twelfth = twelfth_outleft_min_stage(native_thirteenth, twelfth[1])
             .sample_block(0, y, 0)
             .to_bits();
@@ -1604,7 +1618,10 @@ fn eighteenth_true_clamp_native_then_add_min_to_128_genuine_original_roots() {
         let native_root = ninth_partial_program(native_choice, ninth_new, sixth, third)
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(native_root, stock_root, "original root after actual Clamp stage {i}");
+        assert_eq!(
+            native_root, stock_root,
+            "original root after actual Clamp stage {i}"
+        );
         root_parity += 1;
     }
     assert_eq!(original_clip_samples, 2);

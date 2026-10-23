@@ -145,6 +145,21 @@ class OriginalTwentySecondNoiseStructureTests(unittest.TestCase):
             self.assertFalse((p / "must-not-exist.json").exists())
             self.assertIn("TWENTY_SECOND LAYER OPEN", err.getvalue())
 
+    def test_real_holder_resource_key_reflection_is_typed_and_fail_closed(self):
+        # The original stock 26.2 runtime does not expose the assumed public
+        # Holder.unwrapKey() method; never reintroduce that API assumption.
+        java = owner.JAVA_SOURCE.read_text(encoding="utf-8")
+        self.assertNotIn('getMethod("unwrapKey")', java)
+        self.assertIn('holderClass.equals("net.minecraft.core.Holder$Reference")', java)
+        self.assertIn('holderClass.equals("net.minecraft.core.Holder$Direct")', java)
+        self.assertIn('field.getType()!=resourceKey', java)
+        self.assertIn('ambiguous stock Reference ResourceKey fields', java)
+        self.assertIn('missing/inaccessible unique stock Reference key', java)
+        self.assertIn('original stock Reference key not bound', java)
+        self.assertIn('original-22nd-resourcekey-location', java)
+        self.assertIn('phase="twenty-second-layer-"+seed+"-"+point+"-"+step;', java)
+        self.assertIn('keyName.matches', java)
+
     @unittest.skipUnless(shutil.which("javac"), "source-free javac required")
     def test_twenty_second_full_source_bridge_compiles(self):
         f = owner.twentieth.nineteenth.eighteenth.seventeenth.sixteenth.fifteenth.fourteenth.thirteenth.twelfth.eleventh.tenth.ninth.eighth.seventh.sixth.fifth

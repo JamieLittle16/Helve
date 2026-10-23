@@ -1905,3 +1905,152 @@ fn twentieth_nested_actual_add_into_nineteenth_and_full_128_original_roots() {
     // This is sample-only: no full router graph / original JVM all-input law,
     // cache/NoiseChunk lifecycle, native production or generation authority.
 }
+
+const TWENTY_FIRST_NOISE_NEW_ONLY: &str =
+    include_str!("data/stock_finaldensity_twenty_first_actual_noise_leaf_128_rawbits.tsv");
+
+// Stock world seed binding remains held by the independently observed JVM,
+// not by this standalone three-node native candidate; exactly one NEW
+// real DensityFunctions$Noise output word per original 4x32 fixed point.
+const TWENTY_FIRST_SOURCE_MUL_SCALAR: u64 = 0xbf87_8d4f_df3b_6458;
+
+fn twenty_first_original_noise_leaf_words() -> Vec<u64> {
+    let words: Vec<_> = TWENTY_FIRST_NOISE_NEW_ONLY.lines().collect();
+    assert_eq!(words.len(), 128, "genuine twenty-first original Noise 4x32");
+    words
+        .into_iter()
+        .map(|word| {
+            assert_eq!(word.len(), 16, "exact one new stock Noise IEEE word");
+            let bits = u64::from_str_radix(word, 16).expect("source-owned Noise bits");
+            assert!(f64::from_bits(bits).is_finite());
+            bits
+        })
+        .collect()
+}
+
+fn twenty_first_original_mul_sample_stage(noise: u64) -> Program<'static, 3> {
+    Program::new([
+        constant(noise),
+        constant(TWENTY_FIRST_SOURCE_MUL_SCALAR),
+        Node::Multiply { left: 0, right: 1 },
+    ])
+    .expect("standalone cold three-node actual 21st MUL candidate")
+}
+
+#[test]
+fn twenty_first_real_noise_leaf_native_mul_matches_128_frozen_twentieth_inner_values() {
+    let true_noise = twenty_first_original_noise_leaf_words();
+    let old_child = twentieth_original_new_only_words();
+    for (i, (noise, frozen)) in true_noise.into_iter().zip(old_child).enumerate() {
+        let actual = twenty_first_original_mul_sample_stage(noise)
+            .sample_block(0, BLOCK_Y[i % 32], 0)
+            .to_bits();
+        assert_eq!(
+            actual, frozen,
+            "21st actual Noise => old 20th source child {i}"
+        );
+    }
+}
+
+#[test]
+fn twenty_first_actual_noise_leaf_mul_then_all_previous_to_128_original_roots() {
+    let rows = nineteenth_original_child_samples();
+    let frozen_twentieth = twentieth_original_new_only_words();
+    let new_noise = twenty_first_original_noise_leaf_words();
+    let mut complete = 0;
+    let mut clipped = 0;
+    for (
+        i,
+        (
+            new_add,
+            (
+                old_sixteenth,
+                (
+                    thirteenth,
+                    (
+                        twelfth,
+                        (
+                            eleventh,
+                            tenth,
+                            old_ninth_choice,
+                            _,
+                            (ninth_new, sixth, third, stock_root),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ) in seventeenth_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+        let (nineteenth_left, frozen_nineteenth_right) = rows[i];
+        let actual_twentieth_child = twenty_first_original_mul_sample_stage(new_noise[i])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            actual_twentieth_child, frozen_twentieth[i],
+            "21st new Noise leaf -> 20th actual wrapped child row {i}"
+        );
+        let nineteenth_right = twentieth_source_add_scalar_stage(actual_twentieth_child)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            nineteenth_right, frozen_nineteenth_right,
+            "20th -> 19th RIGHT row {i}"
+        );
+        let true_inner = seventeenth_minright_add_stage(nineteenth_left, nineteenth_right)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            true_inner,
+            eighteenth_original_inner_bits(i, new_add[1]),
+            "genuine original nineteenth -> eighteenth raw input {i}"
+        );
+        let computed_clamp = eighteenth_actual_clamp_sample_stage(true_inner)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(computed_clamp, new_add[1], "18th Clamp parent row {i}");
+        clipped += usize::from(true_inner != computed_clamp);
+        let seventeenth_parent = seventeenth_minright_add_stage(new_add[0], computed_clamp)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(seventeenth_parent, old_sixteenth[1]);
+        let sixteenth_parent =
+            sixteenth_cacheonce_wrapped_min_stage(old_sixteenth[0], seventeenth_parent)
+                .sample_block(0, y, 0)
+                .to_bits();
+        assert_eq!(sixteenth_parent, thirteenth[1]);
+        let thirteenth_parent = thirteenth_left_ap2_min_stage(thirteenth[0], sixteenth_parent)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(thirteenth_parent, twelfth[0]);
+        let twelfth_parent = twelfth_outleft_min_stage(thirteenth_parent, twelfth[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(twelfth_parent, eleventh[3]);
+        let inside = eleventh_min_stage(eleventh[1], eleventh[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let outside = eleventh_max_stage(twelfth_parent, eleventh[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!([eleventh[0], inside, outside], tenth);
+        let choice = tenth_choice_stage([eleventh[0], inside, outside])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(choice, old_ninth_choice);
+        let root = ninth_partial_program(choice, ninth_new, sixth, third)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            root, stock_root,
+            "21st true Noise leaf bounded finalDensity root {i}"
+        );
+        complete += 1;
+    }
+    assert_eq!(clipped, 2);
+    assert_eq!(complete, 128);
+    // Separate cold-validated 3, 3, 3, 5, 3, 3, 3, 3, 3, 3, 4, 32 HOT stages.
+    // This is sample-only: no full router graph / original JVM all-input law,
+    // cache/NoiseChunk lifecycle, native production or generation authority.
+}

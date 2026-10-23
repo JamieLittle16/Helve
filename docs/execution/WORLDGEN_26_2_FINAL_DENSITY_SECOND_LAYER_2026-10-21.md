@@ -1639,3 +1639,63 @@ independently SHA-256 checked against the original stock lock.
 gates remain FALSE.** Passing finite source-observed witnesses cannot promote
 them. Earlier original stock captures 1–20 are already complete and must not
 be repeated.
+
+## 2026-10-23 — twenty-first genuine nested MUL terminates at real Noise leaf
+
+PRIVATE original stock 26.2 **37,461-byte** source-free JVM receipt (SHA-256
+`a14316f209553322029b2df7a37ddc757d5f52ae53005f404427111a00f58fec`).
+Exactly **4 independent actual RandomState world seeds × 32 existing XYZ**.
+Original actual twentieth wrapped child is `DensityFunctions$MulOrAdd`:
+concrete operator **MUL**, scalar IEEE `bf878d4fdf3b6458` (approximately
+−0.0115), concrete wrapped child `DensityFunctions$Noise`. No assumed
+source class, operator, or scalar from numerical coincidence. All 128 new
+stock Noise outputs exactly reproduce the independently frozen twentieth
+child parent under IEEE multiplication (**128/128**; 0 mismatches).
+Original Java source archive and server SHA pins are unchanged.
+
+Only **128 genuinely new Noise leaf IEEE words** enter
+`stock_finaldensity_twenty_first_actual_noise_leaf_128_rawbits.tsv`,
+2,176 bytes, SHA-256 `7519acc761730ba6aac2f1ac03d4b625d529127e258e23a8945dee7d25e193ed`.
+`tools/worldgen_26_2_stock_finaldensity_twenty_first_layer_fixture.py`
+pins the original report bytes/SHA, exact original operator/argument/child
+class, prior twentieth fixture and source history, all false admission gates,
+and independently verifies all 128 frozen twentieth parents. **No copy of old
+parent bits, original stock source text, archive, registry or seed dataset** is
+stored in this receipt. Rust adds only test-only cold 3-node MUL candidate,
+then traverses each existing cold 20→9 stage to 128/128 genuine original
+finalDensity root anchors; no production changes.
+
+### Next frontier: source-owned Noise leaf STRUCTURE, not a nonexistent 22nd numeric child
+
+The original twenty-first actual child is a `DensityFunctions$Noise` leaf.
+There is **no deeper density-function child to recurse into**. Accordingly,
+`HelveStockFinalDensityTwentySecondLayer262.java` retraces the original
+RandomState noise router graph and observes the **genuine source-owned**
+`Noise` node xz/y scales, actual `DensityFunction$NoiseHolder` binding
+and concrete NormalNoise runtime, original `Holder` storage class and its
+unwrapped resource-key identity (possibly explicitly `unkeyed`).
+The 128 numeric old Noise words are **independently checked against the
+previous sealed one-new-word fixture**; the 22nd evidence adds **zero**
+new numeric words. No presumed noise key, scale or registry holder is
+manufactured, and no all-input NoiseHolder seed/random/cache law is admitted.
+
+Only after this PR is merged with all CI/workgen qualifications green, run:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_twenty_second_layer.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --server-jar .crucible/vanilla/downloads/26.2-server.bin \
+  --output /tmp/helve-26_2-final-twenty-second-layer-128.json
+```
+
+This explicitly bypasses the otherwise unconditional online manifest
+lookup but **does not** bypass the stock server SHA-256 pinned in
+`vanilla/vanilla.lock.toml`. Earlier original original probes 1–21 must
+not be repeated. All source/VAR/SEM/full router/NoiseChunk/cache/production
+gate flags remain **false**. The 22nd result is noise-**structure**
+evidence only.

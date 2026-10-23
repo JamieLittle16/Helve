@@ -1699,3 +1699,28 @@ lookup but **does not** bypass the stock server SHA-256 pinned in
 not be repeated. All source/VAR/SEM/full router/NoiseChunk/cache/production
 gate flags remain **false**. The 22nd result is noise-**structure**
 evidence only.
+
+### Twenty-second source-owned `Holder` key reflection repair (23 October)
+
+The first original stock runtime execution of the terminal-Noise structure
+observer reached `twenty-first-layer-0-0-original-22nd-holder-resource-key`
+but stopped with `java.lang.NoSuchMethodException`. This occurred after the
+real nested `DensityFunctions$Noise` and NoiseHolder type had been reflected;
+it did **not** indicate a new mismatch in any of the 128 original arithmetic
+or Noise leaf fixtures.
+
+The observer's previous use of `Holder.class.getMethod("unwrapKey")`
+incorrectly presumed a public method on the pinned runtime. The replacement
+reads exactly one non-static, `ResourceKey`-typed instance field from the
+actual `Holder$Reference` storage, requiring unique identity, accessibility
+and a non-null typed value. The already supported `Holder$Direct` is explicitly
+`unkeyed`. Neither branch constructs a key or guesses a registry value.
+The `ResourceKey.location()` boundary has its own failure phase to isolate a
+potential additional original runtime API mismatch without weakening the
+source/provenance checks. The original Java source body, source SHA, server
+SHA and all production/VAR/SEM/cache/all-input admission gates remain pinned,
+unchanged and **false**.
+
+Existing original stock data 1–21 remains fully reusable. The only retry
+is the same twenty-second source-owned Noise structure command above, after
+this repair passes CI and merges.

@@ -74,7 +74,7 @@ def validate_shape(shape: dict) -> None:
     if shape["muloradd_op"] not in ("ADD", "MUL"):
         raise TwentiethLayerError("source-owned twentieth MulOrAdd op malformed")
     raw = shape["muloradd_argument_bits"]
-    if not isinstance(raw, str) or len(raw) != 16 or not finite_bits("0x" + raw):
+    if not isinstance(raw, str) or len(raw) != 16 or not finite_bits(raw):
         raise TwentiethLayerError("twentieth actual MulOrAdd scalar IEEE nonfinite/malformed")
     try:
         nineteenth.eighteenth.seventeenth.sixteenth.fifteenth.fourteenth.thirteenth.twelfth.eleventh.tenth.ninth.eighth.seventh.sixth.fifth.fourth.third.second.require_class(

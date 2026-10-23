@@ -1565,3 +1565,77 @@ Upload ONLY the new source-free twentieth JSON or the bounded
 All preceding original stock 4×32 captures are complete and must
 not be repeated. The observed scalar/operation/class must be reviewed
 *from this actual source probe*, not guessed before it executes.
+
+## 2026-10-23 — original twentieth RIGHT MulOrAdd child (one new word per point)
+
+**Original stock Java 26.2 evidence received**: 4 actual RandomState seeds × 32
+original SinglePointContext XYZ = 128 points. Private source-free original
+capture length **37,509 bytes**; SHA-256
+`859e7f78594bb2ddca090627ea6e04503b220f6b619fe3df46bab8b25394bbd8`.
+The indexed source and server SHA pins have **not** changed.
+
+The nineteenth original Clamp-wrapped Ap2(ADD) RIGHT child was observed as
+`DensityFunctions$MulOrAdd`, with its own original source-reflected enum
+`ADD`, constant argument raw IEEE `bfb395810624dd2f` = -0.0765, and
+genuine wrapped-child runtime class `DensityFunctions$MulOrAdd`.
+All four seeds observed the identical concrete operator, scalar and class.
+Exactly 128 new original wrapped-child IEEE words were captured; another 128
+nineteenth RIGHT MulOrAdd parent bits served **only as independent anchors**
+to the sealed nineteenth original two-new-word receipt.
+
+The original 128 finite ADD candidates `twentieth_inner + (-0.0765)` exactly
+bit-match their **old frozen nineteenth RIGHT** parents, with 0 mismatches.
+No generalized Java numeric / source-method / cache / NoiseChunk / production
+claim follows from finite bounded samples.
+
+Only 128 genuinely NEW IEEE words are stored in
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_twentieth_muloradd_nested_child_128_rawbits.tsv`:
+2,176 bytes, SHA-256
+`cfefd23fb5cb60a0d8da2ec0a12990c58ef6b94bd2faff2639e1660148482d6c`.
+No old parent copies, old seed rows, private original report, Java source archive
+or unsourced inferred operand values enter the fixture.
+`tools/worldgen_26_2_stock_finaldensity_twentieth_layer_fixture.py`
+seals the original report and fixture size/SHA, observed enum/constant/child
+shape, fixed seed identities, source index, every false gate, and reconstructs
+each old parent from the already-frozen nineteenth original RIGHT bits.
+
+The test-only Rust cold-validated 3-node ADD with original scalar then enters
+the true nineteenth ADD, eighteenth Clamp[-1,+1] (2 genuine clips),
+seventeenth ADD, sixteenth MIN, thirteenth/twelfth/eleventh/tenth/ninth
+stages and all 128 genuine stock finalDensity root anchor words.
+No existing HOT-stage allocation or production world generation is enabled.
+
+### Single new twenty-first original JVM frontier
+
+The genuine 20th wrapped child was observed to be another
+`DensityFunctions$MulOrAdd`. The next bounded original-JVM observer therefore
+retraces source-owned ancestry and reflects **that nested node's actual**
+`specificType` enum, constant `argument` bits and wrapped child class, then
+samples only its ONE new original child IEEE word per original point. The 20th
+wrapped-child old parent is independently anchored to the new-only sealed 128
+20th fixture. No next operation, scalar or inner-child runtime type is
+assumed ahead of the actual JVM capture. This is **not** a request to recapture
+earlier layers.
+
+Only after this PR is CI-green and merged:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_twenty_first_layer.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --server-jar .crucible/vanilla/downloads/26.2-server.bin \
+  --output /tmp/helve-26_2-final-twenty-first-layer-128.json
+```
+
+The `--server-jar` argument avoids an otherwise unconditional online version
+manifest request from `official_state_data.resolve()`; the runtime is still
+independently SHA-256 checked against the original stock lock.
+
+**All source/VAR-SEM/all-input/cache/NoiseChunk/router/production admission
+gates remain FALSE.** Passing finite source-observed witnesses cannot promote
+them. Earlier original stock captures 1–20 are already complete and must not
+be repeated.

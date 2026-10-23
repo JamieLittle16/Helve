@@ -1494,8 +1494,8 @@ fn eighteenth_original_inner_bits(index: usize, old_seventeenth_clamp: u64) -> u
     assert_eq!(second[0], "28");
     let a = u64::from_str_radix(first[1], 16).expect("actual original +1 clip input row 18");
     let b = u64::from_str_radix(second[1], 16).expect("actual original +1 clip input row 28");
-    assert_eq!(a, 0x3ff5c1c9c20d14a4);
-    assert_eq!(b, 0x3ff219c5d9c551b1);
+    assert_eq!(a, 0x3ff5_c1c9_c20d_14a4);
+    assert_eq!(b, 0x3ff2_19c5_d9c5_51b1);
     match index {
         18 => a,
         28 => b,

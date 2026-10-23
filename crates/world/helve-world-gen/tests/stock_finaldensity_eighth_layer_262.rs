@@ -1768,7 +1768,6 @@ fn nineteenth_original_add_into_clamp_and_full_bounded_finaldensity_root_128() {
     // cache/NoiseChunk lifecycle, native production or generation authority.
 }
 
-
 const TWENTIETH_ONE_NEW_ONLY: &str =
     include_str!("data/stock_finaldensity_twentieth_muloradd_nested_child_128_rawbits.tsv");
 
@@ -1846,7 +1845,10 @@ fn twentieth_nested_actual_add_into_nineteenth_and_full_128_original_roots() {
         let nineteenth_right = twentieth_source_add_scalar_stage(new_twentieth[i])
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(nineteenth_right, frozen_nineteenth_right, "20th -> 19th RIGHT row {i}");
+        assert_eq!(
+            nineteenth_right, frozen_nineteenth_right,
+            "20th -> 19th RIGHT row {i}"
+        );
         let true_inner = seventeenth_minright_add_stage(nineteenth_left, nineteenth_right)
             .sample_block(0, y, 0)
             .to_bits();
@@ -1891,7 +1893,10 @@ fn twentieth_nested_actual_add_into_nineteenth_and_full_128_original_roots() {
         let root = ninth_partial_program(choice, ninth_new, sixth, third)
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(root, stock_root, "20th nested actual source-authentic bounded root {i}");
+        assert_eq!(
+            root, stock_root,
+            "20th nested actual source-authentic bounded root {i}"
+        );
         complete += 1;
     }
     assert_eq!(clipped, 2);

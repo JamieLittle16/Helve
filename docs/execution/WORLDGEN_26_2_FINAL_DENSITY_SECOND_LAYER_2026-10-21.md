@@ -1517,3 +1517,51 @@ size, exact source class/op assertions, malformed fake-source tests, all
 FALSE admission gates, and a distinct execution command only after the
 twentieth observer passes CI. Do not guess `MulOrAdd` variant or scalar
 from the previous negative numeric values.
+
+
+### Twentieth actual nineteenth-RIGHT MulOrAdd source observer, pre-capture (23 October 2026)
+
+The next *source-only* observer is now staged, **NOT captured or
+qualified**. `tools/worldgen_java/HelveStockFinalDensityTwentiethLayer262.java`
+reconstructs the existing original stock `RandomState` router, strictly
+retraces the actual seventeenth ADD Holder/Clamp, eighteenth Clamp[-1,+1],
+nineteenth `Ap2(ADD)` with actual LEFT `Ap2` and RIGHT `MulOrAdd`.
+It then reflects **that exact right MulOrAdd node**, reads genuine
+`specificType` enum and `argument` raw IEEE scalar, and gets its
+single real wrapped DensityFunction child runtime class. It exports
+exactly ONE new child IEEE value and ONE OLD right-parent word in each
+of the original 4 × 32 fixed `SinglePointContext` samples. It does
+not presume whether the actual operator is ADD or MUL, what scalar it
+uses, or its wrapped child's concrete class.
+
+Strict source-free transport and provenance:
+`tools/worldgen_26_2_stock_final_density_twentieth_layer.py`,
+negative tests and javac source bridge:
+`tools/tests/test_worldgen_26_2_stock_final_density_twentieth_layer.py`.
+Old twentieth-parent words are independently bit-anchored to the
+nineteenth immutable RIGHT-column fixture SHA
+**77b5729bf8895a5b71b256b662643e87b2afa8fe0cc06caf7848787433fb48c4**;
+the original nineteenth private report is separately pinned by SHA
+**a79b4d191a42f3f264d5e44757aa75c56cdf5077258d36c967207b058695e1f1**.
+No older original captures are re-run. No source text is exported.
+Arithmetic comparison is diagnostic only, never filters real captures;
+previous gates and `twentieth_actual_muloradd_child_qualified` and
+`twentieth_all_input_muloradd_law_admitted` are all FALSE.
+
+**Only after this twentieth-observer PR CI is green and it merges**,
+run the SINGLE new twentieth original JVM capture (no 1–19 replay):
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_twentieth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-twentieth-layer-128.json
+
+Upload ONLY the new source-free twentieth JSON or the bounded
+`HELVE26_2_TWENTIETH_FAILURE|phase|ExceptionClass` diagnostic marker.
+All preceding original stock 4×32 captures are complete and must
+not be repeated. The observed scalar/operation/class must be reviewed
+*from this actual source probe*, not guessed before it executes.

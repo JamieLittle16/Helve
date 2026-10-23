@@ -1906,7 +1906,6 @@ fn twentieth_nested_actual_add_into_nineteenth_and_full_128_original_roots() {
     // cache/NoiseChunk lifecycle, native production or generation authority.
 }
 
-
 const TWENTY_FIRST_NOISE_NEW_ONLY: &str =
     include_str!("data/stock_finaldensity_twenty_first_actual_noise_leaf_128_rawbits.tsv");
 
@@ -1933,7 +1932,7 @@ fn twenty_first_original_mul_sample_stage(noise: u64) -> Program<'static, 3> {
     Program::new([
         constant(noise),
         constant(TWENTY_FIRST_SOURCE_MUL_SCALAR),
-        Node::ExplicitAp2Mul { left: 0, right: 1 },
+        Node::Multiply { left: 0, right: 1 },
     ])
     .expect("standalone cold three-node actual 21st MUL candidate")
 }
@@ -1946,7 +1945,10 @@ fn twenty_first_real_noise_leaf_native_mul_matches_128_frozen_twentieth_inner_va
         let actual = twenty_first_original_mul_sample_stage(noise)
             .sample_block(0, BLOCK_Y[i % 32], 0)
             .to_bits();
-        assert_eq!(actual, frozen, "21st actual Noise => old 20th source child {i}");
+        assert_eq!(
+            actual, frozen,
+            "21st actual Noise => old 20th source child {i}"
+        );
     }
 }
 

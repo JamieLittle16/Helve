@@ -1471,3 +1471,144 @@ fn seventeenth_add_then_sixteenth_min_to_stock_original_finaldensity_root_128() 
     // Separate cold-validated stages of 3,3,3,3,3,3,4,32 HOT nodes max.
     // No operation/Holder/Clamp/cache source admission or production authority.
 }
+
+
+const EIGHTEENTH_TRUE_NEW: &str =
+    include_str!("data/stock_finaldensity_eighteenth_clamp_true_new_two_overrides_128.tsv");
+
+// A 40-byte true-new-only receipt: original Clamp[-1,+1] raw inner values
+// match already-frozen 17th RIGHT Clamp values at 126 of 128 positions.
+// Only index 18 and index 28 have distinct original inner words. Never
+// duplicate the other 126 old original numerical values as a new fixture.
+fn eighteenth_original_inner_bits(
+    index: usize,
+    old_seventeenth_clamp: u64,
+) -> u64 {
+    let entries: Vec<_> = EIGHTEENTH_TRUE_NEW.lines().collect();
+    assert_eq!(entries.len(), 2, "only two genuinely new inner operand words");
+    let first: Vec<_> = entries[0].split('\t').collect();
+    let second: Vec<_> = entries[1].split('\t').collect();
+    assert_eq!(first.len(), 2);
+    assert_eq!(second.len(), 2);
+    assert_eq!(first[0], "18");
+    assert_eq!(second[0], "28");
+    let a = u64::from_str_radix(first[1], 16).expect("actual original +1 clip input row 18");
+    let b = u64::from_str_radix(second[1], 16).expect("actual original +1 clip input row 28");
+    assert_eq!(a, 0x3ff5c1c9c20d14a4);
+    assert_eq!(b, 0x3ff219c5d9c551b1);
+    match index {
+        18 => a,
+        28 => b,
+        _ => old_seventeenth_clamp,
+    }
+}
+
+// The actual source input class is Ap2 and actual original bounds are
+// -1/+1. This standalone 5-node COLD-validated native composition is
+// sample-only; Java Clamp operation law is still source UNADMITTED.
+fn eighteenth_actual_clamp_sample_stage(inner: u64) -> Program<'static, 5> {
+    Program::new([
+        constant(inner),
+        constant((-1.0_f64).to_bits()),
+        Node::ExplicitAp2Max { left: 0, right: 1 },
+        constant(1.0_f64.to_bits()),
+        Node::ExplicitAp2Min { left: 2, right: 3 },
+    ])
+    .expect("bounded original Clamp[-1,+1] candidate, separate cold five-node stage")
+}
+
+#[test]
+fn eighteenth_genuine_clamp_two_true_new_words_match_128_frozen_seventeenth_clamp_parents() {
+    let mut inside = 0;
+    let mut above = 0;
+    let mut below = 0;
+    for (i, (new_add, _)) in seventeenth_samples().into_iter().enumerate() {
+        let old_clamp = new_add[1];
+        let inner = eighteenth_original_inner_bits(i, old_clamp);
+        let raw = f64::from_bits(inner);
+        assert!(raw.is_finite());
+        if raw > 1.0 {
+            above += 1;
+        } else if raw < -1.0 {
+            below += 1;
+        } else {
+            inside += 1;
+        }
+        let native = eighteenth_actual_clamp_sample_stage(inner)
+            .sample_block(0, BLOCK_Y[i % 32], 0)
+            .to_bits();
+        assert_eq!(native, old_clamp, "original Clamp old 17th RIGHT row {i}");
+        assert_eq!(inner != old_clamp, i == 18 || i == 28);
+    }
+    assert_eq!((below, inside, above), (0, 126, 2));
+}
+
+#[test]
+fn eighteenth_true_clamp_native_then_add_min_to_128_genuine_original_roots() {
+    let mut root_parity = 0;
+    let mut original_clip_samples = 0;
+    for (
+        i,
+        (
+            new_add,
+            (
+                old_sixteenth,
+                (
+                    thirteenth,
+                    (
+                        twelfth,
+                        (eleventh, tenth, old_ninth_choice, _, (ninth_new, sixth, third, stock_root)),
+                    ),
+                ),
+            ),
+        ),
+    ) in seventeenth_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+        let real_inner = eighteenth_original_inner_bits(i, new_add[1]);
+        let native_clamp = eighteenth_actual_clamp_sample_stage(real_inner)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_clamp, new_add[1], "18th Clamp -> old 17th RIGHT {i}");
+        if native_clamp != real_inner {
+            original_clip_samples += 1;
+        }
+        let native_add = seventeenth_minright_add_stage(new_add[0], native_clamp)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_add, old_sixteenth[1], "17th ADD -> 16th right parent {i}");
+        let native_sixteenth =
+            sixteenth_cacheonce_wrapped_min_stage(old_sixteenth[0], native_add)
+                .sample_block(0, y, 0)
+                .to_bits();
+        assert_eq!(native_sixteenth, thirteenth[1], "16th MIN -> thirteenth right {i}");
+        let native_thirteenth = thirteenth_left_ap2_min_stage(thirteenth[0], native_sixteenth)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_thirteenth, twelfth[0], "13th MIN -> twelfth left {i}");
+        let native_twelfth = twelfth_outleft_min_stage(native_thirteenth, twelfth[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_twelfth, eleventh[3]);
+        let native_inside = eleventh_min_stage(eleventh[1], eleventh[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let native_outside = eleventh_max_stage(native_twelfth, eleventh[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!([eleventh[0], native_inside, native_outside], tenth);
+        let native_choice = tenth_choice_stage([eleventh[0], native_inside, native_outside])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_choice, old_ninth_choice);
+        let native_root = ninth_partial_program(native_choice, ninth_new, sixth, third)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(native_root, stock_root, "original root after actual Clamp stage {i}");
+        root_parity += 1;
+    }
+    assert_eq!(original_clip_samples, 2);
+    assert_eq!(root_parity, 128);
+    // Separate COLD validated 5, 3, 3, 3, 3, 3, 3, 4, 32 HOT stages.
+    // No new production or all-input Java/NoiseChunk/Clamp cache semantics.
+}

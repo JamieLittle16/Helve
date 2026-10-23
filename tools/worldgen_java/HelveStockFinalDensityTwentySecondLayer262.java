@@ -23,7 +23,7 @@ public final class HelveStockFinalDensityTwentySecondLayer262 {
   static String phase="bootstrap";
 
   static void stage(int seed,int point,String step) {
-    phase="twenty-first-layer-"+seed+"-"+point+"-"+step;
+    phase="twenty-second-layer-"+seed+"-"+point+"-"+step;
   }
   static String type(Object value) {
     return HelveStockFinalDensityInnerSemantics262.type(value);
@@ -597,18 +597,39 @@ public final class HelveStockFinalDensityTwentySecondLayer262 {
              !type(normalNoise).equals(LV+"synth.NormalNoise"))
             throw new IllegalStateException("genuine NoiseHolder stock binding unqualified");
           stage(seedIndex,pointIndex,"original-22nd-holder-resource-key");
-          Method unwrap=holderType.getMethod("unwrapKey");
-          Object optional=unwrap.invoke(noiseData);
-          if(!(optional instanceof Optional<?>))
-            throw new IllegalStateException("real holder unwrapKey Optional class drift");
-          String keyName="unkeyed";
-          if(((Optional<?>)optional).isPresent()) {
-            Object keyObject=((Optional<?>)optional).get();
-            Class<?> resourceKey=Class.forName("net.minecraft.resources.ResourceKey");
+          // Stock 26.2 Holder does NOT guarantee a public unwrapKey()
+          // method. Reflect the one actual typed key field from the concrete
+          // Holder$Reference object. This is a bounded source-owned witness,
+          // NOT all-input Holder API/source-law admission.
+          String holderClass=type(noiseData);
+          Class<?> resourceKey=Class.forName("net.minecraft.resources.ResourceKey");
+          String keyName;
+          if(holderClass.equals("net.minecraft.core.Holder$Direct")) {
+            keyName="unkeyed";
+          } else if(holderClass.equals("net.minecraft.core.Holder$Reference")) {
+            Field foundKey=null;
+            for(Field field:noiseData.getClass().getDeclaredFields()) {
+              if(Modifier.isStatic(field.getModifiers()) ||
+                 field.getType()!=resourceKey) continue;
+              if(foundKey!=null)
+                throw new IllegalStateException("ambiguous stock Reference ResourceKey fields");
+              foundKey=field;
+            }
+            if(foundKey==null ||
+               (!foundKey.canAccess(noiseData) && !foundKey.trySetAccessible()))
+              throw new IllegalStateException("missing/inaccessible unique stock Reference key");
+            Object keyObject=foundKey.get(noiseData);
             if(!resourceKey.isInstance(keyObject))
-              throw new IllegalStateException("original resource key owner drift");
-            Object location=resourceKey.getMethod("location").invoke(keyObject);
+              throw new IllegalStateException("original stock Reference key not bound");
+            stage(seedIndex,pointIndex,"original-22nd-resourcekey-location");
+            Method getLocation=resourceKey.getMethod("location");
+            Object location=getLocation.invoke(keyObject);
+            if(location==null || !type(location).equals(
+                "net.minecraft.resources.ResourceLocation"))
+              throw new IllegalStateException("original ResourceKey.location() shape drift");
             keyName=String.valueOf(location);
+          } else {
+            throw new IllegalStateException("original NoiseHolder storage is not Direct/Reference");
           }
           if(!keyName.matches("(minecraft:[a-z0-9_.\\/\\-]+|unkeyed)"))
             throw new IllegalStateException("original Noise key identity is not bounded");

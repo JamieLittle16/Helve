@@ -1629,3 +1629,138 @@ fn eighteenth_true_clamp_native_then_add_min_to_128_genuine_original_roots() {
     // Separate COLD validated 5, 3, 3, 3, 3, 3, 3, 4, 32 HOT stages.
     // No new production or all-input Java/NoiseChunk/Clamp cache semantics.
 }
+
+
+const NINETEENTH_TWO_NEW_ONLY: &str =
+    include_str!("data/stock_finaldensity_nineteenth_clamp_ap2_add_children_128_rawbits.tsv");
+
+// The original nineteenth Ap2 is ADD(Ap2, MulOrAdd), source-observed with
+// exactly two genuinely NEW IEEE child values per fixed stock JVM point.
+// The old parent is reconstructed from the eighteenth true-new-only receipt;
+// do not copy the 128 old parent words or admit the Java Ap2 source law.
+fn nineteenth_original_child_samples() -> Vec<(u64, u64)> {
+    let lines: Vec<_> = NINETEENTH_TWO_NEW_ONLY.lines().collect();
+    assert_eq!(lines.len(), 128, "four genuine original stock seed groups x 32");
+    lines
+        .into_iter()
+        .enumerate()
+        .map(|(i, line)| {
+            let parts: Vec<_> = line.split('\t').collect();
+            assert_eq!(parts.len(), 2, "two new genuine 19th children row {i}");
+            let left = u64::from_str_radix(parts[0], 16).expect("original 19th LEFT IEEE");
+            let right = u64::from_str_radix(parts[1], 16).expect("original 19th RIGHT IEEE");
+            assert!(f64::from_bits(left).is_finite());
+            assert!(f64::from_bits(right).is_finite());
+            (left, right)
+        })
+        .collect()
+}
+
+#[test]
+fn nineteenth_original_add_two_new_children_native_parent_parity_128() {
+    let prior = seventeenth_samples();
+    let rows = nineteenth_original_child_samples();
+    assert_eq!(rows.len(), prior.len());
+    let mut right_less = 0;
+    for (i, &(left, right)) in rows.iter().enumerate() {
+        let old_seventeenth_clamp = prior[i].0[1];
+        let genuine_old_inner = eighteenth_original_inner_bits(i, old_seventeenth_clamp);
+        let a = f64::from_bits(left);
+        let b = f64::from_bits(right);
+        right_less += usize::from(b < a);
+        // Independent COLD-validated 3-node native ADD; this verifies only
+        // the finite 4x32 source-owned original JVM evidence, not all inputs.
+        let calculated = seventeenth_minright_add_stage(left, right)
+            .sample_block(0, BLOCK_Y[i % 32], 0)
+            .to_bits();
+        assert_eq!(
+            calculated, genuine_old_inner,
+            "original 19th ADD -> 18th Clamp raw inner parent {i}"
+        );
+    }
+    assert_eq!(right_less, 128);
+}
+
+#[test]
+fn nineteenth_original_add_into_clamp_and_full_bounded_finaldensity_root_128() {
+    let rows = nineteenth_original_child_samples();
+    let mut complete = 0;
+    let mut clipped = 0;
+    for (
+        i,
+        (
+            new_add,
+            (
+                old_sixteenth,
+                (
+                    thirteenth,
+                    (
+                        twelfth,
+                        (
+                            eleventh,
+                            tenth,
+                            old_ninth_choice,
+                            _,
+                            (ninth_new, sixth, third, stock_root),
+                        ),
+                    ),
+                ),
+            ),
+        ),
+    ) in seventeenth_samples().into_iter().enumerate()
+    {
+        let y = BLOCK_Y[i % 32];
+        let (nineteenth_left, nineteenth_right) = rows[i];
+        let true_inner = seventeenth_minright_add_stage(nineteenth_left, nineteenth_right)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(
+            true_inner, eighteenth_original_inner_bits(i, new_add[1]),
+            "genuine original nineteenth -> eighteenth raw input {i}"
+        );
+        let computed_clamp = eighteenth_actual_clamp_sample_stage(true_inner)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(computed_clamp, new_add[1], "18th Clamp parent row {i}");
+        clipped += usize::from(true_inner != computed_clamp);
+        let seventeenth_parent = seventeenth_minright_add_stage(new_add[0], computed_clamp)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(seventeenth_parent, old_sixteenth[1]);
+        let sixteenth_parent = sixteenth_cacheonce_wrapped_min_stage(
+            old_sixteenth[0], seventeenth_parent
+        )
+        .sample_block(0, y, 0)
+        .to_bits();
+        assert_eq!(sixteenth_parent, thirteenth[1]);
+        let thirteenth_parent = thirteenth_left_ap2_min_stage(thirteenth[0], sixteenth_parent)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(thirteenth_parent, twelfth[0]);
+        let twelfth_parent = twelfth_outleft_min_stage(thirteenth_parent, twelfth[1])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(twelfth_parent, eleventh[3]);
+        let inside = eleventh_min_stage(eleventh[1], eleventh[2])
+            .sample_block(0, y, 0)
+            .to_bits();
+        let outside = eleventh_max_stage(twelfth_parent, eleventh[4])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!([eleventh[0], inside, outside], tenth);
+        let choice = tenth_choice_stage([eleventh[0], inside, outside])
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(choice, old_ninth_choice);
+        let root = ninth_partial_program(choice, ninth_new, sixth, third)
+            .sample_block(0, y, 0)
+            .to_bits();
+        assert_eq!(root, stock_root, "19th source-authentic bounded root {i}");
+        complete += 1;
+    }
+    assert_eq!(clipped, 2);
+    assert_eq!(complete, 128);
+    // Separate cold-validated 3, 5, 3, 3, 3, 3, 3, 3, 4, 32 HOT stages.
+    // This is sample-only: no full router graph / original JVM all-input law,
+    // cache/NoiseChunk lifecycle, native production or generation authority.
+}

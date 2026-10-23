@@ -1342,3 +1342,101 @@ Upload only the new original source-free eighteenth JSON or a bounded
 HELVE26_2_EIGHTEENTH_FAILURE|phase|ExceptionClass marker. Original JVM
 captures 1–17 must not be repeated; source-law/all-input/production
 admission requires independent review beyond finite originals.
+
+## Eighteenth genuine Clamp[-1,+1] two-original-overrides receipt and nineteenth source frontier (23 October 2026)
+
+**Eighteenth actual original-JVM capture COMPLETE. DO NOT repeat source
+captures 1–18.** Original stock Minecraft Java 26.2 4-seed × 32
+'DensityFunction$SinglePointContext' source-only JSON:
+**36,555 bytes**, SHA-256
+**4e8279f53b06a6de9154f18df073b742ad091acfe6b156611bc916dbbf8781ae**.
+All four original Java runtime shapes identify actual seventeenth
+'Ap2(ADD)' RIGHT child 'DensityFunctions$Clamp', with sole original
+wrapped child runtime type **'DensityFunctions$Ap2'** and authentic
+bound double bits MIN **bff0000000000000 = -1.0** and MAX
+**3ff0000000000000 = +1.0**.
+
+Original sampled Clamp candidate produces **128/128 bit-exact original
+seventeenth RIGHT Clamp output**. Branch coverage:
+**126 within [-1,+1]**, **2 strictly above +1**, **0 below -1**,
+zero candidate mismatches. There are EXACTLY TWO original source
+inner IEEE values genuinely different from the old sealed seventeenth
+right Clamp column: index **18**, inner
+**3ff5c1c9c20d14a4** (genuine XYZ=(128,128,128),
+seed 0123456789abcdef) and index **28**, inner
+**3ff219c5d9c551b1** (XYZ=(-33554431,-63,33554431),
+same original seed). In both cases the old original Clamp output
+is **3ff0000000000000**, +1.0. Remaining **126 original exact rawbits
+are identical** to previously frozen seventeenth new-only RIGHT operand.
+Finite bounded original tests support this exact sample-only candidate,
+NOT general Clamp source law, cache lifecycle, NoiseChunk interpolation
+or production world-generation admission.
+
+**Critical no-duplicate-original-words policy:** new original fixture
+'crates/world/helve-world-gen/tests/data/stock_finaldensity_eighteenth_clamp_true_new_two_overrides_128.tsv'
+has ONLY the two authentic index/new-word override records, **40 bytes**,
+SHA-256 **e1b4da2ef965a0e92ad2bb56931de16dce95318f3aadabd4e78be2721a5b2811**.
+No 128-word sixteenth/seventeenth value duplicate is made.
+The authentic eighteenth original full-report receipt
+'tools/worldgen_26_2_stock_finaldensity_eighteenth_layer_receipt.py'
+pins entire private original SHA/length, actual original four shapes,
+source ZIP/JAR and method provenance via eighteenth owner, previous
+seventeenth fixture SHA **ef9a7e19fc793ce4d33592756faa73a80d86ad59941ae171820b3ed8eb4263a5**,
+the two newly distinct original IEEE override words and exact locations,
+126 old-word equalities, all 128 independently anchored Clamp parents,
+and every original source/prod gate **FALSE**. Negative fixture mutation
+tests, source SHA and zero/overflow bounds tests:
+'tools/tests/test_worldgen_26_2_stock_finaldensity_eighteenth_layer_receipt.py'.
+To verify PRIVATE original report without recapture:
+
+    python3 tools/worldgen_26_2_stock_finaldensity_eighteenth_layer_receipt.py \
+      --capture /tmp/helve-26_2-final-eighteenth-layer-128.json
+
+**Native test-only original sampled Clamp composition extended to roots.**
+'crates/world/helve-world-gen/tests/stock_finaldensity_eighth_layer_262.rs'
+reconstructs the original 128 raw inner Ap2 words from the original
+seventeenth RIGHT parent old words with two truly new overrides,
+uses separate **5-node COLD-validated Max(-1) then Min(+1)** native
+staged composition, verifies genuine Clamp **128/128**, genuine 2
+upper clipping events; feeds CALCULATED Clamp parent into existing
+17th ADD, 16th MIN, 13th MIN, 12th MIN, 11th MAX/MIN,
+10th RangeChoice, ninth root and checks **128 genuine JVM finalDensity
+outputs**. The largest separate HOT stage remains bounded at 32
+nodes. No production Rust changes or extra HOT runtime allocation.
+
+**Next original source frontier: NINETEENTH (NOT RUN).** The actual
+eighteenth 'Clamp[-1,+1]' wraps a real 'DensityFunctions$Ap2'.
+'tools/worldgen_java/HelveStockFinalDensityNineteenthLayer262.java'
+follows the precise stock original rooted ancestry, checks this
+specific Clamp and bounds and authentic wrapped Ap2, then reflects
+that actual Ap2's **own genuine operation** and two immediate actual
+DensityFunction runtime children. Captures precisely **TWO NEW child
+IEEE words/sample**, plus ONE OLD raw Ap2 parent independently
+reconstructed with the source-proven eighteenth two-new-only override
+receipt, not re-frozen as a nineteenth numerical fixture. The strict
+Python owner 'tools/worldgen_26_2_stock_final_density_nineteenth_layer.py'
+pins previous thirteenth-through-eighteenth original source-report
+SHAs, immutable thirteenth/sixteenth/seventeenth fixture SHAs,
+exact eighteenth 40-byte new-only fixture, official source ZIP/JAR
+and indexed method body IDs, original four seeds/XYZ, all-false
+source/cache/VAR-SEM/NoiseChunk/production gates. Full source-free
+JDK javac and adversarial genuine-old-parent/fake-source frames:
+'tools/tests/test_worldgen_26_2_stock_final_density_nineteenth_layer.py'.
+Finite candidate arithmetic telemetry does NOT admit Java all-input
+operation law and does not censor original mismatches.
+
+**Only AFTER green checks and merge of nineteenth source owner PR**
+run the SINGLE new original stock capture below, no 1–18 replay:
+
+    cd ~/Crucible
+    git switch main
+    git pull --ff-only
+    python3 tools/worldgen_26_2_stock_final_density_nineteenth_layer.py \
+      --source "$HOME/Documents/mc-source/mc-src.zip" \
+      --db .crucible/vanilla/atlas.sqlite \
+      --lock vanilla/vanilla.lock.toml \
+      --output /tmp/helve-26_2-final-nineteenth-layer-128.json
+
+Upload only new nineteenth source-free JSON (or bounded
+HELVE26_2_NINETEENTH_FAILURE|phase|ExceptionClass). The real source
+operation/children may NOT be guessed from the eighteenth Ap2 class.

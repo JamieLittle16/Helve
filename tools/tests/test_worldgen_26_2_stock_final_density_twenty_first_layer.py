@@ -76,7 +76,7 @@ class TwentyFirstOriginalMulOrAddSourceTransport(unittest.TestCase):
             "point_count_per_seed": 32,
             "sample_context": "DensityFunction$SinglePointContext",
             "original_stock_registry_used": True,
-            "new_twenty_first_actual_muloradd_child_observed": True,
+            "new_twenty_first_actual_nested_muloradd_child_observed": True,
             "source_text_included": False,
             "shapes": shapes,
             "vectors": vectors,

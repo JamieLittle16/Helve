@@ -1440,3 +1440,80 @@ run the SINGLE new original stock capture below, no 1–18 replay:
 Upload only new nineteenth source-free JSON (or bounded
 HELVE26_2_NINETEENTH_FAILURE|phase|ExceptionClass). The real source
 operation/children may NOT be guessed from the eighteenth Ap2 class.
+
+
+## Nineteenth actual Clamp-wrapped Ap2(ADD) original report and strict receipt (23 October 2026)
+
+**NINETEENTH ORIGINAL JVM CAPTURE COMPLETE. Never recapture layers 1–19.**
+The source-free original 26.2 stock RandomState report was received as
+`helve-26_2-final-nineteenth-layer-128.json`: **43,278 bytes**,
+SHA-256 **a79b4d191a42f3f264d5e44757aa75c56cdf5077258d36c967207b058695e1f1**.
+Four original seeds × 32 immutable coordinates, 128 original
+`DensityFunction$SinglePointContext` frames. The independent old parent
+is the original eighteenth **unclamped** Ap2-inner output reconstructed
+from seventeenth immutable RIGHT Clamp words and the two eighteenth
+genuinely new overshoot overrides (indices 18, 28).
+
+All four original JVM source-reflected concrete runtime shapes agree:
+eighteenth `Clamp[-1,+1]` wrapped child is
+`DensityFunctions$Ap2(ADD)`, whose **genuine immediate LEFT child**
+is `DensityFunctions$Ap2` and whose **genuine immediate RIGHT child**
+is `DensityFunctions$MulOrAdd`. No source topology was inferred from
+numeric equalities. The actual 256 **new** child IEEE-754 raw words
+(128 LEFT, 128 RIGHT) yield bit-exact floating-point ADD to the frozen
+old eighteenth raw parent in **128/128** original samples,
+mismatches **0**. RIGHT operand is strictly less than LEFT for
+**128/128**, ties **0**. The old parent exceeds +1 in the same two
+previously pinned eighteenth samples; no new clamp-parent numbers
+are duplicated. This is *bounded sample agreement only*.
+
+The two-new-child-only fixture is
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_nineteenth_clamp_ap2_add_children_128_rawbits.tsv`,
+**4,352 bytes**, SHA-256
+**77b5729bf8895a5b71b256b662643e87b2afa8fe0cc06caf7848787433fb48c4**.
+It contains ONLY `left_rawbits<TAB>right_rawbits`, with no copied
+old parent, XYZ, seed or source text. Strict accompanying Python owner:
+`tools/worldgen_26_2_stock_finaldensity_nineteenth_layer_fixture.py`;
+negative SHA/malformed/floating-point/old-parent mutation tests:
+`tools/tests/test_worldgen_26_2_stock_finaldensity_nineteenth_layer_fixture.py`.
+This module validates original private full-report SHA and byte count,
+the entire existing nineteenth source-owner provenance (previous reports,
+fixture identities, official ZIP/JAR and indexed method hashes),
+exact original concrete four shapes, all original bit anchors, arithmetic
+telemetry, and unmodified **FALSE** qualification and production gates.
+
+To verify the **already supplied** private nineteenth report (never
+recapture stock original layers 1–19):
+
+    python3 tools/worldgen_26_2_stock_finaldensity_nineteenth_layer_fixture.py \
+      --capture /tmp/helve-26_2-final-nineteenth-layer-128.json
+
+The native **test-only** `stock_finaldensity_eighth_layer_262.rs` stages
+a separate cold-validated 3-node `ExplicitAp2Add` on the two genuine
+nineteenth words; verifies 128 original eighteenth raw parents; computes
+genuine 18th Clamp (including both original +1 overshoots); and passes
+CALCULATED results through previously frozen genuine 17th ADD, 16th MIN,
+13th/12th MIN, eleventh MAX/MIN, tenth RangeChoice and ninth-layer
+partial root to the **128 original stock JVM finalDensity roots**. The
+largest separate hot stage remains 32 nodes. No runtime or production
+router graph has been introduced.
+
+**Still OPEN:** independent original Java method source review and
+VAR/SEM admission; general `Ap2.compute` law; `MulOrAdd` runtime and
+its actual child semantics; cache/Marker/NoiseChunk lifecycle; full
+router and seeded worldgen numeric parity; ordinary server chunk
+publication and production worldgen. All corresponding flags remain FALSE.
+
+**Next genuine source frontier is TWENTIETH, not recapture of
+nineteenth.** Follow only the genuine nineteenth `Ap2(ADD)` RIGHT
+`MulOrAdd` child first: reflect its actual runtime operation enum,
+constant parameter and immediate wrapped DensityFunction class from
+the original stock JVM, and capture its ONE genuine new wrapped-child
+IEEE word at each of the same original 4x32 coordinates. The old
+nineteenth RIGHT operand must be independently anchored to the new
+nineteenth two-column fixture; do not duplicate it. Preserve fail-closed
+source archive/official JAR/indexed-method provenance, fixed response
+size, exact source class/op assertions, malformed fake-source tests, all
+FALSE admission gates, and a distinct execution command only after the
+twentieth observer passes CI. Do not guess `MulOrAdd` variant or scalar
+from the previous negative numeric values.

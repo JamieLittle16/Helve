@@ -256,8 +256,8 @@ fn from_positional_candidate(
         .iter()
         .rposition(|a| *a != 0.0)
         .expect("the four scoped stock keys have a last nonzero octave");
-    let active_range = u32::try_from(last_active - first_active + 1)
-        .expect("the stock octave span is bounded");
+    let active_range =
+        u32::try_from(last_active - first_active + 1).expect("the stock octave span is bounded");
     let value_factor = (1.0 / 6.0) / (0.1 * (1.0 + 1.0 / f64::from(active_range)));
 
     RegisteredNormalObserved262::from_observed_parts(first, second, value_factor)

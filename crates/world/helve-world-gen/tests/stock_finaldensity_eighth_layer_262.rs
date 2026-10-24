@@ -10,7 +10,11 @@
 //! Original seventh 30-node regression is retained; new 32-node candidate stays within the hard bound.
 //! Deeper left Ap2 operands are independently source-owned, but the right `MulOrAdd` and actual `Noise` remain JVM-fed.
 
+use helve_world_gen::density_noise_direct_262::DirectNoiseScale262;
 use helve_world_gen::density_primitives_262::DensityPrimitive262 as Primitive;
+use helve_world_gen::seeded_registered_noise_262::{
+    StockRegisteredNoiseKey262, StockWorldSeededNoiseSet262,
+};
 use helve_world_gen::stock_density_program_262::{
     StockDensityNode262 as Node, StockDensityProgram262 as Program, StockMulOrAddOp262 as Op,
 };
@@ -1952,11 +1956,31 @@ fn twenty_first_real_noise_leaf_native_mul_matches_128_frozen_twentieth_inner_va
     }
 }
 
-#[test]
-fn twenty_first_actual_noise_leaf_mul_then_all_previous_to_128_original_roots() {
+// Keep the cold-only terminal ninth/root comparison separate from the
+// already long genuine upstream source-owned chain; no HOT graph growth.
+fn check_native_staged_ninth_root(
+    row: usize,
+    y: i32,
+    choice: u64,
+    expected: (u64, [u64; 7], [u64; 4], [u64; 6], u64),
+) {
+    let (original_choice, ninth_new, sixth, third, original_root) = expected;
+    assert_eq!(choice, original_choice, "original ninth choice row {row}");
+    let actual = ninth_partial_program(choice, ninth_new, sixth, third)
+        .sample_block(0, y, 0)
+        .to_bits();
+    assert_eq!(
+        actual, original_root,
+        "bounded original density root row {row}"
+    );
+}
+
+// Internal sample-only cold composition: all other original child values
+// retain independent frozen JVM source ownership and false admission gates.
+fn original_128_root_chain_with_selected_noise_leaf(new_noise: &[u64]) {
+    assert_eq!(new_noise.len(), 128, "only original 4x32 Noise leaf values");
     let rows = nineteenth_original_child_samples();
     let frozen_twentieth = twentieth_original_new_only_words();
-    let new_noise = twenty_first_original_noise_leaf_words();
     let mut complete = 0;
     let mut clipped = 0;
     for (
@@ -2038,13 +2062,11 @@ fn twenty_first_actual_noise_leaf_mul_then_all_previous_to_128_original_roots() 
         let choice = tenth_choice_stage([eleventh[0], inside, outside])
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(choice, old_ninth_choice);
-        let root = ninth_partial_program(choice, ninth_new, sixth, third)
-            .sample_block(0, y, 0)
-            .to_bits();
-        assert_eq!(
-            root, stock_root,
-            "21st true Noise leaf bounded finalDensity root {i}"
+        check_native_staged_ninth_root(
+            i,
+            y,
+            choice,
+            (old_ninth_choice, ninth_new, sixth, third, stock_root),
         );
         complete += 1;
     }
@@ -2053,4 +2075,78 @@ fn twenty_first_actual_noise_leaf_mul_then_all_previous_to_128_original_roots() 
     // Separate cold-validated 3, 3, 3, 5, 3, 3, 3, 3, 3, 3, 4, 32 HOT stages.
     // This is sample-only: no full router graph / original JVM all-input law,
     // cache/NoiseChunk lifecycle, native production or generation authority.
+}
+
+#[test]
+fn twenty_first_actual_noise_leaf_mul_then_all_previous_to_128_original_roots() {
+    let original_words = twenty_first_original_noise_leaf_words();
+    original_128_root_chain_with_selected_noise_leaf(&original_words);
+}
+
+// The coordinates are original immutable stock SinglePointContext inputs,
+// not fresh output oracle words. The same tuples are independently guarded
+// by the actual 21st and 23rd stock captures.
+const SPAGHETTI_SEEDS: [u64; 4] = [
+    0x0123_4567_89ab_cdef,
+    0x7fff_ffff_ffff_ffff,
+    0x8000_0000_0000_0001,
+    0xf0e1_d2c3_b4a5_9687,
+];
+const SPAGHETTI_ORIGINAL_XYZ: [(i32, i32, i32); 32] = [
+    (0, -64, 0),
+    (0, 0, 0),
+    (0, 63, 0),
+    (0, 64, 0),
+    (0, 65, 0),
+    (0, 128, 0),
+    (0, 192, 0),
+    (0, 255, 0),
+    (0, 320, 0),
+    (1, -63, -1),
+    (-1, -1, 1),
+    (15, 64, 15),
+    (16, 64, 16),
+    (-16, 63, -16),
+    (-17, 65, -17),
+    (31, 127, -31),
+    (32, 128, -32),
+    (128, 64, 128),
+    (128, 128, 128),
+    (-128, 128, -128),
+    (256, 255, -256),
+    (-256, 0, 256),
+    (1024, 64, -1024),
+    (-1025, 65, 1025),
+    (123_456, 73, -654_321),
+    (1_000_000, 96, 1_000_000),
+    (-1_000_000, 96, -1_000_000),
+    (33_554_431, 128, -33_554_432),
+    (-33_554_431, -63, 33_554_431),
+    (2_147_483_600, 255, -2_147_483_600),
+    (-2_147_483_600, -4096, 2_147_483_600),
+    (0, -65, 0),
+];
+
+#[test]
+fn independently_seeded_native_spaghetti_leaf_reaches_all_128_original_density_roots() {
+    let mut native = Vec::with_capacity(128);
+    for &seed in &SPAGHETTI_SEEDS {
+        let world = StockWorldSeededNoiseSet262::new_candidate(seed);
+        let leaf = world.density(
+            StockRegisteredNoiseKey262::Spaghetti3DThickness,
+            DirectNoiseScale262::Unit,
+        );
+        for &(x, y, z) in &SPAGHETTI_ORIGINAL_XYZ {
+            native.push(leaf.sample_block(x, y, z).to_bits());
+        }
+    }
+    let original = twenty_first_original_noise_leaf_words();
+    assert_eq!(
+        native, original,
+        "actual seed-derived spaghetti Noise leaf differs from immutable stock JVM"
+    );
+    // This explicitly replaces one injected 21st leaf with fully reconstructed
+    // world-seeded Rust Noise, then runs all prior bounded native parent stages
+    // to the original 128 roots. OTHER inputs are still frozen original values.
+    original_128_root_chain_with_selected_noise_leaf(&native);
 }

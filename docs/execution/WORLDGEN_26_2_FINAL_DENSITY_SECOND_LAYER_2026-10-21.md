@@ -1867,3 +1867,26 @@ then sequentially all original frozen parent stages to the 128 original
 leaf while preserving all other still-unresolved frozen leaves. Later
 unconnected graph inputs, real chunk-context marker caching, interpolation,
 blending and actual chunk publication must be independently qualified.
+
+### Further bounded native integration — 24 October, after #524
+
+PR #524 (merged `c865ec11036a6e65552bb5e7f547564937e7d298`)
+passed all seven CI workflows. Both debug and release independently reported:
+
+`test real_spaghetti_noise_seeded_native_matches_all_128_old_stock_jvm_leaf_words ... ok`
+
+and the combined-world/single-key cold-state equality test also passed.
+The fourth Noise key is genuinely seed-derived in the native Rust candidate,
+for exactly the tested original `spaghetti_3d_thickness` parameters/point
+range. No input/oracle table constructs its state.
+
+The next test-only integration *reuses* the entire separately verified
+21st-through-root series of bounded Rust stages without altering their
+operator, ordering, fixture or 32-node ceiling. A helper now accepts an
+independently supplied 128-word Noise leaf; the existing source-word
+regression and an additional native seed-derived 4×32 Noise input run
+exercise the same 128 stock `finalDensity` roots. It proves composition
+only for **this** source-owned branch and these finite samples: many sibling
+inputs remain old frozen JVM words, and the ordinary runtime's full
+`NoiseChunk` interpolation, caching, real worldseed-to-all-roots, source
+VAR/SEM and production authority remain explicitly **unqualified**.

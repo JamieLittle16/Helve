@@ -82,7 +82,7 @@ class OriginalTwentySeventhIntervalListTests(unittest.TestCase):
             owner.parse_output(self.frames(alter_old=True))
         for mutant in (
             lambda s: s.replace("3ff0000000000000", "not-hex", 1),
-            lambda s: s.replace(owner.CLASS + "DensityFunctions$Noise", "invalid class name", 1),
+            lambda s: s.replace(owner.CLASS + "Noise", "invalid class name", 1),
             lambda s: s.replace(owner.HEAD, "OTHER_FRAME", 1),
         ):
             with self.subTest(mutant=str(mutant)), self.assertRaises(owner.TwentySeventhLayerError):
@@ -120,7 +120,7 @@ class OriginalTwentySeventhIntervalListTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("javac"),"javac required")
     def test_source_free_complete_twenty_seventh_java_bridge_compiles(self):
-        o=probe
+        o=owner
         f=o.eighteenth.seventeenth.sixteenth.fifteenth.fourteenth.thirteenth.twelfth.eleventh.tenth.ninth.eighth.seventh.sixth.fifth
         sources=(
             f.fourth.third.second.final.roots.BASE_BRIDGE,

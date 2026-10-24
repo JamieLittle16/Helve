@@ -555,11 +555,13 @@ public final class HelveStockFinalDensityTwentyFifthLayer262 {
           stage(seedIndex,pointIndex,"inspect-first-original-Mapped");
           String firstTypeClass=enumClass(actualLeftLeft,"type");
           String firstKind=enumName(actualLeftLeft,"type");
-          mappedFirstInput=child(actualLeftLeft,density);
+          mappedFirstInput=HelveStockFinalDensityRootSemantics262.mappedInput(
+              actualLeftLeft,density);
           stage(seedIndex,pointIndex,"inspect-second-original-Mapped");
           String secondTypeClass=enumClass(actualLeftRight,"type");
           String secondKind=enumName(actualLeftRight,"type");
-          mappedSecondInput=child(actualLeftRight,density);
+          mappedSecondInput=HelveStockFinalDensityRootSemantics262.mappedInput(
+              actualLeftRight,density);
           if(!firstTypeClass.equals(LV+"DensityFunctions$Mapped$Type") ||
              !secondTypeClass.equals(LV+"DensityFunctions$Mapped$Type") ||
              !density.isInstance(mappedFirstInput) ||

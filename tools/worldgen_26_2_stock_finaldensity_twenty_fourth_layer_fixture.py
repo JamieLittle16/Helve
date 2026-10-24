@@ -98,12 +98,13 @@ def validate_original(path: Path) -> dict:
         ):
             raise TwentyFourthFixtureError("real 24th MAX/Mapped operation or coverage drift")
         rows = load()
+        old = original_parent.load()
         if len(report["vectors"]) != 128:
             raise TwentyFourthFixtureError("real 4x32 vector count changed")
         for i, row in enumerate(report["vectors"]):
             if tuple(row[field][2:] for field in owner.NEW_FIELDS) != rows[i]:
                 raise TwentyFourthFixtureError(f"new-only 24th stock source value drift {i}")
-            if row["old_nineteenth_left_bits"][2:] != original_parent.load()[i][0]:
+            if row["old_nineteenth_left_bits"][2:] != old[i][0]:
                 raise TwentyFourthFixtureError(f"old 19th source parent changed {i}")
         if any(report[gate] is not False for gate in owner.GATES):
             raise TwentyFourthFixtureError("unqualified stock source gate opened")

@@ -1956,6 +1956,22 @@ fn twenty_first_real_noise_leaf_native_mul_matches_128_frozen_twentieth_inner_va
     }
 }
 
+// Keep the cold-only terminal ninth/root comparison separate from the
+// already long genuine upstream source-owned chain; no HOT graph growth.
+fn check_native_staged_ninth_root(
+    row: usize,
+    y: i32,
+    choice: u64,
+    expected: (u64, [u64; 7], [u64; 4], [u64; 6], u64),
+) {
+    let (original_choice, ninth_new, sixth, third, original_root) = expected;
+    assert_eq!(choice, original_choice, "original ninth choice row {row}");
+    let actual = ninth_partial_program(choice, ninth_new, sixth, third)
+        .sample_block(0, y, 0)
+        .to_bits();
+    assert_eq!(actual, original_root, "bounded original density root row {row}");
+}
+
 // Internal sample-only cold composition: all other original child values
 // retain independent frozen JVM source ownership and false admission gates.
 fn original_128_root_chain_with_selected_noise_leaf(new_noise: &[u64]) {
@@ -2043,13 +2059,11 @@ fn original_128_root_chain_with_selected_noise_leaf(new_noise: &[u64]) {
         let choice = tenth_choice_stage([eleventh[0], inside, outside])
             .sample_block(0, y, 0)
             .to_bits();
-        assert_eq!(choice, old_ninth_choice);
-        let root = ninth_partial_program(choice, ninth_new, sixth, third)
-            .sample_block(0, y, 0)
-            .to_bits();
-        assert_eq!(
-            root, stock_root,
-            "21st true Noise leaf bounded finalDensity root {i}"
+        check_native_staged_ninth_root(
+            i,
+            y,
+            choice,
+            (old_ninth_choice, ninth_new, sixth, third, stock_root),
         );
         complete += 1;
     }

@@ -82,7 +82,7 @@ def validate_shape(s: dict) -> None:
             raise TwentySixthLayerError("original field count/duplicates drift")
         for part in parts:
             if not re.fullmatch(
-                r"[a-zA-Z_][a-zA-Z_0-9]{0,63}~[a-zA-Z_][a-zA-Z_0-9.$\\[\\];]{0,150}",
+                r"[a-zA-Z_][a-zA-Z_0-9]{0,63}~[a-zA-Z_][a-zA-Z_0-9.$]{0,150}",
                 part,
             ):
                 raise TwentySixthLayerError("actual original field signature malformed")

@@ -79,7 +79,10 @@ def validate_shape(shape: dict) -> None:
         raise TwentyThirdLayerError("original stock NoiseParameters frame fields moved")
     older = {k: shape[k] for k in previous.SHAPE_FIELDS}
     older["world_seed_bits"] = shape["world_seed_bits"]
-    previous.validate_shape(older)
+    try:
+        previous.validate_shape(older)
+    except previous.TwentySecondLayerError as exc:
+        raise TwentyThirdLayerError("prior original 22nd Noise shape drift") from exc
     if older != {**prior_structure.STRUCTURE, "world_seed_bits": shape["world_seed_bits"]}:
         raise TwentyThirdLayerError("source-owned twenty-second original Noise identity/scales moved")
     try:

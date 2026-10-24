@@ -77,3 +77,76 @@ ancestry. Freeze **new-only** IEEE words and reuse old 19th parent bits.
 All full-router, source all-input, VAR/SEM, cache/NoiseChunk lifecycle,
 native production worldgen and chunk-publication authority gates remain
 **false** regardless of this bounded source capture.
+
+
+## 24 October — real twenty-fourth original JVM capture succeeded; new sibling evidence sealed
+
+The **private** original 26.2 twenty-fourth side-frontier report has
+**45,989 bytes**, SHA-256
+`3c92faf8f74d8d6f4f45fa39e6d07a5dbfe9dc6ba9e7406a8e78e0e3afbe545f`.
+Source archive `1e9bca3dff83cd83e7905f8810f1ec9899361fa2dc83fe893bb48beeb04df750`
+and official server
+`cdacdfb25898de5e4b4b0e5ddcc2722f77067e46605709c2d886c000ebb63ec5`
+both matched the prior pinned sources. All 4 original signed seeds × 32
+original fixed XYZ, original nineteenth report, original nineteenth
+two-new-only fixture and source-method pins matched.
+
+The actual nineteenth ADD left child is an **`Ap2(MAX)`** with genuine
+`DensityFunctions$Mapped` on **both** left and right. This is independent
+source-owned structure from the original JVM, *not* an inferred choice.
+Of 128 source points, **53** select the first `Mapped`, **75** select the
+second, with **0** ties and **0** bitwise max-to-original-parent mismatches.
+Both branches are required. The full private capture is **not** committed.
+
+The new-only exact IEEE-754 source fixture, with **256 newly observed child
+words / 128 two-word lines / 4,352 bytes**, is now
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_twenty_fourth_left_max_mapped_children_128_rawbits.tsv`;
+SHA-256 `dc44a67d9ce942d5591cdf02cef388dedabedbe4b85e5c9d27f729e4e42fe343`.
+The existing nineteenth original LEFT parent is retained solely in its
+previous independently sealed fixture, **not duplicated**.
+
+The source-free strict receipt
+`tools/worldgen_26_2_stock_finaldensity_twenty_fourth_layer_fixture.py`
+re-checks the original uploaded private report SHA/bytes (when supplied),
+all original four-seed schema/provenance, both new child streams, the old
+nineteenth parent anchor, the 53/75 winner split, and every false gate.
+The bounded Rust unit test
+`stock_finaldensity_twenty_fourth_left_max_262.rs` uses the pre-existing
+fixed-cap three-node `ExplicitAp2Max` path and verifies exact 128/128
+old-parent bitwise output, with neither new production admission nor
+a new operator implementation.
+
+### Next source-owned frontier — the two unknown Mapped transforms
+
+The genuine new 25th JVM observer
+`HelveStockFinalDensityTwentyFifthLayer262.java` and launcher
+`tools/worldgen_26_2_stock_final_density_twenty_fifth_layer.py`
+follow precisely the same original nineteenth ADD→LEFT MAX→both Mapped
+children. They source-observe **both actual `Mapped$Type` enum kinds**,
+**both sole immediate DensityFunction child classes**, and **two newly
+deep child IEEE words per original XYZ** (256 new in total). Their
+**two old Mapped parent words** are checked against the new-only
+SHA-pinned 24th fixture (256 old words reused, never recaptured as new).
+This is the next real graph boundary; do not assume it is ABS, SQUEEZE,
+Noise, Constant, or a particular child structure before the original
+private JVM proves it. Fixture and Python source-free synthetic tests
+cannot qualify an unseen original stock result. Production, full
+NoiseChunk/marker lifecycle, VAR/SEM and all-input source laws remain false.
+
+After this PR's CI succeeds and it is merged, run ONLY:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_twenty_fifth_layer.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --server-jar .crucible/vanilla/downloads/26.2-server.bin \
+  --output /tmp/helve-26_2-final-twenty-fifth-layer-128.json
+```
+
+Do NOT rerun source-owned original layers 1–24. Inspect the real
+25th original enum kinds and child classes before implementing
+transformation semantics or another native seeded density leaf.

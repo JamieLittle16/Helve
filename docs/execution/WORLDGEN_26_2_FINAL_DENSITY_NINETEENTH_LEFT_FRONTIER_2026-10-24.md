@@ -221,3 +221,74 @@ No earlier 1–25 original capture repetition. Full native input-free
 `finalDensity`, general `IntervalSelect` law, cache/NoiseChunk
 lifecycle, source VAR/SEM, and **production chunk authority remain
 false** regardless of finite fixture parity or future structural probe.
+
+## 24 October — original 26th IntervalSelect fields actually observed (new 27th frontier)
+
+The private original 26.2 twenty-sixth source-owned report succeeded:
+**39,040 bytes**, SHA-256
+`ada7937510777d744d612de17486981a485c1714863cffb2e98096dc069cfb44`.
+It observes **4×32 original signed seed/XYZ inputs** and **256/256**
+unchanged original twenty-fifth IntervalSelect outputs. It produces
+**ZERO new numeric IEEE outputs**, and no new numeric fixture is warranted.
+
+Crucially, both actual original `DensityFunctions$IntervalSelect` nodes
+have identical instance-declared fields across all four source worlds:
+
+```text
+functions  java.util.List
+input      net.minecraft.world.level.levelgen.DensityFunction
+thresholds it.unimi.dsi.fastutil.doubles.DoubleList
+```
+
+These are verified **instance field declarations only**, not evidence
+of a vanilla index selection algorithm, list size, individual threshold
+value, branch class or function evaluation order. Do not reinterpret
+this IntervalSelect as an earlier RangeChoice.
+
+The new strict receipt
+`tools/worldgen_26_2_stock_finaldensity_twenty_sixth_declarations_receipt.py`
+pins the exact private source report length/SHA, the six identical
+actual Java declarations, 256 inherited values from independently
+frozen 25th original fixture, unchanged source/JAR+method provenance
+and all source/VAR/SEM/cache/NoiseChunk/production false gates.
+The original private report is **not committed**.
+
+### Genuine twenty-seventh frontier — selector input, thresholds, functions
+
+The new original 26.2 Java observer and Python source-owned wrapper
+`HelveStockFinalDensityTwentySeventhLayer262.java` and
+`tools/worldgen_26_2_stock_final_density_twenty_seventh_layer.py`
+retrace the authentic
+nineteenth ADD→left MAX→ABS pair→both IntervalSelect instances.
+They reflect only the now-known genuine `input`, `thresholds`,
+and `functions` fields:
+
+- original selector `input` concrete DensityFunction class for both
+- original finite threshold IEEE-754 bits, bounded to 1..16 entries
+- original concrete function list classes, bounded to 1..16 entries
+- **2×128 genuinely new** original selector-input IEEE words
+- **2×128 old** genuine IntervalSelect outputs checked independently
+  against sealed 25th fixture
+
+There is **no assumed function-list indexing, selector threshold
+comparison law, or arbitrary-input parity**; those will be derived
+only after authentic 27th observation and pinned source-law review.
+The report and capture remain private until reviewed. No original
+source archive, Minecraft server, Atlas DB or private JSON is committed,
+and original captures **1–26 are not repeated**. All previously false
+production worldgen, full Native NoiseChunk, registry, VAR/SEM and
+general worldgen qualification gates stay false.
+
+After merging the independently CI-qualified PR, run:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_twenty_seventh_layer.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --server-jar .crucible/vanilla/downloads/26.2-server.bin \
+  --output /tmp/helve-26_2-final-twenty-seventh-layer-128.json
+```

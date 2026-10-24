@@ -29,8 +29,8 @@ class OriginalTwentySeventhIntervalListTests(unittest.TestCase):
         for group, seed in enumerate(owner.FINAL.SEEDS):
             lines.append("|".join((
                 owner.HEAD, str(group), seed,
-                typ, "0x0000000000000000,0x3ff0000000000000", const + "," + typ,
-                typ, "0xbff0000000000000", typ + "," + const,
+                typ, "0000000000000000,3ff0000000000000", const + "," + typ,
+                typ, "bff0000000000000", typ + "," + const,
             )))
             for j in range(32):
                 i = 32 * group + j
@@ -81,7 +81,7 @@ class OriginalTwentySeventhIntervalListTests(unittest.TestCase):
         with self.assertRaises(owner.TwentySeventhLayerError):
             owner.parse_output(self.frames(alter_old=True))
         for mutant in (
-            lambda s: s.replace("0x3ff0000000000000", "not-hex", 1),
+            lambda s: s.replace("3ff0000000000000", "not-hex", 1),
             lambda s: s.replace(owner.CLASS + "DensityFunctions$Noise", "invalid class name", 1),
             lambda s: s.replace(owner.HEAD, "OTHER_FRAME", 1),
         ):

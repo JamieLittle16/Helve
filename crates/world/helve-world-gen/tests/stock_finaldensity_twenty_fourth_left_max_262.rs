@@ -20,7 +20,10 @@ fn word(raw: &str) -> u64 {
             .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
     );
     let bits = u64::from_str_radix(raw, 16).expect("source-owned original IEEE word");
-    assert!(f64::from_bits(bits).is_finite(), "nonfinite original density");
+    assert!(
+        f64::from_bits(bits).is_finite(),
+        "nonfinite original density"
+    );
     bits
 }
 

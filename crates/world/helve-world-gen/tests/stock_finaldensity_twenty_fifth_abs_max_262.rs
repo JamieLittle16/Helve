@@ -28,7 +28,9 @@ fn parse_ieee(word: &str) -> u64 {
 }
 
 fn pair_words(line: &str) -> [u64; 2] {
-    let (first, second) = line.split_once('\t').expect("exact 2-column original fixture");
+    let (first, second) = line
+        .split_once('\t')
+        .expect("exact 2-column original fixture");
     assert!(!second.contains('\t'));
     [parse_ieee(first), parse_ieee(second)]
 }
@@ -45,7 +47,7 @@ fn original_bounded_abs_max(input: [u64; 2]) -> ([u64; 2], u64) {
     let [a, b] = input;
     let left = (f64::from_bits(a)).abs().to_bits();
     let right = (f64::from_bits(b)).abs().to_bits();
-    ( [left, right], program.sample_block(0, 0, 0).to_bits())
+    ([left, right], program.sample_block(0, 0, 0).to_bits())
 }
 
 #[test]
@@ -66,7 +68,10 @@ fn genuine_twenty_fifth_two_abs_interval_children_to_old_24th_and_19th_128() {
         second_negative += usize::from((input[1] >> 63) != 0);
         let (mapped_output, actual) = original_bounded_abs_max(input);
         assert_eq!(mapped_output, old_mapped, "25th original ABS pair row {i}");
-        assert_eq!(actual, old_root_left, "25th ABS pair -> original 19th MAX row {i}");
+        assert_eq!(
+            actual, old_root_left,
+            "25th ABS pair -> original 19th MAX row {i}"
+        );
         left_wins += usize::from(mapped_output[0] > mapped_output[1]);
         right_wins += usize::from(mapped_output[0] < mapped_output[1]);
     }

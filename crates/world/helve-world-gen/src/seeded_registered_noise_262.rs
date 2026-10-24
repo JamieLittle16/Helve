@@ -1,7 +1,7 @@
 //! Closed-world, COLD-only stock 26.2 world-seed constructor **candidate**.
 //!
-//! The five signed world seeds and three stock registry noise identities are
-//! independently observed from the actual 26.2 JVM. This version-specific
+//! The five earlier signed seeds and three registry identities, plus the
+//! original spaghetti Noise identity/parameters, are observed from the 26.2 JVM. This version-specific
 //! Xoroshiro positional chain must be checked against **all** those prepared
 //! states, not merely output samples. Its exact source/delegate-law VAR/SEM
 //! admission and use for production remain separate, explicitly closed gates.
@@ -17,7 +17,7 @@ use crate::registered_noise_state_262::{
     RegisteredNoiseDensityObserved262, RegisteredNormalObserved262, RegisteredPerlinObserved262,
 };
 
-/// Exact three built-in overworld noise keys examined on stock Java 26.2.
+/// Four specifically observed overworld noise keys on stock Java 26.2.
 /// This enum is deliberately not an arbitrary datapack registry abstraction.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum StockRegisteredNoiseKey262 {
@@ -27,6 +27,9 @@ pub enum StockRegisteredNoiseKey262 {
     Continentalness,
     /// `minecraft:erosion`: five slots, one absent.
     Erosion,
+    /// `minecraft:spaghetti_3d_thickness`: -8 octave, one active unit
+    /// amplitude observed from genuine finalDensity/RandomState on four seeds.
+    Spaghetti3DThickness,
 }
 
 impl StockRegisteredNoiseKey262 {
@@ -46,6 +49,13 @@ impl StockRegisteredNoiseKey262 {
                 -9,
                 &[1.0, 1.0, 0.0, 1.0, 1.0],
                 [0xd024_91e6_058f_6fd8, 0x4792_512c_94c1_7a80],
+            ),
+            Self::Spaghetti3DThickness => (
+                -8,
+                &[1.0],
+                // MD5("minecraft:spaghetti_3d_thickness"), big-endian halves.
+                // Key derivation, NOT copied stock JVM sample output.
+                [0x897e_1f20_ad2d_2b27, 0xf414_2f5a_58d1_d5ab],
             ),
         }
     }
@@ -207,8 +217,9 @@ fn construct_perlin(
 /// pattern without consulting any observed state or output fixture.
 ///
 /// Constructed tables are independent per seed/key and immutable thereafter.
-/// Exact admission scope: the three built-in keys only. This is a
-/// 15-state/1,440-vector-qualified candidate, not general worldgen permission.
+/// Exact candidate scope: the four observed built-in keys only. The first
+/// three retain 15-state/1,440-vector evidence; the fourth has an independent
+/// finalDensity 128-point Noise oracle, not production permission.
 ///
 /// # Panics
 /// Only if the compile-time-bounded built-in parameter tables are internally
@@ -240,30 +251,31 @@ fn from_positional_candidate(
     let first_active = amplitudes
         .iter()
         .position(|a| *a != 0.0)
-        .expect("all three stock keys have at least one nonzero octave");
+        .expect("the four scoped stock keys have at least one nonzero octave");
     let last_active = amplitudes
         .iter()
         .rposition(|a| *a != 0.0)
-        .expect("all three stock keys have a last nonzero octave");
+        .expect("the four scoped stock keys have a last nonzero octave");
     let active_range = u32::try_from(last_active - first_active + 1)
-        .expect("the stock octave span is bounded by nine");
+        .expect("the stock octave span is bounded");
     let value_factor = (1.0 / 6.0) / (0.1 * (1.0 + 1.0 / f64::from(active_range)));
 
     RegisteredNormalObserved262::from_observed_parts(first, second, value_factor)
         .expect("stock normal factor is finite")
 }
 
-/// Three independent stock-registered 26.2 numeric noise states owned once
+/// Four independent stock-registered 26.2 numeric noise states owned once
 /// per world seed. No extra world, registry, chunk or cache owner is introduced.
 #[derive(Clone, Debug)]
 pub struct StockWorldSeededNoiseSet262 {
     temperature: RegisteredNormalObserved262,
     continentalness: RegisteredNormalObserved262,
     erosion: RegisteredNormalObserved262,
+    spaghetti_3d_thickness: RegisteredNormalObserved262,
 }
 
 impl StockWorldSeededNoiseSet262 {
-    /// Prepare all three registered noise families from **one** world-root
+    /// Prepare four observed registered noise families from **one** world-root
     /// positional factory; key hashing and octave allocation are COLD only.
     #[must_use]
     pub fn new_candidate(seed_bits: u64) -> Self {
@@ -279,6 +291,10 @@ impl StockWorldSeededNoiseSet262 {
                 StockRegisteredNoiseKey262::Continentalness,
             ),
             erosion: from_positional_candidate(positional, StockRegisteredNoiseKey262::Erosion),
+            spaghetti_3d_thickness: from_positional_candidate(
+                positional,
+                StockRegisteredNoiseKey262::Spaghetti3DThickness,
+            ),
         }
     }
 
@@ -289,6 +305,7 @@ impl StockWorldSeededNoiseSet262 {
             StockRegisteredNoiseKey262::Temperature => &self.temperature,
             StockRegisteredNoiseKey262::Continentalness => &self.continentalness,
             StockRegisteredNoiseKey262::Erosion => &self.erosion,
+            StockRegisteredNoiseKey262::Spaghetti3DThickness => &self.spaghetti_3d_thickness,
         }
     }
 
@@ -304,6 +321,7 @@ impl StockWorldSeededNoiseSet262 {
             StockRegisteredNoiseKey262::Temperature => &self.temperature,
             StockRegisteredNoiseKey262::Continentalness => &self.continentalness,
             StockRegisteredNoiseKey262::Erosion => &self.erosion,
+            StockRegisteredNoiseKey262::Spaghetti3DThickness => &self.spaghetti_3d_thickness,
         };
         RegisteredNoiseDensityObserved262::new(state, scale)
     }

@@ -150,3 +150,74 @@ python3 tools/worldgen_26_2_stock_final_density_twenty_fifth_layer.py \
 Do NOT rerun source-owned original layers 1–24. Inspect the real
 25th original enum kinds and child classes before implementing
 transformation semantics or another native seeded density leaf.
+
+## 24 October — original 25th ABS/IntervalSelect input capture verified
+
+The original Java 26.2 **25th side frontier** capture was successful.
+Private original JSON **52,861 bytes**; SHA-256
+`ae0ea421f3d0643f28ba07c8f1e2d5767a1ad5291c313cabbfebd6378447db50`.
+All original source/JAR hashes, previous 24th report/fixture SHA,
+4 signed seed×32 genuine XYZ, source method identities and false gates
+match their respective frozen evidence.
+
+The two immediate children of 24th `MAX(Mapped, Mapped)` are genuinely
+**`Mapped(type=ABS, input=IntervalSelect)`** and
+**`Mapped(type=ABS, input=IntervalSelect)`** for all four original
+world seeds. The originally captured 25th outputs establish **256/256
+exact IEEE ABS-parent matches** to the independently sealed 24th Mapped
+values. First IntervalSelect input is negative at 65/128 points;
+second negative at 66/128. Neither is provably redundant, nor is
+`IntervalSelect`'s selector/branch structure yet known.
+
+Only 256 NEW actual IntervalSelect input IEEE words are committed:
+`crates/world/helve-world-gen/tests/data/stock_finaldensity_twenty_fifth_two_interval_inputs_128_rawbits.tsv`
+(4,352 bytes, SHA-256
+`4ac7d5ca7e89bfc4b962651ec829a2a8f39b94dbb38126a9a8d2da05eca40c41`).
+Old Mapped outputs remain only in the separately frozen 24th TSV;
+older 19th parent words also remain separately sealed.
+
+A new strict source-free receipt
+`tools/worldgen_26_2_stock_finaldensity_twenty_fifth_layer_fixture.py`
+checks the 25th original private report's exact hash, original shape,
+all old/new numeric bytes, two 65/66 sign witnesses, original source
+gates and full ancestry (when original capture is locally supplied).
+A bounded Rust test in
+`stock_finaldensity_twenty_fifth_abs_max_262.rs` feeds BOTH
+actual underlying 25th IntervalSelect inputs into two existing
+`CandidateAbs` operators followed by `ExplicitAp2Max`, testing
+the 256 independently frozen 24th Mapped parents and the 128 frozen
+19th left-parent roots. It does not claim native IntervalSelect
+input evaluation; source words still supply those leaves.
+
+### Next original source-owned *twenty-sixth* frontier
+
+`HelveStockFinalDensityTwentySixthLayer262.java` follows the SAME
+real nineteenth ADD→LEFT MAX→two ABS→two genuine IntervalSelect nodes.
+Unlike an unsafe presumed `RangeChoice` implementation, this observer
+**does not guess IntervalSelect's input/inside/outside parameters**.
+It records sorted, bounded instance-declared field names and Java types
+for each original IntervalSelect. It separately recomputes the two
+OLD, independently frozen 25th IntervalSelect output numeric anchors.
+No new numeric words are collected by the 26th observer and no actual
+selector bounds/semantics have been admitted. Once original 26th class
+field shape is known, a focused 27th probe can reflect only observed
+fields and their authentic numeric values.
+
+After this PR is green and merged, run ONLY:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_twenty_sixth_layer.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --server-jar .crucible/vanilla/downloads/26.2-server.bin \
+  --output /tmp/helve-26_2-final-twenty-sixth-layer-128.json
+```
+
+No earlier 1–25 original capture repetition. Full native input-free
+`finalDensity`, general `IntervalSelect` law, cache/NoiseChunk
+lifecycle, source VAR/SEM, and **production chunk authority remain
+false** regardless of finite fixture parity or future structural probe.

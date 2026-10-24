@@ -24,8 +24,8 @@ class OriginalTwentySeventhIntervalListTests(unittest.TestCase):
     def frames(self, *, alter_old: bool = False) -> str:
         old = owner.prior_25.load()
         lines = ["non-source stderr transport"]
-        typ = owner.CLASS + "DensityFunctions$Noise"
-        const = owner.CLASS + "DensityFunctions$Constant"
+        typ = owner.CLASS + "Noise"
+        const = owner.CLASS + "Constant"
         for group, seed in enumerate(owner.FINAL.SEEDS):
             lines.append("|".join((
                 owner.HEAD, str(group), seed,

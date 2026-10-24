@@ -1743,3 +1743,63 @@ Preserve all old fixed 128 JVM Noise bits and original attribution.
 This change does not by itself prove the private original server's key
 reflection; rerun **only** the current twenty-second observer after CI/merge.
 No source-law, all-input, registry binding or production gate opens.
+
+## 24 October 2026 — twenty-second original stock Noise leaf identified and sealed
+
+The real 22nd original stock Java JVM observer **succeeded** following the
+Java 26.2 `ResourceKey.identifier()` repair (PR #522, squash
+`d85f1d66aaa2489aaf20132f9c9c1fb032c8407d`). This is a terminal
+`DensityFunctions$Noise` leaf, not another mathematical subtree.
+
+The PRIVATE, source-free 22nd JVM JSON is **32,822 bytes** and SHA-256
+`8c2a9b2a2f5383899c7ade9931971ce9ea6757b3bcd1967aac9038df8fe5834c`.
+The exact same four source-pinned signed world seeds × 32 original XYZ were
+evaluated. Original source and official server SHA pins remain unchanged.
+
+All **four** actual independently source-observed shapes agree:
+- key `minecraft:spaghetti_3d_thickness`;
+- runtime `DensityFunctions$Noise`, wrapping an actual
+  `DensityFunction$NoiseHolder` holding a `Holder$Reference`;
+- live `synth.NormalNoise` runtime;
+- XZ and Y scales **1.0**, each exact `3ff0000000000000`.
+
+All **128** original 22nd old Noise words independently reconstitute the
+**existing** sealed 21st Noise fixture, 2,176 bytes and SHA-256
+`7519acc761730ba6aac2f1ac03d4b625d529127e258e23a8945dee7d25e193ed`.
+Thus, **zero new numeric leaf words** exist at layer 22: no duplicate TSV is
+warranted. The strict `tools/worldgen_26_2_stock_finaldensity_twenty_second_structure_receipt.py`
+pins the private report SHA/byte count, exact real key, observed holder/
+scale classes, all 128 reused old anchors and all false gates.
+
+### Next actual source frontier: registered spaghetti noise PARAMETERS, not another density child
+
+Existing Rust `StockWorldSeededNoiseSet262` source-owned candidates cover
+only `temperature`, `continentalness` and `erosion`. They must NOT
+be misused for `spaghetti_3d_thickness` or for all-input production generation.
+The real observed path determines the stock key and scales, but not that key's
+NoiseParameters amplitude array, first octave, seed/key positional derivation
+or full original NormalNoise state. The next minimal original 23rd JVM
+**structural** observer follows this same finalDensity NoiseHolder, demands
+the exact prior 22nd key/scales and records only genuine registered
+`NormalNoise$NoiseParameters` first octave + finite bounded amplitudes
+for the four actual seeds. It reuses all old 128 frozen Noise words as strict
+anchors and creates **no new XYZ sample vectors**. Use genuine runtime typed
+`Holder.value()` and `DoubleList` reflection, not inferred parameters.
+This is a source-owned fact collection, not seeded native parity.
+
+After this PR's CI passes and it is merged, execute only:
+
+```bash
+cd ~/Crucible
+git switch main
+git pull --ff-only
+python3 tools/worldgen_26_2_stock_final_density_twenty_third_layer.py \
+  --source "$HOME/Documents/mc-source/mc-src.zip" \
+  --db .crucible/vanilla/atlas.sqlite \
+  --lock vanilla/vanilla.lock.toml \
+  --server-jar .crucible/vanilla/downloads/26.2-server.bin \
+  --output /tmp/helve-26_2-final-twenty-third-layer-128.json
+```
+
+Do not repeat any of 1–22. All previously false
+VAR/SEM/source-lifecycle/NoiseChunk/full-router/production gates remain false.

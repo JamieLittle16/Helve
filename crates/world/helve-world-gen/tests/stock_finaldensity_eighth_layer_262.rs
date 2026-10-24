@@ -10,13 +10,13 @@
 //! Original seventh 30-node regression is retained; new 32-node candidate stays within the hard bound.
 //! Deeper left Ap2 operands are independently source-owned, but the right `MulOrAdd` and actual `Noise` remain JVM-fed.
 
-use helve_world_gen::density_primitives_262::DensityPrimitive262 as Primitive;
-use helve_world_gen::stock_density_program_262::{
-    StockDensityNode262 as Node, StockDensityProgram262 as Program, StockMulOrAddOp262 as Op,
-};
 use helve_world_gen::density_noise_direct_262::DirectNoiseScale262;
+use helve_world_gen::density_primitives_262::DensityPrimitive262 as Primitive;
 use helve_world_gen::seeded_registered_noise_262::{
     StockRegisteredNoiseKey262, StockWorldSeededNoiseSet262,
+};
+use helve_world_gen::stock_density_program_262::{
+    StockDensityNode262 as Node, StockDensityProgram262 as Program, StockMulOrAddOp262 as Op,
 };
 
 const SEVENTH: &str = include_str!("data/stock_finaldensity_seventh_layer_new_128_rawbits.tsv");
@@ -1969,7 +1969,10 @@ fn check_native_staged_ninth_root(
     let actual = ninth_partial_program(choice, ninth_new, sixth, third)
         .sample_block(0, y, 0)
         .to_bits();
-    assert_eq!(actual, original_root, "bounded original density root row {row}");
+    assert_eq!(
+        actual, original_root,
+        "bounded original density root row {row}"
+    );
 }
 
 // Internal sample-only cold composition: all other original child values

@@ -67,7 +67,7 @@ public final class HelveStockFinalDensityTwentySixthLayer262 {
       String name=f.getName();
       String decl=f.getType().getName();
       if(!name.matches("[a-zA-Z_][a-zA-Z_0-9]{0,63}") ||
-         !decl.matches("[a-zA-Z_][a-zA-Z_0-9.$\\[\\];]{0,150}"))
+         !decl.matches("[a-zA-Z_][a-zA-Z_0-9.$]{0,150}"))
         throw new IllegalStateException("IntervalSelect source field shape invalid");
       if(++count>12) throw new IllegalStateException("too many 26th fields");
       if(out.length()!=0) out.append(';');

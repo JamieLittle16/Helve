@@ -62,14 +62,27 @@ fn old_original_ieee_words() -> Vec<u64> {
     let mut words = Vec::with_capacity(128);
     let mut checksum = 0_u64;
     for (index, line) in lines.iter().enumerate() {
-        assert_eq!(line.len(), 16, "source-only fixture word {index} not exact 64-bit");
-        assert!(line.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()));
+        assert_eq!(
+            line.len(),
+            16,
+            "source-only fixture word {index} not exact 64-bit"
+        );
+        assert!(
+            line.bytes()
+                .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+        );
         let word = u64::from_str_radix(line, 16).expect("canonical source-only numeric");
-        assert!(f64::from_bits(word).is_finite(), "nonfinite old Noise output {index}");
+        assert!(
+            f64::from_bits(word).is_finite(),
+            "nonfinite old Noise output {index}"
+        );
         checksum = checksum.rotate_left(7) ^ word;
         words.push(word);
     }
-    assert_eq!(checksum, 0x1054_b79a_effb_8e6e, "old original Noise fixture changed");
+    assert_eq!(
+        checksum, 0x1054_b79a_effb_8e6e,
+        "old original Noise fixture changed"
+    );
     assert_eq!(words[0], 0x3fe4_8f11_c0c8_841c);
     assert_eq!(words[127], 0xbfe6_42d5_a54d_5628);
     words

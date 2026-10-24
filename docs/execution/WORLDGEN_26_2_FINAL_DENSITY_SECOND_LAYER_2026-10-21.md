@@ -1724,3 +1724,22 @@ unchanged and **false**.
 Existing original stock data 1–21 remains fully reusable. The only retry
 is the same twenty-second source-owned Noise structure command above, after
 this repair passes CI and merges.
+
+### 24 October — exact 26.2 `ResourceKey.identifier()` correction
+
+The first repaired original twenty-second observer advanced past the real
+`Holder$Reference` field extraction, then failed precisely at
+`twenty-second-layer-0-0-original-22nd-resourcekey-location` with
+`java.lang.NoSuchMethodException`. This isolates another *observer*
+API mismatch: older `ResourceKey.location()` / `ResourceLocation` does not
+match the stock 26.2 `ResourceKey.identifier()` / `Identifier` API.
+Minecraft-26.2-targeting integration code uses `ResourceKey.identifier()`,
+and Minecraft renamed `ResourceLocation` to `Identifier` before 26.2.
+The corrected, fail-closed reflection demands the exact zero-argument public
+`identifier()` accessor with return type
+`net.minecraft.resources.Identifier`, a nonnull typed result and an
+existing bounded `minecraft:` key shape; no invented key/field-name fallback.
+Preserve all old fixed 128 JVM Noise bits and original attribution.
+This change does not by itself prove the private original server's key
+reflection; rerun **only** the current twenty-second observer after CI/merge.
+No source-law, all-input, registry binding or production gate opens.

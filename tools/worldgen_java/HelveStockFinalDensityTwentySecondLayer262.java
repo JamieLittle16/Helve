@@ -621,13 +621,18 @@ public final class HelveStockFinalDensityTwentySecondLayer262 {
             Object keyObject=foundKey.get(noiseData);
             if(!resourceKey.isInstance(keyObject))
               throw new IllegalStateException("original stock Reference key not bound");
-            stage(seedIndex,pointIndex,"original-22nd-resourcekey-location");
-            Method getLocation=resourceKey.getMethod("location");
-            Object location=getLocation.invoke(keyObject);
-            if(location==null || !type(location).equals(
-                "net.minecraft.resources.ResourceLocation"))
-              throw new IllegalStateException("original ResourceKey.location() shape drift");
-            keyName=String.valueOf(location);
+            stage(seedIndex,pointIndex,"original-22nd-resourcekey-identifier");
+            // Stock Java 26.2 uses ResourceKey.identifier(), returning
+            // net.minecraft.resources.Identifier. Source-owned boundary only.
+            Class<?> identifierType=Class.forName("net.minecraft.resources.Identifier");
+            Method getIdentifier=resourceKey.getMethod("identifier");
+            if(getIdentifier.getParameterCount()!=0 ||
+               getIdentifier.getReturnType()!=identifierType)
+              throw new IllegalStateException("original ResourceKey.identifier() signature drift");
+            Object identifier=getIdentifier.invoke(keyObject);
+            if(identifier==null || !identifierType.isInstance(identifier))
+              throw new IllegalStateException("original ResourceKey.identifier() value drift");
+            keyName=String.valueOf(identifier);
           } else {
             throw new IllegalStateException("original NoiseHolder storage is not Direct/Reference");
           }

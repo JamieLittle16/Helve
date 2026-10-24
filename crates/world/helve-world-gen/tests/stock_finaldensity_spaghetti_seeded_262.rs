@@ -1,9 +1,9 @@
-//! Genuine 26.2 finalDensity spaghetti_3d_thickness Noise leaf:
+//! Genuine 26.2 `finalDensity` `spaghetti_3d_thickness` Noise leaf:
 //! independently seed-derived Rust sampler versus original JVM 128 raw words.
 //! The old words are borrowed from the *unchanged* 21st source-only fixture,
 //! not replayed as constructor input and not duplicated in a new fixture.
-//! Scoped to four fixed signed world seeds, unit axes and SinglePointContext.
-//! No general all-input source law, NoiseChunk lifecycle, VAR/SEM or production.
+//! Scoped to four fixed signed world seeds, unit axes and `SinglePointContext`.
+//! No general all-input source law, `NoiseChunk` lifecycle, VAR/SEM or production.
 
 use helve_world_gen::density_noise_direct_262::DirectNoiseScale262;
 use helve_world_gen::seeded_registered_noise_262::{
@@ -45,13 +45,13 @@ const POINTS: [(i32, i32, i32); 32] = [
     (-256, 0, 256),
     (1024, 64, -1024),
     (-1025, 65, 1025),
-    (123456, 73, -654321),
-    (1000000, 96, 1000000),
-    (-1000000, 96, -1000000),
-    (33554431, 128, -33554432),
-    (-33554431, -63, 33554431),
-    (2147483600, 255, -2147483600),
-    (-2147483600, -4096, 2147483600),
+    (123_456, 73, -654_321),
+    (1_000_000, 96, 1_000_000),
+    (-1_000_000, 96, -1_000_000),
+    (33_554_431, 128, -33_554_432),
+    (-33_554_431, -63, 33_554_431),
+    (2_147_483_600, 255, -2_147_483_600),
+    (-2_147_483_600, -4096, 2_147_483_600),
     (0, -65, 0),
 ];
 

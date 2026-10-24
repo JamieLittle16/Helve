@@ -1,6 +1,6 @@
 //! Original 26.2 nineteenth LEFT MAX of two actual 25th Mapped(ABS) inputs.
-//! All 128 nodes feed genuinely newly captured *IntervalSelect* inputs into
-//! unchanged native CandidateAbs twice, then ExplicitAp2Max. Older 24th
+//! All 128 nodes feed genuinely newly captured *`IntervalSelect`* inputs into
+//! unchanged native `CandidateAbs` twice, then `ExplicitAp2Max`. Older 24th
 //! Mapped and 19th MAX parent outputs remain independent frozen expectations.
 //! This is bounded finite evidence, not complete IntervalSelect/lifecycle.
 

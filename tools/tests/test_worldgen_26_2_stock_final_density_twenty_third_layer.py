@@ -34,6 +34,9 @@ class OriginalTwentyThirdSpaghettiParametersTests(unittest.TestCase):
             report["shapes"], report["vectors"]
         )
         report.pop("noise_structure_candidate_telemetry")
+        # The old synthetic report only contains the 22nd gate family; an
+        # authentic 23rd report explicitly carries both new gates as FALSE.
+        report.update({gate: False for gate in owner.GATES})
         return report
 
     def frames(self) -> str:

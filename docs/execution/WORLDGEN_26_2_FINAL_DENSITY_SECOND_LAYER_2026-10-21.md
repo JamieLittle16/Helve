@@ -1803,3 +1803,67 @@ python3 tools/worldgen_26_2_stock_final_density_twenty_third_layer.py \
 
 Do not repeat any of 1–22. All previously false
 VAR/SEM/source-lifecycle/NoiseChunk/full-router/production gates remain false.
+
+## 24 October 2026 — real 23rd spaghetti NoiseParameters and native seed-derived parity candidate
+
+The *actual* original Java 26.2 `finalDensity` twenty-third JVM
+source-owned report succeeded: **33,486 bytes**, SHA-256
+`e3dde9db3a83e7cd16c126536475943728e73c11a4ddd44820a2cad4f35ffc05`.
+It followed the same real `minecraft:spaghetti_3d_thickness` NoiseHolder
+and `Holder$Reference` seen in the independent 22nd capture, and reflected
+genuine bound `NormalNoise$NoiseParameters`:
+
+- `firstOctave = -8` (decimal, no source-side generalization)
+- exactly one amplitude, raw IEEE-754 `3ff0000000000000` = **1.0**
+- XZ and Y scales each raw `3ff0000000000000` = **1.0**
+- same four signed stock world seeds, same 32 XYZ per seed, shape invariant
+- **128/128 exact old twenty-first Noise words**, frozen 2,176-byte fixture
+  SHA-256 `7519acc761730ba6aac2f1ac03d4b625d529127e258e23a8945dee7d25e193ed`
+- zero new density XYZ output values, no duplicate 21st numeric TSV.
+
+The receipt
+`tools/worldgen_26_2_stock_finaldensity_twenty_third_parameters_receipt.py`
+checks the *private* report byte/SHA, exact observed parameter tuple, all old
+numeric anchors, source provenance and all false gates. The uploaded private
+JSON is **not committed**, just its verifiable receipt.
+
+### New cold Rust candidate, independent of captured numeric sampler state
+
+The existing `StockRegisteredNoiseKey262` / `StockWorldSeededNoiseSet262`
+was independently qualified earlier for the three keys temperature,
+continentalness and erosion. It now adds the specifically observed fourth
+`Spaghetti3DThickness` key. The fully namespaced ASCII key name's RFC 1321
+MD5 digest is `897e1f20ad2d2b27f4142f5a58d1d5ab`, interpreted as
+two big-endian u64 name-salts. The authentic 23rd registered parameters
+are applied to the **unchanged** cold Xoroshiro positional fork,
+`NormalNoise`, `PerlinNoise` and `ImprovedNoise` candidate construction,
+with a single active octave at -8. The state is immutable, owned once per
+world, and borrowed in the HOT density leaf; no runtime registry/string hash,
+new per-sample allocations, or 32-node HOT DAG cap changes.
+
+`crates/world/helve-world-gen/tests/stock_finaldensity_spaghetti_seeded_262.rs`
+then independently constructs the Rust state for all **four original
+world seeds** and compares all **128** native raw f64 output words to the
+previously sealed 21st original JVM Noise values, including signed and
+large coordinate witnesses. Critically, sampled JVM outputs are *not*
+inputs to the constructor, and the prior 1,440-vector/576-heldout three-key
+regressions must remain green. Exact **128/128 native parity is qualified
+only if that new test passes CI**; the successful original JVM 23rd capture
+does not prove it independently.
+
+Actual `RandomState`/key binding source-law VAR/SEM, datapack generality,
+full `NoiseRouter`, `NoiseChunk` lifecycle/cache semantics, source-law
+all-input and **production worldgen** remain explicitly **false**. This is
+one authentic terminal Noise leaf in a much larger graph, not proof that
+the complete `finalDensity` is computed from seed alone. Do not repeat
+any original JVM layers 1–23.
+
+### Follow-up after native parity is bitwise verified
+
+If the new Rust 128/128 parity passes: connect this **qualified bounded**
+seed-derived value to the existing test-only 21st multiplication stage,
+then sequentially all original frozen parent stages to the 128 original
+`finalDensity` roots. This replaces one artificial injected Noise
+leaf while preserving all other still-unresolved frozen leaves. Later
+unconnected graph inputs, real chunk-context marker caching, interpolation,
+blending and actual chunk publication must be independently qualified.
